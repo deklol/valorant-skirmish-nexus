@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import RiotIdDialog from './RiotIdDialog';
 
 const RiotIdSetupManager = () => {
-  const { needsRiotIdSetup, user } = useAuth();
+  const { needsRiotIdSetup, user, refreshProfile } = useAuth();
   const [showDialog, setShowDialog] = useState(false);
 
   useEffect(() => {
@@ -16,8 +16,8 @@ const RiotIdSetupManager = () => {
 
   const handleComplete = async () => {
     setShowDialog(false);
-    // Force a profile refetch by triggering a re-render
-    window.location.reload();
+    // Refresh the profile to get updated data
+    await refreshProfile();
   };
 
   if (!user || !needsRiotIdSetup) {

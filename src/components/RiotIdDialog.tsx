@@ -69,23 +69,39 @@ const RiotIdDialog = ({ open, onOpenChange, onComplete }: RiotIdDialogProps) => 
 
       console.log('Riot ID updated successfully, calling scrape function...');
 
-      // Call edge function to scrape rank data
-      const { data: scrapeData, error: scrapeError } = await supabase.functions.invoke('scrape-rank', {
+      // Call edge function to scrape rank data with timeout
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout')), 30000)
+      );
+
+      const scrapePromise = supabase.functions.invoke('scrape-rank', {
         body: { riot_id: riotId, user_id: user.id }
       });
 
-      if (scrapeError) {
-        console.error('Rank scraping failed:', scrapeError);
-        // Don't block the user if scraping fails
+      try {
+        const { data: scrapeData, error: scrapeError } = await Promise.race([
+          scrapePromise,
+          timeoutPromise
+        ]) as any;
+
+        if (scrapeError) {
+          console.error('Rank scraping failed:', scrapeError);
+          toast({
+            title: "Profile Updated",
+            description: "Your Riot ID has been saved. Rank data may take a moment to update.",
+          });
+        } else {
+          console.log('Scrape result:', scrapeData);
+          toast({
+            title: "Profile Updated",
+            description: scrapeData?.message || "Your Riot ID has been saved and rank data updated successfully.",
+          });
+        }
+      } catch (timeoutError) {
+        console.warn('Scraping timed out, but Riot ID was saved');
         toast({
           title: "Profile Updated",
-          description: "Your Riot ID has been saved. Rank data may take a moment to update.",
-        });
-      } else {
-        console.log('Scrape result:', scrapeData);
-        toast({
-          title: "Profile Updated",
-          description: scrapeData?.message || "Your Riot ID has been saved and rank data updated successfully.",
+          description: "Your Riot ID has been saved. Rank data will be updated shortly.",
         });
       }
 
