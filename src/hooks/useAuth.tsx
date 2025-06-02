@@ -1,13 +1,14 @@
 
 import { useState, useEffect, createContext, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { User } from '@supabase/supabase-js';
+import { User, Session } from '@supabase/supabase-js';
 import type { Tables } from '@/integrations/supabase/types';
 
 type UserProfile = Tables<'users'>;
 
 interface AuthContextType {
   user: User | null;
+  session: Session | null;
   profile: UserProfile | null;
   loading: boolean;
   signOut: () => Promise<void>;
@@ -22,6 +23,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -78,51 +80,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     let mounted = true;
 
-    const initializeAuth = async () => {
-      try {
-        console.log('Initializing auth...');
-        
-        // Get current session
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('Error getting session:', error);
-        }
-
-        if (mounted) {
-          if (session?.user) {
-            console.log('Initial session found:', session.user.id);
-            setUser(session.user);
-            await fetchProfile(session.user.id);
-          } else {
-            console.log('No initial session found');
-            setUser(null);
-            setProfile(null);
-          }
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error('Error initializing auth:', error);
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    };
-
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state change:', event, session?.user?.id);
+      async (event, newSession) => {
+        console.log('Auth state change:', event, newSession?.user?.id);
         
         if (!mounted) return;
 
-        if (session?.user) {
-          setUser(session.user);
-          if (event === 'SIGNED_IN') {
-            await fetchProfile(session.user.id);
-          }
+        // Update session and user immediately
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+
+        if (newSession?.user) {
+          // Fetch profile for authenticated user
+          await fetchProfile(newSession.user.id);
         } else {
-          setUser(null);
+          // Clear profile for unauthenticated user
           setProfile(null);
         }
         
@@ -130,7 +103,37 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     );
 
-    initializeAuth();
+    // Get initial session
+    const getInitialSession = async () => {
+      try {
+        console.log('Getting initial session...');
+        const { data: { session: initialSession }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting initial session:', error);
+        }
+
+        if (mounted) {
+          setSession(initialSession);
+          setUser(initialSession?.user ?? null);
+          
+          if (initialSession?.user) {
+            await fetchProfile(initialSession.user.id);
+          } else {
+            setProfile(null);
+          }
+          
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('Error in getInitialSession:', error);
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    getInitialSession();
 
     return () => {
       mounted = false;
@@ -149,6 +152,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       // Clear state
       setUser(null);
+      setSession(null);
       setProfile(null);
       
       // Redirect to home
@@ -202,29 +206,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const isAdmin = profile?.role === 'admin';
-  const needsRiotIdSetup = user && profile && (
+  const needsRiotIdSetup = !!(user && profile && (
     !profile.riot_id || 
     !profile.riot_id_last_updated ||
     new Date(profile.riot_id_last_updated).getTime() < Date.now() - (30 * 24 * 60 * 60 * 1000)
-  );
+  ));
 
   console.log('Auth state:', { 
     hasUser: !!user, 
     hasProfile: !!profile, 
     loading, 
-    needsRiotIdSetup: !!needsRiotIdSetup 
+    needsRiotIdSetup 
   });
 
   return (
     <AuthContext.Provider value={{
       user,
+      session,
       profile,
       loading,
       signOut,
       signInWithEmail,
       signInWithDiscord,
       isAdmin,
-      needsRiotIdSetup: !!needsRiotIdSetup,
+      needsRiotIdSetup,
       refreshProfile,
     }}>
       {children}

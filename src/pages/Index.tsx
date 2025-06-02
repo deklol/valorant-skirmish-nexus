@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Trophy, Users, Calendar, Clock, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import Header from '@/components/Header';
+import RiotIdSetupManager from '@/components/RiotIdSetupManager';
 
 const Index = () => {
   // Mock data - will be replaced with real tournament data
@@ -44,6 +45,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
       <Header />
+      <RiotIdSetupManager />
       
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-16">

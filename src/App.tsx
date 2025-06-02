@@ -5,7 +5,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
-import RiotIdSetupManager from "@/components/RiotIdSetupManager";
 import Index from "./pages/Index";
 import Tournaments from "./pages/Tournaments";
 import Profile from "./pages/Profile";
@@ -18,6 +17,21 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+const AppContent = () => (
+  <Routes>
+    <Route path="/" element={<Index />} />
+    <Route path="/tournaments" element={<Tournaments />} />
+    <Route path="/brackets" element={<Brackets />} />
+    <Route path="/leaderboard" element={<Leaderboard />} />
+    <Route path="/archive" element={<Archive />} />
+    <Route path="/profile" element={<Profile />} />
+    <Route path="/login" element={<Login />} />
+    <Route path="/admin" element={<Admin />} />
+    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+    <Route path="*" element={<NotFound />} />
+  </Routes>
+);
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -25,19 +39,7 @@ const App = () => (
         <AuthProvider>
           <Toaster />
           <Sonner />
-          <RiotIdSetupManager />
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/tournaments" element={<Tournaments />} />
-            <Route path="/brackets" element={<Brackets />} />
-            <Route path="/leaderboard" element={<Leaderboard />} />
-            <Route path="/archive" element={<Archive />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/admin" element={<Admin />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <AppContent />
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
