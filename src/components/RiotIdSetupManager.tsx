@@ -14,9 +14,9 @@ const RiotIdSetupManager = () => {
     }
   }, [needsRiotIdSetup, user]);
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     setShowDialog(false);
-    // Refresh the page to update the profile data
+    // Force a profile refetch by triggering a re-render
     window.location.reload();
   };
 

@@ -40,6 +40,8 @@ const RiotIdDialog = ({ open, onOpenChange, onComplete }: RiotIdDialogProps) => 
     setLoading(true);
 
     try {
+      console.log('Updating Riot ID for user:', user?.id);
+      
       // Update user's riot_id and discord info
       const { error: updateError } = await supabase
         .from('users')
@@ -51,29 +53,53 @@ const RiotIdDialog = ({ open, onOpenChange, onComplete }: RiotIdDialogProps) => 
         })
         .eq('id', user?.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Update error:', updateError);
+        throw updateError;
+      }
 
-      // Call edge function to scrape rank data
-      const { error: scrapeError } = await supabase.functions.invoke('scrape-rank', {
+      console.log('Riot ID updated successfully, calling scrape function...');
+
+      // Call edge function to scrape rank data with timeout
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Scraping timeout')), 15000)
+      );
+
+      const scrapePromise = supabase.functions.invoke('scrape-rank', {
         body: { riot_id: riotId, user_id: user?.id }
       });
 
-      if (scrapeError) {
-        console.error('Rank scraping failed:', scrapeError);
-        // Don't block the user if scraping fails
+      try {
+        const { error: scrapeError } = await Promise.race([scrapePromise, timeoutPromise]);
+        
+        if (scrapeError) {
+          console.error('Rank scraping failed:', scrapeError);
+          // Don't block the user if scraping fails
+          toast({
+            title: "Profile Updated",
+            description: "Your Riot ID has been saved. Rank data may take a moment to update.",
+          });
+        } else {
+          toast({
+            title: "Profile Updated",
+            description: "Your Riot ID has been saved and rank data is being updated.",
+          });
+        }
+      } catch (timeoutError) {
+        console.error('Scraping timed out:', timeoutError);
+        toast({
+          title: "Profile Updated",
+          description: "Your Riot ID has been saved. Rank data may take a moment to update.",
+        });
       }
-
-      toast({
-        title: "Profile Updated",
-        description: "Your Riot ID has been saved and rank data is being updated.",
-      });
 
       onComplete();
       onOpenChange(false);
     } catch (error: any) {
+      console.error('Error updating profile:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to update profile",
+        description: error.message || "Failed to update profile. Please try again.",
         variant: "destructive",
       });
     } finally {

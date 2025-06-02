@@ -10,7 +10,7 @@ import RiotIdDialog from "@/components/RiotIdDialog";
 import { useAuth } from '@/hooks/useAuth';
 
 const Profile = () => {
-  const { user, profile } = useAuth();
+  const { user, profile, loading } = useAuth();
   const [showRiotIdDialog, setShowRiotIdDialog] = useState(false);
 
   // Mock tournament history - will be replaced with actual data from database
@@ -79,12 +79,40 @@ const Profile = () => {
     window.location.reload(); // Refresh to get updated data
   };
 
-  if (!user || !profile) {
+  // Show loading state
+  if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
         <Header />
         <div className="container mx-auto px-4 py-8 text-center">
           <p className="text-white">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show message if no user
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <Header />
+        <div className="container mx-auto px-4 py-8 text-center">
+          <p className="text-white">Please log in to view your profile.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show message if no profile (shouldn't happen normally)
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <Header />
+        <div className="container mx-auto px-4 py-8 text-center">
+          <p className="text-white">Profile not found. Please try refreshing the page.</p>
+          <Button onClick={() => window.location.reload()} className="mt-4">
+            Refresh
+          </Button>
         </div>
       </div>
     );
