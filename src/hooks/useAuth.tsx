@@ -1,4 +1,3 @@
-
 import { useState, useEffect, createContext, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
@@ -38,6 +37,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state change:', event, session?.user?.id);
         setUser(session?.user ?? null);
         if (session?.user) {
           await fetchProfile(session.user.id);
@@ -72,7 +72,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      console.log('Signing out...');
+      
+      // Clear local state first
+      setUser(null);
+      setProfile(null);
+      
+      // Sign out from Supabase
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error('Error signing out:', error);
+      }
+      
+      // Force reload to ensure clean state
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Error during sign out:', error);
+      // Force reload even if there's an error
+      window.location.href = '/';
+    }
   };
 
   const signInWithEmail = async (email: string, password: string) => {
