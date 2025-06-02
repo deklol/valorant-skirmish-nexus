@@ -14,6 +14,7 @@ interface AuthContextType {
   signInWithEmail: (email: string, password: string) => Promise<{ error: any }>;
   signInWithDiscord: () => Promise<{ error: any }>;
   isAdmin: boolean;
+  needsRiotIdSetup: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -94,6 +95,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const isAdmin = profile?.role === 'admin';
 
+  // Check if user needs to set up Riot ID (first time or every 30 days)
+  const needsRiotIdSetup = user && profile && (
+    !profile.riot_id || 
+    !profile.riot_id_last_updated ||
+    new Date(profile.riot_id_last_updated).getTime() < Date.now() - (30 * 24 * 60 * 60 * 1000)
+  );
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -103,6 +111,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       signInWithEmail,
       signInWithDiscord,
       isAdmin,
+      needsRiotIdSetup: !!needsRiotIdSetup,
     }}>
       {children}
     </AuthContext.Provider>

@@ -626,8 +626,10 @@ export type Database = {
           is_banned: boolean | null
           last_rank_update: string | null
           mvp_awards: number | null
+          peak_rank: string | null
           rank_points: number | null
           riot_id: string | null
+          riot_id_last_updated: string | null
           role: Database["public"]["Enums"]["user_role"] | null
           tournaments_played: number | null
           tournaments_won: number | null
@@ -644,8 +646,10 @@ export type Database = {
           is_banned?: boolean | null
           last_rank_update?: string | null
           mvp_awards?: number | null
+          peak_rank?: string | null
           rank_points?: number | null
           riot_id?: string | null
+          riot_id_last_updated?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
           tournaments_played?: number | null
           tournaments_won?: number | null
@@ -662,8 +666,10 @@ export type Database = {
           is_banned?: boolean | null
           last_rank_update?: string | null
           mvp_awards?: number | null
+          peak_rank?: string | null
           rank_points?: number | null
           riot_id?: string | null
+          riot_id_last_updated?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
           tournaments_played?: number | null
           tournaments_won?: number | null

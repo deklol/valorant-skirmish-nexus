@@ -1,25 +1,19 @@
 
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Trophy, Medal, Target, Calendar, Users, Crown } from "lucide-react";
+import { Trophy, Medal, Target, Calendar, Users, Crown, Edit } from "lucide-react";
 import Header from "@/components/Header";
+import RiotIdDialog from "@/components/RiotIdDialog";
+import { useAuth } from '@/hooks/useAuth';
 
 const Profile = () => {
-  // Mock user data - will be replaced with actual data from database
-  const user = {
-    discordUsername: "TestPlayer#1234",
-    riotId: "testplayer#lolt",
-    currentRank: "Diamond 2",
-    rankPoints: 170,
-    tournamentsPlayed: 8,
-    tournamentsWon: 2,
-    mvpAwards: 3,
-    joinDate: new Date("2024-03-15"),
-    avatarUrl: null
-  };
+  const { user, profile } = useAuth();
+  const [showRiotIdDialog, setShowRiotIdDialog] = useState(false);
 
+  // Mock tournament history - will be replaced with actual data from database
   const tournamentHistory = [
     {
       id: 1,
@@ -68,17 +62,33 @@ const Profile = () => {
   };
 
   const getRankColor = (rank: string) => {
-    if (rank.includes("Diamond")) return "text-blue-400";
-    if (rank.includes("Platinum")) return "text-green-400";
-    if (rank.includes("Gold")) return "text-yellow-400";
-    if (rank.includes("Silver")) return "text-slate-300";
-    if (rank.includes("Bronze")) return "text-orange-400";
-    if (rank.includes("Iron")) return "text-gray-400";
-    if (rank.includes("Ascendant")) return "text-purple-400";
-    if (rank.includes("Immortal")) return "text-red-400";
-    if (rank.includes("Radiant")) return "text-white";
+    if (rank?.includes("Diamond")) return "text-blue-400";
+    if (rank?.includes("Platinum")) return "text-green-400";
+    if (rank?.includes("Gold")) return "text-yellow-400";
+    if (rank?.includes("Silver")) return "text-slate-300";
+    if (rank?.includes("Bronze")) return "text-orange-400";
+    if (rank?.includes("Iron")) return "text-gray-400";
+    if (rank?.includes("Ascendant")) return "text-purple-400";
+    if (rank?.includes("Immortal")) return "text-red-400";
+    if (rank?.includes("Radiant")) return "text-white";
     return "text-slate-400";
   };
+
+  const handleRiotIdComplete = () => {
+    setShowRiotIdDialog(false);
+    window.location.reload(); // Refresh to get updated data
+  };
+
+  if (!user || !profile) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <Header />
+        <div className="container mx-auto px-4 py-8 text-center">
+          <p className="text-white">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
@@ -90,34 +100,55 @@ const Profile = () => {
           <CardContent className="p-8">
             <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
               <Avatar className="w-24 h-24">
-                <AvatarImage src={user.avatarUrl || ""} />
+                <AvatarImage src={user.user_metadata?.avatar_url || ""} />
                 <AvatarFallback className="bg-red-600 text-white text-2xl">
-                  {user.discordUsername[0]}
+                  {profile.discord_username?.[0] || user.email?.[0] || "U"}
                 </AvatarFallback>
               </Avatar>
               
               <div className="flex-1">
-                <h1 className="text-3xl font-bold text-white mb-2">{user.discordUsername}</h1>
-                <p className="text-slate-400 mb-4">Riot ID: {user.riotId}</p>
-                
-                <div className="flex flex-wrap items-center gap-4 mb-4">
+                <h1 className="text-3xl font-bold text-white mb-2">
+                  {profile.discord_username || "Unknown User"}
+                </h1>
+                <div className="space-y-2 mb-4">
                   <div className="flex items-center gap-2">
-                    <Target className="w-5 h-5 text-slate-400" />
-                    <span className={`font-semibold ${getRankColor(user.currentRank)}`}>
-                      {user.currentRank}
-                    </span>
-                    <span className="text-slate-400">({user.rankPoints} pts)</span>
+                    <span className="text-slate-400">Riot ID:</span>
+                    <span className="text-white">{profile.riot_id || "Not set"}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowRiotIdDialog(true)}
+                      className="text-slate-400 hover:text-white"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
                   </div>
                   
-                  <div className="flex items-center gap-2 text-slate-400">
-                    <Calendar className="w-4 h-4" />
-                    <span>Joined {user.joinDate.toLocaleDateString("en-GB", { month: "long", year: "numeric" })}</span>
+                  <div className="flex flex-wrap items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <Target className="w-5 h-5 text-slate-400" />
+                      <span className={`font-semibold ${getRankColor(profile.current_rank || "")}`}>
+                        {profile.current_rank || "Unranked"}
+                      </span>
+                      <span className="text-slate-400">({profile.rank_points || 0} pts)</span>
+                    </div>
+                    
+                    {profile.peak_rank && (
+                      <div className="flex items-center gap-2">
+                        <Crown className="w-4 h-4 text-yellow-500" />
+                        <span className="text-slate-400">Peak:</span>
+                        <span className={`font-semibold ${getRankColor(profile.peak_rank)}`}>
+                          {profile.peak_rank}
+                        </span>
+                      </div>
+                    )}
+                    
+                    <div className="flex items-center gap-2 text-slate-400">
+                      <Calendar className="w-4 h-4" />
+                      <span>Joined {new Date(profile.created_at || "").toLocaleDateString("en-GB", { month: "long", year: "numeric" })}</span>
+                    </div>
                   </div>
                 </div>
-                
-                <Button variant="outline" className="border-slate-600 text-white hover:bg-slate-700">
-                  Edit Profile
-                </Button>
               </div>
             </div>
           </CardContent>
@@ -136,18 +167,18 @@ const Profile = () => {
               <CardContent className="space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-slate-400">Tournaments Played</span>
-                  <span className="text-white font-semibold">{user.tournamentsPlayed}</span>
+                  <span className="text-white font-semibold">{profile.tournaments_played || 0}</span>
                 </div>
                 
                 <div className="flex justify-between items-center">
                   <span className="text-slate-400">Tournaments Won</span>
-                  <span className="text-yellow-400 font-semibold">{user.tournamentsWon}</span>
+                  <span className="text-yellow-400 font-semibold">{profile.tournaments_won || 0}</span>
                 </div>
                 
                 <div className="flex justify-between items-center">
                   <span className="text-slate-400">Win Rate</span>
                   <span className="text-green-400 font-semibold">
-                    {Math.round((user.tournamentsWon / user.tournamentsPlayed) * 100)}%
+                    {profile.tournaments_played ? Math.round(((profile.tournaments_won || 0) / profile.tournaments_played) * 100) : 0}%
                   </span>
                 </div>
                 
@@ -155,7 +186,7 @@ const Profile = () => {
                   <span className="text-slate-400">MVP Awards</span>
                   <span className="text-purple-400 font-semibold flex items-center gap-1">
                     <Crown className="w-4 h-4" />
-                    {user.mvpAwards}
+                    {profile.mvp_awards || 0}
                   </span>
                 </div>
               </CardContent>
@@ -202,6 +233,12 @@ const Profile = () => {
           </div>
         </div>
       </div>
+
+      <RiotIdDialog
+        open={showRiotIdDialog}
+        onOpenChange={setShowRiotIdDialog}
+        onComplete={handleRiotIdComplete}
+      />
     </div>
   );
 };
