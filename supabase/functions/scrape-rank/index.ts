@@ -29,15 +29,20 @@ serve(async (req) => {
 
     console.log(`Starting rank scrape for Riot ID: ${riot_id}, User ID: ${user_id}`);
 
-    // Format the Riot ID for URL (encode # as %2523)
-    const encodedRiotId = riot_id.replace('#', '%2523');
-    const trackerUrl = `https://tracker.gg/valorant/profile/riot/${encodedRiotId}/`;
+    // Properly encode the Riot ID for URL - handle Unicode characters and # symbol
+    // First encode the entire string to handle Unicode characters like ツ
+    const fullyEncodedRiotId = encodeURIComponent(riot_id);
+    // Then replace the encoded # (%23) with %2523 as tracker.gg expects
+    const trackerEncodedRiotId = fullyEncodedRiotId.replace(/%23/g, '%2523');
+    
+    const trackerUrl = `https://tracker.gg/valorant/profile/riot/${trackerEncodedRiotId}/overview`;
 
     console.log(`Fetching from URL: ${trackerUrl}`);
+    console.log(`Original Riot ID: ${riot_id} -> Encoded: ${trackerEncodedRiotId}`);
 
     // Fetch the tracker.gg page with timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
 
     try {
       const response = await fetch(trackerUrl, {
