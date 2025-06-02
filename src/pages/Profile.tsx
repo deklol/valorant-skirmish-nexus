@@ -4,18 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Trophy, Medal, Target, Calendar, Users, Crown, Edit, RefreshCw } from "lucide-react";
+import { Trophy, Medal, Target, Calendar, Users, Crown, Edit } from "lucide-react";
 import Header from "@/components/Header";
 import RiotIdDialog from "@/components/RiotIdDialog";
 import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 
 const Profile = () => {
-  const { user, profile, loading } = useAuth();
+  const { user, profile } = useAuth();
   const [showRiotIdDialog, setShowRiotIdDialog] = useState(false);
-  const [refreshingRank, setRefreshingRank] = useState(false);
-  const { toast } = useToast();
 
   // Mock tournament history - will be replaced with actual data from database
   const tournamentHistory = [
@@ -83,80 +79,12 @@ const Profile = () => {
     window.location.reload(); // Refresh to get updated data
   };
 
-  const handleRefreshRank = async () => {
-    if (!user?.id || !profile?.riot_id) {
-      toast({
-        title: "Error",
-        description: "No Riot ID found to refresh",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setRefreshingRank(true);
-
-    try {
-      const { data, error } = await supabase.functions.invoke('scrape-rank', {
-        body: { riot_id: profile.riot_id, user_id: user.id }
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      toast({
-        title: "Rank Updated",
-        description: data?.message || "Your rank has been refreshed successfully.",
-      });
-
-      // Refresh the page to show updated data
-      window.location.reload();
-    } catch (error: any) {
-      console.error('Error refreshing rank:', error);
-      toast({
-        title: "Error",
-        description: "Failed to refresh rank. Please try again later.",
-        variant: "destructive",
-      });
-    } finally {
-      setRefreshingRank(false);
-    }
-  };
-
-  // Show loading state
-  if (loading) {
+  if (!user || !profile) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
         <Header />
         <div className="container mx-auto px-4 py-8 text-center">
           <p className="text-white">Loading profile...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Show message if no user
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        <Header />
-        <div className="container mx-auto px-4 py-8 text-center">
-          <p className="text-white">Please log in to view your profile.</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Show message if no profile (shouldn't happen normally)
-  if (!profile) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        <Header />
-        <div className="container mx-auto px-4 py-8 text-center">
-          <p className="text-white">Profile not found. Please try refreshing the page.</p>
-          <Button onClick={() => window.location.reload()} className="mt-4">
-            Refresh
-          </Button>
         </div>
       </div>
     );
@@ -194,17 +122,6 @@ const Profile = () => {
                     >
                       <Edit className="w-4 h-4" />
                     </Button>
-                    {profile.riot_id && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleRefreshRank}
-                        disabled={refreshingRank}
-                        className="text-slate-400 hover:text-white"
-                      >
-                        <RefreshCw className={`w-4 h-4 ${refreshingRank ? 'animate-spin' : ''}`} />
-                      </Button>
-                    )}
                   </div>
                   
                   <div className="flex flex-wrap items-center gap-4">

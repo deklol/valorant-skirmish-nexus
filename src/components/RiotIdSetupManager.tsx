@@ -4,25 +4,23 @@ import { useAuth } from '@/hooks/useAuth';
 import RiotIdDialog from './RiotIdDialog';
 
 const RiotIdSetupManager = () => {
-  const { needsRiotIdSetup, user, loading } = useAuth();
+  const { needsRiotIdSetup, user } = useAuth();
   const [showDialog, setShowDialog] = useState(false);
 
   useEffect(() => {
-    // Only show dialog when not loading and user needs setup
-    if (!loading && needsRiotIdSetup && user) {
-      console.log('Showing Riot ID setup dialog');
+    // Show dialog when user needs Riot ID setup
+    if (needsRiotIdSetup && user) {
       setShowDialog(true);
-    } else {
-      setShowDialog(false);
     }
-  }, [needsRiotIdSetup, user, loading]);
+  }, [needsRiotIdSetup, user]);
 
   const handleComplete = () => {
-    console.log('Riot ID setup completed');
     setShowDialog(false);
+    // Refresh the page to update the profile data
+    window.location.reload();
   };
 
-  if (loading || !user || !needsRiotIdSetup) {
+  if (!user || !needsRiotIdSetup) {
     return null;
   }
 
