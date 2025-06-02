@@ -34,13 +34,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .eq('id', userId)
         .single();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+      if (error && error.code !== 'PGRST116') {
         console.error('Error fetching profile:', error);
-      } else if (data) {
+        return null;
+      }
+      
+      if (data) {
         console.log('Profile fetched successfully:', data);
         setProfile(data);
+        return data;
       } else {
-        // Create profile if it doesn't exist
         console.log('No profile found, creating one...');
         const { data: newProfile, error: createError } = await supabase
           .from('users')
@@ -53,13 +56,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         if (createError) {
           console.error('Error creating profile:', createError);
+          return null;
         } else {
           console.log('Profile created successfully:', newProfile);
           setProfile(newProfile);
+          return newProfile;
         }
       }
     } catch (error) {
       console.error('Error in fetchProfile:', error);
+      return null;
     }
   };
 
@@ -70,24 +76,52 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    console.log('Setting up auth state listener...');
-    
-    // Set up auth state listener first
+    let mounted = true;
+
+    const initializeAuth = async () => {
+      try {
+        console.log('Initializing auth...');
+        
+        // Get current session
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting session:', error);
+        }
+
+        if (mounted) {
+          if (session?.user) {
+            console.log('Initial session found:', session.user.id);
+            setUser(session.user);
+            await fetchProfile(session.user.id);
+          } else {
+            console.log('No initial session found');
+            setUser(null);
+            setProfile(null);
+          }
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state change:', event, session?.user?.id);
         
-        setLoading(true);
-        
+        if (!mounted) return;
+
         if (session?.user) {
-          console.log('User session found, setting user state');
           setUser(session.user);
-          // Use setTimeout to prevent potential deadlocks
-          setTimeout(() => {
-            fetchProfile(session.user.id);
-          }, 0);
+          if (event === 'SIGNED_IN') {
+            await fetchProfile(session.user.id);
+          }
         } else {
-          console.log('No session, clearing user state');
           setUser(null);
           setProfile(null);
         }
@@ -96,31 +130,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     );
 
-    // Get initial session
-    const getInitialSession = async () => {
-      try {
-        console.log('Getting initial session...');
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) {
-          console.error('Error getting session:', error);
-        } else if (session?.user) {
-          console.log('Initial session found:', session.user.id);
-          setUser(session.user);
-          await fetchProfile(session.user.id);
-        } else {
-          console.log('No initial session found');
-        }
-      } catch (error) {
-        console.error('Error in getInitialSession:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    getInitialSession();
+    initializeAuth();
 
     return () => {
-      console.log('Cleaning up auth state listener');
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
@@ -128,29 +141,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signOut = async () => {
     try {
       console.log('Signing out...');
-      
-      // Clear local state first
-      setUser(null);
-      setProfile(null);
-      
-      // Sign out from Supabase
       const { error } = await supabase.auth.signOut();
       
       if (error) {
         console.error('Error signing out:', error);
       }
       
-      // Force reload to ensure clean state
+      // Clear state
+      setUser(null);
+      setProfile(null);
+      
+      // Redirect to home
       window.location.href = '/';
     } catch (error) {
       console.error('Error during sign out:', error);
-      // Force reload even if there's an error
       window.location.href = '/';
     }
   };
 
   const signInWithEmail = async (email: string, password: string) => {
     try {
+      console.log('Attempting email login...');
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -191,15 +202,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const isAdmin = profile?.role === 'admin';
-
-  // Check if user needs to set up Riot ID (first time or every 30 days)
   const needsRiotIdSetup = user && profile && (
     !profile.riot_id || 
     !profile.riot_id_last_updated ||
     new Date(profile.riot_id_last_updated).getTime() < Date.now() - (30 * 24 * 60 * 60 * 1000)
   );
 
-  console.log('Auth context state:', { user: !!user, profile: !!profile, loading, needsRiotIdSetup: !!needsRiotIdSetup });
+  console.log('Auth state:', { 
+    hasUser: !!user, 
+    hasProfile: !!profile, 
+    loading, 
+    needsRiotIdSetup: !!needsRiotIdSetup 
+  });
 
   return (
     <AuthContext.Provider value={{
