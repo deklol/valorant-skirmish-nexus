@@ -12,6 +12,7 @@ interface AuthContextType {
   loading: boolean;
   signOut: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<{ error: any }>;
+  signInWithDiscord: () => Promise<{ error: any }>;
   isAdmin: boolean;
 }
 
@@ -81,6 +82,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return { error };
   };
 
+  const signInWithDiscord = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'discord',
+      options: {
+        redirectTo: `${window.location.origin}/`
+      }
+    });
+    return { error };
+  };
+
   const isAdmin = profile?.role === 'admin';
 
   return (
@@ -90,6 +101,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       loading,
       signOut,
       signInWithEmail,
+      signInWithDiscord,
       isAdmin,
     }}>
       {children}
