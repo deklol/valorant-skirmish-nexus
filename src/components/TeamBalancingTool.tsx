@@ -72,10 +72,22 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
 
       if (signupsError) throw signupsError;
 
-      // Get phantom players for this tournament - they're separate from users
+      // Get phantom players for this tournament and their user records
       const { data: phantomData, error: phantomError } = await supabase
         .from('phantom_players')
-        .select('*')
+        .select(`
+          id,
+          name,
+          weight_rating,
+          users!inner (
+            id,
+            discord_username,
+            riot_id,
+            current_rank,
+            weight_rating,
+            is_phantom
+          )
+        `)
         .eq('tournament_id', tournamentId);
 
       if (phantomError) throw phantomError;
@@ -118,16 +130,19 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
         })
         .filter(Boolean) as Player[];
 
-      // Process phantom players - they use their phantom_player ID since they're not in users table
-      const phantomPlayers: Player[] = phantomData?.map(phantom => ({
-        id: phantom.id, // Use phantom player ID directly
-        discord_username: phantom.name,
-        riot_id: phantom.name,
-        current_rank: 'Phantom',
-        weight_rating: phantom.weight_rating || getRankPoints('Phantom'),
-        is_phantom: true,
-        name: phantom.name
-      })) || [];
+      // Process phantom players - use their user records
+      const phantomPlayers: Player[] = phantomData?.map(phantom => {
+        const user = phantom.users;
+        return {
+          id: user.id, // Use the user ID for consistency
+          discord_username: phantom.name,
+          riot_id: phantom.name,
+          current_rank: 'Phantom',
+          weight_rating: phantom.weight_rating || getRankPoints('Phantom'),
+          is_phantom: true,
+          name: phantom.name
+        };
+      }) || [];
 
       const allPlayers = [...realPlayers, ...phantomPlayers];
 
@@ -405,35 +420,23 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
 
         if (teamError) throw teamError;
 
-        // Add team members - handle phantom players differently
-        const teamMembers = team.players.map((player, index) => {
-          if (player.is_phantom) {
-            // For phantom players, we need to create a user record first or use existing one
-            // This is a workaround since phantom players aren't in the users table
-            // We'll need to handle this case differently
-            console.warn('Cannot add phantom player to team_members - phantom players need user records');
-            return null;
-          }
-          
-          return {
-            team_id: teamData.id,
-            user_id: player.id,
-            is_captain: index === 0
-          };
-        }).filter(Boolean);
+        // Add team members - now phantom players have user records too
+        const teamMembers = team.players.map((player, index) => ({
+          team_id: teamData.id,
+          user_id: player.id, // This works for both real and phantom players now
+          is_captain: index === 0
+        }));
 
-        if (teamMembers.length > 0) {
-          const { error: membersError } = await supabase
-            .from('team_members')
-            .insert(teamMembers);
+        const { error: membersError } = await supabase
+          .from('team_members')
+          .insert(teamMembers);
 
-          if (membersError) throw membersError;
-        }
+        if (membersError) throw membersError;
       }
 
       toast({
         title: "Teams Saved",
-        description: "Team balancing has been saved successfully (phantom players excluded)",
+        description: "Team balancing has been saved successfully",
       });
 
       setOpen(false);
