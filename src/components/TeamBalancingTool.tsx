@@ -218,6 +218,19 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
     // Moving to a team
     else if (targetId.startsWith('team-')) {
       const teamId = targetId.replace('team-', '');
+      const targetTeam = teams.find(t => t.id === teamId);
+      
+      // Check if team is already full before allowing the move
+      if (targetTeam && targetTeam.players.length >= 5) {
+        toast({
+          title: "Team Full",
+          description: "Teams can have a maximum of 5 players",
+          variant: "destructive",
+        });
+        setActivePlayer(null);
+        return;
+      }
+      
       movePlayerToTeam(playerId, teamId);
     }
 
@@ -270,7 +283,7 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
     const targetTeam = teams.find(t => t.id === teamId);
     if (!targetTeam) return;
 
-    // Check if team is full (max 5 players)
+    // Double-check team capacity (this should already be caught in handleDragEnd, but keeping for safety)
     if (targetTeam.players.length >= 5) {
       toast({
         title: "Team Full",
