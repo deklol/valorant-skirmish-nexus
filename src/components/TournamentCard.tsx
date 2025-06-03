@@ -1,15 +1,16 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Users, Clock, Trophy, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 interface Tournament {
-  id: string; // Changed from number to string for UUID
+  id: string;
   name: string;
   currentSignups: number;
   maxPlayers: number;
@@ -26,8 +27,38 @@ interface TournamentCardProps {
 const TournamentCard = ({ tournament }: TournamentCardProps) => {
   const [isSigningUp, setIsSigningUp] = useState(false);
   const [isSignedUp, setIsSignedUp] = useState(false);
+  const [signupStatus, setSignupStatus] = useState<'not_signed' | 'main' | 'substitute'>('not_signed');
   const { user } = useAuth();
   const { toast } = useToast();
+
+  useEffect(() => {
+    checkSignupStatus();
+  }, [user, tournament.id]);
+
+  const checkSignupStatus = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('tournament_signups')
+        .select('is_substitute')
+        .eq('tournament_id', tournament.id)
+        .eq('user_id', user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error checking signup status:', error);
+        return;
+      }
+
+      if (data) {
+        setIsSignedUp(true);
+        setSignupStatus(data.is_substitute ? 'substitute' : 'main');
+      }
+    } catch (error) {
+      console.error('Error checking signup status:', error);
+    }
+  };
 
   const handleSignup = async () => {
     if (!user) {
@@ -47,16 +78,22 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
 
     setIsSigningUp(true);
     try {
+      // Check if tournament is full
+      const isFull = tournament.currentSignups >= tournament.maxPlayers;
+      const isSubstitute = isFull;
+
       console.log('Inserting tournament signup with:', {
-        tournament_id: tournament.id, // No need to convert - already a UUID string
-        user_id: user.id
+        tournament_id: tournament.id,
+        user_id: user.id,
+        is_substitute: isSubstitute
       });
 
       const { data, error } = await supabase
         .from('tournament_signups')
         .insert({
-          tournament_id: tournament.id, // Use directly as UUID string
+          tournament_id: tournament.id,
           user_id: user.id,
+          is_substitute: isSubstitute,
         })
         .select();
 
@@ -80,10 +117,19 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
       } else {
         console.log('Successfully signed up for tournament');
         setIsSignedUp(true);
-        toast({
-          title: "Success!",
-          description: "Successfully joined the tournament",
-        });
+        setSignupStatus(isSubstitute ? 'substitute' : 'main');
+        
+        if (isSubstitute) {
+          toast({
+            title: "Added to Waitlist",
+            description: "Tournament is full. You've been added as a substitute!",
+          });
+        } else {
+          toast({
+            title: "Success!",
+            description: "Successfully joined the tournament",
+          });
+        }
       }
     } catch (error) {
       console.error('Unexpected error during tournament signup:', error);
@@ -110,6 +156,17 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
     }
   };
 
+  const getSignupBadge = () => {
+    switch (signupStatus) {
+      case 'main':
+        return <Badge className="bg-green-500/20 text-green-400">Registered</Badge>;
+      case 'substitute':
+        return <Badge className="bg-yellow-500/20 text-yellow-400">Substitute</Badge>;
+      default:
+        return null;
+    }
+  };
+
   const formatDate = (date: Date) => {
     return date.toLocaleDateString("en-GB", {
       weekday: "short",
@@ -121,6 +178,7 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
   };
 
   const spotsRemaining = tournament.maxPlayers - tournament.currentSignups;
+  const isFull = spotsRemaining <= 0;
 
   return (
     <Card className="bg-slate-800 border-slate-700 hover:border-slate-600 transition-all duration-300 hover:shadow-xl hover:shadow-red-500/10">
@@ -133,6 +191,7 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
               <Badge variant="outline" className="border-slate-600 text-slate-300">
                 {tournament.format}
               </Badge>
+              {getSignupBadge()}
             </div>
           </div>
           <Trophy className="w-6 h-6 text-yellow-500" />
@@ -167,11 +226,14 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
           <div className="w-full bg-slate-700 rounded-full h-2">
             <div 
               className="bg-gradient-to-r from-red-500 to-orange-500 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${(tournament.currentSignups / tournament.maxPlayers) * 100}%` }}
+              style={{ width: `${Math.min((tournament.currentSignups / tournament.maxPlayers) * 100, 100)}%` }}
             />
           </div>
-          {spotsRemaining > 0 && (
+          {!isFull && spotsRemaining > 0 && (
             <p className="text-xs text-slate-400">{spotsRemaining} spots remaining</p>
+          )}
+          {isFull && (
+            <p className="text-xs text-yellow-400">Tournament Full - Join as Substitute</p>
           )}
         </div>
 
@@ -183,12 +245,17 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
               onClick={handleSignup}
               disabled={isSigningUp}
             >
-              {isSigningUp ? "Joining..." : "Join Tournament"}
+              {isSigningUp 
+                ? "Joining..." 
+                : isFull 
+                  ? "Join as Substitute" 
+                  : "Join Tournament"
+              }
             </Button>
           )}
           {tournament.status === "open" && isSignedUp && (
             <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white" disabled>
-              Joined!
+              {signupStatus === 'substitute' ? 'Substitute!' : 'Joined!'}
             </Button>
           )}
           {tournament.status !== "open" && (

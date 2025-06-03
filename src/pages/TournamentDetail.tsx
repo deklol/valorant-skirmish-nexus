@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
+import TournamentParticipants from "@/components/TournamentParticipants";
+import DiscordWebhookManager from "@/components/DiscordWebhookManager";
 
 interface TournamentDetail {
   id: string;
@@ -236,6 +237,9 @@ const TournamentDetail = () => {
             <TabsTrigger value="participants" className="text-white data-[state=active]:bg-red-600">Participants</TabsTrigger>
             <TabsTrigger value="teams" className="text-white data-[state=active]:bg-red-600">Teams</TabsTrigger>
             <TabsTrigger value="schedule" className="text-white data-[state=active]:bg-red-600">Schedule</TabsTrigger>
+            {isAdmin && (
+              <TabsTrigger value="admin" className="text-white data-[state=active]:bg-red-600">Admin</TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
@@ -279,30 +283,11 @@ const TournamentDetail = () => {
           </TabsContent>
 
           <TabsContent value="participants" className="space-y-4">
-            <Card className="bg-slate-800 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white">Registered Players ({signups.length})</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {signups.map((signup) => (
-                    <div key={signup.id} className="bg-slate-700 p-3 rounded-lg">
-                      <div className="text-white font-medium">{signup.users?.discord_username || 'Unknown'}</div>
-                      <div className="text-slate-400 text-sm">{signup.users?.riot_id || 'No Riot ID'}</div>
-                      <div className="text-slate-400 text-sm">{signup.users?.current_rank || 'Unranked'}</div>
-                      <div className="flex items-center gap-2 mt-2">
-                        {signup.is_checked_in && (
-                          <Badge className="bg-green-500/20 text-green-400">Checked In</Badge>
-                        )}
-                        {signup.is_substitute && (
-                          <Badge className="bg-yellow-500/20 text-yellow-400">Substitute</Badge>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            <TournamentParticipants 
+              tournamentId={tournament.id}
+              maxPlayers={tournament.max_players}
+              isAdmin={isAdmin}
+            />
           </TabsContent>
 
           <TabsContent value="teams" className="space-y-4">
@@ -356,6 +341,12 @@ const TournamentDetail = () => {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {isAdmin && (
+            <TabsContent value="admin" className="space-y-4">
+              <DiscordWebhookManager />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </div>
