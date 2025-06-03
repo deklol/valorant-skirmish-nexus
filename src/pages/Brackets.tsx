@@ -1,29 +1,71 @@
 
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Trophy, Users, Calendar, MapPin } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import Header from '@/components/Header';
 
+interface Tournament {
+  id: string;
+  name: string;
+  status: string;
+  max_teams: number;
+  match_format: string;
+  start_time: string;
+}
+
 const Brackets = () => {
-  // Mock tournament data - will be replaced with real data
-  const tournaments = [
-    {
-      id: 1,
-      name: "Weekly Skirmish #1",
-      status: "live",
-      teams: 8,
-      format: "BO1",
-      date: "Today",
-    },
-    {
-      id: 2,
-      name: "Monthly Championship",
-      status: "upcoming",
-      teams: 16,
-      format: "BO3",
-      date: "Next Week",
-    },
-  ];
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchTournaments = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('tournaments')
+          .select('*')
+          .in('status', ['live', 'completed'])
+          .order('start_time', { ascending: false });
+
+        if (error) throw error;
+
+        setTournaments(data || []);
+      } catch (error) {
+        console.error('Error fetching tournaments:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTournaments();
+  }, []);
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short"
+    });
+  };
+
+  const handleTournamentClick = (tournamentId: string) => {
+    navigate(`/bracket/${tournamentId}`);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <p className="text-white text-lg">Loading tournaments...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
@@ -36,7 +78,11 @@ const Brackets = () => {
 
         <div className="grid gap-6">
           {tournaments.map((tournament) => (
-            <Card key={tournament.id} className="bg-slate-800/90 border-slate-700 hover:bg-slate-800 transition-colors cursor-pointer">
+            <Card 
+              key={tournament.id} 
+              className="bg-slate-800/90 border-slate-700 hover:bg-slate-800 transition-colors cursor-pointer"
+              onClick={() => handleTournamentClick(tournament.id)}
+            >
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-xl text-white">{tournament.name}</CardTitle>
@@ -44,10 +90,12 @@ const Brackets = () => {
                     variant={tournament.status === 'live' ? 'destructive' : 'secondary'}
                     className={tournament.status === 'live' 
                       ? 'bg-red-600 text-white' 
-                      : 'bg-slate-600 text-slate-200'
+                      : tournament.status === 'completed'
+                        ? 'bg-green-600 text-white'
+                        : 'bg-slate-600 text-slate-200'
                     }
                   >
-                    {tournament.status === 'live' ? 'LIVE' : 'UPCOMING'}
+                    {tournament.status === 'live' ? 'LIVE' : tournament.status.toUpperCase()}
                   </Badge>
                 </div>
               </CardHeader>
@@ -55,15 +103,15 @@ const Brackets = () => {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
                   <div className="flex items-center gap-2 text-slate-300">
                     <Users className="w-4 h-4" />
-                    <span>{tournament.teams} Teams</span>
+                    <span>{tournament.max_teams} Teams</span>
                   </div>
                   <div className="flex items-center gap-2 text-slate-300">
                     <MapPin className="w-4 h-4" />
-                    <span>{tournament.format}</span>
+                    <span>{tournament.match_format}</span>
                   </div>
                   <div className="flex items-center gap-2 text-slate-300">
                     <Calendar className="w-4 h-4" />
-                    <span>{tournament.date}</span>
+                    <span>{formatDate(tournament.start_time)}</span>
                   </div>
                   <div className="text-indigo-400 hover:text-indigo-300 transition-colors">
                     View Bracket →

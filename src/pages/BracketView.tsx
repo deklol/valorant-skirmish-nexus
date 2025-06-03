@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,6 +31,7 @@ interface Tournament {
   status: string;
   bracket_type: string;
   match_format: string;
+  max_teams: number;
 }
 
 const BracketView = () => {
@@ -84,11 +84,31 @@ const BracketView = () => {
     fetchBracketData();
   }, [id]);
 
+  // Generate bracket structure based on max_teams
+  const generateBracketStructure = (maxTeams: number) => {
+    const rounds = Math.ceil(Math.log2(maxTeams));
+    const structure = [];
+    
+    for (let round = 1; round <= rounds; round++) {
+      const matchesInRound = Math.ceil(maxTeams / Math.pow(2, round));
+      structure.push({
+        round,
+        matchCount: matchesInRound,
+        name: getRoundName(round, rounds)
+      });
+    }
+    
+    return structure;
+  };
+
   const getMatchesByRound = (roundNumber: number) => {
     return matches.filter(match => match.round_number === roundNumber);
   };
 
   const getMaxRounds = () => {
+    if (tournament?.max_teams) {
+      return Math.ceil(Math.log2(tournament.max_teams));
+    }
     return Math.max(...matches.map(match => match.round_number), 0);
   };
 
@@ -156,6 +176,7 @@ const BracketView = () => {
   }
 
   const maxRounds = getMaxRounds();
+  const bracketStructure = generateBracketStructure(tournament.max_teams || 8);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
@@ -173,6 +194,9 @@ const BracketView = () => {
               <Badge variant="outline" className="border-slate-600 text-slate-300">
                 {tournament.match_format}
               </Badge>
+              <Badge variant="outline" className="border-slate-600 text-slate-300">
+                {tournament.max_teams} Teams Max
+              </Badge>
             </div>
           </div>
           
@@ -184,43 +208,38 @@ const BracketView = () => {
           )}
         </div>
 
-        {matches.length === 0 ? (
-          <Card className="bg-slate-800 border-slate-700">
-            <CardContent className="text-center py-12">
-              <Trophy className="w-16 h-16 mx-auto text-slate-400 mb-4" />
-              <p className="text-slate-400 text-lg">No bracket generated yet</p>
-              <p className="text-slate-500 mt-2">The tournament bracket will appear here once teams are balanced and matches are scheduled.</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-8">
-            {/* Bracket Grid */}
-            <div className="overflow-x-auto pb-4">
-              <div className="flex gap-8 min-w-max">
-                {Array.from({ length: maxRounds }, (_, roundIndex) => {
-                  const roundNumber = roundIndex + 1;
-                  const roundMatches = getMatchesByRound(roundNumber);
-                  
-                  return (
-                    <div key={roundNumber} className="flex flex-col space-y-6 min-w-[320px]">
-                      <h3 className="text-xl font-bold text-white text-center py-2 bg-slate-800 rounded-lg">
-                        {getRoundName(roundNumber, maxRounds)}
-                      </h3>
-                      
-                      <div className="space-y-4">
-                        {roundMatches.map((match) => (
-                          <Card key={match.id} className="bg-slate-800 border-slate-700 hover:border-slate-600 transition-colors">
+        <div className="space-y-8">
+          {/* Bracket Grid */}
+          <div className="overflow-x-auto pb-4">
+            <div className="flex gap-8 min-w-max justify-center">
+              {bracketStructure.map((roundInfo) => {
+                const roundMatches = getMatchesByRound(roundInfo.round);
+                
+                return (
+                  <div key={roundInfo.round} className="flex flex-col space-y-6 min-w-[320px]">
+                    <h3 className="text-xl font-bold text-white text-center py-2 bg-slate-800 rounded-lg">
+                      {roundInfo.name}
+                    </h3>
+                    
+                    <div className="space-y-4 flex flex-col justify-center" style={{ minHeight: '400px' }}>
+                      {Array.from({ length: roundInfo.matchCount }, (_, matchIndex) => {
+                        const existingMatch = roundMatches.find(m => m.match_number === matchIndex + 1);
+                        
+                        return (
+                          <Card key={`${roundInfo.round}-${matchIndex}`} className="bg-slate-800 border-slate-700 hover:border-slate-600 transition-colors">
                             <CardHeader className="pb-3">
                               <div className="flex items-center justify-between">
-                                <div className="text-sm text-slate-400">Match {match.match_number}</div>
+                                <div className="text-sm text-slate-400">Match {matchIndex + 1}</div>
                                 <div className="flex items-center gap-2">
-                                  {getStatusBadge(match.status)}
-                                  {match.status === "live" && tournament.match_format !== "BO1" && (
+                                  {existingMatch ? getStatusBadge(existingMatch.status) : (
+                                    <Badge className="bg-gray-500/20 text-gray-400">Pending</Badge>
+                                  )}
+                                  {existingMatch?.status === "live" && tournament.match_format !== "BO1" && (
                                     <Button
                                       size="sm"
                                       variant="outline"
                                       className="border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-white"
-                                      onClick={() => handleMapVeto(match.id)}
+                                      onClick={() => handleMapVeto(existingMatch.id)}
                                     >
                                       <Eye className="w-3 h-3 mr-1" />
                                       Maps
@@ -232,23 +251,23 @@ const BracketView = () => {
                             <CardContent className="space-y-3">
                               {/* Team 1 */}
                               <div className={`flex items-center justify-between p-3 rounded-lg transition-colors ${
-                                match.winner_id === match.team1_id 
+                                existingMatch?.winner_id === existingMatch?.team1_id 
                                   ? 'bg-green-500/20 border border-green-500/30' 
-                                  : match.status === 'completed' 
+                                  : existingMatch?.status === 'completed' 
                                     ? 'bg-slate-700/50' 
                                     : 'bg-slate-700'
                               }`}>
                                 <div className="flex items-center gap-2">
                                   <Users className="w-4 h-4 text-slate-400" />
                                   <span className="text-white font-medium">
-                                    {match.team1?.name || "TBD"}
+                                    {existingMatch?.team1?.name || "TBD"}
                                   </span>
-                                  {match.winner_id === match.team1_id && (
+                                  {existingMatch?.winner_id === existingMatch?.team1_id && (
                                     <Trophy className="w-4 h-4 text-yellow-500" />
                                   )}
                                 </div>
                                 <span className="text-white font-bold text-lg">
-                                  {match.score_team1}
+                                  {existingMatch?.score_team1 || 0}
                                 </span>
                               </div>
                               
@@ -259,23 +278,23 @@ const BracketView = () => {
                               
                               {/* Team 2 */}
                               <div className={`flex items-center justify-between p-3 rounded-lg transition-colors ${
-                                match.winner_id === match.team2_id 
+                                existingMatch?.winner_id === existingMatch?.team2_id 
                                   ? 'bg-green-500/20 border border-green-500/30' 
-                                  : match.status === 'completed' 
+                                  : existingMatch?.status === 'completed' 
                                     ? 'bg-slate-700/50' 
                                     : 'bg-slate-700'
                               }`}>
                                 <div className="flex items-center gap-2">
                                   <Users className="w-4 h-4 text-slate-400" />
                                   <span className="text-white font-medium">
-                                    {match.team2?.name || "TBD"}
+                                    {existingMatch?.team2?.name || "TBD"}
                                   </span>
-                                  {match.winner_id === match.team2_id && (
+                                  {existingMatch?.winner_id === existingMatch?.team2_id && (
                                     <Trophy className="w-4 h-4 text-yellow-500" />
                                   )}
                                 </div>
                                 <span className="text-white font-bold text-lg">
-                                  {match.score_team2}
+                                  {existingMatch?.score_team2 || 0}
                                 </span>
                               </div>
                               
@@ -283,9 +302,9 @@ const BracketView = () => {
                               <div className="flex items-center justify-between text-sm text-slate-400 pt-2 border-t border-slate-600">
                                 <div className="flex items-center gap-1">
                                   <Clock className="w-3 h-3" />
-                                  <span>{formatTime(match.scheduled_time)}</span>
+                                  <span>{existingMatch ? formatTime(existingMatch.scheduled_time) : "TBD"}</span>
                                 </div>
-                                {match.status === "live" && (
+                                {existingMatch?.status === "live" && (
                                   <div className="flex items-center gap-1">
                                     <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
                                     <span className="text-red-400">LIVE</span>
@@ -294,33 +313,33 @@ const BracketView = () => {
                               </div>
                             </CardContent>
                           </Card>
-                        ))}
-                      </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Champion */}
-            {tournament.status === "completed" && (
-              <Card className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-500/30">
-                <CardHeader>
-                  <CardTitle className="text-center text-white flex items-center justify-center gap-2">
-                    <Trophy className="w-6 h-6 text-yellow-500" />
-                    Tournament Champion
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="text-center">
-                  <div className="text-2xl font-bold text-yellow-500 mb-2">
-                    {matches.find(m => m.round_number === maxRounds)?.winner?.name || "TBD"}
                   </div>
-                  <p className="text-slate-300">Congratulations on winning {tournament.name}!</p>
-                </CardContent>
-              </Card>
-            )}
+                );
+              })}
+            </div>
           </div>
-        )}
+
+          {/* Champion */}
+          {tournament.status === "completed" && (
+            <Card className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-500/30">
+              <CardHeader>
+                <CardTitle className="text-center text-white flex items-center justify-center gap-2">
+                  <Trophy className="w-6 h-6 text-yellow-500" />
+                  Tournament Champion
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-center">
+                <div className="text-2xl font-bold text-yellow-500 mb-2">
+                  {matches.find(m => m.round_number === maxRounds)?.winner?.name || "TBD"}
+                </div>
+                <p className="text-slate-300">Congratulations on winning {tournament.name}!</p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
 
       {/* Map Veto Dialog */}

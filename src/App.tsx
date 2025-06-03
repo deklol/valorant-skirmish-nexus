@@ -8,6 +8,8 @@ import { AuthProvider } from "@/hooks/useAuth";
 import RiotIdSetupManager from "@/components/RiotIdSetupManager";
 import Index from "./pages/Index";
 import Tournaments from "./pages/Tournaments";
+import TournamentDetail from "./pages/TournamentDetail";
+import BracketView from "./pages/BracketView";
 import Profile from "./pages/Profile";
 import Login from "./pages/Login";
 import Admin from "./pages/Admin";
@@ -29,6 +31,8 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/tournaments" element={<Tournaments />} />
+            <Route path="/tournament/:id" element={<TournamentDetail />} />
+            <Route path="/bracket/:id" element={<BracketView />} />
             <Route path="/brackets" element={<Brackets />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/archive" element={<Archive />} />
