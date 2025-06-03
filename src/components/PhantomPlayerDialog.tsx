@@ -35,10 +35,10 @@ const PhantomPlayerDialog = ({ tournamentId, onPhantomAdded }: PhantomPlayerDial
     setLoading(true);
 
     try {
+      // Create the phantom player (this will automatically create a user record via trigger)
       const { error } = await supabase
         .from('phantom_players')
         .insert({
-          tournament_id: tournamentId,
           name: name.trim(),
           weight_rating: rating
         });

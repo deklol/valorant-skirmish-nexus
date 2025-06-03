@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -54,7 +55,7 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
     try {
       console.log('Fetching players and teams for tournament:', tournamentId);
       
-      // Get signed up players (assume they're available for balancing regardless of check-in status)
+      // Get signed up players
       const { data: signupsData, error: signupsError } = await supabase
         .from('tournament_signups')
         .select(`
@@ -72,17 +73,24 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
 
       if (signupsError) throw signupsError;
 
-      console.log('Signups data:', signupsData);
+      // Get phantom players that have user records
+      const { data: phantomUsersData, error: phantomUsersError } = await supabase
+        .from('users')
+        .select(`
+          id,
+          discord_username,
+          riot_id,
+          current_rank,
+          weight_rating,
+          is_phantom,
+          phantom_players!inner (
+            id,
+            name
+          )
+        `)
+        .eq('is_phantom', true);
 
-      // Get phantom players
-      const { data: phantomData, error: phantomError } = await supabase
-        .from('phantom_players')
-        .select('*')
-        .eq('tournament_id', tournamentId);
-
-      if (phantomError) throw phantomError;
-
-      console.log('Phantom data:', phantomData);
+      if (phantomUsersError) throw phantomUsersError;
 
       // Get existing teams
       const { data: teamsData, error: teamsError } = await supabase
@@ -106,41 +114,34 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
 
       if (teamsError) throw teamsError;
 
-      console.log('Teams data:', teamsData);
-
-      // Process real players - fix the data access
+      // Process real players
       const realPlayers: Player[] = signupsData
         ?.map(signup => {
           const user = signup.users;
-          if (!user) return null;
+          if (!user || user.is_phantom) return null;
           return {
             id: user.id,
             discord_username: user.discord_username || '',
             riot_id: user.riot_id || '',
             current_rank: user.current_rank || 'Unranked',
             weight_rating: user.weight_rating || getRankPoints('Unranked'),
-            is_phantom: user.is_phantom || false
+            is_phantom: false
           };
         })
         .filter(Boolean) as Player[];
 
-      console.log('Processed real players:', realPlayers);
-
       // Process phantom players
-      const phantomPlayers: Player[] = phantomData?.map(phantom => ({
-        id: phantom.id,
-        discord_username: phantom.name,
-        riot_id: phantom.name,
+      const phantomPlayers: Player[] = phantomUsersData?.map(user => ({
+        id: user.id,
+        discord_username: user.discord_username || user.phantom_players[0]?.name || '',
+        riot_id: user.riot_id || user.phantom_players[0]?.name || '',
         current_rank: 'Phantom',
-        weight_rating: getRankPoints('Phantom'),
+        weight_rating: user.weight_rating || getRankPoints('Phantom'),
         is_phantom: true,
-        name: phantom.name
+        name: user.phantom_players[0]?.name
       })) || [];
 
-      console.log('Processed phantom players:', phantomPlayers);
-
       const allPlayers = [...realPlayers, ...phantomPlayers];
-      console.log('All players:', allPlayers);
 
       // Get players already in teams
       const playersInTeams = new Set();
@@ -149,6 +150,7 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
           .map(member => {
             const user = member.users;
             if (!user) return null;
+            playersInTeams.add(user.id);
             return {
               id: user.id,
               discord_username: user.discord_username || '',
@@ -159,8 +161,6 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
             };
           })
           .filter(Boolean) as Player[];
-        
-        teamPlayers.forEach(player => playersInTeams.add(player.id));
         
         const totalPoints = teamPlayers.reduce((sum, p) => 
           sum + getRankPoints(p.current_rank || 'Unranked'), 0
@@ -174,12 +174,8 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
         };
       }) || [];
 
-      console.log('Processed teams:', processedTeams);
-      console.log('Players in teams:', Array.from(playersInTeams));
-
       // Available players are those not in teams
       const available = allPlayers.filter(player => !playersInTeams.has(player.id));
-      console.log('Available players:', available);
 
       setAvailablePlayers(available);
       setTeams(processedTeams);
@@ -283,7 +279,7 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
     const targetTeam = teams.find(t => t.id === teamId);
     if (!targetTeam) return;
 
-    // Double-check team capacity (this should already be caught in handleDragEnd, but keeping for safety)
+    // Double-check team capacity
     if (targetTeam.players.length >= 5) {
       toast({
         title: "Team Full",
@@ -361,7 +357,6 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
       const phantoms = [];
       for (let i = 1; i <= playersNeeded; i++) {
         phantoms.push({
-          tournament_id: tournamentId,
           name: `Phantom ${i}`,
           weight_rating: getRankPoints('Phantom')
         });
@@ -374,18 +369,8 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
 
       if (error) throw error;
 
-      // Add to available players
-      const newPhantomPlayers: Player[] = data.map(phantom => ({
-        id: phantom.id,
-        discord_username: phantom.name,
-        riot_id: phantom.name,
-        current_rank: 'Phantom',
-        weight_rating: getRankPoints('Phantom'),
-        is_phantom: true,
-        name: phantom.name
-      }));
-
-      setAvailablePlayers(prev => [...prev, ...newPhantomPlayers]);
+      // Refresh the players list to include new phantoms
+      await fetchPlayersAndTeams();
 
       toast({
         title: "Phantom Players Added",
