@@ -72,10 +72,22 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
 
       if (signupsError) throw signupsError;
 
-      // Get phantom players for this tournament
+      // Get phantom players for this tournament and their corresponding user records
       const { data: phantomData, error: phantomError } = await supabase
         .from('phantom_players')
-        .select('*')
+        .select(`
+          id,
+          name,
+          weight_rating,
+          users!phantom_players_phantom_player_id_fkey (
+            id,
+            discord_username,
+            riot_id,
+            current_rank,
+            weight_rating,
+            is_phantom
+          )
+        `)
         .eq('tournament_id', tournamentId);
 
       if (phantomError) throw phantomError;
@@ -118,16 +130,23 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
         })
         .filter(Boolean) as Player[];
 
-      // Process phantom players
-      const phantomPlayers: Player[] = phantomData?.map(phantom => ({
-        id: phantom.id,
-        discord_username: phantom.name,
-        riot_id: phantom.name,
-        current_rank: 'Phantom',
-        weight_rating: phantom.weight_rating || getRankPoints('Phantom'),
-        is_phantom: true,
-        name: phantom.name
-      })) || [];
+      // Process phantom players - use the user records created for them
+      const phantomPlayers: Player[] = phantomData?.map(phantom => {
+        const user = phantom.users?.[0]; // Get the first (should be only) user record
+        if (!user) {
+          console.warn('No user record found for phantom player:', phantom.name);
+          return null;
+        }
+        return {
+          id: user.id, // Use the user ID, not the phantom player ID
+          discord_username: phantom.name,
+          riot_id: phantom.name,
+          current_rank: 'Phantom',
+          weight_rating: phantom.weight_rating || getRankPoints('Phantom'),
+          is_phantom: true,
+          name: phantom.name
+        };
+      }).filter(Boolean) as Player[];
 
       const allPlayers = [...realPlayers, ...phantomPlayers];
 
@@ -405,10 +424,10 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
 
         if (teamError) throw teamError;
 
-        // Add team members
+        // Add team members - using the correct user IDs
         const teamMembers = team.players.map((player, index) => ({
           team_id: teamData.id,
-          user_id: player.id,
+          user_id: player.id, // This should now be the correct user ID
           is_captain: index === 0
         }));
 
