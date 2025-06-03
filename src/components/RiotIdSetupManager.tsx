@@ -4,31 +4,37 @@ import { useAuth } from '@/hooks/useAuth';
 import RiotIdDialog from './RiotIdDialog';
 
 const RiotIdSetupManager = () => {
-  const { needsRiotIdSetup, user } = useAuth();
-  const [showDialog, setShowDialog] = useState(false);
+  const { user, profile, needsRiotIdSetup } = useAuth();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   useEffect(() => {
-    // Show dialog when user needs Riot ID setup
-    if (needsRiotIdSetup && user) {
-      setShowDialog(true);
+    if (user && profile && needsRiotIdSetup) {
+      console.log('User needs Riot ID setup, opening dialog');
+      setIsDialogOpen(true);
+    } else {
+      console.log('Riot ID setup not needed or user/profile not loaded');
+      setIsDialogOpen(false);
     }
-  }, [needsRiotIdSetup, user]);
+  }, [user, profile, needsRiotIdSetup]);
 
-  const handleComplete = () => {
-    setShowDialog(false);
-    // Refresh the page to update the profile data
-    window.location.reload();
+  const handleClose = () => {
+    setIsDialogOpen(false);
   };
 
-  if (!user || !needsRiotIdSetup) {
+  const handleSave = () => {
+    setIsDialogOpen(false);
+  };
+
+  if (!user || !profile) {
     return null;
   }
 
   return (
     <RiotIdDialog
-      open={showDialog}
-      onOpenChange={setShowDialog}
-      onComplete={handleComplete}
+      isOpen={isDialogOpen}
+      onClose={handleClose}
+      onSave={handleSave}
+      currentRiotId={profile.riot_id || ''}
     />
   );
 };
