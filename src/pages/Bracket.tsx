@@ -20,9 +20,9 @@ interface Match {
   score_team1: number;
   score_team2: number;
   scheduled_time: string | null;
-  team1?: { name: string; id: string };
-  team2?: { name: string; id: string };
-  winner?: { name: string; id: string };
+  team1?: { name: string; id: string } | null;
+  team2?: { name: string; id: string } | null;
+  winner?: { name: string; id: string } | null;
 }
 
 interface Tournament {
@@ -44,6 +44,8 @@ const Bracket = () => {
       if (!id) return;
 
       try {
+        setLoading(true);
+        
         const { data: tournamentData, error: tournamentError } = await supabase
           .from('tournaments')
           .select('*')
@@ -56,9 +58,9 @@ const Bracket = () => {
           .from('matches')
           .select(`
             *,
-            team1:team1_id (name, id),
-            team2:team2_id (name, id),
-            winner:winner_id (name, id)
+            team1:teams!matches_team1_id_fkey (name, id),
+            team2:teams!matches_team2_id_fkey (name, id),
+            winner:teams!matches_winner_id_fkey (name, id)
           `)
           .eq('tournament_id', id)
           .order('round_number', { ascending: true })

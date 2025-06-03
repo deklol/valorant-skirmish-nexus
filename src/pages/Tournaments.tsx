@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +11,7 @@ import Header from "@/components/Header";
 import TournamentCard from "@/components/TournamentCard";
 
 interface Tournament {
-  id: string; // Changed from number to string for UUID
+  id: string;
   name: string;
   currentSignups: number;
   maxPlayers: number;
@@ -30,7 +31,10 @@ const Tournaments = () => {
 
   useEffect(() => {
     const fetchTournaments = async () => {
+      console.log('Fetching tournaments...');
       try {
+        setLoading(true);
+        
         const { data: tournamentsData, error } = await supabase
           .from('tournaments')
           .select('*')
@@ -39,6 +43,8 @@ const Tournaments = () => {
         if (error) {
           throw error;
         }
+
+        console.log('Raw tournaments data:', tournamentsData);
 
         // Get signup counts for each tournament
         const tournamentsWithSignups = await Promise.all(
@@ -49,7 +55,7 @@ const Tournaments = () => {
               .eq('tournament_id', tournament.id);
 
             return {
-              id: tournament.id, // Keep as UUID string
+              id: tournament.id,
               name: tournament.name,
               currentSignups: count || 0,
               maxPlayers: tournament.max_players,
@@ -61,6 +67,7 @@ const Tournaments = () => {
           })
         );
 
+        console.log('Processed tournaments:', tournamentsWithSignups);
         setTournaments(tournamentsWithSignups);
       } catch (error) {
         console.error('Error fetching tournaments:', error);

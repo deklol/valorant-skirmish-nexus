@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Map, Ban, Pick } from "lucide-react";
+import { Map, Ban, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -187,7 +187,7 @@ const MapVetoDialog = ({ open, onOpenChange, matchId, team1Name, team2Name, curr
                           {action.action === 'ban' ? (
                             <Ban className="w-4 h-4 text-red-400" />
                           ) : (
-                            <Pick className="w-4 h-4 text-green-400" />
+                            <CheckCircle className="w-4 h-4 text-green-400" />
                           )}
                           <span className="text-white">{action.map?.display_name}</span>
                         </div>

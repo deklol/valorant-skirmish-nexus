@@ -26,10 +26,10 @@ interface MatchDetail {
   completed_at: string | null;
   stream_url: string | null;
   notes: string | null;
-  team1?: { id: string; name: string };
-  team2?: { id: string; name: string };
-  winner?: { id: string; name: string };
-  tournament?: { name: string };
+  team1?: { id: string; name: string } | null;
+  team2?: { id: string; name: string } | null;
+  winner?: { id: string; name: string } | null;
+  tournament?: { name: string } | null;
 }
 
 interface MatchMap {
@@ -62,10 +62,10 @@ const MatchDetails = () => {
           .from('matches')
           .select(`
             *,
-            team1:team1_id (id, name),
-            team2:team2_id (id, name),
-            winner:winner_id (id, name),
-            tournament:tournament_id (name)
+            team1:teams!matches_team1_id_fkey (id, name),
+            team2:teams!matches_team2_id_fkey (id, name),
+            winner:teams!matches_winner_id_fkey (id, name),
+            tournament:tournaments!matches_tournament_id_fkey (name)
           `)
           .eq('id', id)
           .single();
