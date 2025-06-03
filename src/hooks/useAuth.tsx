@@ -59,7 +59,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const initializeAuth = async () => {
       try {
-        // Get initial session
+        console.log('Initializing auth...');
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
@@ -72,12 +72,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           return;
         }
 
-        console.log('Initial session:', session?.user?.id);
+        console.log('Initial session user ID:', session?.user?.id);
         
         if (session?.user && mounted) {
+          console.log('Setting user from initial session');
           setUser(session.user);
           await fetchProfile(session.user.id);
         } else if (mounted) {
+          console.log('No initial session found');
           setUser(null);
           setProfile(null);
         }
@@ -98,26 +100,36 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state change:', event, session?.user?.id);
+        console.log('Auth state change event:', event, 'User ID:', session?.user?.id);
         
         if (!mounted) return;
         
-        if (event === 'SIGNED_OUT' || !session) {
+        // Handle different auth events appropriately
+        if (event === 'SIGNED_OUT') {
           console.log('User signed out, clearing state');
           setUser(null);
           setProfile(null);
-        } else if (session?.user) {
+        } else if (event === 'SIGNED_IN' && session?.user) {
           console.log('User signed in, updating state');
           setUser(session.user);
-          // Defer profile fetching to avoid blocking the auth state change
+          // Defer profile fetching to avoid blocking
           setTimeout(() => {
             if (mounted) {
               fetchProfile(session.user.id);
             }
           }, 0);
+        } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+          console.log('Token refreshed, maintaining state');
+          setUser(session.user);
+        } else if (event === 'INITIAL_SESSION') {
+          // Don't clear state on INITIAL_SESSION - let initializeAuth handle it
+          console.log('Initial session event - handled by initializeAuth');
         }
         
-        setLoading(false);
+        // Only set loading to false after we've handled the event
+        if (event !== 'INITIAL_SESSION') {
+          setLoading(false);
+        }
       }
     );
 
@@ -133,6 +145,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signOut = async () => {
     try {
       console.log('Signing out...');
+      // Clear state immediately
+      setUser(null);
+      setProfile(null);
+      
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error('Error signing out:', error);
