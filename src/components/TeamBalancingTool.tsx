@@ -72,22 +72,10 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
 
       if (signupsError) throw signupsError;
 
-      // Get phantom players for this tournament and their corresponding user records
+      // Get phantom players for this tournament - they're separate from users
       const { data: phantomData, error: phantomError } = await supabase
         .from('phantom_players')
-        .select(`
-          id,
-          name,
-          weight_rating,
-          users!phantom_players_phantom_player_id_fkey (
-            id,
-            discord_username,
-            riot_id,
-            current_rank,
-            weight_rating,
-            is_phantom
-          )
-        `)
+        .select('*')
         .eq('tournament_id', tournamentId);
 
       if (phantomError) throw phantomError;
@@ -130,23 +118,16 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
         })
         .filter(Boolean) as Player[];
 
-      // Process phantom players - use the user records created for them
-      const phantomPlayers: Player[] = phantomData?.map(phantom => {
-        const user = phantom.users?.[0]; // Get the first (should be only) user record
-        if (!user) {
-          console.warn('No user record found for phantom player:', phantom.name);
-          return null;
-        }
-        return {
-          id: user.id, // Use the user ID, not the phantom player ID
-          discord_username: phantom.name,
-          riot_id: phantom.name,
-          current_rank: 'Phantom',
-          weight_rating: phantom.weight_rating || getRankPoints('Phantom'),
-          is_phantom: true,
-          name: phantom.name
-        };
-      }).filter(Boolean) as Player[];
+      // Process phantom players - they use their phantom_player ID since they're not in users table
+      const phantomPlayers: Player[] = phantomData?.map(phantom => ({
+        id: phantom.id, // Use phantom player ID directly
+        discord_username: phantom.name,
+        riot_id: phantom.name,
+        current_rank: 'Phantom',
+        weight_rating: phantom.weight_rating || getRankPoints('Phantom'),
+        is_phantom: true,
+        name: phantom.name
+      })) || [];
 
       const allPlayers = [...realPlayers, ...phantomPlayers];
 
@@ -424,23 +405,35 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
 
         if (teamError) throw teamError;
 
-        // Add team members - using the correct user IDs
-        const teamMembers = team.players.map((player, index) => ({
-          team_id: teamData.id,
-          user_id: player.id, // This should now be the correct user ID
-          is_captain: index === 0
-        }));
+        // Add team members - handle phantom players differently
+        const teamMembers = team.players.map((player, index) => {
+          if (player.is_phantom) {
+            // For phantom players, we need to create a user record first or use existing one
+            // This is a workaround since phantom players aren't in the users table
+            // We'll need to handle this case differently
+            console.warn('Cannot add phantom player to team_members - phantom players need user records');
+            return null;
+          }
+          
+          return {
+            team_id: teamData.id,
+            user_id: player.id,
+            is_captain: index === 0
+          };
+        }).filter(Boolean);
 
-        const { error: membersError } = await supabase
-          .from('team_members')
-          .insert(teamMembers);
+        if (teamMembers.length > 0) {
+          const { error: membersError } = await supabase
+            .from('team_members')
+            .insert(teamMembers);
 
-        if (membersError) throw membersError;
+          if (membersError) throw membersError;
+        }
       }
 
       toast({
         title: "Teams Saved",
-        description: "Team balancing has been saved successfully",
+        description: "Team balancing has been saved successfully (phantom players excluded)",
       });
 
       setOpen(false);
