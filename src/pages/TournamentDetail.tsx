@@ -4,14 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Clock, Trophy, Calendar, MapPin, Settings, Eye, Crown, Edit, Plus } from "lucide-react";
+import { Users, Clock, Trophy, Calendar, MapPin, Settings, Eye, Crown, Edit } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import TournamentParticipants from "@/components/TournamentParticipants";
 import DiscordWebhookManager from "@/components/DiscordWebhookManager";
-import MatchScoreManager from "@/components/MatchScoreManager";
 
 interface TournamentDetail {
   id: string;
@@ -41,7 +40,6 @@ const TournamentDetail = () => {
   const [loading, setLoading] = useState(true);
   const [signups, setSignups] = useState<any[]>([]);
   const [teams, setTeams] = useState<any[]>([]);
-  const [matches, setMatches] = useState<any[]>([]);
   const { user, isAdmin } = useAuth();
   const { toast } = useToast();
 
@@ -72,46 +70,24 @@ const TournamentDetail = () => {
 
         if (signupsError) throw signupsError;
 
-        // Fetch teams with their members and user details - fix the query
+        // Fetch teams with their members and user details
         const { data: teamsData, error: teamsError } = await supabase
           .from('teams')
           .select(`
             *,
-            team_members!inner (
+            team_members (
               *,
-              users!inner (
+              users:user_id (
                 discord_username,
                 riot_id,
                 current_rank,
-                is_phantom,
-                weight_rating
+                is_phantom
               )
             )
           `)
           .eq('tournament_id', id);
 
-        if (teamsError) {
-          console.error('Teams fetch error:', teamsError);
-          throw teamsError;
-        }
-
-        // Also fetch matches for this tournament
-        const { data: matchesData, error: matchesError } = await supabase
-          .from('matches')
-          .select(`
-            *,
-            team1:teams!matches_team1_id_fkey (name, id),
-            team2:teams!matches_team2_id_fkey (name, id),
-            winner:teams!matches_winner_id_fkey (name, id)
-          `)
-          .eq('tournament_id', id)
-          .order('round_number', { ascending: true })
-          .order('match_number', { ascending: true });
-
-        if (matchesError) throw matchesError;
-
-        console.log('Teams data:', teamsData);
-        console.log('Matches data:', matchesData);
+        if (teamsError) throw teamsError;
 
         setTournament({
           ...tournamentData,
@@ -119,7 +95,6 @@ const TournamentDetail = () => {
         });
         setSignups(signupsData || []);
         setTeams(teamsData || []);
-        setMatches(matchesData || []);
       } catch (error: any) {
         console.error('Error fetching tournament:', error);
         toast({
@@ -162,14 +137,13 @@ const TournamentDetail = () => {
         .from('teams')
         .select(`
           *,
-          team_members!inner (
+          team_members (
             *,
-            users!inner (
+            users:user_id (
               discord_username,
               riot_id,
               current_rank,
-              is_phantom,
-              weight_rating
+              is_phantom
             )
           )
         `)
@@ -181,91 +155,6 @@ const TournamentDetail = () => {
       toast({
         title: "Error",
         description: "Failed to update team captain",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const generateBracket = async () => {
-    try {
-      if (!tournament || teams.length === 0) {
-        toast({
-          title: "Error",
-          description: "No teams available to generate bracket",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Calculate number of rounds needed
-      const maxRounds = Math.ceil(Math.log2(teams.length));
-      
-      // Create matches for first round
-      const matchesToCreate = [];
-      for (let i = 0; i < teams.length; i += 2) {
-        if (i + 1 < teams.length) {
-          matchesToCreate.push({
-            tournament_id: tournament.id,
-            team1_id: teams[i].id,
-            team2_id: teams[i + 1].id,
-            round_number: 1,
-            match_number: Math.floor(i / 2) + 1,
-            status: 'pending',
-            best_of: tournament.match_format === 'BO1' ? 1 : tournament.match_format === 'BO3' ? 3 : 5
-          });
-        }
-      }
-
-      const { error } = await supabase
-        .from('matches')
-        .insert(matchesToCreate);
-
-      if (error) throw error;
-
-      // Create subsequent round matches (empty for now)
-      const emptyMatches = [];
-      for (let round = 2; round <= maxRounds; round++) {
-        const matchesInRound = Math.ceil(teams.length / Math.pow(2, round));
-        for (let match = 1; match <= matchesInRound; match++) {
-          emptyMatches.push({
-            tournament_id: tournament.id,
-            round_number: round,
-            match_number: match,
-            status: 'pending',
-            best_of: tournament.match_format === 'BO1' ? 1 : tournament.match_format === 'BO3' ? 3 : 5
-          });
-        }
-      }
-
-      if (emptyMatches.length > 0) {
-        await supabase.from('matches').insert(emptyMatches);
-      }
-
-      toast({
-        title: "Success",
-        description: "Bracket generated successfully",
-      });
-
-      // Refetch matches
-      const { data: matchesData } = await supabase
-        .from('matches')
-        .select(`
-          *,
-          team1:teams!matches_team1_id_fkey (name, id),
-          team2:teams!matches_team2_id_fkey (name, id),
-          winner:teams!matches_winner_id_fkey (name, id)
-        `)
-        .eq('tournament_id', id)
-        .order('round_number', { ascending: true })
-        .order('match_number', { ascending: true });
-
-      if (matchesData) setMatches(matchesData);
-
-    } catch (error: any) {
-      console.error('Error generating bracket:', error);
-      toast({
-        title: "Error",
-        description: "Failed to generate bracket",
         variant: "destructive",
       });
     }
@@ -460,65 +349,58 @@ const TournamentDetail = () => {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {teams.map((team) => {
-                    const members = team.team_members || [];
-                    const totalPoints = members.reduce((sum: number, member: any) => 
-                      sum + (member.users?.weight_rating || 150), 0
-                    );
-
-                    return (
-                      <div key={team.id} className="bg-slate-700 p-4 rounded-lg">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="text-white font-medium text-lg">{team.name}</div>
-                          <div className="text-slate-400 text-sm">Seed: #{team.seed || 'TBD'}</div>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          {members.map((member: any) => (
-                            <div key={member.id} className="flex items-center justify-between bg-slate-600 p-2 rounded">
-                              <div className="flex items-center gap-2">
-                                <span className="text-slate-300">
-                                  {member.users?.discord_username || 'Unknown'}
-                                </span>
-                                {member.users?.is_phantom && (
-                                  <Badge className="bg-purple-500/20 text-purple-400 text-xs">
-                                    Phantom
-                                  </Badge>
-                                )}
-                                {member.is_captain && (
-                                  <Badge className="bg-yellow-500/20 text-yellow-400 text-xs">
-                                    <Crown className="w-3 h-3 mr-1" />
-                                    Captain
-                                  </Badge>
-                                )}
-                              </div>
-                              
-                              <div className="flex items-center gap-2">
-                                <span className="text-slate-400 text-sm">
-                                  {member.users?.current_rank || 'Unranked'}
-                                </span>
-                                {isAdmin && !member.is_captain && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="border-yellow-600 text-yellow-400 hover:bg-yellow-600 hover:text-white h-6 px-2"
-                                    onClick={() => setCaptain(team.id, member.user_id)}
-                                  >
-                                    <Crown className="w-3 h-3" />
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        
-                        <div className="mt-3 text-xs text-slate-500">
-                          Members: {members.length} | 
-                          Total Rank Points: {totalPoints}
-                        </div>
+                  {teams.map((team) => (
+                    <div key={team.id} className="bg-slate-700 p-4 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-white font-medium text-lg">{team.name}</div>
+                        <div className="text-slate-400 text-sm">Seed: #{team.seed || 'TBD'}</div>
                       </div>
-                    );
-                  })}
+                      
+                      <div className="space-y-2">
+                        {team.team_members?.map((member: any) => (
+                          <div key={member.id} className="flex items-center justify-between bg-slate-600 p-2 rounded">
+                            <div className="flex items-center gap-2">
+                              <span className="text-slate-300">
+                                {member.users?.discord_username || 'Unknown'}
+                              </span>
+                              {member.users?.is_phantom && (
+                                <Badge className="bg-purple-500/20 text-purple-400 text-xs">
+                                  Phantom
+                                </Badge>
+                              )}
+                              {member.is_captain && (
+                                <Badge className="bg-yellow-500/20 text-yellow-400 text-xs">
+                                  <Crown className="w-3 h-3 mr-1" />
+                                  Captain
+                                </Badge>
+                              )}
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                              <span className="text-slate-400 text-sm">
+                                {member.users?.current_rank || 'Unranked'}
+                              </span>
+                              {isAdmin && !member.is_captain && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-yellow-600 text-yellow-400 hover:bg-yellow-600 hover:text-white h-6 px-2"
+                                  onClick={() => setCaptain(team.id, member.user_id)}
+                                >
+                                  <Crown className="w-3 h-3" />
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      <div className="mt-3 text-xs text-slate-500">
+                        Members: {team.team_members?.length || 0} | 
+                        Total Rank Points: {team.total_rank_points || 0}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
@@ -558,56 +440,24 @@ const TournamentDetail = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Button 
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                      onClick={generateBracket}
-                      disabled={teams.length === 0}
-                    >
+                    <Button className="bg-blue-600 hover:bg-blue-700 text-white">
                       <Edit className="w-4 h-4 mr-2" />
                       Generate Bracket
                     </Button>
-                    <Link to={`/bracket/${tournament.id}`}>
-                      <Button className="bg-green-600 hover:bg-green-700 text-white w-full">
-                        <Trophy className="w-4 h-4 mr-2" />
-                        View/Manage Bracket
-                      </Button>
-                    </Link>
+                    <Button className="bg-green-600 hover:bg-green-700 text-white">
+                      <Trophy className="w-4 h-4 mr-2" />
+                      Update Match Scores
+                    </Button>
                   </div>
-                  
-                  {matches.length > 0 && (
-                    <MatchScoreManager 
-                      tournamentId={tournament.id}
-                      matches={matches}
-                      onScoreUpdate={() => {
-                        // Refetch matches after score update
-                        const refetchMatches = async () => {
-                          const { data } = await supabase
-                            .from('matches')
-                            .select(`
-                              *,
-                              team1:teams!matches_team1_id_fkey (name, id),
-                              team2:teams!matches_team2_id_fkey (name, id),
-                              winner:teams!matches_winner_id_fkey (name, id)
-                            `)
-                            .eq('tournament_id', id)
-                            .order('round_number', { ascending: true })
-                            .order('match_number', { ascending: true });
-                          if (data) setMatches(data);
-                        };
-                        refetchMatches();
-                      }}
-                    />
-                  )}
                   
                   <div className="bg-slate-700 p-4 rounded-lg">
                     <h4 className="text-white font-medium mb-2">Tournament Flow:</h4>
                     <ul className="text-slate-300 text-sm space-y-1">
                       <li>• Teams are formed during balancing phase</li>
                       <li>• Captains are set by admins (can be changed anytime)</li>
-                      <li>• Generate bracket to create matches</li>
                       <li>• Map vetos happen when matches go live (BO3/BO5 only)</li>
                       <li>• Captains take turns banning/picking maps in real-time</li>
-                      <li>• Admins can update scores through this interface or bracket view</li>
+                      <li>• Admins can update scores through the bracket view</li>
                     </ul>
                   </div>
                 </CardContent>
