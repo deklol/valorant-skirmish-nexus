@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,7 +58,7 @@ const Tournaments = () => {
               prizePool: tournament.prize_pool || 'TBD',
               startTime: new Date(tournament.start_time),
               status: tournament.status as "open" | "balancing" | "live" | "completed",
-              format: tournament.match_format as "BO1" | "BO3"
+              format: (tournament.match_format === 'BO5' ? 'BO3' : tournament.match_format) as "BO1" | "BO3"
             };
           })
         );

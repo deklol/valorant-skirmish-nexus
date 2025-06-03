@@ -14,7 +14,7 @@ interface Tournament {
   id: string;
   name: string;
   status: 'draft' | 'open' | 'balancing' | 'live' | 'completed' | 'archived';
-  match_format: 'BO1' | 'BO3';
+  match_format: 'BO1' | 'BO3' | 'BO5';
   max_players: number;
   max_teams: number;
   prize_pool: string;

@@ -4,6 +4,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Users, Clock, Trophy, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface Tournament {
   id: number;
@@ -22,6 +26,59 @@ interface TournamentCardProps {
 }
 
 const TournamentCard = ({ tournament }: TournamentCardProps) => {
+  const [isSigningUp, setIsSigningUp] = useState(false);
+  const [isSignedUp, setIsSignedUp] = useState(false);
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const handleSignup = async () => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to join tournaments",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSigningUp(true);
+    try {
+      const { error } = await supabase
+        .from('tournament_signups')
+        .insert({
+          tournament_id: tournament.id.toString(),
+          user_id: user.id,
+        });
+
+      if (error) {
+        if (error.code === '23505') {
+          toast({
+            title: "Already Signed Up",
+            description: "You're already registered for this tournament",
+            variant: "destructive",
+          });
+        } else {
+          throw error;
+        }
+      } else {
+        setIsSignedUp(true);
+        toast({
+          title: "Success!",
+          description: "Successfully joined the tournament",
+        });
+      }
+    } catch (error) {
+      console.error('Error signing up for tournament:', error);
+      toast({
+        title: "Error",
+        description: "Failed to join tournament. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSigningUp(false);
+    }
+  };
+
   const getStatusBadge = (status: Tournament["status"]) => {
     switch (status) {
       case "open":
@@ -102,11 +159,27 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
 
         {/* Action Buttons */}
         <div className="flex gap-2 pt-2">
-          <Link to={`/tournament/${tournament.id}`} className="flex-1">
-            <Button className="w-full bg-red-600 hover:bg-red-700 text-white">
-              {tournament.status === "open" ? "Join Tournament" : "View Details"}
+          {tournament.status === "open" && !isSignedUp && (
+            <Button 
+              className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+              onClick={handleSignup}
+              disabled={isSigningUp}
+            >
+              {isSigningUp ? "Joining..." : "Join Tournament"}
             </Button>
-          </Link>
+          )}
+          {tournament.status === "open" && isSignedUp && (
+            <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white" disabled>
+              Joined!
+            </Button>
+          )}
+          {tournament.status !== "open" && (
+            <Link to={`/tournament/${tournament.id}`} className="flex-1">
+              <Button className="w-full bg-red-600 hover:bg-red-700 text-white">
+                View Details
+              </Button>
+            </Link>
+          )}
           <Link to={`/bracket/${tournament.id}`}>
             <Button variant="outline" className="border-slate-600 text-white hover:bg-slate-700">
               Bracket
