@@ -55,30 +55,37 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Initial session:', session?.user?.id);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id).finally(() => setLoading(false));
-      } else {
-        setLoading(false);
-      }
-    });
-
-    // Listen for auth changes
+    // Listen for auth changes first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state change:', event, session?.user?.id);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await fetchProfile(session.user.id);
-        } else {
+        
+        if (event === 'SIGNED_OUT' || !session) {
+          console.log('User signed out, clearing state');
+          setUser(null);
           setProfile(null);
+          setLoading(false);
+        } else if (session?.user) {
+          console.log('User signed in, updating state');
+          setUser(session.user);
+          await fetchProfile(session.user.id);
+          setLoading(false);
         }
-        setLoading(false);
       }
     );
+
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session:', session?.user?.id);
+      if (session?.user) {
+        setUser(session.user);
+        fetchProfile(session.user.id).finally(() => setLoading(false));
+      } else {
+        setUser(null);
+        setProfile(null);
+        setLoading(false);
+      }
+    });
 
     return () => subscription.unsubscribe();
   }, []);
@@ -86,11 +93,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signOut = async () => {
     try {
       console.log('Signing out...');
+      // Clear state immediately for responsive UI
+      setUser(null);
+      setProfile(null);
+      
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error('Error signing out:', error);
         throw error;
       }
+      console.log('Successfully signed out');
     } catch (error) {
       console.error('Error during sign out:', error);
       throw error;
