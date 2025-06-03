@@ -1,112 +1,77 @@
 
-import { useState } from 'react';
-import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Link } from "react-router-dom";
-import { Trophy, User, LogIn, Menu, LogOut, Shield } from "lucide-react";
-import { useAuth } from '@/hooks/useAuth';
+import { Button } from "@/components/ui/button";
+import { User } from "@supabase/supabase-js";
 
-const MobileNav = () => {
-  const [open, setOpen] = useState(false);
-  const { user, profile, signOut, isAdmin } = useAuth();
+interface MobileNavProps {
+  isOpen: boolean;
+  onClose: () => void;
+  navItems: Array<{
+    to: string;
+    icon: React.ComponentType<any>;
+    label: string;
+  }>;
+  adminNavItems: Array<{
+    to: string;
+    icon: React.ComponentType<any>;
+    label: string;
+  }>;
+  user: User | null;
+  onSignOut: () => Promise<void>;
+}
 
-  const handleSignOut = async () => {
-    await signOut();
-    setOpen(false);
-  };
+const MobileNav = ({ isOpen, onClose, navItems, adminNavItems, user, onSignOut }: MobileNavProps) => {
+  if (!isOpen) return null;
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <Button variant="ghost" size="sm" className="md:hidden text-white">
-          <Menu className="w-5 h-5" />
-        </Button>
-      </SheetTrigger>
-      <SheetContent side="right" className="bg-slate-900 border-slate-700">
-        <div className="flex flex-col space-y-4 mt-6">
-          <Link 
-            to="/" 
-            className="flex items-center gap-2 text-white hover:text-red-400 transition-colors"
-            onClick={() => setOpen(false)}
-          >
-            <Trophy className="w-5 h-5 text-red-500" />
-            <span className="font-bold">TGH Skirmish</span>
-          </Link>
-          
-          <div className="border-t border-slate-700 pt-4 space-y-2">
-            <Link 
-              to="/tournaments" 
-              className="block text-slate-300 hover:text-white transition-colors py-2"
-              onClick={() => setOpen(false)}
+    <div className="md:hidden bg-slate-800 border-t border-slate-700">
+      <div className="container mx-auto px-4 py-4">
+        <nav className="space-y-2">
+          {navItems.map((item) => (
+            <Link
+              key={item.to}
+              to={item.to}
+              onClick={onClose}
+              className="flex items-center space-x-2 text-slate-300 hover:text-white transition-colors py-2"
             >
-              Tournaments
+              <item.icon className="h-4 w-4" />
+              <span>{item.label}</span>
             </Link>
-            <Link 
-              to="/brackets" 
-              className="block text-slate-300 hover:text-white transition-colors py-2"
-              onClick={() => setOpen(false)}
+          ))}
+          {adminNavItems.map((item) => (
+            <Link
+              key={item.to}
+              to={item.to}
+              onClick={onClose}
+              className="flex items-center space-x-2 text-red-400 hover:text-red-300 transition-colors py-2"
             >
-              Brackets
+              <item.icon className="h-4 w-4" />
+              <span>{item.label}</span>
             </Link>
-            <Link 
-              to="/leaderboard" 
-              className="block text-slate-300 hover:text-white transition-colors py-2"
-              onClick={() => setOpen(false)}
+          ))}
+        </nav>
+        
+        {user && (
+          <div className="mt-4 pt-4 border-t border-slate-700 space-y-2">
+            <Link to="/profile" onClick={onClose}>
+              <Button variant="ghost" className="w-full text-white hover:bg-slate-700 justify-start">
+                Profile
+              </Button>
+            </Link>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                onSignOut();
+                onClose();
+              }}
+              className="w-full text-slate-300 hover:text-white hover:bg-slate-700 justify-start"
             >
-              Leaderboard
-            </Link>
-            <Link 
-              to="/archive" 
-              className="block text-slate-300 hover:text-white transition-colors py-2"
-              onClick={() => setOpen(false)}
-            >
-              Archive
-            </Link>
+              Sign Out
+            </Button>
           </div>
-
-          <div className="border-t border-slate-700 pt-4 space-y-2">
-            {user ? (
-              <>
-                {isAdmin && (
-                  <Link 
-                    to="/admin" 
-                    className="flex items-center gap-2 text-purple-400 hover:text-purple-300 transition-colors py-2"
-                    onClick={() => setOpen(false)}
-                  >
-                    <Shield className="w-4 h-4" />
-                    Admin Panel
-                  </Link>
-                )}
-                <Link 
-                  to="/profile" 
-                  className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors py-2"
-                  onClick={() => setOpen(false)}
-                >
-                  <User className="w-4 h-4" />
-                  Profile
-                </Link>
-                <button 
-                  onClick={handleSignOut}
-                  className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors py-2 w-full text-left"
-                >
-                  <LogOut className="w-4 h-4" />
-                  Logout
-                </button>
-              </>
-            ) : (
-              <Link 
-                to="/login" 
-                className="flex items-center gap-2 text-indigo-400 hover:text-indigo-300 transition-colors py-2"
-                onClick={() => setOpen(false)}
-              >
-                <LogIn className="w-4 h-4" />
-                Login
-              </Link>
-            )}
-          </div>
-        </div>
-      </SheetContent>
-    </Sheet>
+        )}
+      </div>
+    </div>
   );
 };
 
