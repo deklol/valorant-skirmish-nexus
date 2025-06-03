@@ -35,15 +35,29 @@ const PhantomPlayerDialog = ({ tournamentId, onPhantomAdded }: PhantomPlayerDial
     setLoading(true);
 
     try {
-      // Create the phantom player (this will automatically create a user record via trigger)
-      const { error } = await supabase
+      // Create the phantom player (tournament_id removed from schema)
+      const { data: phantomData, error: phantomError } = await supabase
         .from('phantom_players')
         .insert({
           name: name.trim(),
           weight_rating: rating
+        })
+        .select()
+        .single();
+
+      if (phantomError) throw phantomError;
+
+      // Link the phantom player to this tournament
+      const { error: linkError } = await supabase
+        .from('tournament_phantom_players')
+        .insert({
+          tournament_id: tournamentId,
+          phantom_player_id: phantomData.id
         });
 
-      if (error) throw error;
+      if (linkError && linkError.code !== '23505') { // Ignore unique constraint violations
+        throw linkError;
+      }
 
       toast({
         title: "Phantom Player Added",
