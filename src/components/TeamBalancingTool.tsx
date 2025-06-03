@@ -52,12 +52,14 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
 
   const fetchPlayersAndTeams = async () => {
     try {
+      console.log('Fetching players and teams for tournament:', tournamentId);
+      
       // Get signed up players (assume they're available for balancing regardless of check-in status)
       const { data: signupsData, error: signupsError } = await supabase
         .from('tournament_signups')
         .select(`
           user_id,
-          users:user_id (
+          users!inner (
             id,
             discord_username,
             riot_id,
@@ -70,6 +72,8 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
 
       if (signupsError) throw signupsError;
 
+      console.log('Signups data:', signupsData);
+
       // Get phantom players
       const { data: phantomData, error: phantomError } = await supabase
         .from('phantom_players')
@@ -77,6 +81,8 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
         .eq('tournament_id', tournamentId);
 
       if (phantomError) throw phantomError;
+
+      console.log('Phantom data:', phantomData);
 
       // Get existing teams
       const { data: teamsData, error: teamsError } = await supabase
@@ -86,7 +92,7 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
           name,
           team_members (
             user_id,
-            users:user_id (
+            users!inner (
               id,
               discord_username,
               riot_id,
@@ -100,10 +106,25 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
 
       if (teamsError) throw teamsError;
 
-      // Process real players
-      const realPlayers = signupsData
-        ?.map(signup => signup.users)
+      console.log('Teams data:', teamsData);
+
+      // Process real players - fix the data access
+      const realPlayers: Player[] = signupsData
+        ?.map(signup => {
+          const user = signup.users;
+          if (!user) return null;
+          return {
+            id: user.id,
+            discord_username: user.discord_username || '',
+            riot_id: user.riot_id || '',
+            current_rank: user.current_rank || 'Unranked',
+            weight_rating: user.weight_rating || getRankPoints('Unranked'),
+            is_phantom: user.is_phantom || false
+          };
+        })
         .filter(Boolean) as Player[];
+
+      console.log('Processed real players:', realPlayers);
 
       // Process phantom players
       const phantomPlayers: Player[] = phantomData?.map(phantom => ({
@@ -116,13 +137,27 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
         name: phantom.name
       })) || [];
 
+      console.log('Processed phantom players:', phantomPlayers);
+
       const allPlayers = [...realPlayers, ...phantomPlayers];
+      console.log('All players:', allPlayers);
 
       // Get players already in teams
       const playersInTeams = new Set();
       const processedTeams: Team[] = teamsData?.map(team => {
-        const teamPlayers = team.team_members
-          .map(member => member.users)
+        const teamPlayers: Player[] = team.team_members
+          .map(member => {
+            const user = member.users;
+            if (!user) return null;
+            return {
+              id: user.id,
+              discord_username: user.discord_username || '',
+              riot_id: user.riot_id || '',
+              current_rank: user.current_rank || 'Unranked',
+              weight_rating: user.weight_rating || getRankPoints('Unranked'),
+              is_phantom: user.is_phantom || false
+            };
+          })
           .filter(Boolean) as Player[];
         
         teamPlayers.forEach(player => playersInTeams.add(player.id));
@@ -139,8 +174,12 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
         };
       }) || [];
 
+      console.log('Processed teams:', processedTeams);
+      console.log('Players in teams:', Array.from(playersInTeams));
+
       // Available players are those not in teams
       const available = allPlayers.filter(player => !playersInTeams.has(player.id));
+      console.log('Available players:', available);
 
       setAvailablePlayers(available);
       setTeams(processedTeams);
