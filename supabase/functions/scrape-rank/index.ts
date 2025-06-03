@@ -28,126 +28,142 @@ serve(async (req) => {
 
     console.log(`Scraping rank for Riot ID: ${riot_id}`);
 
-    // Format the Riot ID for tracker.gg URL - only replace # with %23
-    const formattedRiotId = riot_id.replace('#', '%23');
-    const trackerUrl = `https://tracker.gg/valorant/profile/riot/${formattedRiotId}/overview`;
+    // Properly encode the Riot ID for URL
+    const encodedRiotId = encodeURIComponent(riot_id);
+    const trackerUrl = `https://tracker.gg/valorant/profile/riot/${encodedRiotId}/overview`;
 
     console.log(`Original Riot ID: ${riot_id}`);
-    console.log(`Formatted for URL: ${formattedRiotId}`);
+    console.log(`Encoded for URL: ${encodedRiotId}`);
     console.log(`Full tracker URL: ${trackerUrl}`);
 
-    // Fetch the tracker.gg page with more realistic headers to avoid blocking
-    const response = await fetch(trackerUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'DNT': '1',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
-      }
-    });
+    // More realistic browser headers to avoid detection
+    const headers = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Accept-Encoding': 'gzip, deflate, br',
+      'DNT': '1',
+      'Connection': 'keep-alive',
+      'Upgrade-Insecure-Requests': '1',
+      'Sec-Fetch-Dest': 'document',
+      'Sec-Fetch-Mode': 'navigate',
+      'Sec-Fetch-Site': 'none',
+      'Sec-Fetch-User': '?1',
+      'Cache-Control': 'max-age=0',
+    };
+
+    // Add random delay to appear more human-like
+    await new Promise(resolve => setTimeout(resolve, Math.random() * 2000 + 1000));
+
+    const response = await fetch(trackerUrl, { headers });
 
     if (!response.ok) {
       console.error(`Failed to fetch tracker page: ${response.status} ${response.statusText}`);
       
-      // If we get a 403, it might be anti-bot protection
       if (response.status === 403) {
-        throw new Error(`Tracker.gg is blocking our requests. This is likely anti-bot protection. Please try again later or contact support.`);
+        throw new Error(`Unable to access tracker.gg profile. This may be due to anti-bot protection or the profile being private. Status: ${response.status}`);
       }
       
-      throw new Error(`Failed to fetch tracker page: ${response.status}`);
+      if (response.status === 404) {
+        throw new Error(`Riot ID not found on tracker.gg. Please verify the Riot ID is correct: ${riot_id}`);
+      }
+      
+      throw new Error(`Failed to fetch profile data. Status: ${response.status}`);
     }
 
     const html = await response.text();
-    console.log(`HTML length: ${html.length}`);
+    console.log(`HTML content length: ${html.length}`);
 
-    // Define rank names for matching
-    const rankNames = [
-      'Iron', 'Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Ascendant', 'Immortal', 'Radiant'
-    ];
+    // Enhanced rank extraction with multiple strategies
+    const rankNames = ['Iron', 'Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Ascendant', 'Immortal', 'Radiant'];
     const rankPattern = `(${rankNames.join('|')})\\s*[0-3]?`;
 
-    // Extract current rank - look for "Rating" label followed by a rank value
     let currentRank = null;
-    
-    // Pattern 1: Look for "Rating" label followed by value div
-    const currentRankRegex = new RegExp(`<div[^>]*>\\s*Rating\\s*</div>[\\s\\S]*?<div[^>]*class="[^"]*value[^"]*"[^>]*>\\s*(${rankPattern})[\\s\\S]*?</div>`, 'i');
-    const currentRankMatch = html.match(currentRankRegex);
-    
-    if (currentRankMatch) {
-      currentRank = currentRankMatch[1].trim();
-      console.log(`Found current rank: ${currentRank}`);
-    } else {
-      console.log('Current rank not found with Rating label, trying alternative patterns...');
-      
-      // Pattern 2: Look for any value div that contains a rank name (but not after "Peak Rating")
-      const altCurrentRankRegex = new RegExp(`<div[^>]*class="[^"]*value[^"]*"[^>]*>\\s*(${rankPattern})[\\s\\S]*?</div>(?![\\s\\S]*?Peak Rating)`, 'i');
-      const altCurrentRankMatch = html.match(altCurrentRankRegex);
-      
-      if (altCurrentRankMatch) {
-        currentRank = altCurrentRankMatch[1].trim();
-        console.log(`Found current rank with alternative pattern: ${currentRank}`);
-      }
-    }
-
-    // Extract peak rank - look for "Peak Rating" header followed by a rank value
     let peakRank = null;
-    
-    // Pattern 1: Look for "Peak Rating" h3 followed by value div
-    const peakRankRegex = new RegExp(`<h3[^>]*>\\s*Peak Rating\\s*</h3>[\\s\\S]*?<div[^>]*class="[^"]*value[^"]*"[^>]*>\\s*(${rankPattern})[\\s\\S]*?</div>`, 'i');
-    const peakRankMatch = html.match(peakRankRegex);
-    
-    if (peakRankMatch) {
-      peakRank = peakRankMatch[1].trim();
-      console.log(`Found peak rank: ${peakRank}`);
-    } else {
-      console.log('Peak rank not found with h3, trying alternative patterns...');
-      
-      // Pattern 2: Look for "Peak Rating" in any element followed by value div
-      const altPeakRankRegex = new RegExp(`Peak Rating[\\s\\S]*?<div[^>]*class="[^"]*value[^"]*"[^>]*>\\s*(${rankPattern})[\\s\\S]*?</div>`, 'i');
-      const altPeakRankMatch = html.match(altPeakRankRegex);
-      
-      if (altPeakRankMatch) {
-        peakRank = altPeakRankMatch[1].trim();
-        console.log(`Found peak rank with alternative pattern: ${peakRank}`);
+
+    // Strategy 1: Look for "Rating" label with value
+    const currentRankPattern1 = new RegExp(`<div[^>]*>\\s*Rating\\s*</div>[\\s\\S]*?<div[^>]*class="[^"]*value[^"]*"[^>]*>\\s*(${rankPattern})`, 'i');
+    let match = html.match(currentRankPattern1);
+    if (match) {
+      currentRank = match[1].trim();
+      console.log(`Found current rank (Strategy 1): ${currentRank}`);
+    }
+
+    // Strategy 2: Look for any div with "Rating" followed by rank in value div
+    if (!currentRank) {
+      const currentRankPattern2 = new RegExp(`Rating[\\s\\S]*?<div[^>]*class="[^"]*value[^"]*"[^>]*>\\s*(${rankPattern})`, 'i');
+      match = html.match(currentRankPattern2);
+      if (match) {
+        currentRank = match[1].trim();
+        console.log(`Found current rank (Strategy 2): ${currentRank}`);
       }
     }
 
-    // Clean up the extracted ranks (remove extra whitespace and RR points)
+    // Strategy 3: Look for first occurrence of rank in value div (before Peak Rating)
+    if (!currentRank) {
+      const beforePeakPattern = new RegExp(`<div[^>]*class="[^"]*value[^"]*"[^>]*>\\s*(${rankPattern})[\\s\\S]*?(?=Peak Rating|$)`, 'i');
+      match = html.match(beforePeakPattern);
+      if (match) {
+        currentRank = match[1].trim();
+        console.log(`Found current rank (Strategy 3): ${currentRank}`);
+      }
+    }
+
+    // Peak rank extraction strategies
+    // Strategy 1: Look for "Peak Rating" h3 followed by value
+    const peakRankPattern1 = new RegExp(`<h3[^>]*>\\s*Peak Rating\\s*</h3>[\\s\\S]*?<div[^>]*class="[^"]*value[^"]*"[^>]*>\\s*(${rankPattern})`, 'i');
+    match = html.match(peakRankPattern1);
+    if (match) {
+      peakRank = match[1].trim();
+      console.log(`Found peak rank (Strategy 1): ${peakRank}`);
+    }
+
+    // Strategy 2: Look for "Peak Rating" text followed by rank
+    if (!peakRank) {
+      const peakRankPattern2 = new RegExp(`Peak Rating[\\s\\S]*?<div[^>]*class="[^"]*value[^"]*"[^>]*>\\s*(${rankPattern})`, 'i');
+      match = html.match(peakRankPattern2);
+      if (match) {
+        peakRank = match[1].trim();
+        console.log(`Found peak rank (Strategy 2): ${peakRank}`);
+      }
+    }
+
+    // Clean up ranks (remove RR points and extra content)
     if (currentRank) {
-      currentRank = currentRank.replace(/\s+/g, ' ').split('<')[0].trim();
+      currentRank = currentRank.replace(/\s*<.*$/, '').replace(/\s+/g, ' ').trim();
     }
     if (peakRank) {
-      peakRank = peakRank.replace(/\s+/g, ' ').split('<')[0].trim();
+      peakRank = peakRank.replace(/\s*<.*$/, '').replace(/\s+/g, ' ').trim();
     }
 
-    // Log what we found for debugging
-    console.log(`Extraction results - Current: ${currentRank}, Peak: ${peakRank}`);
-    
-    // If we didn't find either rank, log some HTML snippets for debugging
+    console.log(`Final extraction results - Current: ${currentRank}, Peak: ${peakRank}`);
+
+    // Debug: If no ranks found, look for any rank mentions
     if (!currentRank && !peakRank) {
-      console.log('No ranks found. Looking for rating-related content...');
+      console.log('No ranks found. Searching for any rank mentions...');
       
-      // Look for any mentions of rank names in the HTML
-      const rankMentions = [];
+      const allRankMatches = [];
       rankNames.forEach(rank => {
-        const rankRegex = new RegExp(`${rank}\\s*[0-3]?`, 'gi');
-        const matches = html.match(rankRegex);
+        const regex = new RegExp(`${rank}\\s*[0-3]?`, 'gi');
+        const matches = html.match(regex);
         if (matches) {
-          rankMentions.push(...matches);
+          allRankMatches.push(...matches.slice(0, 3)); // Limit to first 3 matches per rank
         }
       });
       
-      if (rankMentions.length > 0) {
-        console.log('Found rank mentions:', rankMentions.slice(0, 5));
+      if (allRankMatches.length > 0) {
+        console.log('Found rank mentions:', allRankMatches);
       }
-      
-      // Look for value divs
-      const valueMatches = html.match(/<div[^>]*class="[^"]*value[^"]*"[^>]*>[^<]*</gi);
-      if (valueMatches) {
-        console.log('Found value divs:', valueMatches.slice(0, 3));
+
+      // Look for value divs to understand structure
+      const valuePattern = /<div[^>]*class="[^"]*value[^"]*"[^>]*>([^<]+)/gi;
+      const valueMatches = [];
+      let valueMatch;
+      while ((valueMatch = valuePattern.exec(html)) !== null && valueMatches.length < 5) {
+        valueMatches.push(valueMatch[1].trim());
+      }
+      if (valueMatches.length > 0) {
+        console.log('Found value divs:', valueMatches);
       }
     }
 
@@ -177,7 +193,8 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         current_rank: currentRank, 
-        peak_rank: peakRank 
+        peak_rank: peakRank,
+        message: currentRank || peakRank ? 'Rank data extracted successfully' : 'No rank data found on profile'
       }),
       { 
         status: 200, 
@@ -189,7 +206,10 @@ serve(async (req) => {
     console.error('Error in scrape-rank function:', error);
     
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: 'Check the edge function logs for more information'
+      }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
