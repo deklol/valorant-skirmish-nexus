@@ -71,8 +71,19 @@ export const calculateTeamBalance = (team1Points: number, team2Points: number) =
 };
 
 export const autoBalanceTeams = (players: any[], numTeams: number) => {
-  // Sort players by points (highest first)
-  const sortedPlayers = [...players].sort((a, b) => {
+  // Separate real players from phantom players
+  const realPlayers = players.filter(p => !p.is_phantom);
+  const phantomPlayers = players.filter(p => p.is_phantom);
+
+  // Sort real players by points (highest first)
+  const sortedRealPlayers = [...realPlayers].sort((a, b) => {
+    const aPoints = getRankPoints(a.current_rank || 'Unranked');
+    const bPoints = getRankPoints(b.current_rank || 'Unranked');
+    return bPoints - aPoints;
+  });
+
+  // Sort phantom players by points (highest first)
+  const sortedPhantomPlayers = [...phantomPlayers].sort((a, b) => {
     const aPoints = getRankPoints(a.current_rank || 'Unranked');
     const bPoints = getRankPoints(b.current_rank || 'Unranked');
     return bPoints - aPoints;
@@ -86,14 +97,31 @@ export const autoBalanceTeams = (players: any[], numTeams: number) => {
     totalPoints: 0
   }));
 
-  // Distribute players using a snake draft pattern
-  sortedPlayers.forEach((player, index) => {
+  // First, distribute real players using snake draft
+  sortedRealPlayers.forEach((player, index) => {
     const teamIndex = index % numTeams;
-    const points = getRankPoints(player.current_rank || 'Unranked');
+    const targetTeam = teams[teamIndex];
     
-    teams[teamIndex].players.push(player);
-    teams[teamIndex].totalPoints += points;
+    // Only add if team has space (max 5 players)
+    if (targetTeam.players.length < 5) {
+      const points = getRankPoints(player.current_rank || 'Unranked');
+      targetTeam.players.push(player);
+      targetTeam.totalPoints += points;
+    }
   });
+
+  // Then, fill remaining spots with phantom players if needed
+  let phantomIndex = 0;
+  for (const team of teams) {
+    while (team.players.length < 5 && phantomIndex < sortedPhantomPlayers.length) {
+      const phantomPlayer = sortedPhantomPlayers[phantomIndex];
+      const points = getRankPoints(phantomPlayer.current_rank || 'Unranked');
+      
+      team.players.push(phantomPlayer);
+      team.totalPoints += points;
+      phantomIndex++;
+    }
+  }
 
   return teams;
 };
