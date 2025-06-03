@@ -52,7 +52,7 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
 
   const fetchPlayersAndTeams = async () => {
     try {
-      // Get signed up players
+      // Get signed up players (assume they're available for balancing regardless of check-in status)
       const { data: signupsData, error: signupsError } = await supabase
         .from('tournament_signups')
         .select(`
@@ -66,8 +66,7 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
             is_phantom
           )
         `)
-        .eq('tournament_id', tournamentId)
-        .eq('is_checked_in', true);
+        .eq('tournament_id', tournamentId);
 
       if (signupsError) throw signupsError;
 
