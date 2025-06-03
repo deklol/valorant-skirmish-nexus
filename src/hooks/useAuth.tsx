@@ -55,48 +55,84 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    // Listen for auth changes first
+    let mounted = true;
+
+    const initializeAuth = async () => {
+      try {
+        // Get initial session
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting session:', error);
+          if (mounted) {
+            setUser(null);
+            setProfile(null);
+            setLoading(false);
+          }
+          return;
+        }
+
+        console.log('Initial session:', session?.user?.id);
+        
+        if (session?.user && mounted) {
+          setUser(session.user);
+          await fetchProfile(session.user.id);
+        } else if (mounted) {
+          setUser(null);
+          setProfile(null);
+        }
+        
+        if (mounted) {
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+        if (mounted) {
+          setUser(null);
+          setProfile(null);
+          setLoading(false);
+        }
+      }
+    };
+
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state change:', event, session?.user?.id);
+        
+        if (!mounted) return;
         
         if (event === 'SIGNED_OUT' || !session) {
           console.log('User signed out, clearing state');
           setUser(null);
           setProfile(null);
-          setLoading(false);
         } else if (session?.user) {
           console.log('User signed in, updating state');
           setUser(session.user);
-          await fetchProfile(session.user.id);
-          setLoading(false);
+          // Defer profile fetching to avoid blocking the auth state change
+          setTimeout(() => {
+            if (mounted) {
+              fetchProfile(session.user.id);
+            }
+          }, 0);
         }
+        
+        setLoading(false);
       }
     );
 
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Initial session:', session?.user?.id);
-      if (session?.user) {
-        setUser(session.user);
-        fetchProfile(session.user.id).finally(() => setLoading(false));
-      } else {
-        setUser(null);
-        setProfile(null);
-        setLoading(false);
-      }
-    });
+    // Initialize auth state
+    initializeAuth();
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {
     try {
       console.log('Signing out...');
-      // Clear state immediately for responsive UI
-      setUser(null);
-      setProfile(null);
-      
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error('Error signing out:', error);
