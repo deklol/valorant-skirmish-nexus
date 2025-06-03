@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 const Profile = () => {
-  const { user, profile, loading } = useAuth();
+  const { user, profile, loading, refreshProfile } = useAuth();
   const [showRiotIdDialog, setShowRiotIdDialog] = useState(false);
   const [refreshingRank, setRefreshingRank] = useState(false);
   const { toast } = useToast();
@@ -78,9 +78,10 @@ const Profile = () => {
     return "text-slate-400";
   };
 
-  const handleRiotIdComplete = () => {
+  const handleRiotIdComplete = async () => {
     setShowRiotIdDialog(false);
-    window.location.reload(); // Refresh to get updated data
+    // Use the new refresh function instead of reloading the page
+    await refreshProfile();
   };
 
   const handleRefreshRank = async () => {
@@ -109,8 +110,8 @@ const Profile = () => {
         description: "Your rank data has been refreshed successfully.",
       });
 
-      // Refresh the page to show updated data
-      window.location.reload();
+      // Use the new refresh function instead of reloading the page
+      await refreshProfile();
     } catch (error: any) {
       console.error('Rank refresh failed:', error);
       toast({
