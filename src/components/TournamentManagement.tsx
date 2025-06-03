@@ -13,7 +13,7 @@ import CreateTournamentDialog from "./CreateTournamentDialog";
 interface Tournament {
   id: string;
   name: string;
-  status: 'draft' | 'open' | 'balancing' | 'live' | 'completed';
+  status: 'draft' | 'open' | 'balancing' | 'live' | 'completed' | 'archived';
   match_format: 'BO1' | 'BO3';
   max_players: number;
   max_teams: number;
@@ -105,7 +105,8 @@ const TournamentManagement = () => {
       open: "bg-green-500/20 text-green-400", 
       balancing: "bg-yellow-500/20 text-yellow-400",
       live: "bg-red-500/20 text-red-400",
-      completed: "bg-blue-500/20 text-blue-400"
+      completed: "bg-blue-500/20 text-blue-400",
+      archived: "bg-slate-500/20 text-slate-400"
     };
 
     return (
@@ -193,6 +194,7 @@ const TournamentManagement = () => {
                             <SelectItem value="balancing">Balancing</SelectItem>
                             <SelectItem value="live">Live</SelectItem>
                             <SelectItem value="completed">Completed</SelectItem>
+                            <SelectItem value="archived">Archived</SelectItem>
                           </SelectContent>
                         </Select>
                       </TableCell>

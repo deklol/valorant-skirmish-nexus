@@ -1,65 +1,79 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Search, Plus, Filter } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import Header from "@/components/Header";
 import TournamentCard from "@/components/TournamentCard";
 
+interface Tournament {
+  id: number;
+  name: string;
+  max_teams: number;
+  currentSignups: number;
+  maxPlayers: number;
+  prizePool: string;
+  startTime: Date;
+  status: "open" | "balancing" | "live" | "completed";
+  format: "BO1" | "BO3";
+}
+
 const Tournaments = () => {
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [formatFilter, setFormatFilter] = useState("all");
+  const { isAdmin } = useAuth();
 
-  // Mock data - will be replaced with API calls
-  const tournaments = [
-    {
-      id: 1,
-      name: "TGH Weekly Skirmish #53",
-      maxTeams: 8,
-      currentSignups: 24,
-      maxPlayers: 40,
-      prizePool: "£50 prize pool",
-      startTime: new Date("2025-06-07T19:00:00"),
-      status: "open" as const,
-      format: "BO1" as const
-    },
-    {
-      id: 2,
-      name: "TGH Championship Finals",
-      maxTeams: 16,
-      currentSignups: 67,
-      maxPlayers: 80,
-      prizePool: "£200 + Riot Points",
-      startTime: new Date("2025-06-14T20:00:00"),
-      status: "balancing" as const,
-      format: "BO3" as const
-    },
-    {
-      id: 3,
-      name: "TGH Weekly Skirmish #52",
-      maxTeams: 8,
-      currentSignups: 40,
-      maxPlayers: 40,
-      prizePool: "£50 prize pool",
-      startTime: new Date("2025-05-31T19:00:00"),
-      status: "completed" as const,
-      format: "BO1" as const
-    },
-    {
-      id: 4,
-      name: "TGH Summer Cup Qualifiers",
-      maxTeams: 12,
-      currentSignups: 45,
-      maxPlayers: 60,
-      prizePool: "£100 + Qualification",
-      startTime: new Date("2025-06-21T18:00:00"),
-      status: "live" as const,
-      format: "BO3" as const
-    }
-  ];
+  useEffect(() => {
+    const fetchTournaments = async () => {
+      try {
+        const { data: tournamentsData, error } = await supabase
+          .from('tournaments')
+          .select('*')
+          .order('start_time', { ascending: true });
+
+        if (error) {
+          throw error;
+        }
+
+        // Get signup counts for each tournament
+        const tournamentsWithSignups = await Promise.all(
+          (tournamentsData || []).map(async (tournament) => {
+            const { count } = await supabase
+              .from('tournament_signups')
+              .select('*', { count: 'exact' })
+              .eq('tournament_id', tournament.id);
+
+            return {
+              id: parseInt(tournament.id),
+              name: tournament.name,
+              max_teams: tournament.max_teams || 8,
+              currentSignups: count || 0,
+              maxPlayers: tournament.max_players,
+              prizePool: tournament.prize_pool || 'TBD',
+              startTime: new Date(tournament.start_time),
+              status: tournament.status as "open" | "balancing" | "live" | "completed",
+              format: tournament.match_format as "BO1" | "BO3"
+            };
+          })
+        );
+
+        setTournaments(tournamentsWithSignups);
+      } catch (error) {
+        console.error('Error fetching tournaments:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTournaments();
+  }, []);
 
   const filteredTournaments = tournaments.filter(tournament => {
     const matchesSearch = tournament.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -69,8 +83,18 @@ const Tournaments = () => {
     return matchesSearch && matchesStatus && matchesFormat;
   });
 
-  // Mock admin check - will be replaced with actual Discord role checking
-  const isAdmin = true;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <p className="text-white text-lg">Loading tournaments...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">

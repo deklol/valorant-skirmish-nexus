@@ -1,45 +1,112 @@
 
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Trophy, Users, Calendar, Clock, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import Header from '@/components/Header';
 
+interface Tournament {
+  id: string;
+  name: string;
+  description: string | null;
+  prize_pool: string | null;
+  start_time: string;
+  registration_closes_at: string | null;
+  max_teams: number | null;
+  max_players: number;
+  status: string;
+  signups?: number;
+}
+
 const Index = () => {
-  // Mock data - will be replaced with real tournament data
-  const featuredTournament = {
-    name: "Weekly Skirmish #1",
-    description: "Join the weekly Valorant tournament for prizes and glory!",
-    registrationEnds: "2024-02-01T18:00:00Z",
-    startTime: "2024-02-02T19:00:00Z",
-    maxTeams: 8,
-    currentSignups: 0,
-    prizePool: "$500",
-    status: "open"
-  };
+  const [featuredTournament, setFeaturedTournament] = useState<Tournament | null>(null);
+  const [upcomingTournaments, setUpcomingTournaments] = useState<Tournament[]>([]);
+  const [recentWinners, setRecentWinners] = useState<any[]>([]);
 
-  const upcomingTournaments = [
-    {
-      id: 1,
-      name: "Monthly Championship",
-      date: "2024-02-15",
-      teams: 16,
-      prizePool: "$1000",
-    },
-    {
-      id: 2,
-      name: "Weekly Skirmish #2",
-      date: "2024-02-09",
-      teams: 8,
-      prizePool: "$500",
-    },
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Get featured tournament (next open tournament)
+        const { data: featuredData } = await supabase
+          .from('tournaments')
+          .select('*')
+          .eq('status', 'open')
+          .order('start_time', { ascending: true })
+          .limit(1)
+          .maybeSingle();
 
-  const recentWinners = [
-    { tournament: "Beta Tournament", winner: "Team Alpha", date: "2024-01-15" },
-    { tournament: "Test Event", winner: "Team Beta", date: "2024-01-10" },
-  ];
+        if (featuredData) {
+          const { count } = await supabase
+            .from('tournament_signups')
+            .select('*', { count: 'exact' })
+            .eq('tournament_id', featuredData.id);
+
+          setFeaturedTournament({
+            ...featuredData,
+            signups: count || 0
+          });
+        }
+
+        // Get upcoming tournaments
+        const { data: upcomingData } = await supabase
+          .from('tournaments')
+          .select('*')
+          .in('status', ['open', 'balancing'])
+          .order('start_time', { ascending: true })
+          .limit(5);
+
+        if (upcomingData) {
+          const tournamentsWithSignups = await Promise.all(
+            upcomingData.map(async (tournament) => {
+              const { count } = await supabase
+                .from('tournament_signups')
+                .select('*', { count: 'exact' })
+                .eq('tournament_id', tournament.id);
+
+              return {
+                ...tournament,
+                signups: count || 0
+              };
+            })
+          );
+          setUpcomingTournaments(tournamentsWithSignups);
+        }
+
+        // Get recent winners (completed tournaments with teams)
+        const { data: completedTournaments } = await supabase
+          .from('tournaments')
+          .select(`
+            id,
+            name,
+            end_time,
+            matches!inner(
+              winner_id,
+              teams!matches_winner_id_fkey(name)
+            )
+          `)
+          .eq('status', 'completed')
+          .not('matches.winner_id', 'is', null)
+          .order('end_time', { ascending: false })
+          .limit(3);
+
+        if (completedTournaments) {
+          const winners = completedTournaments.map(tournament => ({
+            tournament: tournament.name,
+            winner: tournament.matches[0]?.teams?.name || 'Unknown',
+            date: tournament.end_time
+          }));
+          setRecentWinners(winners);
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
@@ -83,35 +150,40 @@ const Index = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <p className="text-slate-300 mb-6">{featuredTournament.description}</p>
+              <p className="text-slate-300 mb-6">{featuredTournament.description || "Join this exciting tournament!"}</p>
               
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                 <div className="flex items-center gap-2 text-slate-300">
                   <Calendar className="w-4 h-4" />
                   <div>
                     <div className="font-semibold">Starts</div>
-                    <div className="text-sm">{new Date(featuredTournament.startTime).toLocaleDateString()}</div>
+                    <div className="text-sm">{new Date(featuredTournament.start_time).toLocaleDateString()}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 text-slate-300">
                   <Clock className="w-4 h-4" />
                   <div>
                     <div className="font-semibold">Registration Ends</div>
-                    <div className="text-sm">{new Date(featuredTournament.registrationEnds).toLocaleDateString()}</div>
+                    <div className="text-sm">
+                      {featuredTournament.registration_closes_at 
+                        ? new Date(featuredTournament.registration_closes_at).toLocaleDateString()
+                        : 'TBD'
+                      }
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 text-slate-300">
                   <Users className="w-4 h-4" />
                   <div>
-                    <div className="font-semibold">Teams</div>
-                    <div className="text-sm">{featuredTournament.currentSignups}/{featuredTournament.maxTeams}</div>
+                    <div className="font-semibold">Players</div>
+                    <div className="text-sm">{featuredTournament.signups}/{featuredTournament.max_players}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 text-slate-300">
                   <Trophy className="w-4 h-4" />
                   <div>
                     <div className="font-semibold">Prize Pool</div>
-                    <div className="text-sm text-yellow-400">{featuredTournament.prizePool}</div>
+                    <div className="text-sm text-yellow-400">{featuredTournament.prize_pool || 'TBD'}</div>
                   </div>
                 </div>
               </div>
@@ -139,11 +211,11 @@ const Index = () => {
                   <div key={tournament.id} className="flex items-center justify-between p-3 bg-slate-700/50 rounded">
                     <div>
                       <div className="font-semibold text-white">{tournament.name}</div>
-                      <div className="text-sm text-slate-400">{new Date(tournament.date).toLocaleDateString()}</div>
+                      <div className="text-sm text-slate-400">{new Date(tournament.start_time).toLocaleDateString()}</div>
                     </div>
                     <div className="text-right">
-                      <div className="text-sm text-slate-300">{tournament.teams} teams</div>
-                      <div className="text-sm text-yellow-400">{tournament.prizePool}</div>
+                      <div className="text-sm text-slate-300">{tournament.max_teams} teams max</div>
+                      <div className="text-sm text-yellow-400">{tournament.prize_pool || 'TBD'}</div>
                     </div>
                   </div>
                 ))}
@@ -168,7 +240,7 @@ const Index = () => {
                       <div className="text-sm text-slate-400">{winner.tournament}</div>
                     </div>
                     <div className="text-sm text-slate-300">
-                      {new Date(winner.date).toLocaleDateString()}
+                      {winner.date ? new Date(winner.date).toLocaleDateString() : 'Recent'}
                     </div>
                   </div>
                 ))}
