@@ -18,7 +18,7 @@ const RiotIdDialog = ({ open, onOpenChange, onComplete }: RiotIdDialogProps) => 
   const [riotId, setRiotId] = useState('');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
   const validateRiotId = (id: string) => {
     const riotIdPattern = /^.+#[A-Za-z0-9]{3,5}$/;
@@ -53,20 +53,34 @@ const RiotIdDialog = ({ open, onOpenChange, onComplete }: RiotIdDialogProps) => 
 
       if (updateError) throw updateError;
 
-      // Call edge function to scrape rank data
-      const { error: scrapeError } = await supabase.functions.invoke('scrape-rank', {
-        body: { riot_id: riotId, user_id: user?.id }
-      });
+      // Only scrape rank if user doesn't have current rank data
+      const shouldScrapeRank = !profile?.current_rank || !profile?.peak_rank;
+      
+      if (shouldScrapeRank) {
+        // Call edge function to scrape rank data
+        const { error: scrapeError } = await supabase.functions.invoke('scrape-rank', {
+          body: { riot_id: riotId, user_id: user?.id }
+        });
 
-      if (scrapeError) {
-        console.error('Rank scraping failed:', scrapeError);
-        // Don't block the user if scraping fails
+        if (scrapeError) {
+          console.error('Rank scraping failed:', scrapeError);
+          // Don't block the user if scraping fails
+          toast({
+            title: "Profile Updated",
+            description: "Your Riot ID has been saved, but we couldn't fetch your rank data. You can try refreshing it manually from your profile.",
+          });
+        } else {
+          toast({
+            title: "Profile Updated",
+            description: "Your Riot ID has been saved and rank data has been updated.",
+          });
+        }
+      } else {
+        toast({
+          title: "Profile Updated",
+          description: "Your Riot ID has been updated.",
+        });
       }
-
-      toast({
-        title: "Profile Updated",
-        description: "Your Riot ID has been saved and rank data is being updated.",
-      });
 
       onComplete();
       onOpenChange(false);

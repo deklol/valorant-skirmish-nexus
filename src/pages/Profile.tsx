@@ -4,14 +4,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Trophy, Medal, Target, Calendar, Users, Crown, Edit } from "lucide-react";
+import { Trophy, Medal, Target, Calendar, Users, Crown, Edit, RefreshCw } from "lucide-react";
 import Header from "@/components/Header";
 import RiotIdDialog from "@/components/RiotIdDialog";
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const Profile = () => {
-  const { user, profile } = useAuth();
+  const { user, profile, loading } = useAuth();
   const [showRiotIdDialog, setShowRiotIdDialog] = useState(false);
+  const [refreshingRank, setRefreshingRank] = useState(false);
+  const { toast } = useToast();
 
   // Mock tournament history - will be replaced with actual data from database
   const tournamentHistory = [
@@ -79,12 +83,74 @@ const Profile = () => {
     window.location.reload(); // Refresh to get updated data
   };
 
-  if (!user || !profile) {
+  const handleRefreshRank = async () => {
+    if (!user || !profile?.riot_id) {
+      toast({
+        title: "Error",
+        description: "No Riot ID found. Please set your Riot ID first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setRefreshingRank(true);
+
+    try {
+      const { error } = await supabase.functions.invoke('scrape-rank', {
+        body: { riot_id: profile.riot_id, user_id: user.id }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Rank Updated",
+        description: "Your rank data has been refreshed successfully.",
+      });
+
+      // Refresh the page to show updated data
+      window.location.reload();
+    } catch (error: any) {
+      console.error('Rank refresh failed:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to refresh rank data",
+        variant: "destructive",
+      });
+    } finally {
+      setRefreshingRank(false);
+    }
+  };
+
+  if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
         <Header />
         <div className="container mx-auto px-4 py-8 text-center">
           <p className="text-white">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <Header />
+        <div className="container mx-auto px-4 py-8 text-center">
+          <p className="text-white">Please log in to view your profile.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <Header />
+        <div className="container mx-auto px-4 py-8 text-center">
+          <p className="text-white">Profile not found. Please try refreshing the page.</p>
         </div>
       </div>
     );
@@ -122,6 +188,17 @@ const Profile = () => {
                     >
                       <Edit className="w-4 h-4" />
                     </Button>
+                    {profile.riot_id && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleRefreshRank}
+                        disabled={refreshingRank}
+                        className="text-slate-400 hover:text-white"
+                      >
+                        <RefreshCw className={`w-4 h-4 ${refreshingRank ? 'animate-spin' : ''}`} />
+                      </Button>
+                    )}
                   </div>
                   
                   <div className="flex flex-wrap items-center gap-4">
