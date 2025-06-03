@@ -1,13 +1,12 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trophy, Users, Clock, Eye, Settings } from "lucide-react";
+import { Trophy, Users, Clock, Eye, Settings, Map } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import Header from "@/components/Header";
-import MapVetoDialog from "@/components/MapVetoDialog";
 
 interface Match {
   id: string;
@@ -20,6 +19,7 @@ interface Match {
   score_team1: number;
   score_team2: number;
   scheduled_time: string | null;
+  best_of: number;
   team1?: { name: string; id: string } | null;
   team2?: { name: string; id: string } | null;
   winner?: { name: string; id: string } | null;
@@ -39,8 +39,6 @@ const BracketView = () => {
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
-  const [mapVetoOpen, setMapVetoOpen] = useState(false);
   const { user, isAdmin } = useAuth();
 
   useEffect(() => {
@@ -144,11 +142,6 @@ const BracketView = () => {
     });
   };
 
-  const handleMapVeto = (matchId: string) => {
-    setSelectedMatch(matchId);
-    setMapVetoOpen(true);
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
@@ -235,15 +228,16 @@ const BracketView = () => {
                                     <Badge className="bg-gray-500/20 text-gray-400">Pending</Badge>
                                   )}
                                   {existingMatch?.status === "live" && tournament.match_format !== "BO1" && (
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-white"
-                                      onClick={() => handleMapVeto(existingMatch.id)}
-                                    >
-                                      <Eye className="w-3 h-3 mr-1" />
-                                      Maps
-                                    </Button>
+                                    <Link to={`/map-veto/${existingMatch.id}`}>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-white"
+                                      >
+                                        <Map className="w-3 h-3 mr-1" />
+                                        Veto
+                                      </Button>
+                                    </Link>
                                   )}
                                 </div>
                               </div>
@@ -341,19 +335,6 @@ const BracketView = () => {
           )}
         </div>
       </div>
-
-      {/* Map Veto Dialog */}
-      {selectedMatch && (
-        <MapVetoDialog
-          open={mapVetoOpen}
-          onOpenChange={setMapVetoOpen}
-          matchId={selectedMatch}
-          team1Name={matches.find(m => m.id === selectedMatch)?.team1?.name || "Team 1"}
-          team2Name={matches.find(m => m.id === selectedMatch)?.team2?.name || "Team 2"}
-          currentTeamTurn={matches.find(m => m.id === selectedMatch)?.team1_id || ""}
-          userTeamId={user?.id || null}
-        />
-      )}
     </div>
   );
 };
