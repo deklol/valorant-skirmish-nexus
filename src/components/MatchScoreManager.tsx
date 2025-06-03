@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,6 +19,8 @@ interface Match {
   score_team1: number;
   score_team2: number;
   scheduled_time: string | null;
+  started_at: string | null;
+  completed_at: string | null;
   best_of: number;
   team1?: { name: string; id: string } | null;
   team2?: { name: string; id: string } | null;

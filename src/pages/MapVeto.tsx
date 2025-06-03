@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -120,7 +119,12 @@ const MapVeto = () => {
           throw sessionError;
         }
 
-        setVetoSession(sessionData);
+        // Convert the status to our expected type
+        const convertedSession: VetoSession = {
+          ...sessionData,
+          status: sessionData.status === 'in_progress' ? 'active' : sessionData.status as "pending" | "active" | "completed"
+        };
+        setVetoSession(convertedSession);
 
         // Fetch veto actions
         const { data: actionsData, error: actionsError } = await supabase
