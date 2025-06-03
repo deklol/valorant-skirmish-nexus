@@ -405,6 +405,48 @@ export type Database = {
           },
         ]
       }
+      phantom_players: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          name: string
+          tournament_id: string
+          weight_rating: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          name: string
+          tournament_id: string
+          weight_rating?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          name?: string
+          tournament_id?: string
+          weight_rating?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "phantom_players_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "phantom_players_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_members: {
         Row: {
           id: string
@@ -624,6 +666,7 @@ export type Database = {
           discord_username: string | null
           id: string
           is_banned: boolean | null
+          is_phantom: boolean | null
           last_rank_update: string | null
           mvp_awards: number | null
           peak_rank: string | null
@@ -634,6 +677,7 @@ export type Database = {
           tournaments_played: number | null
           tournaments_won: number | null
           updated_at: string | null
+          weight_rating: number | null
         }
         Insert: {
           ban_expires_at?: string | null
@@ -644,6 +688,7 @@ export type Database = {
           discord_username?: string | null
           id: string
           is_banned?: boolean | null
+          is_phantom?: boolean | null
           last_rank_update?: string | null
           mvp_awards?: number | null
           peak_rank?: string | null
@@ -654,6 +699,7 @@ export type Database = {
           tournaments_played?: number | null
           tournaments_won?: number | null
           updated_at?: string | null
+          weight_rating?: number | null
         }
         Update: {
           ban_expires_at?: string | null
@@ -664,6 +710,7 @@ export type Database = {
           discord_username?: string | null
           id?: string
           is_banned?: boolean | null
+          is_phantom?: boolean | null
           last_rank_update?: string | null
           mvp_awards?: number | null
           peak_rank?: string | null
@@ -674,6 +721,7 @@ export type Database = {
           tournaments_played?: number | null
           tournaments_won?: number | null
           updated_at?: string | null
+          weight_rating?: number | null
         }
         Relationships: []
       }
