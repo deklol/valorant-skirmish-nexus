@@ -28,11 +28,14 @@ serve(async (req) => {
 
     console.log(`Scraping rank for Riot ID: ${riot_id}`);
 
-    // Format the Riot ID for URL (encode # as %2523)
-    const encodedRiotId = riot_id.replace('#', '%2523');
-    const trackerUrl = `https://tracker.gg/valorant/profile/riot/${encodedRiotId}/`;
+    // Format the Riot ID for tracker.gg URL
+    // Just replace # with %23 - don't double encode
+    const formattedRiotId = riot_id.replace('#', '%23');
+    const trackerUrl = `https://tracker.gg/valorant/profile/riot/${formattedRiotId}/overview`;
 
-    console.log(`Fetching from URL: ${trackerUrl}`);
+    console.log(`Original Riot ID: ${riot_id}`);
+    console.log(`Formatted for URL: ${formattedRiotId}`);
+    console.log(`Full tracker URL: ${trackerUrl}`);
 
     // Fetch the tracker.gg page
     const response = await fetch(trackerUrl, {
@@ -42,6 +45,7 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
+      console.error(`Failed to fetch tracker page: ${response.status} ${response.statusText}`);
       throw new Error(`Failed to fetch tracker page: ${response.status}`);
     }
 
