@@ -1,19 +1,17 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Users, UserPlus, Shuffle, Plus, Trash2 } from "lucide-react";
+import { Users, UserPlus, Shuffle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import DraggablePlayer from "./DraggablePlayer";
 import DroppableTeam from "./DroppableTeam";
 import PhantomPlayerDialog from "./PhantomPlayerDialog";
+import { getRankPoints, autoBalanceTeams, calculateTeamBalance } from "@/utils/rankingSystem";
 
 interface Player {
   id: string;
@@ -29,7 +27,7 @@ interface Team {
   id: string;
   name: string;
   players: Player[];
-  totalRating: number;
+  totalPoints: number;
 }
 
 interface TeamBalancingToolProps {
@@ -114,7 +112,7 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
         discord_username: phantom.name,
         riot_id: phantom.name,
         current_rank: 'Phantom',
-        weight_rating: phantom.weight_rating,
+        weight_rating: getRankPoints('Phantom'),
         is_phantom: true,
         name: phantom.name
       })) || [];
@@ -130,11 +128,15 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
         
         teamPlayers.forEach(player => playersInTeams.add(player.id));
         
+        const totalPoints = teamPlayers.reduce((sum, p) => 
+          sum + getRankPoints(p.current_rank || 'Unranked'), 0
+        );
+        
         return {
           id: team.id,
           name: team.name,
           players: teamPlayers,
-          totalRating: teamPlayers.reduce((sum, p) => sum + (p.weight_rating || 150), 0)
+          totalPoints
         };
       }) || [];
 
@@ -204,12 +206,16 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
 
     // Remove from team if exists
     setTeams(prevTeams => 
-      prevTeams.map(team => ({
-        ...team,
-        players: team.players.filter(p => p.id !== playerId),
-        totalRating: team.players.filter(p => p.id !== playerId)
-          .reduce((sum, p) => sum + (p.weight_rating || 150), 0)
-      }))
+      prevTeams.map(team => {
+        const newPlayers = team.players.filter(p => p.id !== playerId);
+        return {
+          ...team,
+          players: newPlayers,
+          totalPoints: newPlayers.reduce((sum, p) => 
+            sum + getRankPoints(p.current_rank || 'Unranked'), 0
+          )
+        };
+      })
     );
 
     // Add to available if not already there
@@ -239,7 +245,7 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
     // Remove from available players
     setAvailablePlayers(prev => prev.filter(p => p.id !== playerId));
 
-    // Remove from other teams
+    // Remove from other teams and add to target team
     setTeams(prevTeams => 
       prevTeams.map(team => {
         if (team.id === teamId) {
@@ -248,7 +254,9 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
           return {
             ...team,
             players: newPlayers,
-            totalRating: newPlayers.reduce((sum, p) => sum + (p.weight_rating || 150), 0)
+            totalPoints: newPlayers.reduce((sum, p) => 
+              sum + getRankPoints(p.current_rank || 'Unranked'), 0
+            )
           };
         } else {
           // Remove from other teams
@@ -256,7 +264,9 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
           return {
             ...team,
             players: newPlayers,
-            totalRating: newPlayers.reduce((sum, p) => sum + (p.weight_rating || 150), 0)
+            totalPoints: newPlayers.reduce((sum, p) => 
+              sum + getRankPoints(p.current_rank || 'Unranked'), 0
+            )
           };
         }
       })
@@ -270,7 +280,7 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
         id: `temp-${i}`,
         name: `Team ${i}`,
         players: [],
-        totalRating: 0
+        totalPoints: 0
       });
     }
     setTeams(newTeams);
@@ -279,19 +289,8 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
   const autoBalance = () => {
     if (availablePlayers.length === 0) return;
 
-    // Simple balancing algorithm
-    const playersToBalance = [...availablePlayers];
-    playersToBalance.sort((a, b) => (b.weight_rating || 150) - (a.weight_rating || 150));
-
-    const newTeams = teams.map(team => ({ ...team, players: [], totalRating: 0 }));
-    
-    playersToBalance.forEach((player, index) => {
-      const teamIndex = index % maxTeams;
-      newTeams[teamIndex].players.push(player);
-      newTeams[teamIndex].totalRating += player.weight_rating || 150;
-    });
-
-    setTeams(newTeams);
+    const balancedTeams = autoBalanceTeams(availablePlayers, maxTeams);
+    setTeams(balancedTeams);
     setAvailablePlayers([]);
   };
 
@@ -313,7 +312,7 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
         phantoms.push({
           tournament_id: tournamentId,
           name: `Phantom ${i}`,
-          weight_rating: 150
+          weight_rating: getRankPoints('Phantom')
         });
       }
 
@@ -330,7 +329,7 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
         discord_username: phantom.name,
         riot_id: phantom.name,
         current_rank: 'Phantom',
-        weight_rating: phantom.weight_rating,
+        weight_rating: getRankPoints('Phantom'),
         is_phantom: true,
         name: phantom.name
       }));
@@ -374,7 +373,7 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
             tournament_id: tournamentId,
             captain_id: team.players[0]?.id,
             status: 'confirmed',
-            total_rank_points: team.totalRating
+            total_rank_points: team.totalPoints
           })
           .select()
           .single();
@@ -415,6 +414,11 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
     }
   };
 
+  // Calculate balance metrics for teams with players
+  const teamsWithPlayers = teams.filter(team => team.players.length > 0);
+  const balanceMetrics = teamsWithPlayers.length >= 2 ? 
+    calculateTeamBalance(teamsWithPlayers[0]?.totalPoints || 0, teamsWithPlayers[1]?.totalPoints || 0) : null;
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -425,11 +429,11 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
       </DialogTrigger>
       <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Team Balancing Tool</DialogTitle>
+          <DialogTitle>Team Balancing Tool - TGH Skirmish Ranking System</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button onClick={createEmptyTeams} variant="outline">
               <Users className="w-4 h-4 mr-2" />
               Create {maxTeams} Teams
@@ -447,6 +451,30 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
               onPhantomAdded={fetchPlayersAndTeams}
             />
           </div>
+
+          {balanceMetrics && (
+            <div className="p-4 bg-slate-700 rounded-lg">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-300">Team Balance Analysis</span>
+                <Badge variant={
+                  balanceMetrics.balanceStatus === 'ideal' ? 'default' :
+                  balanceMetrics.balanceStatus === 'good' ? 'secondary' :
+                  balanceMetrics.balanceStatus === 'warning' ? 'outline' : 'destructive'
+                }>
+                  {balanceMetrics.balanceStatus === 'ideal' && '🎯 Ideal'}
+                  {balanceMetrics.balanceStatus === 'good' && '✅ Good'}
+                  {balanceMetrics.balanceStatus === 'warning' && '⚠️ Warning'}
+                  {balanceMetrics.balanceStatus === 'poor' && '🚨 Poor'}
+                </Badge>
+              </div>
+              <div className="text-sm text-slate-400 mt-1">
+                Point Delta: {balanceMetrics.delta} 
+                {balanceMetrics.delta <= 25 && ' (Ideal: 0-25)'}
+                {balanceMetrics.delta > 25 && balanceMetrics.delta <= 50 && ' (Good: 26-50)'}
+                {balanceMetrics.delta > 50 && ' (⚠️ Above 50 - Consider rebalancing)'}
+              </div>
+            </div>
+          )}
 
           <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">

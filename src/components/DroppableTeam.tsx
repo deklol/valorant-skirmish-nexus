@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users } from "lucide-react";
 import DraggablePlayer from "./DraggablePlayer";
+import { getRankPoints } from "@/utils/rankingSystem";
 
 interface Player {
   id: string;
@@ -20,7 +21,7 @@ interface Team {
   id: string;
   name: string;
   players: Player[];
-  totalRating: number;
+  totalPoints: number;
 }
 
 interface DroppableTeamProps {
@@ -32,8 +33,12 @@ const DroppableTeam = ({ team }: DroppableTeamProps) => {
     id: `team-${team.id}`,
   });
 
-  const averageRating = team.players.length > 0 
-    ? Math.round(team.totalRating / team.players.length)
+  const totalPoints = team.players.reduce((sum, player) => 
+    sum + getRankPoints(player.current_rank || 'Unranked'), 0
+  );
+
+  const averagePoints = team.players.length > 0 
+    ? Math.round(totalPoints / team.players.length)
     : 0;
 
   return (
@@ -52,12 +57,12 @@ const DroppableTeam = ({ team }: DroppableTeamProps) => {
               {team.players.length}/5
             </Badge>
             <Badge variant="secondary">
-              Avg: {averageRating}
+              Avg: {averagePoints}
             </Badge>
           </div>
         </div>
         <div className="text-sm text-slate-400">
-          Total Rating: {team.totalRating}
+          Total Points: {totalPoints}
         </div>
       </CardHeader>
       <CardContent>

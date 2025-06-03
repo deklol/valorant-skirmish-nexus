@@ -4,6 +4,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { GripVertical, User } from "lucide-react";
+import { getRankPoints } from "@/utils/rankingSystem";
 
 interface Player {
   id: string;
@@ -49,6 +50,8 @@ const DraggablePlayer = ({ player }: DraggablePlayerProps) => {
     return 'bg-slate-500/20 text-slate-400';
   };
 
+  const rankPoints = getRankPoints(player.current_rank || 'Unranked');
+
   return (
     <Card 
       ref={setNodeRef} 
@@ -75,7 +78,7 @@ const DraggablePlayer = ({ player }: DraggablePlayerProps) => {
                 {player.current_rank || 'Unranked'}
               </Badge>
               <Badge variant="secondary" className="text-xs">
-                {player.weight_rating}
+                {rankPoints} pts
               </Badge>
             </div>
           </div>
