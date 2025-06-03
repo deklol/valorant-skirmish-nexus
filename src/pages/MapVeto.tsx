@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -119,10 +120,11 @@ const MapVeto = () => {
           throw sessionError;
         }
 
-        // Convert the status to our expected type
+        // Convert the database response to our expected type
         const convertedSession: VetoSession = {
           ...sessionData,
-          status: sessionData.status === 'in_progress' ? 'active' : sessionData.status as "pending" | "active" | "completed"
+          status: sessionData.status === 'in_progress' ? 'active' : sessionData.status as "pending" | "active" | "completed",
+          veto_order: Array.isArray(sessionData.veto_order) ? sessionData.veto_order : []
         };
         setVetoSession(convertedSession);
 
@@ -247,7 +249,7 @@ const MapVeto = () => {
           .from('map_veto_sessions')
           .update({ 
             current_turn_team_id: nextTeamId,
-            status: 'active'
+            status: 'in_progress'
           })
           .eq('id', vetoSession.id);
       } else {
