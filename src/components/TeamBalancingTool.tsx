@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -73,24 +72,13 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
 
       if (signupsError) throw signupsError;
 
-      // Get phantom players that have user records
-      const { data: phantomUsersData, error: phantomUsersError } = await supabase
-        .from('users')
-        .select(`
-          id,
-          discord_username,
-          riot_id,
-          current_rank,
-          weight_rating,
-          is_phantom,
-          phantom_players!inner (
-            id,
-            name
-          )
-        `)
-        .eq('is_phantom', true);
+      // Get phantom players for this tournament
+      const { data: phantomData, error: phantomError } = await supabase
+        .from('phantom_players')
+        .select('*')
+        .eq('tournament_id', tournamentId);
 
-      if (phantomUsersError) throw phantomUsersError;
+      if (phantomError) throw phantomError;
 
       // Get existing teams
       const { data: teamsData, error: teamsError } = await supabase
@@ -131,14 +119,14 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
         .filter(Boolean) as Player[];
 
       // Process phantom players
-      const phantomPlayers: Player[] = phantomUsersData?.map(user => ({
-        id: user.id,
-        discord_username: user.discord_username || user.phantom_players[0]?.name || '',
-        riot_id: user.riot_id || user.phantom_players[0]?.name || '',
+      const phantomPlayers: Player[] = phantomData?.map(phantom => ({
+        id: phantom.id,
+        discord_username: phantom.name,
+        riot_id: phantom.name,
         current_rank: 'Phantom',
-        weight_rating: user.weight_rating || getRankPoints('Phantom'),
+        weight_rating: phantom.weight_rating || getRankPoints('Phantom'),
         is_phantom: true,
-        name: user.phantom_players[0]?.name
+        name: phantom.name
       })) || [];
 
       const allPlayers = [...realPlayers, ...phantomPlayers];
@@ -358,7 +346,8 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
       for (let i = 1; i <= playersNeeded; i++) {
         phantoms.push({
           name: `Phantom ${i}`,
-          weight_rating: getRankPoints('Phantom')
+          weight_rating: getRankPoints('Phantom'),
+          tournament_id: tournamentId
         });
       }
 
