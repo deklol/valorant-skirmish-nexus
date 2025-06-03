@@ -63,46 +63,64 @@ serve(async (req) => {
     const html = await response.text();
     console.log(`HTML length: ${html.length}`);
 
-    // Extract current rank using the structure you provided
+    // Define rank names for matching
+    const rankNames = [
+      'Iron', 'Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Ascendant', 'Immortal', 'Radiant'
+    ];
+    const rankPattern = `(${rankNames.join('|')})\\s*[0-3]?`;
+
+    // Extract current rank - look for "Rating" label followed by a rank value
     let currentRank = null;
     
-    // Look for the current rating section with "Rating" label
-    const currentRankRegex = /<div[^>]*class="[^"]*label[^"]*"[^>]*>Rating<\/div>\s*<div[^>]*class="[^"]*value[^"]*"[^>]*>([^<]+)/i;
+    // Pattern 1: Look for "Rating" label followed by value div
+    const currentRankRegex = new RegExp(`<div[^>]*>\\s*Rating\\s*</div>[\\s\\S]*?<div[^>]*class="[^"]*value[^"]*"[^>]*>\\s*(${rankPattern})[\\s\\S]*?</div>`, 'i');
     const currentRankMatch = html.match(currentRankRegex);
+    
     if (currentRankMatch) {
       currentRank = currentRankMatch[1].trim();
       console.log(`Found current rank: ${currentRank}`);
     } else {
-      console.log('Current rank not found, trying alternative pattern...');
+      console.log('Current rank not found with Rating label, trying alternative patterns...');
       
-      // Alternative pattern - look for rating-entry__rank-info with value
-      const altCurrentRankRegex = /<div[^>]*class="[^"]*rating-entry__rank-info[^"]*"[^>]*>[\s\S]*?<div[^>]*class="[^"]*value[^"]*"[^>]*>([^<]+)(?=[\s\S]*?<div[^>]*class="[^"]*label[^"]*"[^>]*>Rating)/i;
+      // Pattern 2: Look for any value div that contains a rank name (but not after "Peak Rating")
+      const altCurrentRankRegex = new RegExp(`<div[^>]*class="[^"]*value[^"]*"[^>]*>\\s*(${rankPattern})[\\s\\S]*?</div>(?![\\s\\S]*?Peak Rating)`, 'i');
       const altCurrentRankMatch = html.match(altCurrentRankRegex);
+      
       if (altCurrentRankMatch) {
         currentRank = altCurrentRankMatch[1].trim();
         console.log(`Found current rank with alternative pattern: ${currentRank}`);
       }
     }
 
-    // Extract peak rank
+    // Extract peak rank - look for "Peak Rating" header followed by a rank value
     let peakRank = null;
     
-    // Look for Peak Rating section
-    const peakRankRegex = /<h3[^>]*>Peak Rating<\/h3>[\s\S]*?<div[^>]*class="[^"]*value[^"]*"[^>]*>([^<]+)/i;
+    // Pattern 1: Look for "Peak Rating" h3 followed by value div
+    const peakRankRegex = new RegExp(`<h3[^>]*>\\s*Peak Rating\\s*</h3>[\\s\\S]*?<div[^>]*class="[^"]*value[^"]*"[^>]*>\\s*(${rankPattern})[\\s\\S]*?</div>`, 'i');
     const peakRankMatch = html.match(peakRankRegex);
+    
     if (peakRankMatch) {
       peakRank = peakRankMatch[1].trim();
       console.log(`Found peak rank: ${peakRank}`);
     } else {
-      console.log('Peak rank not found, trying alternative pattern...');
+      console.log('Peak rank not found with h3, trying alternative patterns...');
       
-      // Alternative pattern for peak rank
-      const altPeakRankRegex = /Peak Rating[\s\S]*?<div[^>]*class="[^"]*rating-entry__rank-info[^"]*"[^>]*>[\s\S]*?<div[^>]*class="[^"]*value[^"]*"[^>]*>([^<]+)/i;
+      // Pattern 2: Look for "Peak Rating" in any element followed by value div
+      const altPeakRankRegex = new RegExp(`Peak Rating[\\s\\S]*?<div[^>]*class="[^"]*value[^"]*"[^>]*>\\s*(${rankPattern})[\\s\\S]*?</div>`, 'i');
       const altPeakRankMatch = html.match(altPeakRankRegex);
+      
       if (altPeakRankMatch) {
         peakRank = altPeakRankMatch[1].trim();
         console.log(`Found peak rank with alternative pattern: ${peakRank}`);
       }
+    }
+
+    // Clean up the extracted ranks (remove extra whitespace and RR points)
+    if (currentRank) {
+      currentRank = currentRank.replace(/\s+/g, ' ').split('<')[0].trim();
+    }
+    if (peakRank) {
+      peakRank = peakRank.replace(/\s+/g, ' ').split('<')[0].trim();
     }
 
     // Log what we found for debugging
@@ -111,9 +129,25 @@ serve(async (req) => {
     // If we didn't find either rank, log some HTML snippets for debugging
     if (!currentRank && !peakRank) {
       console.log('No ranks found. Looking for rating-related content...');
-      const ratingMatches = html.match(/<div[^>]*rating[^>]*>[\s\S]{0,200}/gi);
-      if (ratingMatches) {
-        console.log('Found rating-related HTML snippets:', ratingMatches.slice(0, 3));
+      
+      // Look for any mentions of rank names in the HTML
+      const rankMentions = [];
+      rankNames.forEach(rank => {
+        const rankRegex = new RegExp(`${rank}\\s*[0-3]?`, 'gi');
+        const matches = html.match(rankRegex);
+        if (matches) {
+          rankMentions.push(...matches);
+        }
+      });
+      
+      if (rankMentions.length > 0) {
+        console.log('Found rank mentions:', rankMentions.slice(0, 5));
+      }
+      
+      // Look for value divs
+      const valueMatches = html.match(/<div[^>]*class="[^"]*value[^"]*"[^>]*>[^<]*</gi);
+      if (valueMatches) {
+        console.log('Found value divs:', valueMatches.slice(0, 3));
       }
     }
 
