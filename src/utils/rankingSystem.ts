@@ -97,29 +97,38 @@ export const autoBalanceTeams = (players: any[], numTeams: number) => {
     totalPoints: 0
   }));
 
-  // First, distribute real players using snake draft
-  sortedRealPlayers.forEach((player, index) => {
-    const teamIndex = index % numTeams;
-    const targetTeam = teams[teamIndex];
-    
-    // Only add if team has space (max 5 players)
-    if (targetTeam.players.length < 5) {
-      const points = getRankPoints(player.current_rank || 'Unranked');
-      targetTeam.players.push(player);
-      targetTeam.totalPoints += points;
-    }
-  });
+  // Calculate how many players each team should have (max 5 per team)
+  const totalAvailableSlots = numTeams * 5;
+  const totalPlayers = realPlayers.length + phantomPlayers.length;
+  const playersToDistribute = Math.min(totalPlayers, totalAvailableSlots);
 
-  // Then, fill remaining spots with phantom players if needed
-  let phantomIndex = 0;
-  for (const team of teams) {
-    while (team.players.length < 5 && phantomIndex < sortedPhantomPlayers.length) {
-      const phantomPlayer = sortedPhantomPlayers[phantomIndex];
-      const points = getRankPoints(phantomPlayer.current_rank || 'Unranked');
+  // First, distribute real players evenly across teams using round-robin
+  let currentTeamIndex = 0;
+  const allPlayersToDistribute = [...sortedRealPlayers];
+
+  // Add phantom players only if we need more players to fill teams
+  const spotsAfterRealPlayers = playersToDistribute - realPlayers.length;
+  if (spotsAfterRealPlayers > 0) {
+    allPlayersToDistribute.push(...sortedPhantomPlayers.slice(0, spotsAfterRealPlayers));
+  }
+
+  // Distribute players round-robin style, ensuring no team exceeds 5 players
+  for (const player of allPlayersToDistribute) {
+    // Find the next team that has space (less than 5 players)
+    let attempts = 0;
+    while (teams[currentTeamIndex].players.length >= 5 && attempts < numTeams) {
+      currentTeamIndex = (currentTeamIndex + 1) % numTeams;
+      attempts++;
+    }
+
+    // If we found a team with space, add the player
+    if (teams[currentTeamIndex].players.length < 5) {
+      const points = getRankPoints(player.current_rank || 'Unranked');
+      teams[currentTeamIndex].players.push(player);
+      teams[currentTeamIndex].totalPoints += points;
       
-      team.players.push(phantomPlayer);
-      team.totalPoints += points;
-      phantomIndex++;
+      // Move to next team for round-robin distribution
+      currentTeamIndex = (currentTeamIndex + 1) % numTeams;
     }
   }
 
