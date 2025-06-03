@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,7 @@ import Header from "@/components/Header";
 import DiscordWebhookManager from "@/components/DiscordWebhookManager";
 import CreateTournamentDialog from "@/components/CreateTournamentDialog";
 import TournamentManagement from "@/components/TournamentManagement";
+import AdminLogoutAll from "@/components/AdminLogoutAll";
 
 const Admin = () => {
   const { isAdmin } = useAuth();
@@ -75,14 +75,17 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="users">
-            <Card className="bg-slate-800 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white">User Management</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-slate-400">User management features coming soon...</p>
-              </CardContent>
-            </Card>
+            <div className="space-y-6">
+              <AdminLogoutAll />
+              <Card className="bg-slate-800 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="text-white">User Management</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-slate-400">User management features coming soon...</p>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="announcements">
