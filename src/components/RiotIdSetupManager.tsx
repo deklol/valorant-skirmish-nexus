@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import RiotIdDialog from './RiotIdDialog';
 
 const RiotIdSetupManager = () => {
-  const { user, profile, needsRiotIdSetup } = useAuth();
+  const { user, profile, needsRiotIdSetup, refreshProfile } = useAuth();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   useEffect(() => {
@@ -17,11 +17,9 @@ const RiotIdSetupManager = () => {
     }
   }, [user, profile, needsRiotIdSetup]);
 
-  const handleClose = () => {
-    setIsDialogOpen(false);
-  };
-
-  const handleSave = () => {
+  const handleComplete = async () => {
+    console.log('Riot ID setup completed, refreshing profile');
+    await refreshProfile();
     setIsDialogOpen(false);
   };
 
@@ -31,10 +29,9 @@ const RiotIdSetupManager = () => {
 
   return (
     <RiotIdDialog
-      isOpen={isDialogOpen}
-      onClose={handleClose}
-      onSave={handleSave}
-      currentRiotId={profile.riot_id || ''}
+      open={isDialogOpen}
+      onOpenChange={setIsDialogOpen}
+      onComplete={handleComplete}
     />
   );
 };
