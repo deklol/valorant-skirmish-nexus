@@ -9,9 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 interface Tournament {
-  id: number;
+  id: string; // Changed from number to string for UUID
   name: string;
-  maxTeams: number;
   currentSignups: number;
   maxPlayers: number;
   prizePool: string;
@@ -48,18 +47,15 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
 
     setIsSigningUp(true);
     try {
-      // Convert tournament.id to string for database insertion
-      const tournamentIdString = tournament.id.toString();
-      
       console.log('Inserting tournament signup with:', {
-        tournament_id: tournamentIdString,
+        tournament_id: tournament.id, // No need to convert - already a UUID string
         user_id: user.id
       });
 
       const { data, error } = await supabase
         .from('tournament_signups')
         .insert({
-          tournament_id: tournamentIdString,
+          tournament_id: tournament.id, // Use directly as UUID string
           user_id: user.id,
         })
         .select();

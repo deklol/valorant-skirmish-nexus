@@ -10,9 +10,8 @@ import Header from "@/components/Header";
 import TournamentCard from "@/components/TournamentCard";
 
 interface Tournament {
-  id: number;
+  id: string; // Changed from number to string for UUID
   name: string;
-  maxTeams: number;
   currentSignups: number;
   maxPlayers: number;
   prizePool: string;
@@ -50,9 +49,8 @@ const Tournaments = () => {
               .eq('tournament_id', tournament.id);
 
             return {
-              id: parseInt(tournament.id),
+              id: tournament.id, // Keep as UUID string
               name: tournament.name,
-              maxTeams: tournament.max_teams || 8,
               currentSignups: count || 0,
               maxPlayers: tournament.max_players,
               prizePool: tournament.prize_pool || 'TBD',
