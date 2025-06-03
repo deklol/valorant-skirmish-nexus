@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -41,16 +40,34 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
       return;
     }
 
+    console.log('Starting tournament signup for:', {
+      tournamentId: tournament.id,
+      userId: user.id,
+      tournamentName: tournament.name
+    });
+
     setIsSigningUp(true);
     try {
-      const { error } = await supabase
+      // Convert tournament.id to string for database insertion
+      const tournamentIdString = tournament.id.toString();
+      
+      console.log('Inserting tournament signup with:', {
+        tournament_id: tournamentIdString,
+        user_id: user.id
+      });
+
+      const { data, error } = await supabase
         .from('tournament_signups')
         .insert({
-          tournament_id: tournament.id.toString(),
+          tournament_id: tournamentIdString,
           user_id: user.id,
-        });
+        })
+        .select();
+
+      console.log('Supabase response:', { data, error });
 
       if (error) {
+        console.error('Supabase error details:', error);
         if (error.code === '23505') {
           toast({
             title: "Already Signed Up",
@@ -58,9 +75,14 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
             variant: "destructive",
           });
         } else {
-          throw error;
+          toast({
+            title: "Error",
+            description: `Failed to join tournament: ${error.message}`,
+            variant: "destructive",
+          });
         }
       } else {
+        console.log('Successfully signed up for tournament');
         setIsSignedUp(true);
         toast({
           title: "Success!",
@@ -68,10 +90,10 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
         });
       }
     } catch (error) {
-      console.error('Error signing up for tournament:', error);
+      console.error('Unexpected error during tournament signup:', error);
       toast({
         title: "Error",
-        description: "Failed to join tournament. Please try again.",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {
