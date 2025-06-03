@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Clock, Trophy, Calendar, MapPin, Settings, Eye } from "lucide-react";
+import { Users, Clock, Trophy, Calendar, MapPin, Settings, Eye, Crown, Edit } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -70,6 +70,7 @@ const TournamentDetail = () => {
 
         if (signupsError) throw signupsError;
 
+        // Fetch teams with their members and user details
         const { data: teamsData, error: teamsError } = await supabase
           .from('teams')
           .select(`
@@ -79,7 +80,8 @@ const TournamentDetail = () => {
               users:user_id (
                 discord_username,
                 riot_id,
-                current_rank
+                current_rank,
+                is_phantom
               )
             )
           `)
@@ -107,6 +109,56 @@ const TournamentDetail = () => {
 
     fetchTournamentDetail();
   }, [id, toast]);
+
+  const setCaptain = async (teamId: string, userId: string) => {
+    try {
+      // First, remove captain status from all members of this team
+      await supabase
+        .from('team_members')
+        .update({ is_captain: false })
+        .eq('team_id', teamId);
+
+      // Then set the new captain
+      const { error } = await supabase
+        .from('team_members')
+        .update({ is_captain: true })
+        .eq('team_id', teamId)
+        .eq('user_id', userId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Team captain updated successfully",
+      });
+
+      // Refetch teams to update the UI
+      const { data: teamsData } = await supabase
+        .from('teams')
+        .select(`
+          *,
+          team_members (
+            *,
+            users:user_id (
+              discord_username,
+              riot_id,
+              current_rank,
+              is_phantom
+            )
+          )
+        `)
+        .eq('tournament_id', id);
+
+      if (teamsData) setTeams(teamsData);
+    } catch (error: any) {
+      console.error('Error setting captain:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update team captain",
+        variant: "destructive",
+      });
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, string> = {
@@ -299,17 +351,53 @@ const TournamentDetail = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {teams.map((team) => (
                     <div key={team.id} className="bg-slate-700 p-4 rounded-lg">
-                      <div className="text-white font-medium text-lg mb-2">{team.name}</div>
-                      <div className="text-slate-400 text-sm mb-3">Seed: #{team.seed || 'TBD'}</div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-white font-medium text-lg">{team.name}</div>
+                        <div className="text-slate-400 text-sm">Seed: #{team.seed || 'TBD'}</div>
+                      </div>
+                      
                       <div className="space-y-2">
                         {team.team_members?.map((member: any) => (
-                          <div key={member.id} className="flex items-center justify-between">
-                            <span className="text-slate-300">{member.users?.discord_username || 'Unknown'}</span>
-                            {member.is_captain && (
-                              <Badge className="bg-yellow-500/20 text-yellow-400">Captain</Badge>
-                            )}
+                          <div key={member.id} className="flex items-center justify-between bg-slate-600 p-2 rounded">
+                            <div className="flex items-center gap-2">
+                              <span className="text-slate-300">
+                                {member.users?.discord_username || 'Unknown'}
+                              </span>
+                              {member.users?.is_phantom && (
+                                <Badge className="bg-purple-500/20 text-purple-400 text-xs">
+                                  Phantom
+                                </Badge>
+                              )}
+                              {member.is_captain && (
+                                <Badge className="bg-yellow-500/20 text-yellow-400 text-xs">
+                                  <Crown className="w-3 h-3 mr-1" />
+                                  Captain
+                                </Badge>
+                              )}
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                              <span className="text-slate-400 text-sm">
+                                {member.users?.current_rank || 'Unranked'}
+                              </span>
+                              {isAdmin && !member.is_captain && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-yellow-600 text-yellow-400 hover:bg-yellow-600 hover:text-white h-6 px-2"
+                                  onClick={() => setCaptain(team.id, member.user_id)}
+                                >
+                                  <Crown className="w-3 h-3" />
+                                </Button>
+                              )}
+                            </div>
                           </div>
                         ))}
+                      </div>
+                      
+                      <div className="mt-3 text-xs text-slate-500">
+                        Members: {team.team_members?.length || 0} | 
+                        Total Rank Points: {team.total_rank_points || 0}
                       </div>
                     </div>
                   ))}
@@ -345,6 +433,35 @@ const TournamentDetail = () => {
           {isAdmin && (
             <TabsContent value="admin" className="space-y-4">
               <DiscordWebhookManager />
+              
+              <Card className="bg-slate-800 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="text-white">Tournament Management</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                      <Edit className="w-4 h-4 mr-2" />
+                      Generate Bracket
+                    </Button>
+                    <Button className="bg-green-600 hover:bg-green-700 text-white">
+                      <Trophy className="w-4 h-4 mr-2" />
+                      Update Match Scores
+                    </Button>
+                  </div>
+                  
+                  <div className="bg-slate-700 p-4 rounded-lg">
+                    <h4 className="text-white font-medium mb-2">Tournament Flow:</h4>
+                    <ul className="text-slate-300 text-sm space-y-1">
+                      <li>• Teams are formed during balancing phase</li>
+                      <li>• Captains are set by admins (can be changed anytime)</li>
+                      <li>• Map vetos happen when matches go live (BO3/BO5 only)</li>
+                      <li>• Captains take turns banning/picking maps in real-time</li>
+                      <li>• Admins can update scores through the bracket view</li>
+                    </ul>
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
           )}
         </Tabs>
