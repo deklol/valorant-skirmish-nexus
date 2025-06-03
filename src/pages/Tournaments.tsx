@@ -12,7 +12,6 @@ import TournamentCard from "@/components/TournamentCard";
 interface Tournament {
   id: number;
   name: string;
-  max_teams: number;
   maxTeams: number;
   currentSignups: number;
   maxPlayers: number;
@@ -53,7 +52,6 @@ const Tournaments = () => {
             return {
               id: parseInt(tournament.id),
               name: tournament.name,
-              max_teams: tournament.max_teams || 8,
               maxTeams: tournament.max_teams || 8,
               currentSignups: count || 0,
               maxPlayers: tournament.max_players,
