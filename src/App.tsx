@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -18,6 +17,7 @@ import Leaderboard from "./pages/Leaderboard";
 import Archive from "./pages/Archive";
 import MatchDetails from "./pages/MatchDetails";
 import NotFound from "./pages/NotFound";
+import NotificationSystem from "@/components/NotificationSystem";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +28,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <RiotIdSetupManager />
+        <NotificationSystem />
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />

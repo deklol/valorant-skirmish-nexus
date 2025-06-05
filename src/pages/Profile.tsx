@@ -1,157 +1,123 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Trophy, Medal, Target, Calendar, Users, Crown, Edit, RefreshCw } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { User, Trophy, Target, Calendar, Settings, Bell } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
+import NotificationPreferences from "@/components/NotificationPreferences";
 import RiotIdDialog from "@/components/RiotIdDialog";
-import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+
+interface UserProfile {
+  discord_username: string;
+  riot_id: string;
+  current_rank: string;
+  wins: number;
+  losses: number;
+  tournaments_played: number;
+  tournaments_won: number;
+}
 
 const Profile = () => {
-  const { user, profile, loading, refreshProfile } = useAuth();
-  const [showRiotIdDialog, setShowRiotIdDialog] = useState(false);
-  const [refreshingRank, setRefreshingRank] = useState(false);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
+  const [showRiotDialog, setShowRiotDialog] = useState(false);
+  const { user } = useAuth();
   const { toast } = useToast();
 
-  // Mock tournament history - will be replaced with actual data from database
-  const tournamentHistory = [
-    {
-      id: 1,
-      name: "TGH Weekly Skirmish #52",
-      placement: 1,
-      date: new Date("2025-05-31"),
-      mvp: true,
-      format: "BO1"
-    },
-    {
-      id: 2,
-      name: "TGH Weekly Skirmish #51",
-      placement: 3,
-      date: new Date("2025-05-24"),
-      mvp: false,
-      format: "BO1"
-    },
-    {
-      id: 3,
-      name: "TGH Championship Semi-Finals",
-      placement: 1,
-      date: new Date("2025-05-17"),
-      mvp: true,
-      format: "BO3"
-    },
-    {
-      id: 4,
-      name: "TGH Weekly Skirmish #50",
-      placement: 4,
-      date: new Date("2025-05-10"),
-      mvp: false,
-      format: "BO1"
+  useEffect(() => {
+    if (user) {
+      fetchProfile();
     }
-  ];
+  }, [user]);
 
-  const getPlacementBadge = (placement: number) => {
-    if (placement === 1) {
-      return <Badge className="bg-yellow-500/20 text-yellow-400">1st Place</Badge>;
-    } else if (placement === 2) {
-      return <Badge className="bg-slate-400/20 text-slate-300">2nd Place</Badge>;
-    } else if (placement === 3) {
-      return <Badge className="bg-orange-500/20 text-orange-400">3rd Place</Badge>;
-    } else {
-      return <Badge variant="outline" className="border-slate-600 text-slate-400">{placement}th Place</Badge>;
-    }
-  };
-
-  const getRankColor = (rank: string) => {
-    if (rank?.includes("Diamond")) return "text-blue-400";
-    if (rank?.includes("Platinum")) return "text-green-400";
-    if (rank?.includes("Gold")) return "text-yellow-400";
-    if (rank?.includes("Silver")) return "text-slate-300";
-    if (rank?.includes("Bronze")) return "text-orange-400";
-    if (rank?.includes("Iron")) return "text-gray-400";
-    if (rank?.includes("Ascendant")) return "text-purple-400";
-    if (rank?.includes("Immortal")) return "text-red-400";
-    if (rank?.includes("Radiant")) return "text-white";
-    return "text-slate-400";
-  };
-
-  const handleRiotIdComplete = async () => {
-    setShowRiotIdDialog(false);
-    // Use the new refresh function instead of reloading the page
-    await refreshProfile();
-  };
-
-  const handleRefreshRank = async () => {
-    if (!user || !profile?.riot_id) {
-      toast({
-        title: "Error",
-        description: "No Riot ID found. Please set your Riot ID first.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setRefreshingRank(true);
+  const fetchProfile = async () => {
+    if (!user) return;
 
     try {
-      const { error } = await supabase.functions.invoke('scrape-rank', {
-        body: { riot_id: profile.riot_id, user_id: user.id }
-      });
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', user.id)
+        .single();
 
-      if (error) {
-        throw error;
-      }
-
-      toast({
-        title: "Rank Updated",
-        description: "Your rank data has been refreshed successfully.",
-      });
-
-      // Use the new refresh function instead of reloading the page
-      await refreshProfile();
+      if (error) throw error;
+      setProfile(data);
     } catch (error: any) {
-      console.error('Rank refresh failed:', error);
+      console.error('Error fetching profile:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to refresh rank data",
+        description: "Failed to load profile",
         variant: "destructive",
       });
     } finally {
-      setRefreshingRank(false);
+      setLoading(false);
     }
+  };
+
+  const updateProfile = async (field: string, value: string) => {
+    if (!user) return;
+
+    setUpdating(true);
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ [field]: value })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      setProfile(prev => prev ? { ...prev, [field]: value } : null);
+      
+      toast({
+        title: "Success",
+        description: "Profile updated successfully",
+      });
+    } catch (error: any) {
+      console.error('Error updating profile:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update profile",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const calculateWinRate = () => {
+    if (!profile || (profile.wins + profile.losses) === 0) return 0;
+    return Math.round((profile.wins / (profile.wins + profile.losses)) * 100);
   };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
         <Header />
-        <div className="container mx-auto px-4 py-8 text-center">
-          <p className="text-white">Loading profile...</p>
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <p className="text-white text-lg">Loading profile...</p>
+          </div>
         </div>
       </div>
     );
   }
 
-  if (!user) {
+  if (!user || !profile) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
         <Header />
-        <div className="container mx-auto px-4 py-8 text-center">
-          <p className="text-white">Please log in to view your profile.</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!profile) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        <Header />
-        <div className="container mx-auto px-4 py-8 text-center">
-          <p className="text-white">Profile not found. Please try refreshing the page.</p>
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <p className="text-white text-lg">Please log in to view your profile</p>
+          </div>
         </div>
       </div>
     );
@@ -163,159 +129,133 @@ const Profile = () => {
       
       <div className="container mx-auto px-4 py-8">
         {/* Profile Header */}
-        <Card className="bg-slate-800 border-slate-700 mb-8">
-          <CardContent className="p-8">
-            <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
-              <Avatar className="w-24 h-24">
-                <AvatarImage src={user.user_metadata?.avatar_url || ""} />
-                <AvatarFallback className="bg-red-600 text-white text-2xl">
-                  {profile.discord_username?.[0] || user.email?.[0] || "U"}
-                </AvatarFallback>
-              </Avatar>
-              
-              <div className="flex-1">
-                <h1 className="text-3xl font-bold text-white mb-2">
-                  {profile.discord_username || "Unknown User"}
-                </h1>
-                <div className="space-y-2 mb-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-slate-400">Riot ID:</span>
-                    <span className="text-white">{profile.riot_id || "Not set"}</span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowRiotIdDialog(true)}
-                      className="text-slate-400 hover:text-white"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    {profile.riot_id && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleRefreshRank}
-                        disabled={refreshingRank}
-                        className="text-slate-400 hover:text-white"
-                      >
-                        <RefreshCw className={`w-4 h-4 ${refreshingRank ? 'animate-spin' : ''}`} />
-                      </Button>
-                    )}
-                  </div>
-                  
-                  <div className="flex flex-wrap items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <Target className="w-5 h-5 text-slate-400" />
-                      <span className={`font-semibold ${getRankColor(profile.current_rank || "")}`}>
-                        {profile.current_rank || "Unranked"}
-                      </span>
-                      <span className="text-slate-400">({profile.rank_points || 0} pts)</span>
-                    </div>
-                    
-                    {profile.peak_rank && (
-                      <div className="flex items-center gap-2">
-                        <Crown className="w-4 h-4 text-yellow-500" />
-                        <span className="text-slate-400">Peak:</span>
-                        <span className={`font-semibold ${getRankColor(profile.peak_rank)}`}>
-                          {profile.peak_rank}
-                        </span>
-                      </div>
-                    )}
-                    
-                    <div className="flex items-center gap-2 text-slate-400">
-                      <Calendar className="w-4 h-4" />
-                      <span>Joined {new Date(profile.created_at || "").toLocaleDateString("en-GB", { month: "long", year: "numeric" })}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+        <div className="mb-8">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center">
+              <User className="w-8 h-8 text-white" />
             </div>
-          </CardContent>
-        </Card>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Stats Overview */}
-          <div className="lg:col-span-1 space-y-6">
-            <Card className="bg-slate-800 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Trophy className="w-5 h-5 text-yellow-500" />
-                  Tournament Stats
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Tournaments Played</span>
-                  <span className="text-white font-semibold">{profile.tournaments_played || 0}</span>
-                </div>
-                
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Tournaments Won</span>
-                  <span className="text-yellow-400 font-semibold">{profile.tournaments_won || 0}</span>
-                </div>
-                
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Win Rate</span>
-                  <span className="text-green-400 font-semibold">
-                    {profile.tournaments_played ? Math.round(((profile.tournaments_won || 0) / profile.tournaments_played) * 100) : 0}%
-                  </span>
-                </div>
-                
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400">MVP Awards</span>
-                  <span className="text-purple-400 font-semibold flex items-center gap-1">
-                    <Crown className="w-4 h-4" />
-                    {profile.mvp_awards || 0}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
+            <div>
+              <h1 className="text-3xl font-bold text-white">
+                {profile.discord_username || 'Unknown Player'}
+              </h1>
+              <p className="text-slate-400">
+                {profile.riot_id || 'No Riot ID set'}
+              </p>
+            </div>
           </div>
 
-          {/* Tournament History */}
-          <div className="lg:col-span-2">
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
             <Card className="bg-slate-800 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Medal className="w-5 h-5 text-orange-500" />
-                  Tournament History
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {tournamentHistory.map((tournament) => (
-                    <div 
-                      key={tournament.id}
-                      className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg hover:bg-slate-700 transition-colors"
-                    >
-                      <div className="flex-1">
-                        <h3 className="text-white font-medium mb-1">{tournament.name}</h3>
-                        <p className="text-slate-400 text-sm">
-                          {tournament.date.toLocaleDateString("en-GB")} • {tournament.format}
-                        </p>
-                      </div>
-                      
-                      <div className="flex items-center gap-3">
-                        {tournament.mvp && (
-                          <Badge className="bg-purple-500/20 text-purple-400">
-                            <Crown className="w-3 h-3 mr-1" />
-                            MVP
-                          </Badge>
-                        )}
-                        {getPlacementBadge(tournament.placement)}
-                      </div>
-                    </div>
-                  ))}
+              <CardContent className="p-4 text-center">
+                <Trophy className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
+                <div className="text-2xl font-bold text-white">{profile.tournaments_won}</div>
+                <div className="text-sm text-slate-300">Tournaments Won</div>
+              </CardContent>
+            </Card>
+            
+            <Card className="bg-slate-800 border-slate-700">
+              <CardContent className="p-4 text-center">
+                <Calendar className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+                <div className="text-2xl font-bold text-white">{profile.tournaments_played}</div>
+                <div className="text-sm text-slate-300">Tournaments Played</div>
+              </CardContent>
+            </Card>
+            
+            <Card className="bg-slate-800 border-slate-700">
+              <CardContent className="p-4 text-center">
+                <Target className="w-8 h-8 text-green-500 mx-auto mb-2" />
+                <div className="text-2xl font-bold text-white">{calculateWinRate()}%</div>
+                <div className="text-sm text-slate-300">Win Rate</div>
+              </CardContent>
+            </Card>
+            
+            <Card className="bg-slate-800 border-slate-700">
+              <CardContent className="p-4 text-center">
+                <div className="text-lg font-bold text-white mb-2">
+                  {profile.wins} - {profile.losses}
                 </div>
+                <div className="text-sm text-slate-300">W - L Record</div>
+                <Badge variant="outline" className="mt-1 border-slate-600 text-slate-300">
+                  {profile.current_rank || 'Unranked'}
+                </Badge>
               </CardContent>
             </Card>
           </div>
         </div>
+
+        {/* Profile Tabs */}
+        <Tabs defaultValue="settings" className="space-y-4">
+          <TabsList className="bg-slate-800 border-slate-700">
+            <TabsTrigger value="settings" className="text-white data-[state=active]:bg-red-600">
+              <Settings className="w-4 h-4 mr-2" />
+              Settings
+            </TabsTrigger>
+            <TabsTrigger value="notifications" className="text-white data-[state=active]:bg-red-600">
+              <Bell className="w-4 h-4 mr-2" />
+              Notifications
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="settings" className="space-y-4">
+            <Card className="bg-slate-800 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-white">Profile Settings</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="discord" className="text-slate-300">Discord Username</Label>
+                    <Input
+                      id="discord"
+                      value={profile.discord_username || ''}
+                      onChange={(e) => updateProfile('discord_username', e.target.value)}
+                      className="bg-slate-700 border-slate-600 text-white"
+                      placeholder="Enter Discord username"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="riot" className="text-slate-300">Riot ID</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="riot"
+                        value={profile.riot_id || ''}
+                        readOnly
+                        className="bg-slate-700 border-slate-600 text-white"
+                        placeholder="No Riot ID set"
+                      />
+                      <Button
+                        onClick={() => setShowRiotDialog(true)}
+                        className="bg-red-600 hover:bg-red-700"
+                      >
+                        Update
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                
+                <Button 
+                  onClick={() => fetchProfile()} 
+                  disabled={updating}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  {updating ? 'Updating...' : 'Refresh Profile'}
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="notifications" className="space-y-4">
+            <NotificationPreferences />
+          </TabsContent>
+        </Tabs>
       </div>
 
       <RiotIdDialog
-        open={showRiotIdDialog}
-        onOpenChange={setShowRiotIdDialog}
-        onComplete={handleRiotIdComplete}
+        open={showRiotDialog}
+        onOpenChange={setShowRiotDialog}
+        onRiotIdUpdated={fetchProfile}
       />
     </div>
   );

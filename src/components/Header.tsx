@@ -1,109 +1,93 @@
 
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Menu, X, User, LogOut, Settings } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Trophy, Users, Calendar, BarChart3, Settings, LogOut, Menu, X } from "lucide-react";
-import NotificationSystem from "./NotificationSystem";
-import MobileNav from "./MobileNav";
+import NotificationCenter from "./NotificationCenter";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { user, isAdmin, signOut } = useAuth();
+  const { user, isAdmin } = useAuth();
+  const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleSignOut = async () => {
-    try {
-      await signOut();
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
       toast({
-        title: "Signed out successfully",
-        description: "You have been logged out of your account.",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error signing out",
-        description: error.message,
+        title: "Error",
+        description: "Failed to sign out",
         variant: "destructive",
       });
+    } else {
+      navigate("/");
     }
   };
 
-  const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen);
-  };
-
-  const closeMenu = () => {
-    setIsMenuOpen(false);
-  };
-
-  const navItems = [
-    { to: "/", icon: Trophy, label: "Tournaments" },
-    { to: "/brackets", icon: BarChart3, label: "Brackets" },
-    { to: "/leaderboard", icon: Users, label: "Leaderboard" },
-    { to: "/archive", icon: Calendar, label: "Archive" },
-  ];
-
-  const adminNavItems = [
-    { to: "/admin", icon: Settings, label: "Admin" },
-  ];
-
   return (
-    <header className="bg-slate-900 border-b border-slate-700 sticky top-0 z-50">
+    <header className="bg-slate-900/95 backdrop-blur-sm border-b border-slate-800 sticky top-0 z-50">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2" onClick={closeMenu}>
-            <Trophy className="h-8 w-8 text-red-500" />
-            <span className="text-xl font-bold text-white">TournamentHub</span>
+          <Link to="/" className="flex items-center space-x-2">
+            <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-lg">T</span>
+            </div>
+            <span className="text-white font-bold text-xl">TourneyPro</span>
           </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6">
-            {navItems.map((item) => (
-              <Link
-                key={item.to}
-                to={item.to}
-                className="flex items-center space-x-1 text-slate-300 hover:text-white transition-colors"
-              >
-                <item.icon className="h-4 w-4" />
-                <span>{item.label}</span>
+            <Link to="/tournaments" className="text-slate-300 hover:text-white transition-colors">
+              Tournaments
+            </Link>
+            <Link to="/brackets" className="text-slate-300 hover:text-white transition-colors">
+              Brackets
+            </Link>
+            <Link to="/leaderboard" className="text-slate-300 hover:text-white transition-colors">
+              Leaderboard
+            </Link>
+            <Link to="/archive" className="text-slate-300 hover:text-white transition-colors">
+              Archive
+            </Link>
+            {isAdmin && (
+              <Link to="/admin" className="text-slate-300 hover:text-white transition-colors">
+                Admin
               </Link>
-            ))}
-            {isAdmin && adminNavItems.map((item) => (
-              <Link
-                key={item.to}
-                to={item.to}
-                className="flex items-center space-x-1 text-red-400 hover:text-red-300 transition-colors"
-              >
-                <item.icon className="h-4 w-4" />
-                <span>{item.label}</span>
-              </Link>
-            ))}
+            )}
           </nav>
 
-          {/* Right side actions */}
+          {/* User Actions */}
           <div className="flex items-center space-x-4">
             {user ? (
               <>
-                {/* Notification System */}
-                <NotificationSystem />
-                
-                {/* Profile Button */}
-                <Link to="/profile">
-                  <Button variant="ghost" className="text-white hover:bg-slate-700">
-                    Profile
-                  </Button>
-                </Link>
-                
-                {/* Sign Out Button */}
-                <Button
-                  variant="ghost"
-                  onClick={handleSignOut}
-                  className="text-slate-300 hover:text-white hover:bg-slate-700"
-                >
-                  <LogOut className="h-4 w-4" />
-                </Button>
+                <NotificationCenter />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="text-slate-300 hover:text-white">
+                      <User className="h-5 w-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => navigate("/profile")}>
+                      <Settings className="mr-2 h-4 w-4" />
+                      Profile
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleLogout}>
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </>
             ) : (
               <Link to="/login">
@@ -114,25 +98,61 @@ const Header = () => {
             )}
 
             {/* Mobile menu button */}
-            <button
-              onClick={toggleMenu}
+            <Button
+              variant="ghost"
               className="md:hidden text-slate-300 hover:text-white"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
             >
               {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-            </button>
+            </Button>
           </div>
         </div>
-      </div>
 
-      {/* Mobile Navigation */}
-      <MobileNav 
-        isOpen={isMenuOpen}
-        onClose={closeMenu}
-        navItems={navItems}
-        adminNavItems={isAdmin ? adminNavItems : []}
-        user={user}
-        onSignOut={handleSignOut}
-      />
+        {/* Mobile Navigation */}
+        {isMenuOpen && (
+          <div className="md:hidden py-4 border-t border-slate-800">
+            <nav className="flex flex-col space-y-2">
+              <Link
+                to="/tournaments"
+                className="text-slate-300 hover:text-white py-2 transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Tournaments
+              </Link>
+              <Link
+                to="/brackets"
+                className="text-slate-300 hover:text-white py-2 transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Brackets
+              </Link>
+              <Link
+                to="/leaderboard"
+                className="text-slate-300 hover:text-white py-2 transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Leaderboard
+              </Link>
+              <Link
+                to="/archive"
+                className="text-slate-300 hover:text-white py-2 transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Archive
+              </Link>
+              {isAdmin && (
+                <Link
+                  to="/admin"
+                  className="text-slate-300 hover:text-white py-2 transition-colors"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Admin
+                </Link>
+              )}
+            </nav>
+          </div>
+        )}
+      </div>
     </header>
   );
 };

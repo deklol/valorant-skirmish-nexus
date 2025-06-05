@@ -405,6 +405,73 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          created_at: string | null
+          data: Json | null
+          expires_at: string | null
+          id: string
+          match_id: string | null
+          message: string
+          read: boolean | null
+          team_id: string | null
+          title: string
+          tournament_id: string | null
+          type: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          data?: Json | null
+          expires_at?: string | null
+          id?: string
+          match_id?: string | null
+          message: string
+          read?: boolean | null
+          team_id?: string | null
+          title: string
+          tournament_id?: string | null
+          type: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          data?: Json | null
+          expires_at?: string | null
+          id?: string
+          match_id?: string | null
+          message?: string
+          read?: boolean | null
+          team_id?: string | null
+          title?: string
+          tournament_id?: string | null
+          type?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       phantom_players: {
         Row: {
           created_at: string | null
@@ -656,6 +723,48 @@ export type Database = {
           },
         ]
       }
+      user_notification_preferences: {
+        Row: {
+          created_at: string | null
+          id: string
+          match_assigned: boolean | null
+          match_ready: boolean | null
+          new_tournament_posted: boolean | null
+          post_results: boolean | null
+          team_assigned: boolean | null
+          tournament_checkin_time: boolean | null
+          tournament_signups_open: boolean | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          match_assigned?: boolean | null
+          match_ready?: boolean | null
+          new_tournament_posted?: boolean | null
+          post_results?: boolean | null
+          team_assigned?: boolean | null
+          tournament_checkin_time?: boolean | null
+          tournament_signups_open?: boolean | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          match_assigned?: boolean | null
+          match_ready?: boolean | null
+          new_tournament_posted?: boolean | null
+          post_results?: boolean | null
+          team_assigned?: boolean | null
+          tournament_checkin_time?: boolean | null
+          tournament_signups_open?: boolean | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           ban_expires_at: string | null
@@ -736,6 +845,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_notification: {
+        Args: {
+          p_user_id: string
+          p_type: string
+          p_title: string
+          p_message: string
+          p_data?: Json
+          p_tournament_id?: string
+          p_match_id?: string
+          p_team_id?: string
+          p_expires_at?: string
+        }
+        Returns: string
+      }
       get_user_role: {
         Args: { user_uuid: string }
         Returns: Database["public"]["Enums"]["user_role"]
@@ -758,6 +881,10 @@ export type Database = {
       }
       is_team_captain: {
         Args: { user_uuid: string; team_uuid: string }
+        Returns: boolean
+      }
+      user_has_notification_enabled: {
+        Args: { p_user_id: string; p_notification_type: string }
         Returns: boolean
       }
     }
