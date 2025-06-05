@@ -668,6 +668,7 @@ export type Database = {
           is_banned: boolean | null
           is_phantom: boolean | null
           last_rank_update: string | null
+          losses: number | null
           mvp_awards: number | null
           peak_rank: string | null
           rank_points: number | null
@@ -678,6 +679,7 @@ export type Database = {
           tournaments_won: number | null
           updated_at: string | null
           weight_rating: number | null
+          wins: number | null
         }
         Insert: {
           ban_expires_at?: string | null
@@ -690,6 +692,7 @@ export type Database = {
           is_banned?: boolean | null
           is_phantom?: boolean | null
           last_rank_update?: string | null
+          losses?: number | null
           mvp_awards?: number | null
           peak_rank?: string | null
           rank_points?: number | null
@@ -700,6 +703,7 @@ export type Database = {
           tournaments_won?: number | null
           updated_at?: string | null
           weight_rating?: number | null
+          wins?: number | null
         }
         Update: {
           ban_expires_at?: string | null
@@ -712,6 +716,7 @@ export type Database = {
           is_banned?: boolean | null
           is_phantom?: boolean | null
           last_rank_update?: string | null
+          losses?: number | null
           mvp_awards?: number | null
           peak_rank?: string | null
           rank_points?: number | null
@@ -722,6 +727,7 @@ export type Database = {
           tournaments_won?: number | null
           updated_at?: string | null
           weight_rating?: number | null
+          wins?: number | null
         }
         Relationships: []
       }
@@ -733,6 +739,22 @@ export type Database = {
       get_user_role: {
         Args: { user_uuid: string }
         Returns: Database["public"]["Enums"]["user_role"]
+      }
+      increment_user_losses: {
+        Args: { user_id: string }
+        Returns: undefined
+      }
+      increment_user_tournament_wins: {
+        Args: { user_id: string }
+        Returns: undefined
+      }
+      increment_user_tournaments_played: {
+        Args: { user_id: string }
+        Returns: undefined
+      }
+      increment_user_wins: {
+        Args: { user_id: string }
+        Returns: undefined
       }
       is_team_captain: {
         Args: { user_uuid: string; team_uuid: string }

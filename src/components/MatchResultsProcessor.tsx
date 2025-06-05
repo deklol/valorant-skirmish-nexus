@@ -41,21 +41,23 @@ export const processMatchResults = async ({
       .select('user_id')
       .eq('team_id', loserId);
 
-    // Update winner statistics
+    // Update winner statistics using direct SQL since types aren't updated yet
     if (winnerMembers) {
       for (const member of winnerMembers) {
-        await supabase.rpc('increment_user_wins', { 
-          user_id: member.user_id 
-        });
+        await supabase
+          .rpc('increment_user_wins' as any, { 
+            user_id: member.user_id 
+          });
       }
     }
 
     // Update loser statistics
     if (loserMembers) {
       for (const member of loserMembers) {
-        await supabase.rpc('increment_user_losses', { 
-          user_id: member.user_id 
-        });
+        await supabase
+          .rpc('increment_user_losses' as any, { 
+            user_id: member.user_id 
+          });
       }
     }
 
@@ -106,9 +108,10 @@ const completeTournament = async (tournamentId: string, winnerTeamId: string) =>
 
     if (winnerMembers) {
       for (const member of winnerMembers) {
-        await supabase.rpc('increment_user_tournament_wins', { 
-          user_id: member.user_id 
-        });
+        await supabase
+          .rpc('increment_user_tournament_wins' as any, { 
+            user_id: member.user_id 
+          });
       }
     }
 
@@ -120,9 +123,10 @@ const completeTournament = async (tournamentId: string, winnerTeamId: string) =>
 
     if (allSignups) {
       for (const signup of allSignups) {
-        await supabase.rpc('increment_user_tournaments_played', { 
-          user_id: signup.user_id 
-        });
+        await supabase
+          .rpc('increment_user_tournaments_played' as any, { 
+            user_id: signup.user_id 
+          });
       }
     }
 

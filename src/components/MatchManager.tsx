@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -334,14 +335,13 @@ const MatchManager = ({ tournamentId, onMatchUpdate }: MatchManagerProps) => {
 
       {vetoMatch && (
         <MapVetoDialog
+          open={true}
+          onOpenChange={(open) => !open && setVetoMatch(null)}
           matchId={vetoMatch.id}
           team1Name={vetoMatch.team1?.name || 'Team 1'}
           team2Name={vetoMatch.team2?.name || 'Team 2'}
-          onClose={() => setVetoMatch(null)}
-          onComplete={() => {
-            setVetoMatch(null);
-            fetchMatches();
-          }}
+          currentTeamTurn={vetoMatch.team1_id || ''}
+          userTeamId={null}
         />
       )}
     </>

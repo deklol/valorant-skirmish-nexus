@@ -9,8 +9,22 @@ interface IntegratedBracketViewProps {
   tournamentId: string;
 }
 
+interface MatchData {
+  id: string;
+  round_number: number;
+  match_number: number;
+  team1_id: string | null;
+  team2_id: string | null;
+  winner_id: string | null;
+  status: string;
+  score_team1: number;
+  score_team2: number;
+  team1?: { name: string; id: string } | null;
+  team2?: { name: string; id: string } | null;
+}
+
 const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => {
-  const [matches, setMatches] = useState<any[]>([]);
+  const [matches, setMatches] = useState<MatchData[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -70,7 +84,7 @@ const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => 
     }
     acc[match.round_number].push(match);
     return acc;
-  }, {} as Record<number, any[]>);
+  }, {} as Record<number, MatchData[]>);
 
   return (
     <Card className="bg-slate-800 border-slate-700">

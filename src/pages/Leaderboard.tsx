@@ -1,40 +1,47 @@
 
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Trophy, Medal, Award, Users } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import Header from '@/components/Header';
 
+interface Player {
+  id: string;
+  discord_username: string;
+  current_rank: string;
+  rank_points: number;
+  tournaments_won: number;
+  mvp_awards: number;
+  wins: number;
+  losses: number;
+}
+
 const Leaderboard = () => {
-  // Mock leaderboard data - will be replaced with real data
-  const topPlayers = [
-    {
-      id: 1,
-      rank: 1,
-      username: "ValorantPro",
-      rankPoints: 2500,
-      tournamentsWon: 5,
-      mvpAwards: 8,
-      currentRank: "Radiant",
-    },
-    {
-      id: 2,
-      rank: 2,
-      username: "SkilledGamer",
-      rankPoints: 2350,
-      tournamentsWon: 3,
-      mvpAwards: 6,
-      currentRank: "Immortal 3",
-    },
-    {
-      id: 3,
-      rank: 3,
-      username: "ClutchMaster",
-      rankPoints: 2200,
-      tournamentsWon: 4,
-      mvpAwards: 5,
-      currentRank: "Immortal 2",
-    },
-  ];
+  const [topPlayers, setTopPlayers] = useState<Player[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchLeaderboard();
+  }, []);
+
+  const fetchLeaderboard = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, discord_username, current_rank, rank_points, tournaments_won, mvp_awards, wins, losses')
+        .eq('is_phantom', false)
+        .order('rank_points', { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+      setTopPlayers(data || []);
+    } catch (error) {
+      console.error('Error fetching leaderboard:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getRankIcon = (rank: number) => {
     switch (rank) {
@@ -62,6 +69,19 @@ const Leaderboard = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <p className="text-white">Loading leaderboard...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
       <Header />
@@ -77,36 +97,40 @@ const Leaderboard = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {topPlayers.map((player) => (
+              {topPlayers.map((player, index) => (
                 <div 
                   key={player.id}
                   className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg hover:bg-slate-700 transition-colors"
                 >
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
-                      {getRankIcon(player.rank)}
-                      <span className={`font-bold ${getRankColor(player.rank)}`}>
-                        #{player.rank}
+                      {getRankIcon(index + 1)}
+                      <span className={`font-bold ${getRankColor(index + 1)}`}>
+                        #{index + 1}
                       </span>
                     </div>
                     <div>
-                      <div className="font-semibold text-white">{player.username}</div>
-                      <div className="text-sm text-slate-400">{player.currentRank}</div>
+                      <div className="font-semibold text-white">{player.discord_username || 'Unknown Player'}</div>
+                      <div className="text-sm text-slate-400">{player.current_rank || 'Unranked'}</div>
                     </div>
                   </div>
                   
                   <div className="flex items-center gap-6 text-sm">
                     <div className="text-center">
-                      <div className="font-bold text-indigo-400">{player.rankPoints}</div>
+                      <div className="font-bold text-indigo-400">{player.rank_points || 0}</div>
                       <div className="text-slate-400">Points</div>
                     </div>
                     <div className="text-center">
-                      <div className="font-bold text-green-400">{player.tournamentsWon}</div>
+                      <div className="font-bold text-green-400">{player.tournaments_won || 0}</div>
                       <div className="text-slate-400">Wins</div>
                     </div>
                     <div className="text-center">
-                      <div className="font-bold text-yellow-400">{player.mvpAwards}</div>
+                      <div className="font-bold text-yellow-400">{player.mvp_awards || 0}</div>
                       <div className="text-slate-400">MVPs</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="font-bold text-blue-400">{player.wins || 0}-{player.losses || 0}</div>
+                      <div className="text-slate-400">W-L</div>
                     </div>
                   </div>
                 </div>
