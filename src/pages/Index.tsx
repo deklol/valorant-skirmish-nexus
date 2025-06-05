@@ -1,9 +1,8 @@
-
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Users, Calendar, Clock, ArrowRight } from "lucide-react";
+import { Trophy, Users, Calendar, Clock, ArrowRight, TrendingUp, Award } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Header from '@/components/Header';
@@ -25,6 +24,8 @@ const Index = () => {
   const [featuredTournament, setFeaturedTournament] = useState<Tournament | null>(null);
   const [upcomingTournaments, setUpcomingTournaments] = useState<Tournament[]>([]);
   const [recentWinners, setRecentWinners] = useState<any[]>([]);
+  const [liveMatches, setLiveMatches] = useState<any[]>([]);
+  const [topPlayers, setTopPlayers] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -73,6 +74,34 @@ const Index = () => {
             })
           );
           setUpcomingTournaments(tournamentsWithSignups);
+        }
+
+        // Get live matches
+        const { data: liveMatchData } = await supabase
+          .from('matches')
+          .select(`
+            *,
+            team1:teams!matches_team1_id_fkey (name),
+            team2:teams!matches_team2_id_fkey (name),
+            tournaments (name)
+          `)
+          .eq('status', 'live')
+          .limit(3);
+
+        if (liveMatchData) {
+          setLiveMatches(liveMatchData);
+        }
+
+        // Get top players by tournament wins
+        const { data: topPlayersData } = await supabase
+          .from('users')
+          .select('discord_username, tournaments_won, tournaments_played, current_rank')
+          .gt('tournaments_played', 0)
+          .order('tournaments_won', { ascending: false })
+          .limit(5);
+
+        if (topPlayersData) {
+          setTopPlayers(topPlayersData);
         }
 
         // Get recent winners (completed tournaments with teams)
@@ -197,6 +226,98 @@ const Index = () => {
             </CardContent>
           </Card>
         )}
+
+        {/* Live Matches & Stats Dashboard */}
+        <div className="container mx-auto px-4 mb-16">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Live Matches */}
+            <Card className="bg-slate-800/90 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-xl text-white flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-red-500" />
+                  Live Matches
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {liveMatches.map((match) => (
+                    <div key={match.id} className="bg-slate-700/50 p-3 rounded">
+                      <div className="text-sm text-slate-400 mb-1">{match.tournaments?.name}</div>
+                      <div className="flex items-center justify-between">
+                        <div className="text-white text-sm">{match.team1?.name}</div>
+                        <div className="text-red-400 font-bold">{match.score_team1} - {match.score_team2}</div>
+                        <div className="text-white text-sm">{match.team2?.name}</div>
+                      </div>
+                      <div className="text-xs text-slate-500 mt-1">
+                        Round {match.round_number} • Match {match.match_number}
+                      </div>
+                    </div>
+                  ))}
+                  {liveMatches.length === 0 && (
+                    <p className="text-slate-400 text-center py-4">No live matches currently.</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Top Players */}
+            <Card className="bg-slate-800/90 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-xl text-white flex items-center gap-2">
+                  <Award className="w-5 h-5 text-yellow-500" />
+                  Top Players
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {topPlayers.map((player, index) => (
+                    <div key={index} className="flex items-center justify-between p-2 bg-slate-700/50 rounded">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 bg-yellow-500 text-black rounded-full flex items-center justify-center text-xs font-bold">
+                          {index + 1}
+                        </div>
+                        <div>
+                          <div className="text-white text-sm font-medium">{player.discord_username}</div>
+                          <div className="text-slate-400 text-xs">{player.current_rank}</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-yellow-400 font-bold">{player.tournaments_won}</div>
+                        <div className="text-slate-400 text-xs">{player.tournaments_played} played</div>
+                      </div>
+                    </div>
+                  ))}
+                  {topPlayers.length === 0 && (
+                    <p className="text-slate-400 text-center py-4">No player data available.</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Quick Stats */}
+            <Card className="bg-slate-800/90 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-xl text-white">Tournament Stats</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="text-center p-4 bg-slate-700/50 rounded">
+                    <div className="text-2xl font-bold text-green-400">{upcomingTournaments.length}</div>
+                    <div className="text-slate-300 text-sm">Active Tournaments</div>
+                  </div>
+                  <div className="text-center p-4 bg-slate-700/50 rounded">
+                    <div className="text-2xl font-bold text-red-400">{liveMatches.length}</div>
+                    <div className="text-slate-300 text-sm">Live Matches</div>
+                  </div>
+                  <div className="text-center p-4 bg-slate-700/50 rounded">
+                    <div className="text-2xl font-bold text-blue-400">{recentWinners.length}</div>
+                    <div className="text-slate-300 text-sm">Recent Completions</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
 
         {/* Upcoming Tournaments & Recent Winners */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

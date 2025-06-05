@@ -16,6 +16,7 @@ import TournamentRegistration from "@/components/TournamentRegistration";
 import BracketGenerator from "@/components/BracketGenerator";
 import MatchManager from "@/components/MatchManager";
 import TournamentStatusManager from "@/components/TournamentStatusManager";
+import IntegratedBracketView from "@/components/IntegratedBracketView";
 
 interface TournamentDetail {
   id: string;
@@ -298,6 +299,7 @@ const TournamentDetail = () => {
         <Tabs defaultValue="overview" className="space-y-4">
           <TabsList className="bg-slate-800 border-slate-700">
             <TabsTrigger value="overview" className="text-white data-[state=active]:bg-red-600">Overview</TabsTrigger>
+            <TabsTrigger value="bracket" className="text-white data-[state=active]:bg-red-600">Bracket</TabsTrigger>
             <TabsTrigger value="participants" className="text-white data-[state=active]:bg-red-600">Participants</TabsTrigger>
             <TabsTrigger value="teams" className="text-white data-[state=active]:bg-red-600">Teams</TabsTrigger>
             <TabsTrigger value="schedule" className="text-white data-[state=active]:bg-red-600">Schedule</TabsTrigger>
@@ -347,6 +349,10 @@ const TournamentDetail = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="bracket" className="space-y-4">
+            <IntegratedBracketView tournamentId={tournament.id} />
           </TabsContent>
 
           <TabsContent value="participants" className="space-y-4">
