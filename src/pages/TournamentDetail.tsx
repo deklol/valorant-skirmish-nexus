@@ -11,6 +11,11 @@ import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import TournamentParticipants from "@/components/TournamentParticipants";
 import DiscordWebhookManager from "@/components/DiscordWebhookManager";
+import TeamBalancingTool from "@/components/TeamBalancingTool";
+import TournamentRegistration from "@/components/TournamentRegistration";
+import BracketGenerator from "@/components/BracketGenerator";
+import MatchManager from "@/components/MatchManager";
+import TournamentStatusManager from "@/components/TournamentStatusManager";
 
 interface TournamentDetail {
   id: string;
@@ -44,81 +49,78 @@ const TournamentDetail = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    const fetchTournamentDetail = async () => {
-      if (!id) return;
+    fetchTournamentDetail();
+  }, [id]);
 
-      try {
-        const { data: tournamentData, error: tournamentError } = await supabase
-          .from('tournaments')
-          .select('*')
-          .eq('id', id)
-          .single();
+  const fetchTournamentDetail = async () => {
+    if (!id) return;
 
-        if (tournamentError) throw tournamentError;
+    try {
+      const { data: tournamentData, error: tournamentError } = await supabase
+        .from('tournaments')
+        .select('*')
+        .eq('id', id)
+        .single();
 
-        const { data: signupsData, error: signupsError } = await supabase
-          .from('tournament_signups')
-          .select(`
+      if (tournamentError) throw tournamentError;
+
+      const { data: signupsData, error: signupsError } = await supabase
+        .from('tournament_signups')
+        .select(`
+          *,
+          users:user_id (
+            discord_username,
+            riot_id,
+            current_rank
+          )
+        `)
+        .eq('tournament_id', id);
+
+      if (signupsError) throw signupsError;
+
+      const { data: teamsData, error: teamsError } = await supabase
+        .from('teams')
+        .select(`
+          *,
+          team_members (
             *,
             users:user_id (
               discord_username,
               riot_id,
-              current_rank
+              current_rank,
+              is_phantom
             )
-          `)
-          .eq('tournament_id', id);
+          )
+        `)
+        .eq('tournament_id', id);
 
-        if (signupsError) throw signupsError;
+      if (teamsError) throw teamsError;
 
-        // Fetch teams with their members and user details
-        const { data: teamsData, error: teamsError } = await supabase
-          .from('teams')
-          .select(`
-            *,
-            team_members (
-              *,
-              users:user_id (
-                discord_username,
-                riot_id,
-                current_rank,
-                is_phantom
-              )
-            )
-          `)
-          .eq('tournament_id', id);
-
-        if (teamsError) throw teamsError;
-
-        setTournament({
-          ...tournamentData,
-          signups: signupsData?.length || 0
-        });
-        setSignups(signupsData || []);
-        setTeams(teamsData || []);
-      } catch (error: any) {
-        console.error('Error fetching tournament:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load tournament details",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTournamentDetail();
-  }, [id, toast]);
+      setTournament({
+        ...tournamentData,
+        signups: signupsData?.length || 0
+      });
+      setSignups(signupsData || []);
+      setTeams(teamsData || []);
+    } catch (error: any) {
+      console.error('Error fetching tournament:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load tournament details",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const setCaptain = async (teamId: string, userId: string) => {
     try {
-      // First, remove captain status from all members of this team
       await supabase
         .from('team_members')
         .update({ is_captain: false })
         .eq('team_id', teamId);
 
-      // Then set the new captain
       const { error } = await supabase
         .from('team_members')
         .update({ is_captain: true })
@@ -132,7 +134,6 @@ const TournamentDetail = () => {
         description: "Team captain updated successfully",
       });
 
-      // Refetch teams to update the UI
       const { data: teamsData } = await supabase
         .from('teams')
         .select(`
@@ -282,6 +283,17 @@ const TournamentDetail = () => {
           </Card>
         </div>
 
+        {/* Registration Component - Show for non-admin users when registration is open */}
+        {!isAdmin && tournament.status === 'open' && (
+          <div className="mb-8">
+            <TournamentRegistration
+              tournamentId={tournament.id}
+              tournament={tournament}
+              onRegistrationChange={fetchTournamentDetail}
+            />
+          </div>
+        )}
+
         {/* Tabs */}
         <Tabs defaultValue="overview" className="space-y-4">
           <TabsList className="bg-slate-800 border-slate-700">
@@ -290,7 +302,10 @@ const TournamentDetail = () => {
             <TabsTrigger value="teams" className="text-white data-[state=active]:bg-red-600">Teams</TabsTrigger>
             <TabsTrigger value="schedule" className="text-white data-[state=active]:bg-red-600">Schedule</TabsTrigger>
             {isAdmin && (
-              <TabsTrigger value="admin" className="text-white data-[state=active]:bg-red-600">Admin</TabsTrigger>
+              <>
+                <TabsTrigger value="management" className="text-white data-[state=active]:bg-red-600">Management</TabsTrigger>
+                <TabsTrigger value="admin" className="text-white data-[state=active]:bg-red-600">Admin</TabsTrigger>
+              </>
             )}
           </TabsList>
 
@@ -429,6 +444,41 @@ const TournamentDetail = () => {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {isAdmin && (
+            <TabsContent value="management" className="space-y-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <TournamentStatusManager
+                  tournamentId={tournament.id}
+                  currentStatus={tournament.status}
+                  onStatusChange={fetchTournamentDetail}
+                />
+                
+                {tournament.status === 'balancing' && (
+                  <div className="space-y-4">
+                    <TeamBalancingTool
+                      tournamentId={tournament.id}
+                      maxTeams={tournament.max_teams}
+                      onTeamsBalanced={fetchTournamentDetail}
+                    />
+                    <BracketGenerator
+                      tournamentId={tournament.id}
+                      tournament={tournament}
+                      teams={teams}
+                      onBracketGenerated={fetchTournamentDetail}
+                    />
+                  </div>
+                )}
+
+                {(tournament.status === 'live' || tournament.status === 'completed') && (
+                  <MatchManager
+                    tournamentId={tournament.id}
+                    onMatchUpdate={fetchTournamentDetail}
+                  />
+                )}
+              </div>
+            </TabsContent>
+          )}
 
           {isAdmin && (
             <TabsContent value="admin" className="space-y-4">
