@@ -16,6 +16,7 @@ import Admin from "./pages/Admin";
 import Brackets from "./pages/Brackets";
 import Leaderboard from "./pages/Leaderboard";
 import Archive from "./pages/Archive";
+import MatchDetails from "./pages/MatchDetails";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/tournaments" element={<Tournaments />} />
             <Route path="/tournament/:id" element={<TournamentDetail />} />
             <Route path="/bracket/:id" element={<BracketView />} />
+            <Route path="/match/:id" element={<MatchDetails />} />
             <Route path="/brackets" element={<Brackets />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/archive" element={<Archive />} />

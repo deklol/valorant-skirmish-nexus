@@ -1,14 +1,14 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Play, Square, Edit } from "lucide-react";
+import { Trophy, Play, Square, Edit, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { processMatchResults } from "./MatchResultsProcessor";
 import MapVetoDialog from "./MapVetoDialog";
+import { useNavigate } from "react-router-dom";
 
 interface Match {
   id: string;
@@ -36,6 +36,7 @@ const MatchManager = ({ tournamentId, onMatchUpdate }: MatchManagerProps) => {
   const [scores, setScores] = useState<{ [key: string]: { team1: number; team2: number } }>({});
   const [vetoMatch, setVetoMatch] = useState<Match | null>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchMatches();
@@ -254,6 +255,15 @@ const MatchManager = ({ tournamentId, onMatchUpdate }: MatchManagerProps) => {
                       {getStatusBadge(match.status)}
                     </div>
                     <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => navigate(`/match/${match.id}`)}
+                        className="bg-slate-600 hover:bg-slate-500 text-white"
+                      >
+                        <ExternalLink className="w-3 h-3 mr-1" />
+                        Details
+                      </Button>
                       {match.status === 'pending' && (
                         <>
                           <Button

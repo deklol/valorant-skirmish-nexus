@@ -1,9 +1,10 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Trophy, Users, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 interface IntegratedBracketViewProps {
   tournamentId: string;
@@ -26,6 +27,7 @@ interface MatchData {
 const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => {
   const [matches, setMatches] = useState<MatchData[]>([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchBracketData();
@@ -111,7 +113,17 @@ const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => 
                     <div key={match.id} className="bg-slate-700 p-4 rounded-lg">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-slate-300 text-sm">Match {match.match_number}</span>
-                        {getStatusBadge(match.status)}
+                        <div className="flex items-center gap-2">
+                          {getStatusBadge(match.status)}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => navigate(`/match/${match.id}`)}
+                            className="h-6 w-6 p-0 text-slate-400 hover:text-white"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                          </Button>
+                        </div>
                       </div>
                       
                       <div className="space-y-2">
