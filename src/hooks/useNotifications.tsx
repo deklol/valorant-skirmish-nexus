@@ -111,12 +111,13 @@ export const useNotifications = () => {
     }
   };
 
-  const notifyTeamAssigned = async (teamId: string, teamName: string, userIds: string[]) => {
+  const notifyTeamAssigned = async (teamId: string, teamName: string, userIds: string[], tournamentName: string) => {
     await sendNotification({
       type: 'team_assigned',
       title: 'Team Assignment',
-      message: `You have been assigned to team: ${teamName}`,
+      message: `You have been assigned to team "${teamName}" in ${tournamentName}`,
       teamId,
+      data: { teamName, tournamentName },
       userIds
     });
   };
@@ -178,6 +179,34 @@ export const useNotifications = () => {
     });
   };
 
+  const notifyMatchResultsSubmitted = async (matchId: string, teamIds: string[], submitterTeamName: string) => {
+    // Get captains of both teams
+    const captainIds: string[] = [];
+    
+    for (const teamId of teamIds) {
+      const { data: captain } = await supabase
+        .from('team_members')
+        .select('user_id')
+        .eq('team_id', teamId)
+        .eq('is_captain', true)
+        .single();
+      
+      if (captain) {
+        captainIds.push(captain.user_id);
+      }
+    }
+
+    if (captainIds.length > 0) {
+      await sendNotification({
+        type: 'match_results_confirmation_needed',
+        title: 'Match Results Need Confirmation',
+        message: `${submitterTeamName} has submitted match results. Please review and confirm.`,
+        matchId,
+        userIds: captainIds
+      });
+    }
+  };
+
   return {
     sendNotification,
     notifyTournamentCreated,
@@ -186,6 +215,7 @@ export const useNotifications = () => {
     notifyTeamAssigned,
     notifyMatchAssigned,
     notifyMatchReady,
-    notifyPostResults
+    notifyPostResults,
+    notifyMatchResultsSubmitted
   };
 };

@@ -190,6 +190,30 @@ const TournamentDetail = () => {
     });
   };
 
+  const CheckInEnforcement = ({ tournamentId, tournamentName, checkInStartTime, checkInEndTime, checkInRequired, onCheckInChange }) => {
+    return (
+      <div className="mb-8">
+        <Card className="bg-slate-800 border-slate-700">
+          <CardHeader>
+            <CardTitle className="text-white">Check-in Enforcement</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="bg-slate-700 p-4 rounded-lg">
+                <h3 className="text-white font-medium mb-2">Check-in Phase</h3>
+                <p className="text-slate-400">{formatDate(checkInStartTime)} - {formatDate(checkInEndTime)}</p>
+              </div>
+              <div className="bg-slate-700 p-4 rounded-lg">
+                <h3 className="text-white font-medium mb-2">Tournament: {tournamentName}</h3>
+                <p className="text-slate-400">Check-in Required: {checkInRequired ? 'Yes' : 'No'}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
@@ -284,6 +308,22 @@ const TournamentDetail = () => {
           </Card>
         </div>
 
+        {/* Check-in Enforcement - Show when check-in is required and user is registered */}
+        {tournament.check_in_required && 
+         tournament.status === 'open' && 
+         signups.some(s => s.user_id === user?.id) && (
+          <div className="mb-8">
+            <CheckInEnforcement
+              tournamentId={tournament.id}
+              tournamentName={tournament.name}
+              checkInStartTime={tournament.check_in_starts_at}
+              checkInEndTime={tournament.check_in_ends_at}
+              checkInRequired={tournament.check_in_required}
+              onCheckInChange={fetchTournamentDetail}
+            />
+          </div>
+        )}
+
         {/* Registration Component - Show for non-admin users when registration is open */}
         {!isAdmin && tournament.status === 'open' && (
           <div className="mb-8">
@@ -302,6 +342,7 @@ const TournamentDetail = () => {
             <TabsTrigger value="bracket" className="text-white data-[state=active]:bg-red-600">Bracket</TabsTrigger>
             <TabsTrigger value="participants" className="text-white data-[state=active]:bg-red-600">Participants</TabsTrigger>
             <TabsTrigger value="teams" className="text-white data-[state=active]:bg-red-600">Teams</TabsTrigger>
+            <TabsTrigger value="matches" className="text-white data-[state=active]:bg-red-600">Matches</TabsTrigger>
             <TabsTrigger value="schedule" className="text-white data-[state=active]:bg-red-600">Schedule</TabsTrigger>
             {isAdmin && (
               <>
@@ -425,6 +466,13 @@ const TournamentDetail = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="matches" className="space-y-4">
+            <MatchManager
+              tournamentId={tournament.id}
+              onMatchUpdate={fetchTournamentDetail}
+            />
           </TabsContent>
 
           <TabsContent value="schedule" className="space-y-4">
