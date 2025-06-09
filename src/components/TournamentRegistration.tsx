@@ -161,7 +161,7 @@ const TournamentRegistration = ({ tournamentId, tournament, onRegistrationChange
       <CardHeader>
         <CardTitle className="text-white flex items-center justify-between">
           Tournament Registration
-          <Badge variant={isRegistered ? "default" : "outline"}>
+          <Badge variant={isRegistered ? "default" : "outline"} className={isRegistered ? "bg-green-600" : ""}>
             {isRegistered ? "Registered" : "Not Registered"}
           </Badge>
         </CardTitle>
@@ -201,7 +201,7 @@ const TournamentRegistration = ({ tournamentId, tournament, onRegistrationChange
             ) : (
               <>
                 <UserPlus className="w-4 h-4 mr-2" />
-                Register
+                Join Tournament
               </>
             )}
           </Button>
@@ -211,6 +211,18 @@ const TournamentRegistration = ({ tournamentId, tournament, onRegistrationChange
           <div className="flex items-center gap-2 text-slate-400">
             <Clock className="w-4 h-4" />
             <span>Opens: {new Date(tournament.registration_opens_at).toLocaleDateString()}</span>
+          </div>
+        )}
+
+        {status === 'closed' && (
+          <div className="text-center text-slate-400">
+            Registration has closed for this tournament
+          </div>
+        )}
+
+        {status === 'tournament_closed' && (
+          <div className="text-center text-slate-400">
+            This tournament is no longer accepting registrations
           </div>
         )}
       </CardContent>

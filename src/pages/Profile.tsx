@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Trophy, Target, Calendar, Settings, Bell } from "lucide-react";
+import { User, Trophy, Target, Calendar, Settings, Bell, RefreshCw } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -28,6 +28,7 @@ const Profile = () => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [refreshingRank, setRefreshingRank] = useState(false);
   const [showRiotDialog, setShowRiotDialog] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -92,9 +93,50 @@ const Profile = () => {
     }
   };
 
+  const refreshRankData = async () => {
+    if (!user || !profile?.riot_id) {
+      toast({
+        title: "No Riot ID",
+        description: "Please set your Riot ID first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setRefreshingRank(true);
+    try {
+      const { error } = await supabase.functions.invoke('scrape-rank', {
+        body: { riot_id: profile.riot_id, user_id: user.id }
+      });
+
+      if (error) throw error;
+
+      // Refresh profile data after rank update
+      await fetchProfile();
+      
+      toast({
+        title: "Success",
+        description: "Rank data refreshed successfully",
+      });
+    } catch (error: any) {
+      console.error('Error refreshing rank:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to refresh rank data",
+        variant: "destructive",
+      });
+    } finally {
+      setRefreshingRank(false);
+    }
+  };
+
   const calculateWinRate = () => {
     if (!profile || (profile.wins + profile.losses) === 0) return 0;
     return Math.round((profile.wins / (profile.wins + profile.losses)) * 100);
+  };
+
+  const handleRiotIdComplete = async () => {
+    await fetchProfile();
   };
 
   if (loading) {
@@ -235,13 +277,27 @@ const Profile = () => {
                   </div>
                 </div>
                 
-                <Button 
-                  onClick={() => fetchProfile()} 
-                  disabled={updating}
-                  className="bg-red-600 hover:bg-red-700"
-                >
-                  {updating ? 'Updating...' : 'Refresh Profile'}
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={() => fetchProfile()} 
+                    disabled={updating}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    {updating ? 'Updating...' : 'Refresh Profile'}
+                  </Button>
+                  
+                  {profile.riot_id && (
+                    <Button 
+                      onClick={refreshRankData} 
+                      disabled={refreshingRank}
+                      variant="outline"
+                      className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                    >
+                      <RefreshCw className={`w-4 h-4 mr-2 ${refreshingRank ? 'animate-spin' : ''}`} />
+                      {refreshingRank ? 'Refreshing...' : 'Refresh Rank'}
+                    </Button>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -255,7 +311,7 @@ const Profile = () => {
       <RiotIdDialog
         open={showRiotDialog}
         onOpenChange={setShowRiotDialog}
-        onRiotIdUpdated={fetchProfile}
+        onComplete={handleRiotIdComplete}
       />
     </div>
   );
