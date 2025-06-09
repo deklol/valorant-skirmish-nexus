@@ -1,34 +1,13 @@
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+import { useState } from 'react';
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { DndContext, DragEndEvent, DragOverlay, DragStartEvent } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Users, UserPlus, Shuffle } from "lucide-react";
+import { Shuffle, Users, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import DraggablePlayer from "./DraggablePlayer";
-import DroppableTeam from "./DroppableTeam";
-import PhantomPlayerDialog from "./PhantomPlayerDialog";
-import { getRankPoints, autoBalanceTeams, calculateTeamBalance } from "@/utils/rankingSystem";
-
-interface Player {
-  id: string;
-  discord_username: string;
-  riot_id: string;
-  current_rank: string;
-  weight_rating: number;
-  is_phantom: boolean;
-  name?: string;
-}
-
-interface Team {
-  id: string;
-  name: string;
-  players: Player[];
-  totalPoints: number;
-}
+import { useNotifications } from "@/hooks/useNotifications";
 
 interface TeamBalancingToolProps {
   tournamentId: string;
@@ -37,29 +16,46 @@ interface TeamBalancingToolProps {
 }
 
 const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBalancingToolProps) => {
-  const [open, setOpen] = useState(false);
-  const [availablePlayers, setAvailablePlayers] = useState<Player[]>([]);
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [activePlayer, setActivePlayer] = useState<Player | null>(null);
   const [loading, setLoading] = useState(false);
+  const [balanceMethod, setBalanceMethod] = useState('weight_based');
   const { toast } = useToast();
+  const { notifyTeamAssigned } = useNotifications();
 
-  useEffect(() => {
-    if (open) {
-      fetchPlayersAndTeams();
+  const getRankWeight = (rank: string | null) => {
+    const rankWeights: Record<string, number> = {
+      'Iron': 100,
+      'Bronze': 150,
+      'Silver': 200,
+      'Gold': 250,
+      'Platinum': 300,
+      'Diamond': 350,
+      'Ascendant': 400,
+      'Immortal': 450,
+      'Radiant': 500,
+      'Phantom': 150
+    };
+
+    if (!rank) return 150;
+    
+    for (const [rankName, weight] of Object.entries(rankWeights)) {
+      if (rank.toLowerCase().includes(rankName.toLowerCase())) {
+        return weight;
+      }
     }
-  }, [open, tournamentId]);
+    
+    return 150;
+  };
 
-  const fetchPlayersAndTeams = async () => {
+  const balanceTeams = async () => {
+    setLoading(true);
+    
     try {
-      console.log('Fetching players and teams for tournament:', tournamentId);
-      
-      // Get signed up players
-      const { data: signupsData, error: signupsError } = await supabase
+      // Get all checked-in participants
+      const { data: signups, error: signupsError } = await supabase
         .from('tournament_signups')
         .select(`
-          user_id,
-          users!inner (
+          *,
+          users:user_id (
             id,
             discord_username,
             riot_id,
@@ -68,385 +64,122 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
             is_phantom
           )
         `)
-        .eq('tournament_id', tournamentId);
+        .eq('tournament_id', tournamentId)
+        .eq('is_checked_in', true);
 
       if (signupsError) throw signupsError;
 
-      // Get phantom players for this tournament and their user records
-      const { data: phantomData, error: phantomError } = await supabase
-        .from('phantom_players')
-        .select(`
-          id,
-          name,
-          weight_rating,
-          users!inner (
-            id,
-            discord_username,
-            riot_id,
-            current_rank,
-            weight_rating,
-            is_phantom
-          )
-        `)
-        .eq('tournament_id', tournamentId);
-
-      if (phantomError) throw phantomError;
-
-      // Get existing teams
-      const { data: teamsData, error: teamsError } = await supabase
-        .from('teams')
-        .select(`
-          id,
-          name,
-          team_members (
-            user_id,
-            users!inner (
-              id,
-              discord_username,
-              riot_id,
-              current_rank,
-              weight_rating,
-              is_phantom
-            )
-          )
-        `)
-        .eq('tournament_id', tournamentId);
-
-      if (teamsError) throw teamsError;
-
-      // Process real players
-      const realPlayers: Player[] = signupsData
-        ?.map(signup => {
-          const user = signup.users;
-          if (!user || user.is_phantom) return null;
-          return {
-            id: user.id,
-            discord_username: user.discord_username || '',
-            riot_id: user.riot_id || '',
-            current_rank: user.current_rank || 'Unranked',
-            weight_rating: user.weight_rating || getRankPoints('Unranked'),
-            is_phantom: false
-          };
-        })
-        .filter(Boolean) as Player[];
-
-      // Process phantom players - use their user records
-      const phantomPlayers: Player[] = phantomData?.map(phantom => {
-        const user = phantom.users;
-        return {
-          id: user.id, // Use the user ID for consistency
-          discord_username: phantom.name,
-          riot_id: phantom.name,
-          current_rank: 'Phantom',
-          weight_rating: phantom.weight_rating || getRankPoints('Phantom'),
-          is_phantom: true,
-          name: phantom.name
-        };
-      }) || [];
-
-      const allPlayers = [...realPlayers, ...phantomPlayers];
-
-      // Get players already in teams
-      const playersInTeams = new Set();
-      const processedTeams: Team[] = teamsData?.map(team => {
-        const teamPlayers: Player[] = team.team_members
-          .map(member => {
-            const user = member.users;
-            if (!user) return null;
-            playersInTeams.add(user.id);
-            return {
-              id: user.id,
-              discord_username: user.discord_username || '',
-              riot_id: user.riot_id || '',
-              current_rank: user.current_rank || 'Unranked',
-              weight_rating: user.weight_rating || getRankPoints('Unranked'),
-              is_phantom: user.is_phantom || false
-            };
-          })
-          .filter(Boolean) as Player[];
-        
-        const totalPoints = teamPlayers.reduce((sum, p) => 
-          sum + getRankPoints(p.current_rank || 'Unranked'), 0
-        );
-        
-        return {
-          id: team.id,
-          name: team.name,
-          players: teamPlayers,
-          totalPoints
-        };
-      }) || [];
-
-      // Available players are those not in teams
-      const available = allPlayers.filter(player => !playersInTeams.has(player.id));
-
-      setAvailablePlayers(available);
-      setTeams(processedTeams);
-
-    } catch (error: any) {
-      console.error('Error fetching data:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load players and teams",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleDragStart = (event: DragStartEvent) => {
-    const { active } = event;
-    const player = findPlayer(active.id as string);
-    setActivePlayer(player);
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    
-    if (!over) {
-      setActivePlayer(null);
-      return;
-    }
-
-    const playerId = active.id as string;
-    const targetId = over.id as string;
-
-    // Moving to available players pool
-    if (targetId === 'available') {
-      movePlayerToAvailable(playerId);
-    }
-    // Moving to a team
-    else if (targetId.startsWith('team-')) {
-      const teamId = targetId.replace('team-', '');
-      const targetTeam = teams.find(t => t.id === teamId);
-      
-      // Check if team is already full before allowing the move
-      if (targetTeam && targetTeam.players.length >= 5) {
+      if (!signups || signups.length === 0) {
         toast({
-          title: "Team Full",
-          description: "Teams can have a maximum of 5 players",
+          title: "No Participants",
+          description: "No checked-in participants found for balancing",
           variant: "destructive",
         });
-        setActivePlayer(null);
         return;
       }
+
+      // Clear existing teams
+      await supabase.from('team_members').delete().match({ 
+        team_id: await supabase.from('teams').select('id').eq('tournament_id', tournamentId).then(res => 
+          res.data?.map(t => t.id) || []
+        )
+      });
+      await supabase.from('teams').delete().eq('tournament_id', tournamentId);
+
+      // Calculate team count
+      const teamCount = Math.min(Math.floor(signups.length / 5), maxTeams);
       
-      movePlayerToTeam(playerId, teamId);
-    }
-
-    setActivePlayer(null);
-  };
-
-  const findPlayer = (playerId: string): Player | null => {
-    // Check available players
-    const availablePlayer = availablePlayers.find(p => p.id === playerId);
-    if (availablePlayer) return availablePlayer;
-
-    // Check teams
-    for (const team of teams) {
-      const teamPlayer = team.players.find(p => p.id === playerId);
-      if (teamPlayer) return teamPlayer;
-    }
-
-    return null;
-  };
-
-  const movePlayerToAvailable = (playerId: string) => {
-    const player = findPlayer(playerId);
-    if (!player) return;
-
-    // Remove from team if exists
-    setTeams(prevTeams => 
-      prevTeams.map(team => {
-        const newPlayers = team.players.filter(p => p.id !== playerId);
-        return {
-          ...team,
-          players: newPlayers,
-          totalPoints: newPlayers.reduce((sum, p) => 
-            sum + getRankPoints(p.current_rank || 'Unranked'), 0
-          )
-        };
-      })
-    );
-
-    // Add to available if not already there
-    setAvailablePlayers(prev => {
-      if (prev.find(p => p.id === playerId)) return prev;
-      return [...prev, player];
-    });
-  };
-
-  const movePlayerToTeam = (playerId: string, teamId: string) => {
-    const player = findPlayer(playerId);
-    if (!player) return;
-
-    const targetTeam = teams.find(t => t.id === teamId);
-    if (!targetTeam) return;
-
-    // Double-check team capacity
-    if (targetTeam.players.length >= 5) {
-      toast({
-        title: "Team Full",
-        description: "Teams can have a maximum of 5 players",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Remove from available players
-    setAvailablePlayers(prev => prev.filter(p => p.id !== playerId));
-
-    // Remove from other teams and add to target team
-    setTeams(prevTeams => 
-      prevTeams.map(team => {
-        if (team.id === teamId) {
-          // Add to target team
-          const newPlayers = [...team.players.filter(p => p.id !== playerId), player];
-          return {
-            ...team,
-            players: newPlayers,
-            totalPoints: newPlayers.reduce((sum, p) => 
-              sum + getRankPoints(p.current_rank || 'Unranked'), 0
-            )
-          };
-        } else {
-          // Remove from other teams
-          const newPlayers = team.players.filter(p => p.id !== playerId);
-          return {
-            ...team,
-            players: newPlayers,
-            totalPoints: newPlayers.reduce((sum, p) => 
-              sum + getRankPoints(p.current_rank || 'Unranked'), 0
-            )
-          };
-        }
-      })
-    );
-  };
-
-  const createEmptyTeams = () => {
-    const newTeams: Team[] = [];
-    for (let i = 1; i <= maxTeams; i++) {
-      newTeams.push({
-        id: `temp-${i}`,
-        name: `Team ${i}`,
-        players: [],
-        totalPoints: 0
-      });
-    }
-    setTeams(newTeams);
-  };
-
-  const autoBalance = () => {
-    if (availablePlayers.length === 0) return;
-
-    const balancedTeams = autoBalanceTeams(availablePlayers, maxTeams);
-    setTeams(balancedTeams);
-    setAvailablePlayers([]);
-  };
-
-  const fillWithPhantoms = async () => {
-    const playersNeeded = (maxTeams * 5) - availablePlayers.length - teams.reduce((sum, team) => sum + team.players.length, 0);
-    
-    if (playersNeeded <= 0) {
-      toast({
-        title: "Tournament Full",
-        description: "Tournament already has enough players",
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const phantoms = [];
-      for (let i = 1; i <= playersNeeded; i++) {
-        phantoms.push({
-          name: `Phantom ${i}`,
-          weight_rating: getRankPoints('Phantom'),
-          tournament_id: tournamentId
+      if (teamCount === 0) {
+        toast({
+          title: "Insufficient Players",
+          description: "Need at least 5 players to form teams",
+          variant: "destructive",
         });
+        return;
       }
 
-      const { data, error } = await supabase
-        .from('phantom_players')
-        .insert(phantoms)
-        .select();
+      // Sort players by weight for balancing
+      const players = signups
+        .map(signup => ({
+          ...signup.users,
+          weight: balanceMethod === 'weight_based' 
+            ? (signup.users?.weight_rating || getRankWeight(signup.users?.current_rank))
+            : getRankWeight(signup.users?.current_rank)
+        }))
+        .sort((a, b) => (b.weight || 0) - (a.weight || 0));
 
-      if (error) throw error;
-
-      // Refresh the players list to include new phantoms
-      await fetchPlayersAndTeams();
-
-      toast({
-        title: "Phantom Players Added",
-        description: `Added ${playersNeeded} phantom players to fill the tournament`,
-      });
-
-    } catch (error: any) {
-      console.error('Error adding phantom players:', error);
-      toast({
-        title: "Error",
-        description: "Failed to add phantom players",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const saveTeams = async () => {
-    setLoading(true);
-    try {
-      // Delete existing teams for this tournament
-      await supabase
-        .from('teams')
-        .delete()
-        .eq('tournament_id', tournamentId);
-
-      // Create new teams
-      for (const team of teams) {
-        if (team.players.length === 0) continue;
-
-        const { data: teamData, error: teamError } = await supabase
+      // Create teams
+      const teams = [];
+      for (let i = 0; i < teamCount; i++) {
+        const { data: team, error: teamError } = await supabase
           .from('teams')
           .insert({
-            name: team.name,
             tournament_id: tournamentId,
-            captain_id: team.players[0]?.id,
-            status: 'confirmed',
-            total_rank_points: team.totalPoints
+            name: `Team ${String.fromCharCode(65 + i)}`,
+            total_rank_points: 0
           })
           .select()
           .single();
 
         if (teamError) throw teamError;
+        teams.push({ ...team, members: [], totalWeight: 0 });
+      }
 
-        // Add team members - now phantom players have user records too
-        const teamMembers = team.players.map((player, index) => ({
-          team_id: teamData.id,
-          user_id: player.id, // This works for both real and phantom players now
-          is_captain: index === 0
-        }));
+      // Balance players across teams using snake draft
+      let currentTeam = 0;
+      let direction = 1;
 
-        const { error: membersError } = await supabase
+      for (const player of players) {
+        const team = teams[currentTeam];
+        
+        // Add player to team
+        const { error: memberError } = await supabase
           .from('team_members')
-          .insert(teamMembers);
+          .insert({
+            team_id: team.id,
+            user_id: player.id,
+            is_captain: team.members.length === 0 // First player is captain
+          });
 
-        if (membersError) throw membersError;
+        if (memberError) throw memberError;
+
+        team.members.push(player);
+        team.totalWeight += player.weight || 0;
+
+        // Move to next team
+        currentTeam += direction;
+        if (currentTeam >= teamCount) {
+          currentTeam = teamCount - 1;
+          direction = -1;
+        } else if (currentTeam < 0) {
+          currentTeam = 0;
+          direction = 1;
+        }
+
+        // Send team assignment notification
+        await notifyTeamAssigned(team.id, team.name, [player.id]);
+      }
+
+      // Update team total rank points
+      for (const team of teams) {
+        await supabase
+          .from('teams')
+          .update({ total_rank_points: team.totalWeight })
+          .eq('id', team.id);
       }
 
       toast({
-        title: "Teams Saved",
-        description: "Team balancing has been saved successfully",
+        title: "Teams Balanced Successfully",
+        description: `Created ${teamCount} balanced teams with ${players.length} players`,
       });
 
-      setOpen(false);
       onTeamsBalanced();
 
     } catch (error: any) {
-      console.error('Error saving teams:', error);
+      console.error('Error balancing teams:', error);
       toast({
-        title: "Error",
-        description: "Failed to save teams",
+        title: "Balancing Failed",
+        description: error.message || "Failed to balance teams",
         variant: "destructive",
       });
     } finally {
@@ -454,122 +187,49 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
     }
   };
 
-  // Calculate balance metrics for teams with players
-  const teamsWithPlayers = teams.filter(team => team.players.length > 0);
-  const balanceMetrics = teamsWithPlayers.length >= 2 ? 
-    calculateTeamBalance(teamsWithPlayers[0]?.totalPoints || 0, teamsWithPlayers[1]?.totalPoints || 0) : null;
-
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-          <Shuffle className="w-4 h-4 mr-2" />
-          Balance Teams
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Team Balancing Tool - TGH Skirmish Ranking System</DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-4">
-          <div className="flex gap-2 flex-wrap">
-            <Button onClick={createEmptyTeams} variant="outline">
-              <Users className="w-4 h-4 mr-2" />
-              Create {maxTeams} Teams
-            </Button>
-            <Button onClick={autoBalance} variant="outline">
-              <Shuffle className="w-4 h-4 mr-2" />
-              Auto Balance
-            </Button>
-            <Button onClick={fillWithPhantoms} variant="outline" disabled={loading}>
-              <UserPlus className="w-4 h-4 mr-2" />
-              Fill with Phantoms
-            </Button>
-            <PhantomPlayerDialog 
-              tournamentId={tournamentId} 
-              onPhantomAdded={fetchPlayersAndTeams}
-            />
-          </div>
-
-          {balanceMetrics && (
-            <div className="p-4 bg-slate-700 rounded-lg">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-300">Team Balance Analysis</span>
-                <Badge variant={
-                  balanceMetrics.balanceStatus === 'ideal' ? 'default' :
-                  balanceMetrics.balanceStatus === 'good' ? 'secondary' :
-                  balanceMetrics.balanceStatus === 'warning' ? 'outline' : 'destructive'
-                }>
-                  {balanceMetrics.balanceStatus === 'ideal' && '🎯 Ideal'}
-                  {balanceMetrics.balanceStatus === 'good' && '✅ Good'}
-                  {balanceMetrics.balanceStatus === 'warning' && '⚠️ Warning'}
-                  {balanceMetrics.balanceStatus === 'poor' && '🚨 Poor'}
-                </Badge>
-              </div>
-              <div className="text-sm text-slate-400 mt-1">
-                Point Delta: {balanceMetrics.delta} 
-                {balanceMetrics.delta <= 25 && ' (Ideal: 0-25)'}
-                {balanceMetrics.delta > 25 && balanceMetrics.delta <= 50 && ' (Good: 26-50)'}
-                {balanceMetrics.delta > 50 && ' (⚠️ Above 50 - Consider rebalancing)'}
-              </div>
-            </div>
-          )}
-
-          <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              {/* Available Players */}
-              <div className="lg:col-span-1">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Available Players ({availablePlayers.length})</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <SortableContext 
-                      items={availablePlayers.map(p => p.id)} 
-                      strategy={verticalListSortingStrategy}
-                      id="available"
-                    >
-                      <div className="space-y-2 min-h-[400px] border-2 border-dashed border-slate-600 rounded p-2">
-                        {availablePlayers.map((player) => (
-                          <DraggablePlayer key={player.id} player={player} />
-                        ))}
-                      </div>
-                    </SortableContext>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Teams */}
-              <div className="lg:col-span-3">
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {teams.map((team) => (
-                    <DroppableTeam key={team.id} team={team} />
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <DragOverlay>
-              {activePlayer ? <DraggablePlayer player={activePlayer} /> : null}
-            </DragOverlay>
-          </DndContext>
-
-          <div className="flex justify-end space-x-2 pt-4">
-            <Button variant="outline" onClick={() => setOpen(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={saveTeams}
-              disabled={loading || teams.every(team => team.players.length === 0)}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              {loading ? "Saving..." : "Save Teams"}
-            </Button>
-          </div>
+    <Card className="bg-slate-800 border-slate-700">
+      <CardHeader>
+        <CardTitle className="text-white flex items-center gap-2">
+          <Shuffle className="w-5 h-5" />
+          Team Balancing
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-slate-300">Balancing Method</label>
+          <Select value={balanceMethod} onValueChange={setBalanceMethod}>
+            <SelectTrigger className="bg-slate-700 border-slate-600">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="weight_based">Weight Rating Based</SelectItem>
+              <SelectItem value="rank_based">Rank Based</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-      </DialogContent>
-    </Dialog>
+
+        <div className="flex items-center gap-2 text-slate-400 text-sm">
+          <AlertCircle className="w-4 h-4" />
+          <span>Only checked-in players will be included in teams</span>
+        </div>
+
+        <Button
+          onClick={balanceTeams}
+          disabled={loading}
+          className="bg-blue-600 hover:bg-blue-700 w-full"
+        >
+          {loading ? (
+            "Balancing..."
+          ) : (
+            <>
+              <Users className="w-4 h-4 mr-2" />
+              Balance Teams
+            </>
+          )}
+        </Button>
+      </CardContent>
+    </Card>
   );
 };
 

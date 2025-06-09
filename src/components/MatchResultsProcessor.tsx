@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useNotifications } from "@/hooks/useNotifications";
 
 interface MatchResultsProcessorProps {
   matchId: string;
@@ -18,6 +19,7 @@ export const processMatchResults = async ({
   onComplete 
 }: MatchResultsProcessorProps) => {
   const { toast } = useToast();
+  const { notifyMatchReady } = useNotifications();
 
   try {
     // Update match as completed
@@ -30,6 +32,18 @@ export const processMatchResults = async ({
       })
       .eq('id', matchId);
 
+    // Get current match details for advancement
+    const { data: match } = await supabase
+      .from('matches')
+      .select('round_number, match_number')
+      .eq('id', matchId)
+      .single();
+
+    if (match) {
+      // Advance winner to next round
+      await advanceWinnerToNextRound(winnerId, match, tournamentId);
+    }
+
     // Get team members for statistics update
     const { data: winnerMembers } = await supabase
       .from('team_members')
@@ -41,23 +55,21 @@ export const processMatchResults = async ({
       .select('user_id')
       .eq('team_id', loserId);
 
-    // Update winner statistics using direct SQL since types aren't updated yet
+    // Update winner statistics
     if (winnerMembers) {
       for (const member of winnerMembers) {
-        await supabase
-          .rpc('increment_user_wins' as any, { 
-            user_id: member.user_id 
-          });
+        await supabase.rpc('increment_user_wins', { 
+          user_id: member.user_id 
+        });
       }
     }
 
     // Update loser statistics
     if (loserMembers) {
       for (const member of loserMembers) {
-        await supabase
-          .rpc('increment_user_losses' as any, { 
-            user_id: member.user_id 
-          });
+        await supabase.rpc('increment_user_losses', { 
+          user_id: member.user_id 
+        });
       }
     }
 
@@ -89,6 +101,48 @@ export const processMatchResults = async ({
   }
 };
 
+const advanceWinnerToNextRound = async (winnerId: string, currentMatch: any, tournamentId: string) => {
+  try {
+    // Find the next round match that this winner should advance to
+    const nextRound = currentMatch.round_number + 1;
+    const nextMatchNumber = Math.ceil(currentMatch.match_number / 2);
+
+    const { data: nextMatch } = await supabase
+      .from('matches')
+      .select('*')
+      .eq('tournament_id', tournamentId)
+      .eq('round_number', nextRound)
+      .eq('match_number', nextMatchNumber)
+      .single();
+
+    if (nextMatch) {
+      // Determine if winner goes to team1 or team2 slot
+      const isOddMatch = currentMatch.match_number % 2 === 1;
+      const updateField = isOddMatch ? 'team1_id' : 'team2_id';
+
+      await supabase
+        .from('matches')
+        .update({ [updateField]: winnerId })
+        .eq('id', nextMatch.id);
+
+      // Check if both teams are now assigned to the next match
+      const { data: updatedMatch } = await supabase
+        .from('matches')
+        .select('team1_id, team2_id')
+        .eq('id', nextMatch.id)
+        .single();
+
+      if (updatedMatch?.team1_id && updatedMatch?.team2_id) {
+        // Both teams assigned, notify them that match is ready
+        const { notifyMatchReady } = useNotifications();
+        await notifyMatchReady(nextMatch.id, updatedMatch.team1_id, updatedMatch.team2_id);
+      }
+    }
+  } catch (error) {
+    console.error('Error advancing winner:', error);
+  }
+};
+
 const completeTournament = async (tournamentId: string, winnerTeamId: string) => {
   try {
     // Update tournament status
@@ -108,10 +162,9 @@ const completeTournament = async (tournamentId: string, winnerTeamId: string) =>
 
     if (winnerMembers) {
       for (const member of winnerMembers) {
-        await supabase
-          .rpc('increment_user_tournament_wins' as any, { 
-            user_id: member.user_id 
-          });
+        await supabase.rpc('increment_user_tournament_wins', { 
+          user_id: member.user_id 
+        });
       }
     }
 
@@ -123,10 +176,9 @@ const completeTournament = async (tournamentId: string, winnerTeamId: string) =>
 
     if (allSignups) {
       for (const signup of allSignups) {
-        await supabase
-          .rpc('increment_user_tournaments_played' as any, { 
-            user_id: signup.user_id 
-          });
+        await supabase.rpc('increment_user_tournaments_played', { 
+          user_id: signup.user_id 
+        });
       }
     }
 
