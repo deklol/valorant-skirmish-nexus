@@ -3,87 +3,135 @@ import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, CheckCircle, Users, AlertTriangle } from "lucide-react";
+import { Clock, CheckCircle2, AlertTriangle, HelpCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import CheckInDialog from "./CheckInDialog";
 
 interface CheckInEnforcementProps {
   tournamentId: string;
   tournamentName: string;
-  checkInStartTime: string;
-  checkInEndTime: string;
+  checkInStartTime: string | null;
+  checkInEndTime: string | null;
   checkInRequired: boolean;
   onCheckInChange: () => void;
 }
 
-const CheckInEnforcement = ({ 
-  tournamentId, 
-  tournamentName, 
-  checkInStartTime, 
-  checkInEndTime, 
+const CheckInEnforcement = ({
+  tournamentId,
+  tournamentName,
+  checkInStartTime,
+  checkInEndTime,
   checkInRequired,
-  onCheckInChange 
+  onCheckInChange
 }: CheckInEnforcementProps) => {
   const [isCheckedIn, setIsCheckedIn] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [checkInStatus, setCheckInStatus] = useState<'not_started' | 'active' | 'closed'>('not_started');
+  const [timeRemaining, setTimeRemaining] = useState<string>('');
   const { user } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
-    if (user) {
-      checkUserCheckInStatus();
-    }
+    if (!user) return;
+
+    // Fetch current check-in status
+    const fetchCheckInStatus = async () => {
+      try {
+        const { data } = await supabase
+          .from('tournament_signups')
+          .select('is_checked_in')
+          .eq('tournament_id', tournamentId)
+          .eq('user_id', user.id)
+          .single();
+
+        setIsCheckedIn(data?.is_checked_in || false);
+      } catch (error) {
+        console.error('Error fetching check-in status:', error);
+      }
+    };
+
+    fetchCheckInStatus();
   }, [user, tournamentId]);
 
-  const checkUserCheckInStatus = async () => {
+  useEffect(() => {
+    // Determine the check-in period status
+    const updateCheckInStatus = () => {
+      const now = new Date();
+      
+      if (!checkInStartTime || !checkInEndTime) {
+        setCheckInStatus('not_started');
+        return;
+      }
+
+      const startTime = new Date(checkInStartTime);
+      const endTime = new Date(checkInEndTime);
+
+      if (now < startTime) {
+        setCheckInStatus('not_started');
+        
+        // Calculate time until check-in starts
+        const timeUntilStart = startTime.getTime() - now.getTime();
+        const hours = Math.floor(timeUntilStart / (1000 * 60 * 60));
+        const minutes = Math.floor((timeUntilStart % (1000 * 60 * 60)) / (1000 * 60));
+        
+        setTimeRemaining(`${hours}h ${minutes}m until check-in opens`);
+      } else if (now >= startTime && now <= endTime) {
+        setCheckInStatus('active');
+        
+        // Calculate time until check-in closes
+        const timeUntilEnd = endTime.getTime() - now.getTime();
+        const hours = Math.floor(timeUntilEnd / (1000 * 60 * 60));
+        const minutes = Math.floor((timeUntilEnd % (1000 * 60 * 60)) / (1000 * 60));
+        
+        setTimeRemaining(`${hours}h ${minutes}m until check-in closes`);
+      } else {
+        setCheckInStatus('closed');
+        setTimeRemaining('Check-in period has ended');
+      }
+    };
+
+    updateCheckInStatus();
+    const interval = setInterval(updateCheckInStatus, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, [checkInStartTime, checkInEndTime]);
+
+  const handleCheckIn = async () => {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
+      await supabase
         .from('tournament_signups')
-        .select('is_checked_in')
+        .update({
+          is_checked_in: true,
+          checked_in_at: new Date().toISOString()
+        })
         .eq('tournament_id', tournamentId)
-        .eq('user_id', user.id)
-        .single();
+        .eq('user_id', user.id);
 
-      if (error && error.code !== 'PGRST116') throw error;
-      setIsCheckedIn(data?.is_checked_in || false);
+      setIsCheckedIn(true);
+      
+      toast({
+        title: "Successfully Checked In",
+        description: `You're all set for ${tournamentName}!`,
+        variant: "default",
+      });
+      
+      onCheckInChange();
     } catch (error) {
-      console.error('Error checking check-in status:', error);
+      console.error('Error checking in:', error);
+      toast({
+        title: "Check-in Failed",
+        description: "Unable to complete check-in. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
-  const isCheckInOpen = () => {
-    const now = new Date();
-    const startTime = new Date(checkInStartTime);
-    const endTime = new Date(checkInEndTime);
-    return now >= startTime && now <= endTime;
-  };
-
-  const getCheckInStatus = () => {
-    const now = new Date();
-    const startTime = new Date(checkInStartTime);
-    const endTime = new Date(checkInEndTime);
-
-    if (now < startTime) return 'not_started';
-    if (now > endTime) return 'ended';
-    return 'open';
-  };
-
-  const handleCheckInComplete = () => {
-    setIsCheckedIn(true);
-    onCheckInChange();
-    toast({
-      title: "Check-in Successful",
-      description: "You have successfully checked in to the tournament",
-    });
-  };
-
-  if (!checkInRequired) return null;
-
-  const status = getCheckInStatus();
+  // Don't show anything if check-in isn't required
+  if (!checkInRequired) {
+    return null;
+  }
 
   return (
     <Card className="bg-slate-800 border-slate-700">
@@ -91,69 +139,72 @@ const CheckInEnforcement = ({
         <CardTitle className="text-white flex items-center gap-2">
           <Clock className="w-5 h-5" />
           Tournament Check-in
-          {isCheckedIn && (
-            <Badge className="bg-green-500/20 text-green-400 ml-auto">
-              <CheckCircle className="w-3 h-3 mr-1" />
-              Checked In
-            </Badge>
-          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="text-slate-300">
-            <div className="font-medium">{tournamentName}</div>
-            <div className="text-sm text-slate-400">
-              Check-in: {new Date(checkInStartTime).toLocaleString()} - {new Date(checkInEndTime).toLocaleString()}
-            </div>
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            {isCheckedIn ? (
+              <Badge className="bg-green-600">
+                <CheckCircle2 className="w-3 h-3 mr-1" />
+                Checked In
+              </Badge>
+            ) : (
+              <Badge className={
+                checkInStatus === 'not_started' 
+                  ? "bg-slate-600" 
+                  : checkInStatus === 'active' 
+                    ? "bg-yellow-600" 
+                    : "bg-red-600"
+              }>
+                {checkInStatus === 'not_started' && <HelpCircle className="w-3 h-3 mr-1" />}
+                {checkInStatus === 'active' && <AlertTriangle className="w-3 h-3 mr-1" />}
+                {checkInStatus === 'closed' && <AlertTriangle className="w-3 h-3 mr-1" />}
+                {checkInStatus === 'not_started' && "Not Started"}
+                {checkInStatus === 'active' && "Check-in Required"}
+                {checkInStatus === 'closed' && "Check-in Closed"}
+              </Badge>
+            )}
+            
+            <span className="text-sm text-slate-400">
+              {timeRemaining}
+            </span>
           </div>
           
-          <div className="text-right">
-            {status === 'not_started' && (
-              <Badge className="bg-yellow-500/20 text-yellow-400">
-                Not Started
-              </Badge>
-            )}
-            {status === 'open' && (
-              <Badge className="bg-green-500/20 text-green-400">
-                Open
-              </Badge>
-            )}
-            {status === 'ended' && (
-              <Badge className="bg-red-500/20 text-red-400">
-                Ended
-              </Badge>
-            )}
-          </div>
+          {!isCheckedIn && checkInStatus === 'active' && (
+            <Button 
+              onClick={handleCheckIn}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <CheckCircle2 className="w-4 h-4 mr-2" />
+              Check in
+            </Button>
+          )}
         </div>
-
-        {!isCheckedIn && status === 'open' && (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-yellow-400 text-sm">
+        
+        {checkInStatus === 'active' && !isCheckedIn && (
+          <div className="bg-yellow-500/20 p-3 rounded-lg border border-yellow-500/30">
+            <div className="flex items-center gap-2 text-yellow-400 mb-1">
               <AlertTriangle className="w-4 h-4" />
-              <span>You must check in to participate in this tournament</span>
+              <span className="font-medium">Check-in Required</span>
             </div>
-            <CheckInDialog
-              tournamentId={tournamentId}
-              tournamentName={tournamentName}
-              checkInStartTime={checkInStartTime}
-              checkInEndTime={checkInEndTime}
-              onCheckInComplete={handleCheckInComplete}
-            />
+            <p className="text-yellow-300 text-sm">
+              You must check in to participate in this tournament. 
+              Players who don't check in may be removed from the tournament.
+            </p>
           </div>
         )}
-
-        {!isCheckedIn && status === 'ended' && (
-          <div className="text-center text-red-400">
-            <AlertTriangle className="w-6 h-6 mx-auto mb-2" />
-            <p>Check-in period has ended. You cannot participate in this tournament.</p>
-          </div>
-        )}
-
-        {isCheckedIn && (
-          <div className="text-center text-green-400">
-            <CheckCircle className="w-6 h-6 mx-auto mb-2" />
-            <p>You are checked in and ready to participate!</p>
+        
+        {checkInStatus === 'closed' && !isCheckedIn && (
+          <div className="bg-red-500/20 p-3 rounded-lg border border-red-500/30">
+            <div className="flex items-center gap-2 text-red-400 mb-1">
+              <AlertTriangle className="w-4 h-4" />
+              <span className="font-medium">Check-in Period Closed</span>
+            </div>
+            <p className="text-red-300 text-sm">
+              You missed the check-in period and may be removed from the tournament.
+              Please contact an administrator for assistance.
+            </p>
           </div>
         )}
       </CardContent>

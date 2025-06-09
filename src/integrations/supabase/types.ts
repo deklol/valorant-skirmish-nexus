@@ -310,6 +310,66 @@ export type Database = {
           },
         ]
       }
+      match_result_submissions: {
+        Row: {
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string
+          id: string
+          match_id: string
+          score_team1: number
+          score_team2: number
+          status: string
+          submitted_at: string
+          submitted_by: string
+          updated_at: string
+          winner_id: string | null
+        }
+        Insert: {
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          id?: string
+          match_id: string
+          score_team1?: number
+          score_team2?: number
+          status?: string
+          submitted_at?: string
+          submitted_by: string
+          updated_at?: string
+          winner_id?: string | null
+        }
+        Update: {
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          id?: string
+          match_id?: string
+          score_team1?: number
+          score_team2?: number
+          status?: string
+          submitted_at?: string
+          submitted_by?: string
+          updated_at?: string
+          winner_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_result_submissions_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_result_submissions_winner_id_fkey"
+            columns: ["winner_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       matches: {
         Row: {
           best_of: number | null
