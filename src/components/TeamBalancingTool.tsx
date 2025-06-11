@@ -140,14 +140,13 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
             });
         }
 
-        // Send notifications to team members - correct function signature
-        for (const player of teams[i]) {
-          try {
-            await notifyTeamAssigned(player.user_id, teamName, tournament.name);
-          } catch (notificationError) {
-            console.error('Failed to send notification:', notificationError);
-            // Continue even if notification fails
-          }
+        // Send notifications to team members - pass array of user IDs
+        const teamUserIds = teams[i].map(player => player.user_id);
+        try {
+          await notifyTeamAssigned(newTeam.id, teamName, teamUserIds, tournament.name);
+        } catch (notificationError) {
+          console.error('Failed to send notification:', notificationError);
+          // Continue even if notification fails
         }
       }
 
