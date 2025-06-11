@@ -1,10 +1,11 @@
+
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Clock, Trophy, Calendar, MapPin, Settings, Eye, Crown, Edit } from "lucide-react";
+import { Users, Clock, Trophy, Calendar, MapPin, Settings, Eye, Crown, Edit, Shuffle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -12,6 +13,7 @@ import Header from "@/components/Header";
 import TournamentParticipants from "@/components/TournamentParticipants";
 import DiscordWebhookManager from "@/components/DiscordWebhookManager";
 import TeamBalancingTool from "@/components/TeamBalancingTool";
+import TeamBalancingInterface from "@/components/TeamBalancingInterface";
 import TournamentRegistration from "@/components/TournamentRegistration";
 import BracketGenerator from "@/components/BracketGenerator";
 import MatchManager from "@/components/MatchManager";
@@ -135,23 +137,7 @@ const TournamentDetail = () => {
         description: "Team captain updated successfully",
       });
 
-      const { data: teamsData } = await supabase
-        .from('teams')
-        .select(`
-          *,
-          team_members (
-            *,
-            users:user_id (
-              discord_username,
-              riot_id,
-              current_rank,
-              is_phantom
-            )
-          )
-        `)
-        .eq('tournament_id', id);
-
-      if (teamsData) setTeams(teamsData);
+      fetchTournamentDetail();
     } catch (error: any) {
       console.error('Error setting captain:', error);
       toast({
@@ -188,30 +174,6 @@ const TournamentDetail = () => {
       hour: "2-digit",
       minute: "2-digit"
     });
-  };
-
-  const CheckInEnforcement = ({ tournamentId, tournamentName, checkInStartTime, checkInEndTime, checkInRequired, onCheckInChange }) => {
-    return (
-      <div className="mb-8">
-        <Card className="bg-slate-800 border-slate-700">
-          <CardHeader>
-            <CardTitle className="text-white">Check-in Enforcement</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="bg-slate-700 p-4 rounded-lg">
-                <h3 className="text-white font-medium mb-2">Check-in Phase</h3>
-                <p className="text-slate-400">{formatDate(checkInStartTime)} - {formatDate(checkInEndTime)}</p>
-              </div>
-              <div className="bg-slate-700 p-4 rounded-lg">
-                <h3 className="text-white font-medium mb-2">Tournament: {tournamentName}</h3>
-                <p className="text-slate-400">Check-in Required: {checkInRequired ? 'Yes' : 'No'}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
   };
 
   if (loading) {
@@ -271,12 +233,6 @@ const TournamentDetail = () => {
                 View Bracket
               </Button>
             </Link>
-            {isAdmin && (
-              <Button className="bg-red-600 hover:bg-red-700 text-white">
-                <Settings className="w-4 h-4 mr-2" />
-                Manage
-              </Button>
-            )}
           </div>
         </div>
 
@@ -308,22 +264,6 @@ const TournamentDetail = () => {
           </Card>
         </div>
 
-        {/* Check-in Enforcement - Show when check-in is required and user is registered */}
-        {tournament.check_in_required && 
-         tournament.status === 'open' && 
-         signups.some(s => s.user_id === user?.id) && (
-          <div className="mb-8">
-            <CheckInEnforcement
-              tournamentId={tournament.id}
-              tournamentName={tournament.name}
-              checkInStartTime={tournament.check_in_starts_at}
-              checkInEndTime={tournament.check_in_ends_at}
-              checkInRequired={tournament.check_in_required}
-              onCheckInChange={fetchTournamentDetail}
-            />
-          </div>
-        )}
-
         {/* Registration Component - Show for non-admin users when registration is open */}
         {!isAdmin && tournament.status === 'open' && (
           <div className="mb-8">
@@ -345,10 +285,10 @@ const TournamentDetail = () => {
             <TabsTrigger value="matches" className="text-white data-[state=active]:bg-red-600">Matches</TabsTrigger>
             <TabsTrigger value="schedule" className="text-white data-[state=active]:bg-red-600">Schedule</TabsTrigger>
             {isAdmin && (
-              <>
-                <TabsTrigger value="management" className="text-white data-[state=active]:bg-red-600">Management</TabsTrigger>
-                <TabsTrigger value="admin" className="text-white data-[state=active]:bg-red-600">Admin</TabsTrigger>
-              </>
+              <TabsTrigger value="admin" className="text-white data-[state=active]:bg-red-600">
+                <Settings className="w-4 h-4 mr-2" />
+                Admin Panel
+              </TabsTrigger>
             )}
           </TabsList>
 
@@ -500,72 +440,76 @@ const TournamentDetail = () => {
           </TabsContent>
 
           {isAdmin && (
-            <TabsContent value="management" className="space-y-4">
+            <TabsContent value="admin" className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Tournament Status Management */}
                 <TournamentStatusManager
                   tournamentId={tournament.id}
                   currentStatus={tournament.status}
                   onStatusChange={fetchTournamentDetail}
                 />
-                
+
+                {/* Team Balancing Section */}
                 {tournament.status === 'balancing' && (
-                  <div className="space-y-4">
-                    <TeamBalancingTool
-                      tournamentId={tournament.id}
-                      maxTeams={tournament.max_teams}
-                      onTeamsBalanced={fetchTournamentDetail}
-                    />
-                    <BracketGenerator
-                      tournamentId={tournament.id}
-                      tournament={tournament}
-                      teams={teams}
-                      onBracketGenerated={fetchTournamentDetail}
-                    />
-                  </div>
+                  <Card className="bg-slate-800 border-slate-700">
+                    <CardHeader>
+                      <CardTitle className="text-white flex items-center gap-2">
+                        <Shuffle className="w-5 h-5" />
+                        Team Balancing Options
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 gap-4">
+                        <TeamBalancingTool
+                          tournamentId={tournament.id}
+                          maxTeams={tournament.max_teams}
+                          onTeamsBalanced={fetchTournamentDetail}
+                        />
+                        <div className="border-t border-slate-600 pt-4">
+                          <h4 className="text-white font-medium mb-2">Manual Team Balancing</h4>
+                          <p className="text-slate-400 text-sm mb-3">
+                            Use drag & drop interface for manual team creation and balancing
+                          </p>
+                          <TeamBalancingInterface />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 )}
 
-                {(tournament.status === 'live' || tournament.status === 'completed') && (
-                  <MatchManager
+                {/* Bracket Generation */}
+                {tournament.status === 'balancing' && teams.length > 0 && (
+                  <BracketGenerator
                     tournamentId={tournament.id}
-                    onMatchUpdate={fetchTournamentDetail}
+                    tournament={tournament}
+                    teams={teams}
+                    onBracketGenerated={fetchTournamentDetail}
                   />
                 )}
-              </div>
-            </TabsContent>
-          )}
 
-          {isAdmin && (
-            <TabsContent value="admin" className="space-y-4">
-              <DiscordWebhookManager />
-              
-              <Card className="bg-slate-800 border-slate-700">
-                <CardHeader>
-                  <CardTitle className="text-white">Tournament Management</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                      <Edit className="w-4 h-4 mr-2" />
-                      Generate Bracket
-                    </Button>
-                    <Button className="bg-green-600 hover:bg-green-700 text-white">
-                      <Trophy className="w-4 h-4 mr-2" />
-                      Update Match Scores
-                    </Button>
-                  </div>
-                  
-                  <div className="bg-slate-700 p-4 rounded-lg">
-                    <h4 className="text-white font-medium mb-2">Tournament Flow:</h4>
-                    <ul className="text-slate-300 text-sm space-y-1">
-                      <li>• Teams are formed during balancing phase</li>
-                      <li>• Captains are set by admins (can be changed anytime)</li>
-                      <li>• Map vetos happen when matches go live (BO3/BO5 only)</li>
-                      <li>• Captains take turns banning/picking maps in real-time</li>
-                      <li>• Admins can update scores through the bracket view</li>
-                    </ul>
-                  </div>
-                </CardContent>
-              </Card>
+                {/* Discord Webhook Management */}
+                <DiscordWebhookManager />
+
+                {/* Tournament Management Info */}
+                <Card className="bg-slate-800 border-slate-700">
+                  <CardHeader>
+                    <CardTitle className="text-white">Tournament Flow</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="bg-slate-700 p-4 rounded-lg">
+                      <h4 className="text-white font-medium mb-2">Admin Guide:</h4>
+                      <ul className="text-slate-300 text-sm space-y-1">
+                        <li>• Use Auto Balance for quick algorithmic team creation</li>
+                        <li>• Use Manual Balance for custom drag & drop team formation</li>
+                        <li>• Captains can be changed anytime by clicking the crown icon</li>
+                        <li>• Generate bracket after teams are balanced</li>
+                        <li>• Map vetos happen automatically for BO3/BO5 matches</li>
+                        <li>• Update match scores through the bracket or matches tab</li>
+                      </ul>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
           )}
         </Tabs>

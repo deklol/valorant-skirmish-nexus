@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -139,10 +140,14 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
             });
         }
 
-        // Send notifications to team members - fix the function call
-        const userIds = teams[i].map(player => player.user_id);
-        for (const userId of userIds) {
-          await notifyTeamAssigned(userId, teamName, tournament.name);
+        // Send notifications to team members - correct function signature
+        for (const player of teams[i]) {
+          try {
+            await notifyTeamAssigned(player.user_id, teamName, tournament.name);
+          } catch (notificationError) {
+            console.error('Failed to send notification:', notificationError);
+            // Continue even if notification fails
+          }
         }
       }
 
@@ -173,7 +178,7 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
       <CardHeader>
         <CardTitle className="text-white flex items-center gap-2">
           <Users className="w-5 h-5" />
-          Team Balancing Tool
+          Auto Team Balancing
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -189,7 +194,7 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
             className="w-full bg-blue-600 hover:bg-blue-700"
           >
             <Shuffle className="w-4 h-4 mr-2" />
-            {loading ? "Balancing Teams..." : "Balance Teams"}
+            {loading ? "Balancing Teams..." : "Auto Balance Teams"}
           </Button>
         )}
 
