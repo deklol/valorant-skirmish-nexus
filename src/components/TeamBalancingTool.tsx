@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -140,9 +139,9 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
             });
         }
 
-        // Send notifications to team members
+        // Send notifications to team members - fix the function call
         const userIds = teams[i].map(player => player.user_id);
-        await notifyTeamAssigned(newTeam.id, teamName, userIds, tournament.name);
+        await notifyTeamAssigned(userIds, teamName, tournament.name);
       }
 
       setBalancingStatus('complete');

@@ -1,7 +1,7 @@
+
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { useSearch } from "@/hooks/useSearch";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -21,12 +21,12 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Menu, Search, User } from "lucide-react";
+import { Menu, Search, User, Settings } from "lucide-react";
 import NotificationCenter from "@/components/NotificationCenter";
 
 const Header = () => {
   const { user, signOut } = useAuth();
-  const { searchTerm, setSearchTerm } = useSearch();
+  const [searchTerm, setSearchTerm] = useState("");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
