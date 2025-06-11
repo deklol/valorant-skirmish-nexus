@@ -264,8 +264,8 @@ const TournamentDetail = () => {
           </Card>
         </div>
 
-        {/* Registration Component - Show for non-admin users when registration is open */}
-        {!isAdmin && tournament.status === 'open' && (
+        {/* Registration Component - Show for all users when registration is open */}
+        {tournament.status === 'open' && (
           <div className="mb-8">
             <TournamentRegistration
               tournamentId={tournament.id}
