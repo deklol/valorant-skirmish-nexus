@@ -34,11 +34,12 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
 
       if (!tournament) throw new Error('Tournament not found');
 
-      // Get all signups with user details and rank points
+      // Get all signups with user details and rank points (including checked-in players)
       const { data: signups } = await supabase
         .from('tournament_signups')
         .select(`
           user_id,
+          is_checked_in,
           users:user_id (
             discord_username,
             rank_points,
@@ -46,17 +47,23 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
             weight_rating
           )
         `)
-        .eq('tournament_id', tournamentId);
+        .eq('tournament_id', tournamentId)
+        .eq('is_checked_in', true); // Only include checked-in players
 
       if (!signups || signups.length === 0) {
-        throw new Error('No signups found for this tournament');
+        throw new Error('No checked-in players found for this tournament');
+      }
+
+      // Calculate minimum team size (at least 1 player per team)
+      const minPlayersPerTeam = 1;
+      const totalPlayers = signups.length;
+      
+      if (totalPlayers < maxTeams * minPlayersPerTeam) {
+        throw new Error(`Need at least ${maxTeams} checked-in players to form ${maxTeams} teams`);
       }
 
       // Calculate team size
-      const teamSize = Math.floor(signups.length / maxTeams);
-      if (teamSize < 2) {
-        throw new Error('Not enough players to form teams');
-      }
+      const teamSize = Math.floor(totalPlayers / maxTeams);
 
       // Clear existing teams
       await supabase
@@ -154,7 +161,7 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
       
       toast({
         title: "Teams Balanced Successfully",
-        description: `${maxTeams} teams have been created and players have been notified`,
+        description: `${teams.filter(team => team.length > 0).length} teams have been created and players have been notified`,
       });
 
       onTeamsBalanced();
@@ -183,7 +190,8 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
       <CardContent className="space-y-4">
         <div className="text-slate-300 text-sm">
           <p>This tool will automatically balance teams based on player rank points using a snake draft algorithm.</p>
-          <p className="mt-2">The highest-ranked player in each team will be assigned as captain.</p>
+          <p className="mt-2">Only checked-in players will be included in team formation.</p>
+          <p className="mt-1">The highest-ranked player in each team will be assigned as captain.</p>
         </div>
 
         {balancingStatus === 'idle' && (
@@ -214,6 +222,7 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
         <div className="bg-slate-700 p-3 rounded-lg">
           <div className="text-sm text-slate-400 mb-2">Balancing Algorithm:</div>
           <ul className="text-xs text-slate-300 space-y-1">
+            <li>• Only checked-in players are included</li>
             <li>• Players sorted by rank points (highest first)</li>
             <li>• Snake draft assignment to ensure balanced teams</li>
             <li>• Highest-ranked player becomes team captain</li>

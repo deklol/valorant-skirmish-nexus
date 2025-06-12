@@ -6,13 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Trophy, Target, Calendar, Settings, Bell, RefreshCw } from "lucide-react";
+import { User, Trophy, Target, Calendar, Settings, Bell, RefreshCw, TrendingUp } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import NotificationPreferences from "@/components/NotificationPreferences";
 import RiotIdDialog from "@/components/RiotIdDialog";
+import RankHistory from "@/components/RankHistory";
 
 interface UserProfile {
   discord_username: string;
@@ -233,6 +234,10 @@ const Profile = () => {
               <Settings className="w-4 h-4 mr-2" />
               Settings
             </TabsTrigger>
+            <TabsTrigger value="rank-history" className="text-white data-[state=active]:bg-red-600">
+              <TrendingUp className="w-4 h-4 mr-2" />
+              Rank History
+            </TabsTrigger>
             <TabsTrigger value="notifications" className="text-white data-[state=active]:bg-red-600">
               <Bell className="w-4 h-4 mr-2" />
               Notifications
@@ -300,6 +305,10 @@ const Profile = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="rank-history" className="space-y-4">
+            <RankHistory />
           </TabsContent>
 
           <TabsContent value="notifications" className="space-y-4">

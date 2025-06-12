@@ -451,30 +451,36 @@ const TournamentDetail = () => {
 
                 {/* Team Balancing Section */}
                 {tournament.status === 'balancing' && (
-                  <Card className="bg-slate-800 border-slate-700">
-                    <CardHeader>
-                      <CardTitle className="text-white flex items-center gap-2">
-                        <Shuffle className="w-5 h-5" />
-                        Team Balancing Options
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid grid-cols-1 gap-4">
+                  <div className="lg:col-span-2 space-y-6">
+                    <Card className="bg-slate-800 border-slate-700">
+                      <CardHeader>
+                        <CardTitle className="text-white flex items-center gap-2">
+                          <Shuffle className="w-5 h-5" />
+                          Team Balancing Options
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-6">
+                        {/* Auto Balancing */}
                         <TeamBalancingTool
                           tournamentId={tournament.id}
                           maxTeams={tournament.max_teams}
                           onTeamsBalanced={fetchTournamentDetail}
                         />
-                        <div className="border-t border-slate-600 pt-4">
-                          <h4 className="text-white font-medium mb-2">Manual Team Balancing</h4>
-                          <p className="text-slate-400 text-sm mb-3">
+                        
+                        {/* Manual Balancing */}
+                        <div className="border-t border-slate-600 pt-6">
+                          <h4 className="text-white font-medium mb-2 flex items-center gap-2">
+                            <Edit className="w-4 h-4" />
+                            Manual Team Balancing
+                          </h4>
+                          <p className="text-slate-400 text-sm mb-4">
                             Use drag & drop interface for manual team creation and balancing
                           </p>
                           <TeamBalancingInterface />
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                      </CardContent>
+                    </Card>
+                  </div>
                 )}
 
                 {/* Bracket Generation */}
