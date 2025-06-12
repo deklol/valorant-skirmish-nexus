@@ -574,6 +574,47 @@ export type Database = {
           },
         ]
       }
+      rank_history: {
+        Row: {
+          created_at: string
+          id: string
+          new_rank: string
+          previous_rank: string | null
+          rank_change_type: string
+          rank_points_change: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          new_rank: string
+          previous_rank?: string | null
+          rank_change_type: string
+          rank_points_change?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          new_rank?: string
+          previous_rank?: string | null
+          rank_change_type?: string
+          rank_points_change?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rank_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_members: {
         Row: {
           id: string

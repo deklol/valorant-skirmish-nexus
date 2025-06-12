@@ -9,9 +9,10 @@ import { useAuth } from "@/hooks/useAuth";
 interface RankHistoryEntry {
   id: string;
   user_id: string;
-  previous_rank: string;
+  previous_rank: string | null;
   new_rank: string;
   rank_change_type: 'promotion' | 'demotion' | 'same';
+  rank_points_change: number | null;
   updated_at: string;
 }
 
@@ -96,13 +97,18 @@ const RankHistory = () => {
                 <div>
                   <div className="flex items-center gap-2">
                     <Badge variant="outline" className="border-slate-600 text-slate-300">
-                      {entry.previous_rank}
+                      {entry.previous_rank || 'Unranked'}
                     </Badge>
                     <span className="text-slate-400">→</span>
                     <Badge variant="outline" className="border-slate-600 text-slate-300">
                       {entry.new_rank}
                     </Badge>
                   </div>
+                  {entry.rank_points_change !== null && entry.rank_points_change !== 0 && (
+                    <div className="text-xs text-slate-400 mt-1">
+                      {entry.rank_points_change > 0 ? '+' : ''}{entry.rank_points_change} points
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="text-xs text-slate-400">
