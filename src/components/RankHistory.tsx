@@ -39,7 +39,7 @@ const RankHistory = () => {
         .limit(10);
 
       if (error) throw error;
-      setRankHistory(data || []);
+      setRankHistory((data || []) as RankHistoryEntry[]);
     } catch (error) {
       console.error('Error fetching rank history:', error);
     } finally {

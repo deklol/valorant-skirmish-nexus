@@ -1,8 +1,10 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, Clock, Settings, Trophy, Users, AlertTriangle, CheckCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +14,8 @@ import TeamBalancingInterface from "@/components/TeamBalancingInterface";
 import TournamentEditDialog from "@/components/TournamentEditDialog";
 import AutomatedScheduling from "@/components/AutomatedScheduling";
 import ScoreReporting from "@/components/ScoreReporting";
+import IntegratedBracketView from "@/components/IntegratedBracketView";
+import TournamentRegistration from "@/components/TournamentRegistration";
 
 interface Tournament {
   id: string;
@@ -26,7 +30,7 @@ interface Tournament {
   max_teams: number;
   max_players: number;
   prize_pool: string | null;
-  status: string | null;
+  status: 'draft' | 'open' | 'balancing' | 'live' | 'completed' | 'archived' | null;
   match_format: string | null;
   bracket_type: string | null;
 }
@@ -141,7 +145,15 @@ const TournamentDetail = () => {
         .order('match_number', { ascending: true });
 
       if (error) throw error;
-      setMatches(data || []);
+      
+      // Transform the data to match our interface
+      const transformedMatches = (data || []).map(match => ({
+        ...match,
+        teams1: match.teams1 ? { name: match.teams1.name } : undefined,
+        teams2: match.teams2 ? { name: match.teams2.name } : undefined
+      }));
+      
+      setMatches(transformedMatches);
     } catch (error: any) {
       console.error('Error fetching matches:', error);
       toast({
@@ -202,7 +214,7 @@ const TournamentDetail = () => {
     }
   };
 
-  const handleStatusChange = async (newStatus: string) => {
+  const handleStatusChange = async (newStatus: 'draft' | 'open' | 'balancing' | 'live' | 'completed' | 'archived') => {
     if (!id) return;
 
     try {
@@ -301,110 +313,75 @@ const TournamentDetail = () => {
           </div>
 
           <Card className="bg-slate-800 border-slate-700">
-            <CardContent className="text-slate-300">
+            <CardContent className="text-slate-300 p-6">
               {tournament.description || 'No description provided.'}
             </CardContent>
           </Card>
         </div>
 
-        {/* Admin Controls */}
-        {isAdmin && (
-          <div className="space-y-6">
-            <Card className="bg-slate-800 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Settings className="w-5 h-5" />
-                  Tournament Management
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex flex-wrap gap-2">
-                  <TournamentEditDialog
-                    tournament={tournament}
-                    onTournamentUpdated={fetchTournament}
-                  />
-                  {tournament.status !== 'live' && tournament.status !== 'completed' && (
-                    <Button
-                      onClick={() => handleStatusChange('live')}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      Start Tournament
-                    </Button>
-                  )}
-                  {tournament.status !== 'completed' && (
-                    <Button
-                      onClick={() => handleStatusChange('completed')}
-                      className="bg-gray-600 hover:bg-gray-700"
-                    >
-                      Complete Tournament
-                    </Button>
-                  )}
-                  <Button
-                    onClick={() => handleStatusChange('archived')}
-                    className="bg-slate-600 hover:bg-slate-700"
-                  >
-                    Archive Tournament
-                  </Button>
-                </div>
-                
-                {/* Tournament Status Controls */}
-                <div className="flex items-center gap-2">
-                  <div className="text-sm text-slate-400">Change Tournament Status:</div>
-                  <Button
-                    onClick={() => handleStatusChange('draft')}
-                    variant="outline"
-                    className="border-slate-600 text-slate-300 hover:bg-slate-700"
-                  >
-                    Set to Draft
-                  </Button>
-                  <Button
-                    onClick={() => handleStatusChange('open')}
-                    variant="outline"
-                    className="border-slate-600 text-slate-300 hover:bg-slate-700"
-                  >
-                    Open Registration
-                  </Button>
-                  <Button
-                    onClick={() => handleStatusChange('balancing')}
-                    variant="outline"
-                    className="border-slate-600 text-slate-300 hover:bg-slate-700"
-                  >
-                    Balance Teams
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+        {/* Tournament Tabs */}
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4 bg-slate-800 border-slate-700">
+            <TabsTrigger value="overview" className="text-slate-300 data-[state=active]:bg-slate-700 data-[state=active]:text-white">
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="bracket" className="text-slate-300 data-[state=active]:bg-slate-700 data-[state=active]:text-white">
+              Bracket
+            </TabsTrigger>
+            <TabsTrigger value="participants" className="text-slate-300 data-[state=active]:bg-slate-700 data-[state=active]:text-white">
+              Participants
+            </TabsTrigger>
+            {isAdmin && (
+              <TabsTrigger value="admin" className="text-slate-300 data-[state=active]:bg-slate-700 data-[state=active]:text-white">
+                Admin
+              </TabsTrigger>
+            )}
+          </TabsList>
 
-            {/* Automated Scheduling */}
-            {tournament.status === 'live' && (
-              <AutomatedScheduling
-                tournamentId={tournament.id}
-                onScheduleCreated={() => {
-                  fetchMatches();
-                  toast({
-                    title: "Schedule Updated",
-                    description: "Tournament schedule has been automatically generated",
-                  });
-                }}
-              />
+          <TabsContent value="overview" className="space-y-6">
+            {/* Tournament Registration */}
+            {tournament.status === 'open' && user && (
+              <TournamentRegistration tournamentId={tournament.id} />
             )}
 
-            {/* Manual Team Balancing */}
-            {tournament.status === 'balancing' && (
-              <TeamBalancingInterface
-                tournamentId={tournament.id}
-                onTeamsBalanced={() => {
-                  fetchTeams();
-                  fetchParticipants();
-                }}
-              />
+            {/* Live Matches with Score Reporting */}
+            {matches.length > 0 && (
+              <Card className="bg-slate-800 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Trophy className="w-5 h-5" />
+                    Tournament Matches
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {matches.map((match) => (
+                    <ScoreReporting
+                      key={match.id}
+                      match={match}
+                      onScoreSubmitted={() => {
+                        fetchMatches();
+                        toast({
+                          title: "Score Reported",
+                          description: "Match score has been submitted",
+                        });
+                      }}
+                    />
+                  ))}
+                </CardContent>
+              </Card>
             )}
+          </TabsContent>
 
+          <TabsContent value="bracket">
+            <IntegratedBracketView tournamentId={tournament.id} />
+          </TabsContent>
+
+          <TabsContent value="participants">
             <Card className="bg-slate-800 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <Users className="w-5 h-5" />
-                  Participants
+                  Participants ({participants.length})
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -430,35 +407,102 @@ const TournamentDetail = () => {
                 )}
               </CardContent>
             </Card>
-          </div>
-        )}
+          </TabsContent>
 
-        {/* Live Matches with Score Reporting */}
-        {matches.length > 0 && (
-          <Card className="bg-slate-800 border-slate-700">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Trophy className="w-5 h-5" />
-                Tournament Matches
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {matches.map((match) => (
-                <ScoreReporting
-                  key={match.id}
-                  match={match}
-                  onScoreSubmitted={() => {
+          {isAdmin && (
+            <TabsContent value="admin" className="space-y-6">
+              <Card className="bg-slate-800 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Settings className="w-5 h-5" />
+                    Tournament Management
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex flex-wrap gap-2">
+                    <TournamentEditDialog
+                      tournament={tournament}
+                      onTournamentUpdated={fetchTournament}
+                    />
+                    {tournament.status !== 'live' && tournament.status !== 'completed' && (
+                      <Button
+                        onClick={() => handleStatusChange('live')}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        Start Tournament
+                      </Button>
+                    )}
+                    {tournament.status !== 'completed' && (
+                      <Button
+                        onClick={() => handleStatusChange('completed')}
+                        className="bg-gray-600 hover:bg-gray-700"
+                      >
+                        Complete Tournament
+                      </Button>
+                    )}
+                    <Button
+                      onClick={() => handleStatusChange('archived')}
+                      className="bg-slate-600 hover:bg-slate-700"
+                    >
+                      Archive Tournament
+                    </Button>
+                  </div>
+                  
+                  {/* Tournament Status Controls */}
+                  <div className="flex items-center gap-2">
+                    <div className="text-sm text-slate-400">Change Tournament Status:</div>
+                    <Button
+                      onClick={() => handleStatusChange('draft')}
+                      variant="outline"
+                      className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                    >
+                      Set to Draft
+                    </Button>
+                    <Button
+                      onClick={() => handleStatusChange('open')}
+                      variant="outline"
+                      className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                    >
+                      Open Registration
+                    </Button>
+                    <Button
+                      onClick={() => handleStatusChange('balancing')}
+                      variant="outline"
+                      className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                    >
+                      Balance Teams
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Automated Scheduling */}
+              {tournament.status === 'live' && (
+                <AutomatedScheduling
+                  tournamentId={tournament.id}
+                  onScheduleCreated={() => {
                     fetchMatches();
                     toast({
-                      title: "Score Reported",
-                      description: "Match score has been submitted",
+                      title: "Schedule Updated",
+                      description: "Tournament schedule has been automatically generated",
                     });
                   }}
                 />
-              ))}
-            </CardContent>
-          </Card>
-        )}
+              )}
+
+              {/* Manual Team Balancing */}
+              {tournament.status === 'balancing' && (
+                <TeamBalancingInterface
+                  tournamentId={tournament.id}
+                  onTeamsBalanced={() => {
+                    fetchTeams();
+                    fetchParticipants();
+                  }}
+                />
+              )}
+            </TabsContent>
+          )}
+        </Tabs>
       </div>
     </div>
   );

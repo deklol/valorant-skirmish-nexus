@@ -69,7 +69,7 @@ const TournamentEditDialog = ({ tournament, onTournamentUpdated }: TournamentEdi
         max_teams: parseInt(formData.max_teams),
         max_players: parseInt(formData.max_players),
         prize_pool: formData.prize_pool || null,
-        match_format: formData.match_format,
+        match_format: formData.match_format as 'BO1' | 'BO3' | 'BO5',
         bracket_type: formData.bracket_type,
         updated_at: new Date().toISOString()
       };
