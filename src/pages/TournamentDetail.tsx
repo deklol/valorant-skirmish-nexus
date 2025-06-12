@@ -10,12 +10,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
-import TeamBalancingInterface from "@/components/TeamBalancingInterface";
 import TournamentEditDialog from "@/components/TournamentEditDialog";
 import AutomatedScheduling from "@/components/AutomatedScheduling";
 import ScoreReporting from "@/components/ScoreReporting";
 import IntegratedBracketView from "@/components/IntegratedBracketView";
-import TournamentRegistration from "@/components/TournamentRegistration";
 
 interface Tournament {
   id: string;
@@ -45,8 +43,8 @@ interface Match {
   score_team2: number | null;
   status: string;
   winner_id: string | null;
-  teams1?: { name: string };
-  teams2?: { name: string };
+  team1?: { name: string } | null;
+  team2?: { name: string } | null;
   scheduled_time: string | null;
 }
 
@@ -76,6 +74,7 @@ const TournamentDetail = () => {
   const [teams, setTeams] = useState<Team[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isRegistered, setIsRegistered] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const [isAdmin, setIsAdmin] = useState(false);
@@ -86,8 +85,11 @@ const TournamentDetail = () => {
       fetchMatches();
       fetchTeams();
       fetchParticipants();
+      if (user) {
+        checkRegistrationStatus();
+      }
     }
-  }, [id]);
+  }, [id, user]);
 
   useEffect(() => {
     const checkAdminStatus = async () => {
@@ -136,24 +138,17 @@ const TournamentDetail = () => {
     try {
       const { data, error } = await supabase
         .from('matches')
-        .select(`*, 
-          teams1:team1_id (name),
-          teams2:team2_id (name)
+        .select(`
+          *, 
+          team1:teams!matches_team1_id_fkey (name),
+          team2:teams!matches_team2_id_fkey (name)
         `)
         .eq('tournament_id', id)
         .order('round_number', { ascending: true })
         .order('match_number', { ascending: true });
 
       if (error) throw error;
-      
-      // Transform the data to match our interface
-      const transformedMatches = (data || []).map(match => ({
-        ...match,
-        teams1: match.teams1 ? { name: match.teams1.name } : undefined,
-        teams2: match.teams2 ? { name: match.teams2.name } : undefined
-      }));
-      
-      setMatches(transformedMatches);
+      setMatches(data || []);
     } catch (error: any) {
       console.error('Error fetching matches:', error);
       toast({
@@ -209,6 +204,66 @@ const TournamentDetail = () => {
       toast({
         title: "Error",
         description: "Failed to load participants",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const checkRegistrationStatus = async () => {
+    if (!user || !id) return;
+
+    try {
+      const { data } = await supabase
+        .from('tournament_signups')
+        .select('id')
+        .eq('tournament_id', id)
+        .eq('user_id', user.id)
+        .single();
+
+      setIsRegistered(!!data);
+    } catch (error) {
+      setIsRegistered(false);
+    }
+  };
+
+  const handleRegistration = async () => {
+    if (!user || !id) return;
+
+    try {
+      if (isRegistered) {
+        const { error } = await supabase
+          .from('tournament_signups')
+          .delete()
+          .eq('tournament_id', id)
+          .eq('user_id', user.id);
+
+        if (error) throw error;
+        setIsRegistered(false);
+        toast({
+          title: "Unregistered",
+          description: "You have been removed from the tournament",
+        });
+      } else {
+        const { error } = await supabase
+          .from('tournament_signups')
+          .insert({
+            tournament_id: id,
+            user_id: user.id,
+          });
+
+        if (error) throw error;
+        setIsRegistered(true);
+        toast({
+          title: "Registered",
+          description: "You have been registered for the tournament",
+        });
+      }
+      fetchParticipants();
+    } catch (error: any) {
+      console.error('Error handling registration:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update registration",
         variant: "destructive",
       });
     }
@@ -341,7 +396,32 @@ const TournamentDetail = () => {
           <TabsContent value="overview" className="space-y-6">
             {/* Tournament Registration */}
             {tournament.status === 'open' && user && (
-              <TournamentRegistration tournamentId={tournament.id} />
+              <Card className="bg-slate-800 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Users className="w-5 h-5" />
+                    Tournament Registration
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-slate-300">
+                        {isRegistered ? 'You are registered for this tournament' : 'Register for this tournament'}
+                      </p>
+                      <p className="text-sm text-slate-400">
+                        {participants.length} / {tournament.max_players} players registered
+                      </p>
+                    </div>
+                    <Button
+                      onClick={handleRegistration}
+                      className={isRegistered ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"}
+                    >
+                      {isRegistered ? 'Unregister' : 'Register'}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             )}
 
             {/* Live Matches with Score Reporting */}
@@ -486,17 +566,6 @@ const TournamentDetail = () => {
                       title: "Schedule Updated",
                       description: "Tournament schedule has been automatically generated",
                     });
-                  }}
-                />
-              )}
-
-              {/* Manual Team Balancing */}
-              {tournament.status === 'balancing' && (
-                <TeamBalancingInterface
-                  tournamentId={tournament.id}
-                  onTeamsBalanced={() => {
-                    fetchTeams();
-                    fetchParticipants();
                   }}
                 />
               )}
