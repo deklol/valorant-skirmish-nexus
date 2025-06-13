@@ -14,6 +14,8 @@ import TournamentEditDialog from "@/components/TournamentEditDialog";
 import AutomatedScheduling from "@/components/AutomatedScheduling";
 import ScoreReporting from "@/components/ScoreReporting";
 import IntegratedBracketView from "@/components/IntegratedBracketView";
+import TournamentParticipants from "@/components/TournamentParticipants";
+import TournamentStatusManager from "@/components/TournamentStatusManager";
 
 interface Tournament {
   id: string;
@@ -374,6 +376,60 @@ const TournamentDetail = () => {
           </Card>
         </div>
 
+        {/* Tournament Info Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Card className="bg-slate-800 border-slate-700">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-white flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                Participants
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-white">
+                {participants.length}/{tournament.max_players}
+              </div>
+              <div className="text-sm text-slate-400">
+                Players registered
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-slate-800 border-slate-700">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-white flex items-center gap-2">
+                <Trophy className="w-5 h-5" />
+                Prize Pool
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-white">
+                {tournament.prize_pool || 'TBD'}
+              </div>
+              <div className="text-sm text-slate-400">
+                Total prizes
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-slate-800 border-slate-700">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-white flex items-center gap-2">
+                <Clock className="w-5 h-5" />
+                Format
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-white">
+                {tournament.match_format || 'BO1'}
+              </div>
+              <div className="text-sm text-slate-400">
+                Match format
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Tournament Tabs */}
         <Tabs defaultValue="overview" className="space-y-6">
           <TabsList className="grid w-full grid-cols-4 bg-slate-800 border-slate-700">
@@ -424,6 +480,41 @@ const TournamentDetail = () => {
               </Card>
             )}
 
+            {/* Tournament Details */}
+            <Card className="bg-slate-800 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-white">Tournament Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <div className="text-sm text-slate-400">Start Time</div>
+                    <div className="text-white">
+                      {tournament.start_time ? new Date(tournament.start_time).toLocaleString() : 'TBD'}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-slate-400">End Time</div>
+                    <div className="text-white">
+                      {tournament.end_time ? new Date(tournament.end_time).toLocaleString() : 'TBD'}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-slate-400">Registration Opens</div>
+                    <div className="text-white">
+                      {tournament.registration_opens_at ? new Date(tournament.registration_opens_at).toLocaleString() : 'TBD'}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-slate-400">Registration Closes</div>
+                    <div className="text-white">
+                      {tournament.registration_closes_at ? new Date(tournament.registration_closes_at).toLocaleString() : 'TBD'}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Live Matches with Score Reporting */}
             {matches.length > 0 && (
               <Card className="bg-slate-800 border-slate-700">
@@ -457,40 +548,21 @@ const TournamentDetail = () => {
           </TabsContent>
 
           <TabsContent value="participants">
-            <Card className="bg-slate-800 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  Participants ({participants.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {participants.length === 0 ? (
-                  <p className="text-slate-400 text-sm">No participants yet.</p>
-                ) : (
-                  participants.map((participant) => (
-                    <div key={participant.id} className="flex items-center justify-between bg-slate-700 p-3 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-slate-300">
-                              {participant.users?.discord_username || 'Unknown User'}
-                            </span>
-                            {participant.is_checked_in && (
-                              <Badge variant="secondary">Checked In</Badge>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </CardContent>
-            </Card>
+            <TournamentParticipants 
+              tournamentId={tournament.id} 
+              maxPlayers={tournament.max_players}
+              isAdmin={isAdmin}
+            />
           </TabsContent>
 
           {isAdmin && (
             <TabsContent value="admin" className="space-y-6">
+              <TournamentStatusManager
+                tournamentId={tournament.id}
+                currentStatus={tournament.status || 'draft'}
+                onStatusChange={fetchTournament}
+              />
+
               <Card className="bg-slate-800 border-slate-700">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center gap-2">
@@ -525,32 +597,6 @@ const TournamentDetail = () => {
                       className="bg-slate-600 hover:bg-slate-700"
                     >
                       Archive Tournament
-                    </Button>
-                  </div>
-                  
-                  {/* Tournament Status Controls */}
-                  <div className="flex items-center gap-2">
-                    <div className="text-sm text-slate-400">Change Tournament Status:</div>
-                    <Button
-                      onClick={() => handleStatusChange('draft')}
-                      variant="outline"
-                      className="border-slate-600 text-slate-300 hover:bg-slate-700"
-                    >
-                      Set to Draft
-                    </Button>
-                    <Button
-                      onClick={() => handleStatusChange('open')}
-                      variant="outline"
-                      className="border-slate-600 text-slate-300 hover:bg-slate-700"
-                    >
-                      Open Registration
-                    </Button>
-                    <Button
-                      onClick={() => handleStatusChange('balancing')}
-                      variant="outline"
-                      className="border-slate-600 text-slate-300 hover:bg-slate-700"
-                    >
-                      Balance Teams
                     </Button>
                   </div>
                 </CardContent>
