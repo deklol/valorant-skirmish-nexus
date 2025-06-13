@@ -602,6 +602,48 @@ const TournamentDetail = () => {
                 </CardContent>
               </Card>
 
+              {/* Team Balancing Tools */}
+              {(tournament.status === 'open' || tournament.status === 'balancing') && (
+                <>
+                  <TeamBalancingTool
+                    tournamentId={tournament.id}
+                    maxTeams={tournament.max_teams || 8}
+                    onTeamsBalanced={() => {
+                      fetchTeams();
+                      fetchParticipants();
+                      toast({
+                        title: "Teams Balanced",
+                        description: "Teams have been automatically balanced",
+                      });
+                    }}
+                  />
+                  
+                  <TeamBalancingInterface tournamentId={tournament.id} />
+                </>
+              )}
+
+              {/* Bracket Generation */}
+              {tournament.status === 'balancing' && (
+                <BracketGenerator
+                  tournamentId={tournament.id}
+                  tournament={{
+                    status: tournament.status || 'draft',
+                    max_teams: tournament.max_teams || 8,
+                    bracket_type: tournament.bracket_type || 'single_elimination',
+                    match_format: tournament.match_format || 'BO1'
+                  }}
+                  teams={teams}
+                  onBracketGenerated={() => {
+                    fetchMatches();
+                    fetchTournament();
+                    toast({
+                      title: "Bracket Generated",
+                      description: "Tournament bracket has been created",
+                    });
+                  }}
+                />
+              )}
+
               {/* Automated Scheduling */}
               {tournament.status === 'live' && (
                 <AutomatedScheduling
