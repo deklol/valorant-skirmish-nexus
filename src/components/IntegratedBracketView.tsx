@@ -44,6 +44,8 @@ const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => 
 
   const fetchBracketData = async () => {
     try {
+      console.log('Fetching bracket data for tournament:', tournamentId);
+      
       // Fetch tournament details
       const { data: tournamentData, error: tournamentError } = await supabase
         .from('tournaments')
@@ -51,7 +53,12 @@ const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => 
         .eq('id', tournamentId)
         .single();
 
-      if (tournamentError) throw tournamentError;
+      if (tournamentError) {
+        console.error('Tournament error:', tournamentError);
+        throw tournamentError;
+      }
+
+      console.log('Tournament data:', tournamentData);
 
       // Fetch matches with team details
       const { data: matchesData, error: matchesError } = await supabase
@@ -65,7 +72,12 @@ const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => 
         .order('round_number', { ascending: true })
         .order('match_number', { ascending: true });
 
-      if (matchesError) throw matchesError;
+      if (matchesError) {
+        console.error('Matches error:', matchesError);
+        throw matchesError;
+      }
+
+      console.log('Matches data:', matchesData);
 
       setTournament(tournamentData);
       setMatches(matchesData || []);
@@ -138,7 +150,23 @@ const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => 
     );
   }
 
-  if (!tournament || matches.length === 0) {
+  if (!tournament) {
+    return (
+      <Card className="bg-slate-800 border-slate-700">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center gap-2">
+            <Trophy className="w-5 h-5" />
+            Tournament Bracket
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-slate-400 text-center py-8">Tournament not found.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (matches.length === 0) {
     return (
       <Card className="bg-slate-800 border-slate-700">
         <CardHeader>

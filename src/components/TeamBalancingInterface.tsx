@@ -17,14 +17,24 @@ interface Tournament {
   teams_count: number;
 }
 
-const TeamBalancingInterface = () => {
+interface TeamBalancingInterfaceProps {
+  tournamentId?: string;
+}
+
+const TeamBalancingInterface = ({ tournamentId }: TeamBalancingInterfaceProps) => {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
-  const [selectedTournament, setSelectedTournament] = useState<string>('');
+  const [selectedTournament, setSelectedTournament] = useState<string>(tournamentId || '');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchTournaments();
   }, []);
+
+  useEffect(() => {
+    if (tournamentId) {
+      setSelectedTournament(tournamentId);
+    }
+  }, [tournamentId]);
 
   const fetchTournaments = async () => {
     try {
@@ -53,6 +63,34 @@ const TeamBalancingInterface = () => {
       })) || [];
 
       setTournaments(processedTournaments);
+
+      // If we have a tournamentId prop and it's not in the list, fetch it separately
+      if (tournamentId && !processedTournaments.find(t => t.id === tournamentId)) {
+        const { data: singleTournament, error: singleError } = await supabase
+          .from('tournaments')
+          .select(`
+            id,
+            name,
+            status,
+            max_teams,
+            tournament_signups(count),
+            teams(count)
+          `)
+          .eq('id', tournamentId)
+          .single();
+
+        if (!singleError && singleTournament) {
+          const processedSingle = {
+            id: singleTournament.id,
+            name: singleTournament.name,
+            status: singleTournament.status,
+            max_teams: singleTournament.max_teams,
+            signups_count: singleTournament.tournament_signups?.[0]?.count || 0,
+            teams_count: singleTournament.teams?.[0]?.count || 0
+          };
+          setTournaments(prev => [...prev, processedSingle]);
+        }
+      }
     } catch (error) {
       console.error('Error fetching tournaments:', error);
     } finally {
@@ -82,31 +120,33 @@ const TeamBalancingInterface = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-300">Select Tournament</label>
-            <Select value={selectedTournament} onValueChange={setSelectedTournament}>
-              <SelectTrigger className="bg-slate-700 border-slate-600">
-                <SelectValue placeholder="Choose a tournament to balance" />
-              </SelectTrigger>
-              <SelectContent>
-                {tournaments.map((tournament) => (
-                  <SelectItem key={tournament.id} value={tournament.id}>
-                    <div className="flex items-center justify-between w-full">
-                      <span>{tournament.name}</span>
-                      <div className="flex items-center gap-2 ml-4">
-                        <Badge variant={tournament.status === 'live' ? 'destructive' : 'secondary'}>
-                          {tournament.status}
-                        </Badge>
-                        <Badge variant="outline">
-                          {tournament.signups_count} players
-                        </Badge>
+          {!tournamentId && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-300">Select Tournament</label>
+              <Select value={selectedTournament} onValueChange={setSelectedTournament}>
+                <SelectTrigger className="bg-slate-700 border-slate-600">
+                  <SelectValue placeholder="Choose a tournament to balance" />
+                </SelectTrigger>
+                <SelectContent>
+                  {tournaments.map((tournament) => (
+                    <SelectItem key={tournament.id} value={tournament.id}>
+                      <div className="flex items-center justify-between w-full">
+                        <span>{tournament.name}</span>
+                        <div className="flex items-center gap-2 ml-4">
+                          <Badge variant={tournament.status === 'live' ? 'destructive' : 'secondary'}>
+                            {tournament.status}
+                          </Badge>
+                          <Badge variant="outline">
+                            {tournament.signups_count} players
+                          </Badge>
+                        </div>
                       </div>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {selectedTournamentData && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-slate-700 rounded-lg">

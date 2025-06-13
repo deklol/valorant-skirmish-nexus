@@ -16,6 +16,9 @@ import ScoreReporting from "@/components/ScoreReporting";
 import IntegratedBracketView from "@/components/IntegratedBracketView";
 import TournamentParticipants from "@/components/TournamentParticipants";
 import TournamentStatusManager from "@/components/TournamentStatusManager";
+import TeamBalancingTool from "@/components/TeamBalancingTool";
+import TeamBalancingInterface from "@/components/TeamBalancingInterface";
+import BracketGenerator from "@/components/BracketGenerator";
 
 interface Tournament {
   id: string;
@@ -350,7 +353,6 @@ const TournamentDetail = () => {
       <Header />
       
       <div className="container mx-auto px-4 py-8">
-        {/* Tournament Header */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-6">
             <div>
@@ -376,7 +378,6 @@ const TournamentDetail = () => {
           </Card>
         </div>
 
-        {/* Tournament Info Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card className="bg-slate-800 border-slate-700">
             <CardHeader className="pb-3">
@@ -430,7 +431,6 @@ const TournamentDetail = () => {
           </Card>
         </div>
 
-        {/* Tournament Tabs */}
         <Tabs defaultValue="overview" className="space-y-6">
           <TabsList className="grid w-full grid-cols-4 bg-slate-800 border-slate-700">
             <TabsTrigger value="overview" className="text-slate-300 data-[state=active]:bg-slate-700 data-[state=active]:text-white">
@@ -450,7 +450,6 @@ const TournamentDetail = () => {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
-            {/* Tournament Registration */}
             {tournament.status === 'open' && user && (
               <Card className="bg-slate-800 border-slate-700">
                 <CardHeader>
@@ -480,7 +479,6 @@ const TournamentDetail = () => {
               </Card>
             )}
 
-            {/* Tournament Details */}
             <Card className="bg-slate-800 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white">Tournament Details</CardTitle>
@@ -515,7 +513,6 @@ const TournamentDetail = () => {
               </CardContent>
             </Card>
 
-            {/* Live Matches with Score Reporting */}
             {matches.length > 0 && (
               <Card className="bg-slate-800 border-slate-700">
                 <CardHeader>
@@ -602,7 +599,6 @@ const TournamentDetail = () => {
                 </CardContent>
               </Card>
 
-              {/* Team Balancing Tools */}
               {(tournament.status === 'open' || tournament.status === 'balancing') && (
                 <>
                   <TeamBalancingTool
@@ -622,7 +618,6 @@ const TournamentDetail = () => {
                 </>
               )}
 
-              {/* Bracket Generation */}
               {tournament.status === 'balancing' && (
                 <BracketGenerator
                   tournamentId={tournament.id}
@@ -644,7 +639,6 @@ const TournamentDetail = () => {
                 />
               )}
 
-              {/* Automated Scheduling */}
               {tournament.status === 'live' && (
                 <AutomatedScheduling
                   tournamentId={tournament.id}
