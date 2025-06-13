@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,14 +16,59 @@ interface Tournament {
   teams_count: number;
 }
 
-const TeamBalancingInterface = () => {
+interface TeamBalancingInterfaceProps {
+  tournamentId?: string;
+}
+
+const TeamBalancingInterface = ({ tournamentId }: TeamBalancingInterfaceProps) => {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
-  const [selectedTournament, setSelectedTournament] = useState<string>('');
+  const [selectedTournament, setSelectedTournament] = useState<string>(tournamentId || '');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchTournaments();
-  }, []);
+    if (tournamentId) {
+      // If a specific tournament ID is provided, fetch only that tournament
+      fetchSpecificTournament(tournamentId);
+    } else {
+      // Otherwise fetch all tournaments for selection
+      fetchTournaments();
+    }
+  }, [tournamentId]);
+
+  const fetchSpecificTournament = async (id: string) => {
+    try {
+      const { data: tournamentData, error } = await supabase
+        .from('tournaments')
+        .select(`
+          id,
+          name,
+          status,
+          max_teams,
+          tournament_signups(count),
+          teams(count)
+        `)
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+
+      const processedTournament = {
+        id: tournamentData.id,
+        name: tournamentData.name,
+        status: tournamentData.status,
+        max_teams: tournamentData.max_teams,
+        signups_count: tournamentData.tournament_signups?.[0]?.count || 0,
+        teams_count: tournamentData.teams?.[0]?.count || 0
+      };
+
+      setTournaments([processedTournament]);
+      setSelectedTournament(id);
+    } catch (error) {
+      console.error('Error fetching tournament:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchTournaments = async () => {
     try {
@@ -69,6 +113,69 @@ const TeamBalancingInterface = () => {
           <p className="text-slate-400">Loading tournaments...</p>
         </CardContent>
       </Card>
+    );
+  }
+
+  // If a specific tournament ID was provided, don't show the selection dropdown
+  if (tournamentId) {
+    if (!selectedTournamentData) {
+      return (
+        <Card className="bg-slate-800 border-slate-700">
+          <CardContent className="py-12 text-center">
+            <p className="text-slate-400">Tournament not found</p>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-slate-700 rounded-lg">
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-2 text-slate-300">
+              <Users className="w-4 h-4" />
+              <span className="text-sm">Signups</span>
+            </div>
+            <div className="text-2xl font-bold text-white">
+              {selectedTournamentData.signups_count}
+            </div>
+            <div className="text-xs text-slate-400">
+              Max: {selectedTournamentData.max_teams * 5}
+            </div>
+          </div>
+          
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-2 text-slate-300">
+              <Trophy className="w-4 h-4" />
+              <span className="text-sm">Teams</span>
+            </div>
+            <div className="text-2xl font-bold text-white">
+              {selectedTournamentData.teams_count}
+            </div>
+            <div className="text-xs text-slate-400">
+              Max: {selectedTournamentData.max_teams}
+            </div>
+          </div>
+
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-2 text-slate-300">
+              <Shuffle className="w-4 h-4" />
+              <span className="text-sm">Status</span>
+            </div>
+            <Badge className="text-lg mt-1" variant={
+              selectedTournamentData.status === 'live' ? 'destructive' : 'secondary'
+            }>
+              {selectedTournamentData.status}
+            </Badge>
+          </div>
+        </div>
+
+        <TeamBalancingTool 
+          tournamentId={selectedTournament}
+          maxTeams={selectedTournamentData.max_teams || 8}
+          onTeamsBalanced={() => fetchSpecificTournament(selectedTournament)}
+        />
+      </div>
     );
   }
 
