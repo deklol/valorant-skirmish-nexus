@@ -108,59 +108,76 @@ const MapVetoDialog = ({
     }
   };
 
+  // ---- Enhanced: Validate user membership in match teams ----
+  const isUserOnMatchTeam = !!userTeamId && (userTeamId === team1Id || userTeamId === team2Id);
+
+  // Separate: is it user's team's turn
+  const isUserTeamTurn = isUserOnMatchTeam && userTeamId === currentTurnTeamId && !!userTeamId;
+
+  // Separate: is user allowed to act (captain, or 1v1)
+  const isUserEligible = isUserTeamTurn && ((teamSize === 1) || (teamSize && teamSize > 1 && isUserCaptain));
+
   // Debug: Log permissions, veto state, ban counts, etc
   useEffect(() => {
-    console.log("[DEBUG VETO] Permissions", {
-      userTeamId, currentTurnTeamId, isUserCaptain, teamSize, vetoActions
+    console.log("[DEBUG VETO][Permissions]", {
+      userTeamId, currentTurnTeamId, isUserCaptain, teamSize, vetoActions, 
+      isUserOnMatchTeam, isUserTeamTurn, isUserEligible,
     });
-  }, [userTeamId, currentTurnTeamId, isUserCaptain, teamSize, vetoActions]);
+  }, [userTeamId, currentTurnTeamId, isUserCaptain, teamSize, vetoActions, isUserOnMatchTeam, isUserTeamTurn, isUserEligible]);
 
-  // --- SIMPLIFY LOGIC ---
+  // --- Simplified BO1 Ban Logic for Completion ---
   const bansMade = vetoActions.filter(a => a.action === "ban").length;
-  const totalBansNeeded = maps.length - (bestOf === 1 ? 1 : bestOf);
+  const totalBansNeeded = maps.length - 1;
   const remainingMaps = maps.filter(
     map => !vetoActions.some(action => action.map_id === map.id)
   );
-  const vetoComplete = bestOf === 1
-    ? (remainingMaps.length === 1 && bansMade >= totalBansNeeded)
+  const vetoComplete = (bestOf === 1)
+    ? (bansMade === totalBansNeeded && remainingMaps.length === 1)
     : (vetoActions.length >= maps.length);
-
-  // Always derive action from state
   let currentAction: "ban" | "pick" = "ban";
-  if (bestOf === 1) {
-    if (remainingMaps.length === 1 && bansMade >= totalBansNeeded) {
-      currentAction = "pick";
-    }
-  } else {
+  if (bestOf === 1 && vetoComplete) {
+    currentAction = "pick";
+  } else if (bestOf !== 1) {
     currentAction = vetoActions.length % 2 === 0 ? "ban" : "pick";
   }
 
-  // Only allow acting if user on the correct team and (is captain or 1v1)
-  const isUserTurn = userTeamId === currentTurnTeamId && !!userTeamId;
-  const canAct = isUserTurn && ((teamSize === 1) || (teamSize && teamSize > 1 && isUserCaptain));
-  useEffect(() => {
-    console.log("[DEBUG VETO] isUserTurn", isUserTurn, "canAct", canAct, { teamSize, isUserCaptain });
-  }, [isUserTurn, canAct, teamSize, isUserCaptain]);
-
-  // Only allow acting on available maps, never on completed veto
-  const isMapAvailable = (mapId: string) =>
-    !vetoActions.some((action) => action.map_id === mapId);
-
-  // Which team picks next?
-  const getNextTeamId = () => {
-    if (!team1Id || !team2Id) return currentTurnTeamId;
-    return currentTurnTeamId === team1Id ? team2Id : team1Id;
+  // Permission function to cleanly display reasons
+  const checkPermissions = () => {
+    if (!isUserOnMatchTeam) {
+      return {
+        ok: false,
+        reason: "You are not a member of either team in this match."
+      }
+    }
+    if (!isUserTeamTurn) {
+      return {
+        ok: false,
+        reason: "It's not your team's turn to act. Wait for your team’s turn."
+      }
+    }
+    if (!isUserEligible) {
+      return {
+        ok: false,
+        reason: teamSize === 1
+          ? "Eligibility error (should not happen in 1v1)"
+          : "Only the team captain can veto maps in team games."
+      }
+    }
+    return { ok: true, reason: null };
   };
 
-  // ACTION HANDLER: all logic routes through here!
+  // ---- MAIN ACTION HANDLER W/ ENHANCED DB ERROR HANDLING & LOGGING ----
   const handleMapAction = async (mapId: string) => {
-    console.log("[ACTION] handleMapAction called with", { mapId, canAct, vetoComplete, isMapAvailable: isMapAvailable(mapId), currentAction, bansMade, totalBansNeeded });
-    if (!userTeamId || userTeamId !== currentTurnTeamId || !canAct) {
+    console.log("[ACTION] handleMapAction", { mapId, vetoComplete, currentAction, bansMade, totalBansNeeded, userTeamId, currentTurnTeamId });
+    // --- Permission and state checks ---
+    const perms = checkPermissions();
+    if (!perms.ok) {
       toast({
-        title: "Not Your Turn",
-        description: "Wait for your team's turn.",
+        title: "Action Not Permitted",
+        description: perms.reason,
         variant: "destructive"
       });
+      console.warn("[VETO][PERM]", perms.reason);
       return;
     }
     if (!isMapAvailable(mapId) || vetoComplete) {
@@ -171,30 +188,16 @@ const MapVetoDialog = ({
       });
       return;
     }
+
     setLoading(true);
     try {
       const { data: authUser } = await supabase.auth.getUser();
       const performedById = authUser?.user?.id ?? null;
 
-      // --- BAN LOGIC ---
       let actionType: "ban" | "pick" = currentAction;
-      // For BO1, once only 1 map remains, pick is only permitted
-      if (bestOf === 1 && remainingMaps.length === 1) {
-        actionType = "pick";
-      }
-      // Defensive: prevent extra bans
-      if (bestOf === 1 && bansMade >= totalBansNeeded && remainingMaps.length <= 1 && actionType === "ban") {
-        toast({
-          title: "Veto Complete",
-          description: "All bans finished, map is already picked.",
-          variant: "destructive"
-        });
-        setLoading(false);
-        return;
-      }
 
-      // Insert action to DB
-      const { error } = await supabase.from("map_veto_actions").insert({
+      // Defensive log for DB update start
+      console.log("[VETO][DB] Inserting action", {
         veto_session_id: vetoSessionId,
         team_id: userTeamId,
         map_id: mapId,
@@ -202,93 +205,145 @@ const MapVetoDialog = ({
         order_number: vetoActions.length + 1,
         performed_by: performedById,
       });
-      if (error) throw error;
-      toast({
-        title: `Map ${actionType === "ban" ? "Banned" : "Picked"}`,
-        description: `Successfully ${actionType === "ban" ? "banned" : "picked"} the map.`,
-      });
 
-      // --- COMPLETION HANDLING ---
-      let sessionComplete = false;
+      // Insert action
+      const { error: insertError, data: insertedAction } = await supabase.from("map_veto_actions").insert({
+        veto_session_id: vetoSessionId,
+        team_id: userTeamId,
+        map_id: mapId,
+        action: actionType,
+        order_number: vetoActions.length + 1,
+        performed_by: performedById,
+      }).select().maybeSingle();
 
+      if (insertError || !insertedAction) {
+        throw new Error(insertError?.message || "Failed to insert action");
+      }
+      // Confirm that the action appeared in the db with correct turn (redundant with real-time, but explicit for user)
+      await fetchVetoActions();
+
+      // ----- Simplified: Special handling for BO1 completion -----
       if (bestOf === 1) {
-        const newVetoActions = [...vetoActions, { map_id: mapId, action: actionType, team_id: userTeamId }];
-        const _remainingMaps = maps.filter(
-          (map) => !newVetoActions.some((a: any) => a.map_id === map.id)
+        // After THIS ban, are there now 9 bans and 1 map left?
+        const postBanActions = [...vetoActions, insertedAction];
+        const postBanBans = postBanActions.filter(a => a.action === "ban").length;
+        const postBanRemainingMaps = maps.filter(m =>
+          !postBanActions.some(a => a.map_id === m.id)
         );
-        if (_remainingMaps.length === 1 && actionType === "ban") {
-          // Insert auto-pick for other team
-          await supabase.from("map_veto_actions").insert({
+        if (postBanBans === totalBansNeeded && postBanRemainingMaps.length === 1) {
+          // Auto-pick for other team
+          const finalTeam = getNextTeamId();
+          const finalMapId = postBanRemainingMaps[0].id;
+          const { error: autoPickError, data: autoPick } = await supabase.from("map_veto_actions").insert({
             veto_session_id: vetoSessionId,
-            team_id: getNextTeamId(),
-            map_id: _remainingMaps[0].id,
+            team_id: finalTeam,
+            map_id: finalMapId,
             action: "pick",
             order_number: vetoActions.length + 2,
             performed_by: null,
-          });
-          sessionComplete = true;
-          console.log("[COMPLETE] BO1 veto complete: last map auto-picked", _remainingMaps[0].id);
-        } else if (actionType === "pick") {
-          sessionComplete = true;
-          console.log("[COMPLETE] User picked final map");
-        }
-
-        // Update session
-        if (sessionComplete) {
-          await supabase
+          }).select().maybeSingle();
+          if (autoPickError || !autoPick) {
+            // Rollback attempted
+            toast({
+              title: "Veto Completion Error",
+              description: "Auto-pick of final map failed. Please contact admin.",
+              variant: "destructive"
+            });
+            // Consider fallback: try to set session to completed anyway
+            setLoading(false);
+            return;
+          }
+          // Update session in DB
+          const { error: compError } = await supabase
             .from("map_veto_sessions")
             .update({
               status: "completed",
               completed_at: new Date().toISOString(),
             })
             .eq("id", vetoSessionId);
+          if (compError) {
+            toast({
+              title: "Veto Complete, but Error",
+              description: "Map auto-picked, but veto session did not complete. Contact admin.",
+              variant: "destructive"
+            });
+            setLoading(false);
+            return;
+          }
           toast({
-            title: "Map Veto Completed",
-            description: "Map selected!",
+            title: "Veto Completed!",
+            description: "Last map auto-picked!",
           });
         } else {
-          // Switch turn
-          await supabase
+          // Switch turn (since ban was made but not final ban)
+          const { error: turnSwitchError } = await supabase
             .from("map_veto_sessions")
             .update({
               current_turn_team_id: getNextTeamId(),
             })
             .eq("id", vetoSessionId);
-          console.log("[TURN] BO1 Turn Switched ->", getNextTeamId());
+          if (turnSwitchError) {
+            toast({
+              title: "Turn Switch Error",
+              description: "Could not switch turn after ban.",
+              variant: "destructive"
+            });
+            // Optionally rollback by deleting the just-inserted action
+            setLoading(false);
+            return;
+          }
         }
       } else {
-        // Standard: check for completion
+        // Standard veto: is now completed?
         if (vetoActions.length + 1 >= maps.length) {
-          await supabase
+          // Complete session
+          const { error: compError } = await supabase
             .from("map_veto_sessions")
             .update({
               status: "completed",
               completed_at: new Date().toISOString(),
             })
             .eq("id", vetoSessionId);
+          if (compError) {
+            toast({
+              title: "Veto Completion Error",
+              description: "Could not mark session as completed.",
+              variant: "destructive"
+            });
+            setLoading(false);
+            return;
+          }
           toast({
             title: "Map Veto Completed",
-            description: "All veto actions are finished. Match is ready.",
+            description: "All actions finished!",
           });
         } else {
           // Switch turn
-          await supabase
+          const { error: turnSwitchError } = await supabase
             .from("map_veto_sessions")
             .update({
               current_turn_team_id: getNextTeamId(),
             })
             .eq("id", vetoSessionId);
-          console.log("[TURN] Standard Turn Switched ->", getNextTeamId());
+          if (turnSwitchError) {
+            toast({
+              title: "Turn Switch Error",
+              description: "Could not switch turn.",
+              variant: "destructive"
+            });
+            setLoading(false);
+            return;
+          }
         }
       }
 
+      // --- End of successful branch ---
       await fetchVetoActions();
-
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "Failed to perform action",
-        variant: "destructive"
+        description: error.message || "Failed to perform map action",
+        variant: "destructive",
       });
       console.error("[ERROR] Map action failed:", error);
     } finally {
@@ -318,8 +373,8 @@ const MapVetoDialog = ({
         <div className="space-y-6">
           {/* Turn/Phase */}
           <MapVetoTurnStatus
-            canAct={canAct && !vetoComplete}
-            isUserTurn={isUserTurn}
+            canAct={isUserEligible && !vetoComplete}
+            isUserTurn={isUserTeamTurn}
             teamSize={teamSize}
             isUserCaptain={isUserCaptain!}
             currentAction={currentAction}
@@ -331,7 +386,7 @@ const MapVetoDialog = ({
           {/* Map Grid */}
           <MapVetoMapGrid
             maps={maps}
-            canAct={canAct && !vetoComplete}
+            canAct={isUserEligible && !vetoComplete}
             currentAction={currentAction}
             bestOf={bestOf}
             remainingMaps={remainingMaps}
