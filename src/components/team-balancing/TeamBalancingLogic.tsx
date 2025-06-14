@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
 import { getRankPoints } from "@/utils/rankingSystem";
@@ -157,15 +156,12 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
         teams[currentTeam].push(player);
       }
       
-      // Move to next team only if current team has room
       if (teams[currentTeam].length < teamSize) {
-        continue; // Stay on current team until it's full
+        continue;
       }
       
-      // Move to next team when current is full
       currentTeam += direction;
       
-      // Reverse direction when we reach the end
       if (currentTeam === teamsToCreate) {
         currentTeam = teamsToCreate - 1;
         direction = -1;
@@ -174,17 +170,33 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
         direction = 1;
       }
       
-      // If we've filled all teams to capacity, break
       const allTeamsFull = teams.every(team => team.length === teamSize);
       if (allTeamsFull) break;
     }
+
+    // Helper to ensure unique team names
+    const usedNames = new Set<string>();
 
     // Create teams in database
     for (let i = 0; i < teams.length; i++) {
       if (teams[i].length === 0) continue;
 
-      const teamName = `Team ${String.fromCharCode(65 + i)}`; // Team A, Team B, etc.
-      
+      // Captain is ALWAYS first (highest rating), ensured by sorting before insertion
+      const captainUser =
+        teams[i][0]?.users?.discord_username && typeof teams[i][0]?.users?.discord_username === 'string'
+          ? teams[i][0].users.discord_username.trim()
+          : null;
+      let baseName = captainUser ? `Team ${captainUser}` : `Team Unknown`;
+
+      // Ensure uniqueness by adding counter if needed
+      let teamName = baseName;
+      let count = 2;
+      while (usedNames.has(teamName)) {
+        teamName = `${baseName} (${count})`;
+        count += 1;
+      }
+      usedNames.add(teamName);
+
       // Calculate total weight_rating for the team
       const totalWeight = teams[i].reduce((sum, player) => {
         const weight = player.users?.weight_rating || getRankPoints(player.users?.current_rank || 'Unranked');
