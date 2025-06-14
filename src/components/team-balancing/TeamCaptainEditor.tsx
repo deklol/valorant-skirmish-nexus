@@ -67,7 +67,7 @@ const TeamCaptainEditor = ({ teamId, members, onCaptainChanged }: TeamCaptainEdi
               {m.is_captain && " (Captain)"}
             </Badge>
             <Button
-              size="xs"
+              size="sm"
               disabled={m.is_captain || savingId === m.user_id}
               onClick={() => assignCaptain(m.user_id)}
             >
@@ -81,3 +81,4 @@ const TeamCaptainEditor = ({ teamId, members, onCaptainChanged }: TeamCaptainEdi
 };
 
 export default TeamCaptainEditor;
+
