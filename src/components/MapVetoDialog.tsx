@@ -11,6 +11,7 @@ interface MapVetoDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   matchId: string;
+  vetoSessionId: string; // <-- NEW prop
   team1Name: string;
   team2Name: string;
   currentTeamTurn: string;
@@ -39,6 +40,7 @@ const MapVetoDialog = ({
   open,
   onOpenChange,
   matchId,
+  vetoSessionId, // <-- NEW prop
   team1Name,
   team2Name,
   currentTeamTurn,
@@ -57,7 +59,7 @@ const MapVetoDialog = ({
       fetchMaps();
       fetchVetoActions();
     }
-  }, [open, matchId]);
+  }, [open, vetoSessionId]);
 
   const fetchMaps = async () => {
     try {
@@ -87,7 +89,7 @@ const MapVetoDialog = ({
           *,
           maps:map_id (*)
         `)
-        .eq('veto_session_id', matchId)
+        .eq('veto_session_id', vetoSessionId) // Use correct session id
         .order('order_number');
 
       if (error) throw error;
@@ -112,7 +114,7 @@ const MapVetoDialog = ({
       const { error } = await supabase
         .from('map_veto_actions')
         .insert({
-          veto_session_id: matchId,
+          veto_session_id: vetoSessionId,   // <-- USE THE VETO SESSION ID!
           team_id: userTeamId,
           map_id: mapId,
           action: currentAction,
