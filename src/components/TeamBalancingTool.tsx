@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Users, Shuffle, CheckCircle, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useNotifications } from "@/hooks/useNotifications";
+import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
 
 interface TeamBalancingToolProps {
   tournamentId: string;
@@ -18,7 +17,7 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
   const [loading, setLoading] = useState(false);
   const [balancingStatus, setBalancingStatus] = useState<'idle' | 'balancing' | 'complete'>('idle');
   const { toast } = useToast();
-  const { notifyTeamAssigned } = useNotifications();
+  const { notifyTeamAssigned } = useEnhancedNotifications();
 
   const balanceTeams = async () => {
     setLoading(true);

@@ -3,13 +3,15 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Users, Calendar, Clock, ArrowLeft } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Trophy, Users, Calendar, Clock, ArrowLeft, Settings } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import ScoreReporting from "@/components/ScoreReporting";
 import MapVetoManager from "@/components/MapVetoManager";
+import MatchTeamBalancing from "@/components/MatchTeamBalancing";
 
 interface Match {
   id: string;
@@ -238,116 +240,148 @@ const MatchDetails = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <Card className="bg-slate-800 border-slate-700">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Users className="w-5 h-5" />
-                Team 1: {match.team1?.name || 'TBD'}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center">
-                <div className="text-4xl font-bold text-white">
-                  {match.score_team1 || 0}
-                </div>
-                <div className="text-slate-400">Score</div>
-              </div>
-            </CardContent>
-          </Card>
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList className="bg-slate-800 border-slate-700">
+            <TabsTrigger value="overview" className="text-slate-300 data-[state=active]:text-white">
+              Overview
+            </TabsTrigger>
+            {isAdmin && (
+              <TabsTrigger value="admin" className="text-slate-300 data-[state=active]:text-white">
+                <Settings className="w-4 h-4 mr-2" />
+                Admin
+              </TabsTrigger>
+            )}
+          </TabsList>
 
-          <Card className="bg-slate-800 border-slate-700">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Users className="w-5 h-5" />
-                Team 2: {match.team2?.name || 'TBD'}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center">
-                <div className="text-4xl font-bold text-white">
-                  {match.score_team2 || 0}
-                </div>
-                <div className="text-slate-400">Score</div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="space-y-6">
-          {/* Map Veto Manager */}
-          {match.team1_id && match.team2_id && (
-            <MapVetoManager
-              matchId={match.id}
-              team1Id={match.team1_id}
-              team2Id={match.team2_id}
-              team1Name={match.team1?.name || 'Team 1'}
-              team2Name={match.team2?.name || 'Team 2'}
-              matchStatus={match.status}
-              userTeamId={userTeamId}
-              isAdmin={isAdmin}
-            />
-          )}
-
-          {/* Match Details */}
-          <Card className="bg-slate-800 border-slate-700">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Trophy className="w-5 h-5" />
-                Match Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <div className="text-sm text-slate-400">Scheduled Time</div>
-                  <div className="text-white">
-                    {match.scheduled_time ? new Date(match.scheduled_time).toLocaleString() : 'Not scheduled'}
+          <TabsContent value="overview" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              <Card className="bg-slate-800 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Users className="w-5 h-5" />
+                    Team 1: {match.team1?.name || 'TBD'}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center">
+                    <div className="text-4xl font-bold text-white">
+                      {match.score_team1 || 0}
+                    </div>
+                    <div className="text-slate-400">Score</div>
                   </div>
-                </div>
-                <div>
-                  <div className="text-sm text-slate-400">Status</div>
-                  <div className="text-white">{getStatusBadge(match.status)}</div>
-                </div>
-                {match.started_at && (
+                </CardContent>
+              </Card>
+
+              <Card className="bg-slate-800 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Users className="w-5 h-5" />
+                    Team 2: {match.team2?.name || 'TBD'}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center">
+                    <div className="text-4xl font-bold text-white">
+                      {match.score_team2 || 0}
+                    </div>
+                    <div className="text-slate-400">Score</div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Map Veto Manager */}
+            {match.team1_id && match.team2_id && (
+              <MapVetoManager
+                matchId={match.id}
+                team1Id={match.team1_id}
+                team2Id={match.team2_id}
+                team1Name={match.team1?.name || 'Team 1'}
+                team2Name={match.team2?.name || 'Team 2'}
+                matchStatus={match.status}
+                userTeamId={userTeamId}
+                isAdmin={isAdmin}
+              />
+            )}
+
+            {/* Match Details */}
+            <Card className="bg-slate-800 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Trophy className="w-5 h-5" />
+                  Match Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <div className="text-sm text-slate-400">Started</div>
-                    <div className="text-white">{new Date(match.started_at).toLocaleString()}</div>
+                    <div className="text-sm text-slate-400">Scheduled Time</div>
+                    <div className="text-white">
+                      {match.scheduled_time ? new Date(match.scheduled_time).toLocaleString() : 'Not scheduled'}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-slate-400">Status</div>
+                    <div className="text-white">{getStatusBadge(match.status)}</div>
+                  </div>
+                  {match.started_at && (
+                    <div>
+                      <div className="text-sm text-slate-400">Started</div>
+                      <div className="text-white">{new Date(match.started_at).toLocaleString()}</div>
+                    </div>
+                  )}
+                  {match.completed_at && (
+                    <div>
+                      <div className="text-sm text-slate-400">Completed</div>
+                      <div className="text-white">{new Date(match.completed_at).toLocaleString()}</div>
+                    </div>
+                  )}
+                </div>
+
+                {match.winner_id && (
+                  <div className="mt-4 p-4 bg-green-900/20 border border-green-700 rounded-lg">
+                    <div className="text-green-400 font-medium">Winner:</div>
+                    <div className="text-white text-lg">
+                      {match.winner_id === match.team1_id ? match.team1?.name : match.team2?.name}
+                    </div>
                   </div>
                 )}
-                {match.completed_at && (
-                  <div>
-                    <div className="text-sm text-slate-400">Completed</div>
-                    <div className="text-white">{new Date(match.completed_at).toLocaleString()}</div>
-                  </div>
-                )}
-              </div>
+              </CardContent>
+            </Card>
 
-              {match.winner_id && (
-                <div className="mt-4 p-4 bg-green-900/20 border border-green-700 rounded-lg">
-                  <div className="text-green-400 font-medium">Winner:</div>
-                  <div className="text-white text-lg">
-                    {match.winner_id === match.team1_id ? match.team1?.name : match.team2?.name}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+            {/* Score Reporting */}
+            {match.status !== 'completed' && (userTeamId || isAdmin) && (
+              <ScoreReporting
+                match={match}
+                onScoreSubmitted={() => {
+                  fetchMatch();
+                  toast({
+                    title: "Score Reported",
+                    description: "Match score has been submitted",
+                  });
+                }}
+              />
+            )}
+          </TabsContent>
 
-          {/* Score Reporting */}
-          {match.status !== 'completed' && (userTeamId || isAdmin) && (
-            <ScoreReporting
-              match={match}
-              onScoreSubmitted={() => {
-                fetchMatch();
-                toast({
-                  title: "Score Reported",
-                  description: "Match score has been submitted",
-                });
-              }}
-            />
+          {isAdmin && (
+            <TabsContent value="admin" className="space-y-6">
+              <MatchTeamBalancing
+                matchId={match.id}
+                team1Id={match.team1_id}
+                team2Id={match.team2_id}
+                tournamentId={match.tournament?.id || ''}
+                onTeamsRebalanced={() => {
+                  fetchMatch();
+                  toast({
+                    title: "Teams Updated",
+                    description: "Match teams have been rebalanced",
+                  });
+                }}
+              />
+            </TabsContent>
           )}
-        </div>
+        </Tabs>
       </div>
     </div>
   );

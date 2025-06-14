@@ -31,9 +31,55 @@ export const useEnhancedNotifications = () => {
     }
   };
 
+  const sendNotification = async ({
+    type,
+    title,
+    message,
+    data = {},
+    tournamentId,
+    matchId,
+    teamId,
+    userIds = []
+  }: {
+    type: string;
+    title: string;
+    message: string;
+    data?: any;
+    tournamentId?: string;
+    matchId?: string;
+    teamId?: string;
+    userIds?: string[];
+  }) => {
+    try {
+      if (userIds.length > 0) {
+        for (const userId of userIds) {
+          const { data: hasEnabled } = await supabase
+            .rpc('user_has_notification_enabled', {
+              p_user_id: userId,
+              p_notification_type: type
+            });
+
+          if (hasEnabled) {
+            await createNotification(
+              userId,
+              type,
+              title,
+              message,
+              data,
+              tournamentId,
+              matchId,
+              teamId
+            );
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error sending notification:', error);
+    }
+  };
+
   const notifyMatchReady = async (matchId: string, team1Id: string, team2Id: string) => {
     try {
-      // Get team members for both teams
       const { data: team1Members } = await supabase
         .from('team_members')
         .select('user_id, team:teams!inner(name)')
@@ -47,7 +93,6 @@ export const useEnhancedNotifications = () => {
       const team1Name = team1Members?.[0]?.team?.name || 'Team 1';
       const team2Name = team2Members?.[0]?.team?.name || 'Team 2';
 
-      // Notify all team members
       const allMembers = [...(team1Members || []), ...(team2Members || [])];
       
       for (const member of allMembers) {
@@ -68,7 +113,6 @@ export const useEnhancedNotifications = () => {
 
   const notifyMatchComplete = async (matchId: string, winnerId: string, loserId: string) => {
     try {
-      // Get team details
       const { data: winnerTeam } = await supabase
         .from('teams')
         .select('name')
@@ -81,7 +125,6 @@ export const useEnhancedNotifications = () => {
         .eq('id', loserId)
         .single();
 
-      // Get all team members
       const { data: allMembers } = await supabase
         .from('team_members')
         .select('user_id, team_id')
@@ -112,7 +155,6 @@ export const useEnhancedNotifications = () => {
 
   const notifyTournamentWinner = async (tournamentId: string, winnerTeamId: string) => {
     try {
-      // Get tournament and winner team details
       const { data: tournament } = await supabase
         .from('tournaments')
         .select('name')
@@ -125,7 +167,6 @@ export const useEnhancedNotifications = () => {
         .eq('id', winnerTeamId)
         .single();
 
-      // Get all tournament participants
       const { data: participants } = await supabase
         .from('tournament_signups')
         .select('user_id')
@@ -134,9 +175,7 @@ export const useEnhancedNotifications = () => {
       const tournamentName = tournament?.name || 'Tournament';
       const winnerName = winnerTeam?.name || 'Winner';
 
-      // Notify all participants
       for (const participant of participants || []) {
-        // Check if this user is part of the winning team
         const { data: isWinner } = await supabase
           .from('team_members')
           .select('id')
@@ -162,7 +201,6 @@ export const useEnhancedNotifications = () => {
 
   const notifyMapVetoReady = async (matchId: string, team1Id: string, team2Id: string) => {
     try {
-      // Get team members
       const { data: allMembers } = await supabase
         .from('team_members')
         .select('user_id, team_id, team:teams!inner(name)')
@@ -185,11 +223,42 @@ export const useEnhancedNotifications = () => {
     }
   };
 
+  const notifyTeamAssigned = async (teamId: string, teamName: string, userIds: string[], tournamentName?: string) => {
+    await sendNotification({
+      type: 'team_assigned',
+      title: 'Team Assignment',
+      message: `You have been assigned to team "${teamName}"${tournamentName ? ` in ${tournamentName}` : ''}`,
+      data: { teamName, tournamentName },
+      teamId,
+      userIds
+    });
+  };
+
+  const notifyTournamentCreated = async (tournamentId: string, tournamentName: string) => {
+    const { data: users } = await supabase
+      .from('user_notification_preferences')
+      .select('user_id')
+      .eq('new_tournament_posted', true);
+
+    if (users) {
+      await sendNotification({
+        type: 'new_tournament_posted',
+        title: 'New Tournament Available',
+        message: `${tournamentName} is now open for registration!`,
+        tournamentId,
+        userIds: users.map(u => u.user_id)
+      });
+    }
+  };
+
   return {
+    createNotification,
+    sendNotification,
     notifyMatchReady,
     notifyMatchComplete,
     notifyTournamentWinner,
     notifyMapVetoReady,
-    createNotification
+    notifyTeamAssigned,
+    notifyTournamentCreated
   };
 };
