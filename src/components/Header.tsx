@@ -39,6 +39,10 @@ const Header = () => {
               <Trophy className="w-4 h-4 inline mr-2" />
               Leaderboard
             </Link>
+            <Link to="/players" className="text-slate-300 hover:text-white transition-colors">
+              <Users className="w-4 h-4 inline mr-2" />
+              Players
+            </Link>
             <Link to="/brackets" className="text-slate-300 hover:text-white transition-colors">
               <Users className="w-4 h-4 inline mr-2" />
               Brackets

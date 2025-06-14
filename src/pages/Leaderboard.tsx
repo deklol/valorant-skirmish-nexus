@@ -2,7 +2,8 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Medal, Award, Users } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Trophy, Medal, Award, Target, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import ClickableUsername from '@/components/ClickableUsername';
 
@@ -12,26 +13,44 @@ interface Player {
   current_rank: string;
   rank_points: number;
   tournaments_won: number;
-  mvp_awards: number;
+  tournaments_played: number;
   wins: number;
   losses: number;
 }
 
+type SortOption = 'tournament_wins' | 'match_wins' | 'rank_points';
+
 const Leaderboard = () => {
   const [topPlayers, setTopPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sortBy, setSortBy] = useState<SortOption>('tournament_wins');
 
   useEffect(() => {
     fetchLeaderboard();
-  }, []);
+  }, [sortBy]);
 
   const fetchLeaderboard = async () => {
     try {
+      let orderColumn = 'tournaments_won';
+      let orderDirection = { ascending: false };
+
+      switch (sortBy) {
+        case 'tournament_wins':
+          orderColumn = 'tournaments_won';
+          break;
+        case 'match_wins':
+          orderColumn = 'wins';
+          break;
+        case 'rank_points':
+          orderColumn = 'rank_points';
+          break;
+      }
+
       const { data, error } = await supabase
         .from('users')
-        .select('id, discord_username, current_rank, rank_points, tournaments_won, mvp_awards, wins, losses')
+        .select('id, discord_username, current_rank, rank_points, tournaments_won, tournaments_played, wins, losses')
         .eq('is_phantom', false)
-        .order('rank_points', { ascending: false })
+        .order(orderColumn, orderDirection)
         .limit(20);
 
       if (error) throw error;
@@ -46,13 +65,17 @@ const Leaderboard = () => {
   const getRankIcon = (rank: number) => {
     switch (rank) {
       case 1:
-        return <Trophy className="w-5 h-5 text-yellow-500" />;
+        return <Trophy className="w-6 h-6 text-yellow-500" />;
       case 2:
-        return <Medal className="w-5 h-5 text-gray-400" />;
+        return <Medal className="w-6 h-6 text-gray-400" />;
       case 3:
-        return <Award className="w-5 h-5 text-amber-600" />;
+        return <Award className="w-6 h-6 text-amber-600" />;
       default:
-        return <span className="w-5 h-5 flex items-center justify-center text-slate-400 font-bold">{rank}</span>;
+        return (
+          <div className="w-6 h-6 bg-slate-600 rounded-full flex items-center justify-center">
+            <span className="text-xs font-bold text-slate-300">{rank}</span>
+          </div>
+        );
     }
   };
 
@@ -66,6 +89,32 @@ const Leaderboard = () => {
         return "text-amber-600";
       default:
         return "text-slate-400";
+    }
+  };
+
+  const getSortTitle = () => {
+    switch (sortBy) {
+      case 'tournament_wins':
+        return 'Tournament Winners';
+      case 'match_wins':
+        return 'Match Winners';
+      case 'rank_points':
+        return 'Rank Points Leaders';
+      default:
+        return 'Leaderboard';
+    }
+  };
+
+  const getSortIcon = () => {
+    switch (sortBy) {
+      case 'tournament_wins':
+        return <Trophy className="w-8 h-8 text-yellow-500" />;
+      case 'match_wins':
+        return <Target className="w-8 h-8 text-green-500" />;
+      case 'rank_points':
+        return <Calendar className="w-8 h-8 text-blue-500" />;
+      default:
+        return <Trophy className="w-8 h-8 text-blue-500" />;
     }
   };
 
@@ -84,9 +133,22 @@ const Leaderboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
       <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center gap-3 mb-8">
-          <Users className="w-8 h-8 text-blue-500" />
-          <h1 className="text-3xl font-bold text-white">Leaderboard</h1>
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            {getSortIcon()}
+            <h1 className="text-3xl font-bold text-white">{getSortTitle()}</h1>
+          </div>
+          
+          <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
+            <SelectTrigger className="w-48 bg-slate-800 border-slate-700 text-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-slate-800 border-slate-700">
+              <SelectItem value="tournament_wins" className="text-white">Tournament Wins</SelectItem>
+              <SelectItem value="match_wins" className="text-white">Match Wins</SelectItem>
+              <SelectItem value="rank_points" className="text-white">Rank Points</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <Card className="bg-slate-800/90 border-slate-700">
@@ -101,11 +163,8 @@ const Leaderboard = () => {
                   className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg hover:bg-slate-700 transition-colors"
                 >
                   <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                       {getRankIcon(index + 1)}
-                      <span className={`font-bold ${getRankColor(index + 1)}`}>
-                        #{index + 1}
-                      </span>
                     </div>
                     <div>
                       <div className="font-semibold text-white">
@@ -124,12 +183,12 @@ const Leaderboard = () => {
                       <div className="text-slate-400">Points</div>
                     </div>
                     <div className="text-center">
-                      <div className="font-bold text-green-400">{player.tournaments_won || 0}</div>
-                      <div className="text-slate-400">Wins</div>
+                      <div className="font-bold text-yellow-400">{player.tournaments_won || 0}</div>
+                      <div className="text-slate-400">T-Wins</div>
                     </div>
                     <div className="text-center">
-                      <div className="font-bold text-yellow-400">{player.mvp_awards || 0}</div>
-                      <div className="text-slate-400">MVPs</div>
+                      <div className="font-bold text-green-400">{player.wins || 0}</div>
+                      <div className="text-slate-400">M-Wins</div>
                     </div>
                     <div className="text-center">
                       <div className="font-bold text-blue-400">{player.wins || 0}-{player.losses || 0}</div>
@@ -145,7 +204,7 @@ const Leaderboard = () => {
         {topPlayers.length === 0 && (
           <Card className="bg-slate-800/90 border-slate-700">
             <CardContent className="text-center py-12">
-              <Users className="w-12 h-12 text-slate-500 mx-auto mb-4" />
+              <Trophy className="w-12 h-12 text-slate-500 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-white mb-2">No Rankings Yet</h3>
               <p className="text-slate-400">Rankings will appear after tournaments are completed.</p>
             </CardContent>

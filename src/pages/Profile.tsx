@@ -192,7 +192,7 @@ const Profile = () => {
               <CardContent className="p-4 text-center">
                 <Trophy className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
                 <div className="text-2xl font-bold text-white">{profile.tournaments_won}</div>
-                <div className="text-sm text-slate-300">Tournaments Won</div>
+                <div className="text-sm text-slate-300">Tournament Wins</div>
               </CardContent>
             </Card>
             
@@ -208,7 +208,7 @@ const Profile = () => {
               <CardContent className="p-4 text-center">
                 <Target className="w-8 h-8 text-green-500 mx-auto mb-2" />
                 <div className="text-2xl font-bold text-white">{calculateWinRate()}%</div>
-                <div className="text-sm text-slate-300">Win Rate</div>
+                <div className="text-sm text-slate-300">Match Win Rate</div>
               </CardContent>
             </Card>
             
@@ -217,7 +217,7 @@ const Profile = () => {
                 <div className="text-lg font-bold text-white mb-2">
                   {profile.wins} - {profile.losses}
                 </div>
-                <div className="text-sm text-slate-300">W - L Record</div>
+                <div className="text-sm text-slate-300">Match Record</div>
                 <Badge variant="outline" className="mt-1 border-slate-600 text-slate-300">
                   {profile.current_rank || 'Unranked'}
                 </Badge>

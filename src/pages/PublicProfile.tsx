@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { User, Calendar, Trophy, Target, Twitter, Twitch, Clock, Lock } from 'lucide-react';
+import { User, Calendar, Trophy, Target, Twitter, Twitch, Clock, Lock, Swords, Award } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import ProfileMatchHistory from '@/components/profile/ProfileMatchHistory';
 import ProfileTournamentHistory from '@/components/profile/ProfileTournamentHistory';
@@ -130,20 +130,32 @@ const PublicProfile = () => {
           {/* Stats Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div className="bg-slate-700 rounded-lg p-4 text-center">
+              <div className="flex items-center justify-center mb-2">
+                <Swords className="w-5 h-5 text-green-400" />
+              </div>
               <div className="text-2xl font-bold text-green-400">{profile.wins}</div>
-              <div className="text-sm text-slate-400">Wins</div>
+              <div className="text-sm text-slate-400">Match Wins</div>
             </div>
             <div className="bg-slate-700 rounded-lg p-4 text-center">
+              <div className="flex items-center justify-center mb-2">
+                <Target className="w-5 h-5 text-red-400" />
+              </div>
               <div className="text-2xl font-bold text-red-400">{profile.losses}</div>
-              <div className="text-sm text-slate-400">Losses</div>
+              <div className="text-sm text-slate-400">Match Losses</div>
             </div>
             <div className="bg-slate-700 rounded-lg p-4 text-center">
+              <div className="flex items-center justify-center mb-2">
+                <Calendar className="w-5 h-5 text-blue-400" />
+              </div>
               <div className="text-2xl font-bold text-blue-400">{profile.tournaments_played}</div>
-              <div className="text-sm text-slate-400">Tournaments</div>
+              <div className="text-sm text-slate-400">Tournaments Played</div>
             </div>
             <div className="bg-slate-700 rounded-lg p-4 text-center">
+              <div className="flex items-center justify-center mb-2">
+                <Trophy className="w-5 h-5 text-yellow-400" />
+              </div>
               <div className="text-2xl font-bold text-yellow-400">{profile.tournaments_won}</div>
-              <div className="text-sm text-slate-400">Wins</div>
+              <div className="text-sm text-slate-400">Tournament Wins</div>
             </div>
           </div>
 
@@ -161,7 +173,7 @@ const PublicProfile = () => {
             )}
             {profile.riot_id && (
               <div className="flex items-center gap-1">
-                <Target className="w-4 h-4" />
+                <Award className="w-4 h-4" />
                 {profile.riot_id}
               </div>
             )}

@@ -15,6 +15,7 @@ import Profile from "./pages/Profile";
 import PublicProfile from "./pages/PublicProfile";
 import Tournaments from "./pages/Tournaments";
 import TournamentDetail from "./pages/TournamentDetail";
+import Players from "./pages/Players";
 import Leaderboard from "./pages/Leaderboard";
 import Brackets from "./pages/Brackets";
 import BracketView from "./pages/BracketView";
