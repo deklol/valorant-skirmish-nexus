@@ -1,18 +1,19 @@
+
 import { useState, useEffect } from 'react';
 import { DndContext, closestCenter, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Users, Shuffle, Save } from "lucide-react";
+import { AlertTriangle, Users, Shuffle, Save, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { getRankPoints, calculateTeamBalance } from "@/utils/rankingSystem";
-import DraggablePlayer from './DraggablePlayer';
-import DroppableTeam from './DroppableTeam';
 
 interface TeamBalancingInterfaceProps {
   tournamentId: string;
+  maxTeams: number;
+  teamSize: number;
   onTeamsUpdated?: () => void;
 }
 
@@ -30,13 +31,15 @@ interface Team {
   name: string;
   members: Player[];
   totalWeight: number;
+  isPlaceholder?: boolean;
 }
 
-const TeamBalancingInterface = ({ tournamentId, onTeamsUpdated }: TeamBalancingInterfaceProps) => {
+const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdated }: TeamBalancingInterfaceProps) => {
   const [teams, setTeams] = useState<Team[]>([]);
   const [unassignedPlayers, setUnassignedPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [creatingTeams, setCreatingTeams] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -129,7 +132,13 @@ const TeamBalancingInterface = ({ tournamentId, onTeamsUpdated }: TeamBalancingI
           riot_id: user.riot_id
         }));
 
-      setTeams(processedTeams);
+      // If no teams exist, create placeholder teams
+      let finalTeams = processedTeams;
+      if (processedTeams.length === 0) {
+        finalTeams = createPlaceholderTeams();
+      }
+
+      setTeams(finalTeams);
       setUnassignedPlayers(unassigned);
     } catch (error: any) {
       console.error('Error fetching teams and players:', error);
@@ -140,6 +149,65 @@ const TeamBalancingInterface = ({ tournamentId, onTeamsUpdated }: TeamBalancingI
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const createPlaceholderTeams = (): Team[] => {
+    const placeholderTeams: Team[] = [];
+    
+    for (let i = 0; i < maxTeams; i++) {
+      const teamName = `Team ${String.fromCharCode(65 + i)}`; // Team A, Team B, etc.
+      placeholderTeams.push({
+        id: `placeholder-${i}`,
+        name: teamName,
+        members: [],
+        totalWeight: 0,
+        isPlaceholder: true
+      });
+    }
+    
+    return placeholderTeams;
+  };
+
+  const createEmptyTeams = async () => {
+    setCreatingTeams(true);
+    try {
+      const teamsToCreate = [];
+      
+      for (let i = 0; i < maxTeams; i++) {
+        const teamName = `Team ${String.fromCharCode(65 + i)}`;
+        teamsToCreate.push({
+          name: teamName,
+          tournament_id: tournamentId,
+          total_rank_points: 0,
+          seed: i + 1
+        });
+      }
+
+      const { data: createdTeams, error } = await supabase
+        .from('teams')
+        .insert(teamsToCreate)
+        .select();
+
+      if (error) throw error;
+
+      toast({
+        title: "Teams Created",
+        description: `Created ${maxTeams} empty teams for manual balancing`,
+      });
+
+      // Refresh the data
+      await fetchTeamsAndPlayers();
+      onTeamsUpdated?.();
+    } catch (error: any) {
+      console.error('Error creating teams:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create teams",
+        variant: "destructive",
+      });
+    } finally {
+      setCreatingTeams(false);
     }
   };
 
@@ -176,9 +244,24 @@ const TeamBalancingInterface = ({ tournamentId, onTeamsUpdated }: TeamBalancingI
     // Handle movement
     if (targetId === 'unassigned') {
       movePlayerToUnassigned(player, sourceTeamId);
-    } else if (targetId.startsWith('team-')) {
-      const teamId = targetId.replace('team-', '');
-      movePlayerToTeam(player, teamId, sourceTeamId);
+    } else if (targetId.startsWith('team-') || targetId.startsWith('placeholder-')) {
+      const teamId = targetId.replace('team-', '').replace('placeholder-', '');
+      const targetTeam = teams.find(t => t.id === teamId || t.id === `placeholder-${teamId}`);
+      
+      if (targetTeam) {
+        // Check team capacity
+        const maxPlayersPerTeam = teamSize;
+        if (targetTeam.members.length >= maxPlayersPerTeam) {
+          toast({
+            title: "Team Full",
+            description: `Team ${targetTeam.name} is already at maximum capacity (${maxPlayersPerTeam} players)`,
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        movePlayerToTeam(player, targetTeam.id, sourceTeamId);
+      }
     }
   };
 
@@ -235,31 +318,62 @@ const TeamBalancingInterface = ({ tournamentId, onTeamsUpdated }: TeamBalancingI
   const saveTeamChanges = async () => {
     setSaving(true);
     try {
-      // For each team, update the team_members table and total_rank_points
-      for (const team of teams) {
-        // Update team's total_rank_points
-        await supabase
-          .from('teams')
-          .update({ total_rank_points: team.totalWeight })
-          .eq('id', team.id);
+      // First, create any placeholder teams that have members
+      const teamsWithMembers = teams.filter(team => team.members.length > 0);
+      
+      for (const team of teamsWithMembers) {
+        if (team.isPlaceholder) {
+          // Create the team in database
+          const { data: newTeam, error: createError } = await supabase
+            .from('teams')
+            .insert({
+              name: team.name,
+              tournament_id: tournamentId,
+              total_rank_points: team.totalWeight,
+              seed: teams.indexOf(team) + 1
+            })
+            .select()
+            .single();
 
-        // Remove all current members
-        await supabase
-          .from('team_members')
-          .delete()
-          .eq('team_id', team.id);
+          if (createError) throw createError;
 
-        // Add the new members
-        if (team.members.length > 0) {
+          // Add the team members
           const membersToInsert = team.members.map((member, index) => ({
-            team_id: team.id,
+            team_id: newTeam.id,
             user_id: member.id,
             is_captain: index === 0 // First member is captain
           }));
 
-          await supabase
+          const { error: membersError } = await supabase
             .from('team_members')
             .insert(membersToInsert);
+
+          if (membersError) throw membersError;
+        } else {
+          // Update existing team
+          await supabase
+            .from('teams')
+            .update({ total_rank_points: team.totalWeight })
+            .eq('id', team.id);
+
+          // Remove all current members
+          await supabase
+            .from('team_members')
+            .delete()
+            .eq('team_id', team.id);
+
+          // Add the new members
+          if (team.members.length > 0) {
+            const membersToInsert = team.members.map((member, index) => ({
+              team_id: team.id,
+              user_id: member.id,
+              is_captain: index === 0 // First member is captain
+            }));
+
+            await supabase
+              .from('team_members')
+              .insert(membersToInsert);
+          }
         }
       }
 
@@ -268,6 +382,8 @@ const TeamBalancingInterface = ({ tournamentId, onTeamsUpdated }: TeamBalancingI
         description: "Team assignments have been saved successfully",
       });
 
+      // Refresh the data
+      await fetchTeamsAndPlayers();
       onTeamsUpdated?.();
     } catch (error: any) {
       console.error('Error saving team changes:', error);
@@ -282,9 +398,10 @@ const TeamBalancingInterface = ({ tournamentId, onTeamsUpdated }: TeamBalancingI
   };
 
   const getBalanceAnalysis = () => {
-    if (teams.length < 2) return null;
+    const teamsWithMembers = teams.filter(team => team.members.length > 0);
+    if (teamsWithMembers.length < 2) return null;
 
-    const teamWeights = teams.map(team => team.totalWeight);
+    const teamWeights = teamsWithMembers.map(team => team.totalWeight);
     const maxWeight = Math.max(...teamWeights);
     const minWeight = Math.min(...teamWeights);
     
@@ -310,6 +427,7 @@ const TeamBalancingInterface = ({ tournamentId, onTeamsUpdated }: TeamBalancingI
   }
 
   const balance = getBalanceAnalysis();
+  const hasPlaceholderTeams = teams.some(team => team.isPlaceholder);
 
   return (
     <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -322,6 +440,14 @@ const TeamBalancingInterface = ({ tournamentId, onTeamsUpdated }: TeamBalancingI
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="text-slate-300 text-sm">
+              <p>Drag and drop players between teams to manually balance them.</p>
+              <p className="mt-1">
+                Tournament setup: {maxTeams} teams, {teamSize}v{teamSize} format
+                {teamSize === 1 ? ' (1v1 - each player gets their own team)' : ` (${teamSize} players per team)`}
+              </p>
+            </div>
+
             {balance && (
               <div className="flex items-center justify-between p-3 bg-slate-700 rounded-lg">
                 <div className="flex items-center gap-2">
@@ -343,15 +469,34 @@ const TeamBalancingInterface = ({ tournamentId, onTeamsUpdated }: TeamBalancingI
             )}
 
             <div className="flex gap-2">
+              {hasPlaceholderTeams && (
+                <Button
+                  onClick={createEmptyTeams}
+                  disabled={creatingTeams}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  {creatingTeams ? 'Creating...' : 'Create Team Slots'}
+                </Button>
+              )}
+              
               <Button
                 onClick={saveTeamChanges}
-                disabled={saving}
+                disabled={saving || hasPlaceholderTeams}
                 className="bg-green-600 hover:bg-green-700 text-white"
               >
                 <Save className="w-4 h-4 mr-2" />
                 {saving ? 'Saving...' : 'Save Changes'}
               </Button>
             </div>
+
+            {hasPlaceholderTeams && (
+              <div className="p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg">
+                <p className="text-blue-400 text-sm">
+                  Click "Create Team Slots" to create {maxTeams} empty teams for manual player assignment.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -359,13 +504,20 @@ const TeamBalancingInterface = ({ tournamentId, onTeamsUpdated }: TeamBalancingI
           <div className="space-y-4">
             <h3 className="text-white font-medium flex items-center gap-2">
               <Shuffle className="w-4 h-4" />
-              Teams
+              Teams ({teams.length}/{maxTeams})
             </h3>
-            {teams.map(team => (
+            {teams.map((team, index) => (
               <Card key={team.id} className="bg-slate-800 border-slate-700">
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-white text-lg">{team.name}</CardTitle>
+                    <CardTitle className="text-white text-lg flex items-center gap-2">
+                      {team.name}
+                      {team.isPlaceholder && (
+                        <Badge variant="outline" className="text-xs text-slate-400 border-slate-600">
+                          Placeholder
+                        </Badge>
+                      )}
+                    </CardTitle>
                     <Badge className="bg-indigo-600 text-white">
                       {team.totalWeight} pts
                     </Badge>
@@ -377,18 +529,24 @@ const TeamBalancingInterface = ({ tournamentId, onTeamsUpdated }: TeamBalancingI
                     strategy={verticalListSortingStrategy}
                   >
                     <div 
-                      id={`team-${team.id}`}
+                      id={team.isPlaceholder ? `placeholder-${index}` : `team-${team.id}`}
                       className="space-y-2 min-h-[100px] border-2 border-dashed border-slate-600 rounded-lg p-4"
                     >
                       {team.members.length === 0 ? (
                         <p className="text-slate-400 text-center py-4">
                           Drop players here
+                          {teamSize > 1 && ` (max ${teamSize} players)`}
                         </p>
                       ) : (
-                        team.members.map(player => (
-                          <div key={player.id} className="flex items-center justify-between p-2 bg-slate-700 rounded">
+                        team.members.map((player, playerIndex) => (
+                          <div key={player.id} className="flex items-center justify-between p-2 bg-slate-700 rounded cursor-move">
                             <div>
-                              <span className="text-white font-medium">{player.discord_username}</span>
+                              <span className="text-white font-medium">
+                                {player.discord_username}
+                                {playerIndex === 0 && teamSize > 1 && (
+                                  <Badge variant="outline" className="ml-2 text-xs">Captain</Badge>
+                                )}
+                              </span>
                               <div className="text-xs text-slate-400">
                                 {player.current_rank} • {player.weight_rating} pts
                               </div>
@@ -404,7 +562,7 @@ const TeamBalancingInterface = ({ tournamentId, onTeamsUpdated }: TeamBalancingI
           </div>
 
           <div className="space-y-4">
-            <h3 className="text-white font-medium">Unassigned Players</h3>
+            <h3 className="text-white font-medium">Unassigned Players ({unassignedPlayers.length})</h3>
             <Card className="bg-slate-800 border-slate-700 min-h-[200px]">
               <CardContent className="p-4">
                 <SortableContext 

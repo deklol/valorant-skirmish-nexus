@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -543,6 +544,8 @@ const TournamentDetail = () => {
             <TabsContent value="balancing" className="space-y-6">
               <TeamBalancingInterface
                 tournamentId={tournament.id}
+                maxTeams={tournament.max_teams}
+                teamSize={tournament.team_size}
                 onTeamsUpdated={handleRefresh}
               />
             </TabsContent>
