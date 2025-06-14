@@ -217,9 +217,9 @@ export type Database = {
           created_by: string | null
           display_name: string
           id: string
-          image_url: string | null
           is_active: boolean | null
           name: string
+          thumbnail_url: string | null
           updated_at: string | null
         }
         Insert: {
@@ -227,9 +227,9 @@ export type Database = {
           created_by?: string | null
           display_name: string
           id?: string
-          image_url?: string | null
           is_active?: boolean | null
           name: string
+          thumbnail_url?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -237,9 +237,9 @@ export type Database = {
           created_by?: string | null
           display_name?: string
           id?: string
-          image_url?: string | null
           is_active?: boolean | null
           name?: string
+          thumbnail_url?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -770,6 +770,7 @@ export type Database = {
           registration_opens_at: string | null
           start_time: string | null
           status: Database["public"]["Enums"]["tournament_status"] | null
+          team_size: number | null
           updated_at: string | null
         }
         Insert: {
@@ -791,6 +792,7 @@ export type Database = {
           registration_opens_at?: string | null
           start_time?: string | null
           status?: Database["public"]["Enums"]["tournament_status"] | null
+          team_size?: number | null
           updated_at?: string | null
         }
         Update: {
@@ -812,6 +814,7 @@ export type Database = {
           registration_opens_at?: string | null
           start_time?: string | null
           status?: Database["public"]["Enums"]["tournament_status"] | null
+          team_size?: number | null
           updated_at?: string | null
         }
         Relationships: [

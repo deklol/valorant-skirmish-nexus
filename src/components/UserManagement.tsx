@@ -4,11 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Users, Edit, Ban, User } from "lucide-react";
+import { Users, Edit, Ban, Shield, ShieldOff, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -17,39 +17,51 @@ interface UserData {
   discord_username: string | null;
   riot_id: string | null;
   current_rank: string | null;
-  rank_points: number | null;
-  role: string;
-  is_banned: boolean | null;
+  role: 'admin' | 'player' | 'viewer';
+  is_banned: boolean;
   ban_reason: string | null;
+  ban_expires_at: string | null;
+  wins: number;
+  losses: number;
+  tournaments_played: number;
+  tournaments_won: number;
   created_at: string;
-  wins: number | null;
-  losses: number | null;
-  tournaments_played: number | null;
-  tournaments_won: number | null;
 }
 
 const UserManagement = () => {
   const [users, setUsers] = useState<UserData[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterRole, setFilterRole] = useState('all');
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [banDialogOpen, setBanDialogOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
-  const [editFormData, setEditFormData] = useState({
+  const [editingUser, setEditingUser] = useState<UserData | null>(null);
+  const [banForm, setBanForm] = useState({
+    reason: '',
+    expires_at: ''
+  });
+  const [editForm, setEditForm] = useState({
     discord_username: '',
     riot_id: '',
-    current_rank: '',
-    role: 'player'
-  });
-  const [banFormData, setBanFormData] = useState({
-    ban_reason: ''
+    role: 'player' as 'admin' | 'player' | 'viewer'
   });
   const { toast } = useToast();
 
   useEffect(() => {
     fetchUsers();
   }, []);
+
+  useEffect(() => {
+    if (searchTerm) {
+      const filtered = users.filter(user =>
+        user.discord_username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.riot_id?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredUsers(filtered);
+    } else {
+      setFilteredUsers(users);
+    }
+  }, [searchTerm, users]);
 
   const fetchUsers = async () => {
     try {
@@ -72,57 +84,53 @@ const UserManagement = () => {
     }
   };
 
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = !searchTerm || 
-      (user.discord_username?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (user.riot_id?.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    const matchesRole = filterRole === 'all' || user.role === filterRole;
-    
-    return matchesSearch && matchesRole;
-  });
-
   const handleEditUser = (user: UserData) => {
-    setSelectedUser(user);
-    setEditFormData({
+    setEditingUser(user);
+    setEditForm({
       discord_username: user.discord_username || '',
       riot_id: user.riot_id || '',
-      current_rank: user.current_rank || '',
       role: user.role
     });
     setEditDialogOpen(true);
   };
 
-  const handleBanUser = (user: UserData) => {
-    setSelectedUser(user);
-    setBanFormData({ ban_reason: '' });
-    setBanDialogOpen(true);
-  };
-
-  const submitUserEdit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedUser) return;
+  const handleUpdateUser = async () => {
+    if (!editingUser) return;
 
     try {
       const { error } = await supabase
         .from('users')
         .update({
-          discord_username: editFormData.discord_username || null,
-          riot_id: editFormData.riot_id || null,
-          current_rank: editFormData.current_rank || null,
-          role: editFormData.role
+          discord_username: editForm.discord_username || null,
+          riot_id: editForm.riot_id || null,
+          role: editForm.role
         })
-        .eq('id', selectedUser.id);
+        .eq('id', editingUser.id);
 
       if (error) throw error;
 
+      // Log the audit action
+      await supabase
+        .from('audit_logs')
+        .insert({
+          action: 'user_updated',
+          table_name: 'users',
+          record_id: editingUser.id,
+          old_values: {
+            discord_username: editingUser.discord_username,
+            riot_id: editingUser.riot_id,
+            role: editingUser.role
+          },
+          new_values: editForm
+        });
+
       toast({
         title: "User Updated",
-        description: `${editFormData.discord_username || selectedUser.id} has been updated successfully`,
+        description: `${editForm.discord_username || 'User'} has been updated successfully`,
       });
 
       setEditDialogOpen(false);
-      setSelectedUser(null);
+      setEditingUser(null);
       fetchUsers();
     } catch (error: any) {
       console.error('Error updating user:', error);
@@ -134,70 +142,107 @@ const UserManagement = () => {
     }
   };
 
-  const submitBanToggle = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedUser) return;
+  const handleBanUser = (user: UserData) => {
+    setEditingUser(user);
+    setBanForm({ reason: '', expires_at: '' });
+    setBanDialogOpen(true);
+  };
+
+  const handleExecuteBan = async () => {
+    if (!editingUser) return;
 
     try {
-      const newBanStatus = !selectedUser.is_banned;
+      const expiresAt = banForm.expires_at ? new Date(banForm.expires_at).toISOString() : null;
       
       const { error } = await supabase
         .from('users')
         .update({
-          is_banned: newBanStatus,
-          ban_reason: newBanStatus ? banFormData.ban_reason : null
+          is_banned: true,
+          ban_reason: banForm.reason,
+          ban_expires_at: expiresAt
         })
-        .eq('id', selectedUser.id);
+        .eq('id', editingUser.id);
 
       if (error) throw error;
 
-      // Create audit log entry
+      // Log the audit action
       await supabase
         .from('audit_logs')
         .insert({
-          action: newBanStatus ? 'user_banned' : 'user_unbanned',
-          details: {
-            user_id: selectedUser.id,
-            username: selectedUser.discord_username,
-            reason: newBanStatus ? banFormData.ban_reason : 'Unbanned'
+          action: 'user_banned',
+          table_name: 'users',
+          record_id: editingUser.id,
+          new_values: {
+            is_banned: true,
+            ban_reason: banForm.reason,
+            ban_expires_at: expiresAt
           }
         });
 
       toast({
-        title: newBanStatus ? "User Banned" : "User Unbanned",
-        description: `${selectedUser.discord_username || selectedUser.id} has been ${newBanStatus ? 'banned' : 'unbanned'}`,
+        title: "User Banned",
+        description: `${editingUser.discord_username || 'User'} has been banned`,
       });
 
       setBanDialogOpen(false);
-      setSelectedUser(null);
+      setEditingUser(null);
       fetchUsers();
     } catch (error: any) {
-      console.error('Error updating ban status:', error);
+      console.error('Error banning user:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to update ban status",
+        description: error.message || "Failed to ban user",
         variant: "destructive",
       });
     }
   };
 
-  const getRoleBadge = (role: string) => {
-    switch (role) {
-      case 'admin':
-        return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Admin</Badge>;
-      case 'moderator':
-        return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">Moderator</Badge>;
-      default:
-        return <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">Player</Badge>;
-    }
-  };
+  const handleUnbanUser = async (user: UserData) => {
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({
+          is_banned: false,
+          ban_reason: null,
+          ban_expires_at: null
+        })
+        .eq('id', user.id);
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric"
-    });
+      if (error) throw error;
+
+      // Log the audit action
+      await supabase
+        .from('audit_logs')
+        .insert({
+          action: 'user_unbanned',
+          table_name: 'users',
+          record_id: user.id,
+          old_values: {
+            is_banned: user.is_banned,
+            ban_reason: user.ban_reason,
+            ban_expires_at: user.ban_expires_at
+          },
+          new_values: {
+            is_banned: false,
+            ban_reason: null,
+            ban_expires_at: null
+          }
+        });
+
+      toast({
+        title: "User Unbanned",
+        description: `${user.discord_username || 'User'} has been unbanned`,
+      });
+
+      fetchUsers();
+    } catch (error: any) {
+      console.error('Error unbanning user:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to unban user",
+        variant: "destructive",
+      });
+    }
   };
 
   if (loading) {
@@ -213,30 +258,22 @@ const UserManagement = () => {
   return (
     <Card className="bg-slate-800 border-slate-700">
       <CardHeader>
-        <CardTitle className="text-white flex items-center gap-2">
-          <Users className="w-5 h-5 text-blue-400" />
-          User Management
-        </CardTitle>
-        <div className="flex items-center gap-4 mt-4">
-          <div className="flex-1">
-            <Input
-              placeholder="Search by username or Riot ID..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-slate-700 border-slate-600 text-white"
-            />
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-white flex items-center gap-2">
+            <Users className="w-5 h-5 text-green-400" />
+            User Management
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
+              <Input
+                placeholder="Search users..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 bg-slate-700 border-slate-600 text-white"
+              />
+            </div>
           </div>
-          <Select value={filterRole} onValueChange={setFilterRole}>
-            <SelectTrigger className="w-48 bg-slate-700 border-slate-600 text-white">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Roles</SelectItem>
-              <SelectItem value="admin">Admin</SelectItem>
-              <SelectItem value="moderator">Moderator</SelectItem>
-              <SelectItem value="player">Player</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
       </CardHeader>
       <CardContent>
@@ -248,44 +285,45 @@ const UserManagement = () => {
                 <TableHead className="text-slate-300">Riot ID</TableHead>
                 <TableHead className="text-slate-300">Rank</TableHead>
                 <TableHead className="text-slate-300">Role</TableHead>
-                <TableHead className="text-slate-300">Status</TableHead>
                 <TableHead className="text-slate-300">Stats</TableHead>
-                <TableHead className="text-slate-300">Joined</TableHead>
+                <TableHead className="text-slate-300">Status</TableHead>
                 <TableHead className="text-slate-300">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredUsers.map((user) => (
                 <TableRow key={user.id}>
+                  <TableCell className="text-white font-medium">
+                    {user.discord_username || 'No username'}
+                  </TableCell>
                   <TableCell className="text-white">
-                    {user.discord_username || 'N/A'}
+                    {user.riot_id || 'No Riot ID'}
                   </TableCell>
-                  <TableCell className="text-slate-300">
-                    {user.riot_id || 'N/A'}
-                  </TableCell>
-                  <TableCell className="text-slate-300">
+                  <TableCell className="text-white">
                     {user.current_rank || 'Unranked'}
                   </TableCell>
                   <TableCell>
-                    {getRoleBadge(user.role)}
+                    <Badge 
+                      variant={user.role === 'admin' ? 'destructive' : 'secondary'}
+                      className={user.role === 'admin' ? 'bg-red-600' : 'bg-slate-600'}
+                    >
+                      {user.role}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-white text-sm">
+                    <div>W: {user.wins} L: {user.losses}</div>
+                    <div>T: {user.tournaments_played} Won: {user.tournaments_won}</div>
                   </TableCell>
                   <TableCell>
                     {user.is_banned ? (
-                      <Badge className="bg-red-500/20 text-red-400 border-red-500/30">
+                      <Badge variant="destructive" className="bg-red-600">
                         Banned
                       </Badge>
                     ) : (
-                      <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                      <Badge variant="secondary" className="bg-green-600">
                         Active
                       </Badge>
                     )}
-                  </TableCell>
-                  <TableCell className="text-slate-300 text-sm">
-                    <div>W: {user.wins || 0} / L: {user.losses || 0}</div>
-                    <div>Tournaments: {user.tournaments_played || 0}</div>
-                  </TableCell>
-                  <TableCell className="text-slate-300">
-                    {formatDate(user.created_at)}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -297,18 +335,25 @@ const UserManagement = () => {
                       >
                         <Edit className="w-4 h-4" />
                       </Button>
-                      <Button
-                        onClick={() => handleBanUser(user)}
-                        size="sm"
-                        variant="outline"
-                        className={`${
-                          user.is_banned
-                            ? 'border-green-600 text-green-400'
-                            : 'border-red-600 text-red-400'
-                        }`}
-                      >
-                        <Ban className="w-4 h-4" />
-                      </Button>
+                      {user.is_banned ? (
+                        <Button
+                          onClick={() => handleUnbanUser(user)}
+                          size="sm"
+                          variant="outline"
+                          className="border-green-600 text-green-400 hover:bg-green-600 hover:text-white"
+                        >
+                          <ShieldOff className="w-4 h-4" />
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={() => handleBanUser(user)}
+                          size="sm"
+                          variant="outline"
+                          className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white"
+                        >
+                          <Ban className="w-4 h-4" />
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -317,145 +362,115 @@ const UserManagement = () => {
           </Table>
         </div>
 
-        {filteredUsers.length === 0 && (
-          <div className="text-center py-8">
-            <p className="text-slate-400">No users found matching your criteria.</p>
-          </div>
-        )}
-      </CardContent>
+        {/* Edit User Dialog */}
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent className="bg-slate-800 border-slate-700">
+            <DialogHeader>
+              <DialogTitle className="text-white">Edit User</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="discord_username" className="text-white">Discord Username</Label>
+                <Input
+                  id="discord_username"
+                  value={editForm.discord_username}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, discord_username: e.target.value }))}
+                  className="bg-slate-700 border-slate-600 text-white"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="riot_id" className="text-white">Riot ID</Label>
+                <Input
+                  id="riot_id"
+                  value={editForm.riot_id}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, riot_id: e.target.value }))}
+                  className="bg-slate-700 border-slate-600 text-white"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="role" className="text-white">Role</Label>
+                <Select
+                  value={editForm.role}
+                  onValueChange={(value: 'admin' | 'player' | 'viewer') => 
+                    setEditForm(prev => ({ ...prev, role: value }))
+                  }
+                >
+                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="player">Player</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="viewer">Viewer</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex justify-end gap-2 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setEditDialogOpen(false)}
+                  className="border-slate-600 text-slate-300"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleUpdateUser}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  Update User
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
-      {/* Edit User Dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="bg-slate-800 border-slate-700">
-          <DialogHeader>
-            <DialogTitle className="text-white">Edit User</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={submitUserEdit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="discord_username" className="text-white">Discord Username</Label>
-              <Input
-                id="discord_username"
-                value={editFormData.discord_username}
-                onChange={(e) => setEditFormData(prev => ({ ...prev, discord_username: e.target.value }))}
-                className="bg-slate-700 border-slate-600 text-white"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="riot_id" className="text-white">Riot ID</Label>
-              <Input
-                id="riot_id"
-                value={editFormData.riot_id}
-                onChange={(e) => setEditFormData(prev => ({ ...prev, riot_id: e.target.value }))}
-                className="bg-slate-700 border-slate-600 text-white"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="current_rank" className="text-white">Current Rank</Label>
-              <Select
-                value={editFormData.current_rank}
-                onValueChange={(value) => setEditFormData(prev => ({ ...prev, current_rank: value }))}
-              >
-                <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Iron">Iron</SelectItem>
-                  <SelectItem value="Bronze">Bronze</SelectItem>
-                  <SelectItem value="Silver">Silver</SelectItem>
-                  <SelectItem value="Gold">Gold</SelectItem>
-                  <SelectItem value="Platinum">Platinum</SelectItem>
-                  <SelectItem value="Diamond">Diamond</SelectItem>
-                  <SelectItem value="Ascendant">Ascendant</SelectItem>
-                  <SelectItem value="Immortal">Immortal</SelectItem>
-                  <SelectItem value="Radiant">Radiant</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="role" className="text-white">Role</Label>
-              <Select
-                value={editFormData.role}
-                onValueChange={(value) => setEditFormData(prev => ({ ...prev, role: value }))}
-              >
-                <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="player">Player</SelectItem>
-                  <SelectItem value="moderator">Moderator</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex justify-end gap-2 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setEditDialogOpen(false)}
-                className="border-slate-600 text-slate-300"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                Update User
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Ban/Unban User Dialog */}
-      <Dialog open={banDialogOpen} onOpenChange={setBanDialogOpen}>
-        <DialogContent className="bg-slate-800 border-slate-700">
-          <DialogHeader>
-            <DialogTitle className="text-white">
-              {selectedUser?.is_banned ? 'Unban User' : 'Ban User'}
-            </DialogTitle>
-          </DialogHeader>
-          <form onSubmit={submitBanToggle} className="space-y-4">
-            {!selectedUser?.is_banned && (
+        {/* Ban User Dialog */}
+        <Dialog open={banDialogOpen} onOpenChange={setBanDialogOpen}>
+          <DialogContent className="bg-slate-800 border-slate-700">
+            <DialogHeader>
+              <DialogTitle className="text-white">Ban User</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="ban_reason" className="text-white">Ban Reason</Label>
                 <Input
                   id="ban_reason"
-                  value={banFormData.ban_reason}
-                  onChange={(e) => setBanFormData(prev => ({ ...prev, ban_reason: e.target.value }))}
+                  value={banForm.reason}
+                  onChange={(e) => setBanForm(prev => ({ ...prev, reason: e.target.value }))}
                   className="bg-slate-700 border-slate-600 text-white"
-                  placeholder="Enter reason for ban..."
+                  placeholder="Reason for ban..."
                   required
                 />
               </div>
-            )}
-            {selectedUser?.is_banned && (
-              <p className="text-slate-300">
-                Current ban reason: <span className="text-white">{selectedUser.ban_reason}</span>
-              </p>
-            )}
-            <div className="flex justify-end gap-2 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setBanDialogOpen(false)}
-                className="border-slate-600 text-slate-300"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                className={selectedUser?.is_banned 
-                  ? "bg-green-600 hover:bg-green-700" 
-                  : "bg-red-600 hover:bg-red-700"
-                }
-              >
-                {selectedUser?.is_banned ? 'Unban User' : 'Ban User'}
-              </Button>
+              <div className="space-y-2">
+                <Label htmlFor="ban_expires" className="text-white">Ban Expires (Optional)</Label>
+                <Input
+                  id="ban_expires"
+                  type="datetime-local"
+                  value={banForm.expires_at}
+                  onChange={(e) => setBanForm(prev => ({ ...prev, expires_at: e.target.value }))}
+                  className="bg-slate-700 border-slate-600 text-white"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setBanDialogOpen(false)}
+                  className="border-slate-600 text-slate-300"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleExecuteBan}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  Ban User
+                </Button>
+              </div>
             </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
+      </CardContent>
     </Card>
   );
 };

@@ -38,14 +38,21 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
       // Calculate max_teams based on team_size and max_players
       const calculatedMaxTeams = Math.floor(formData.max_players / formData.team_size);
       
+      const tournamentData = {
+        name: formData.name,
+        description: formData.description,
+        match_format: formData.match_format as "BO1" | "BO3" | "BO5",
+        team_size: formData.team_size,
+        max_players: formData.max_players,
+        max_teams: calculatedMaxTeams,
+        prize_pool: formData.prize_pool,
+        start_time: formData.start_time,
+        status: 'draft' as const
+      };
+
       const { data, error } = await supabase
         .from('tournaments')
-        .insert({
-          ...formData,
-          max_teams: calculatedMaxTeams,
-          team_size: formData.team_size,
-          status: 'draft'
-        })
+        .insert(tournamentData)
         .select()
         .single();
 

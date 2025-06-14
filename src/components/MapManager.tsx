@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 interface MapData {
   id: string;
   name: string;
+  display_name: string;
   thumbnail_url: string | null;
   is_active: boolean;
   created_at: string;
@@ -25,6 +26,7 @@ const MapManager = () => {
   const [editingMap, setEditingMap] = useState<MapData | null>(null);
   const [formData, setFormData] = useState({
     name: '',
+    display_name: '',
     thumbnail_url: ''
   });
   const { toast } = useToast();
@@ -64,6 +66,7 @@ const MapManager = () => {
           .from('maps')
           .update({
             name: formData.name,
+            display_name: formData.display_name,
             thumbnail_url: formData.thumbnail_url || null
           })
           .eq('id', editingMap.id);
@@ -72,7 +75,7 @@ const MapManager = () => {
 
         toast({
           title: "Map Updated",
-          description: `${formData.name} has been updated successfully`,
+          description: `${formData.display_name} has been updated successfully`,
         });
       } else {
         // Create new map
@@ -80,6 +83,7 @@ const MapManager = () => {
           .from('maps')
           .insert({
             name: formData.name,
+            display_name: formData.display_name,
             thumbnail_url: formData.thumbnail_url || null,
             is_active: true
           });
@@ -88,13 +92,13 @@ const MapManager = () => {
 
         toast({
           title: "Map Added",
-          description: `${formData.name} has been added to the map pool`,
+          description: `${formData.display_name} has been added to the map pool`,
         });
       }
 
       setDialogOpen(false);
       setEditingMap(null);
-      setFormData({ name: '', thumbnail_url: '' });
+      setFormData({ name: '', display_name: '', thumbnail_url: '' });
       fetchMaps();
     } catch (error: any) {
       console.error('Error saving map:', error);
@@ -110,6 +114,7 @@ const MapManager = () => {
     setEditingMap(map);
     setFormData({
       name: map.name,
+      display_name: map.display_name,
       thumbnail_url: map.thumbnail_url || ''
     });
     setDialogOpen(true);
@@ -171,7 +176,7 @@ const MapManager = () => {
 
   const resetDialog = () => {
     setEditingMap(null);
-    setFormData({ name: '', thumbnail_url: '' });
+    setFormData({ name: '', display_name: '', thumbnail_url: '' });
     setDialogOpen(false);
   };
 
@@ -211,11 +216,22 @@ const MapManager = () => {
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name" className="text-white">Map Name</Label>
+                  <Label htmlFor="name" className="text-white">Map Name (Internal)</Label>
                   <Input
                     id="name"
                     value={formData.name}
                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                    className="bg-slate-700 border-slate-600 text-white"
+                    placeholder="e.g., ascent, bind, haven"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="display_name" className="text-white">Display Name</Label>
+                  <Input
+                    id="display_name"
+                    value={formData.display_name}
+                    onChange={(e) => setFormData(prev => ({ ...prev, display_name: e.target.value }))}
                     className="bg-slate-700 border-slate-600 text-white"
                     placeholder="e.g., Ascent, Bind, Haven"
                     required
@@ -270,11 +286,22 @@ const MapManager = () => {
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name" className="text-white">Map Name</Label>
+                    <Label htmlFor="name" className="text-white">Map Name (Internal)</Label>
                     <Input
                       id="name"
                       value={formData.name}
                       onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                      className="bg-slate-700 border-slate-600 text-white"
+                      placeholder="e.g., ascent, bind, haven"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="display_name" className="text-white">Display Name</Label>
+                    <Input
+                      id="display_name"
+                      value={formData.display_name}
+                      onChange={(e) => setFormData(prev => ({ ...prev, display_name: e.target.value }))}
                       className="bg-slate-700 border-slate-600 text-white"
                       placeholder="e.g., Ascent, Bind, Haven"
                       required
@@ -329,7 +356,7 @@ const MapManager = () => {
                       {map.thumbnail_url ? (
                         <img
                           src={map.thumbnail_url}
-                          alt={map.name}
+                          alt={map.display_name}
                           className="w-16 h-10 object-cover rounded border border-slate-600"
                           onError={(e) => {
                             e.currentTarget.style.display = 'none';
@@ -341,7 +368,7 @@ const MapManager = () => {
                         </div>
                       )}
                     </TableCell>
-                    <TableCell className="text-white font-medium">{map.name}</TableCell>
+                    <TableCell className="text-white font-medium">{map.display_name}</TableCell>
                     <TableCell>
                       <Button
                         onClick={() => toggleMapStatus(map.id, map.is_active)}
@@ -365,7 +392,7 @@ const MapManager = () => {
                           <Edit className="w-4 h-4" />
                         </Button>
                         <Button
-                          onClick={() => handleDelete(map.id, map.name)}
+                          onClick={() => handleDelete(map.id, map.display_name)}
                           size="sm"
                           variant="outline"
                           className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white"
