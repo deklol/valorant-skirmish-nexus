@@ -24,6 +24,8 @@ interface WinnerInfo {
   name: string;
 }
 
+type MatchStatus = "completed" | "pending" | "live";
+
 interface MatchInfo {
   id: string;
   tournament: TournamentInfo | null;
@@ -32,11 +34,31 @@ interface MatchInfo {
   winner: WinnerInfo | null;
   round_number: number;
   match_number: number;
-  status: string;
+  status: MatchStatus;
   score_team1: number;
   score_team2: number;
   completed_at: string | null;
   scheduled_time: string | null;
+}
+
+function parseTeamInfo(obj: any): TeamInfo | null {
+  return obj && typeof obj === "object" && "id" in obj && "name" in obj
+    ? { id: obj.id, name: obj.name }
+    : null;
+}
+function parseWinnerInfo(obj: any): WinnerInfo | null {
+  return obj && typeof obj === "object" && "id" in obj && "name" in obj
+    ? { id: obj.id, name: obj.name }
+    : null;
+}
+function parseTournamentInfo(obj: any): TournamentInfo | null {
+  return obj && typeof obj === "object" && "id" in obj && "name" in obj
+    ? { id: obj.id, name: obj.name }
+    : null;
+}
+function parseStatus(s: any): MatchStatus {
+  if (s === "completed" || s === "pending" || s === "live") return s;
+  return "pending";
 }
 
 export default function MatchMedicManager() {
@@ -67,7 +89,22 @@ export default function MatchMedicManager() {
       toast({ title: "Error", description: error.message, variant: "destructive" });
       setMatches([]);
     } else {
-      setMatches(data || []);
+      setMatches(
+        (data || []).map((m: any) => ({
+          id: m.id,
+          round_number: m.round_number,
+          match_number: m.match_number,
+          status: parseStatus(m.status),
+          score_team1: m.score_team1,
+          score_team2: m.score_team2,
+          completed_at: m.completed_at,
+          scheduled_time: m.scheduled_time,
+          tournament: parseTournamentInfo(m.tournament),
+          team1: parseTeamInfo(m.team1),
+          team2: parseTeamInfo(m.team2),
+          winner: parseWinnerInfo(m.winner),
+        }))
+      );
     }
     setLoading(false);
   }, [toast]);
@@ -92,14 +129,13 @@ export default function MatchMedicManager() {
   }
 
   // Admin: handle update (score, status, winner)
-  async function handleEditSubmit({ status, score_team1, score_team2, winner_id }: {status: string, score_team1: number, score_team2: number, winner_id: string | null}) {
+  async function handleEditSubmit({ status, score_team1, score_team2, winner_id }: {status: MatchStatus, score_team1: number, score_team2: number, winner_id: string | null}) {
     if (!editModal) return;
     setActionMatchId(editModal.id);
 
-    // If setting "completed" or changing winner, use bracket-safe processor
     try {
       if (status === "completed" && winner_id) {
-        // Use bracket processor logic (requires team1_id, team2_id, tournament_id)
+        // Use bracket processor logic
         await processMatchResults({
           matchId: editModal.id,
           winnerId: winner_id,
@@ -114,7 +150,6 @@ export default function MatchMedicManager() {
         }).eq('id', editModal.id);
         toast({ title: "Match and bracket updated" });
       } else {
-        // Safe status/score update (does not cascade)
         await supabase
           .from("matches")
           .update({
@@ -262,10 +297,10 @@ export default function MatchMedicManager() {
                 <label className="block text-amber-300 text-xs mb-1">Status:</label>
                 <select
                   className="w-full bg-slate-800 text-white border border-slate-700 rounded px-3 py-2"
-                  defaultValue={editModal.status}
+                  value={editModal.status}
                   disabled={!!actionMatchId}
                   onChange={e =>
-                    setEditModal({ ...editModal, status: e.target.value })
+                    setEditModal({ ...editModal, status: parseStatus(e.target.value) })
                   }
                 >
                   <option value="pending">Pending</option>
@@ -346,9 +381,9 @@ export default function MatchMedicManager() {
                     winner_id: editModal.winner?.id ?? null,
                   })
                 }
-                loading={!!actionMatchId}
                 className="bg-amber-600 text-white"
                 size="sm"
+                disabled={!!actionMatchId}
               >
                 {actionMatchId ? "Saving..." : "Save"}
               </Button>
