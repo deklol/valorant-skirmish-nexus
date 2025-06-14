@@ -195,19 +195,48 @@ const MapVetoManager = ({
 
     setLoading(true);
     try {
-      // Create veto session
-      const { data: session, error } = await supabase
+      // 1. Check if a 'pending' session already exists for this match
+      const { data: existingSession, error: existingSessionErr } = await supabase
         .from('map_veto_sessions')
-        .insert({
-          match_id: matchId,
-          current_turn_team_id: team1Id, // Team 1 starts
-          status: 'in_progress',
-          started_at: new Date().toISOString()
-        })
-        .select()
-        .single();
+        .select('*')
+        .eq('match_id', matchId)
+        .eq('status', 'pending')
+        .maybeSingle();
 
-      if (error) throw error;
+      let session = null;
+
+      if (existingSession && !existingSessionErr) {
+        // 2. If so, update it to 'in_progress'
+        const { data: updated, error: updateErr } = await supabase
+          .from('map_veto_sessions')
+          .update({
+            status: 'in_progress',
+            current_turn_team_id: team1Id, // Team 1 starts
+            started_at: new Date().toISOString(),
+            completed_at: null,
+          })
+          .eq('id', existingSession.id)
+          .select()
+          .single();
+
+        if (updateErr) throw updateErr;
+        session = updated;
+      } else {
+        // 3. Otherwise, insert a new session
+        const { data: inserted, error: insertErr } = await supabase
+          .from('map_veto_sessions')
+          .insert({
+            match_id: matchId,
+            current_turn_team_id: team1Id,
+            status: 'in_progress',
+            started_at: new Date().toISOString(),
+            completed_at: null,
+          })
+          .select()
+          .single();
+        if (insertErr) throw insertErr;
+        session = inserted;
+      }
 
       setVetoSession(session);
 
@@ -218,11 +247,14 @@ const MapVetoManager = ({
         title: "Map Veto Started",
         description: "Teams can now participate in map selection",
       });
+
+      // Optionally, refresh settings/match after starting
+      fetchTournamentAndMatchSettings?.();
     } catch (error: any) {
       console.error('Error initializing map veto:', error);
       toast({
         title: "Error",
-        description: "Failed to start map veto",
+        description: error?.message || "Failed to start map veto",
         variant: "destructive",
       });
     } finally {
