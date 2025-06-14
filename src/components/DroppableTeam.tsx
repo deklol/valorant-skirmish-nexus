@@ -4,24 +4,20 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users } from "lucide-react";
-import DraggablePlayer from "./DraggablePlayer";
-import { getRankPoints } from "@/utils/rankingSystem";
+import DraggablePlayer from './DraggablePlayer';
 
 interface Player {
   id: string;
   discord_username: string;
-  riot_id: string;
-  current_rank: string;
-  weight_rating: number;
-  is_phantom: boolean;
-  name?: string;
+  rank_points: number;
+  riot_id?: string;
 }
 
 interface Team {
   id: string;
   name: string;
-  players: Player[];
-  totalPoints: number;
+  members: Player[];
+  avgRankScore: number;
 }
 
 interface DroppableTeamProps {
@@ -29,55 +25,45 @@ interface DroppableTeamProps {
 }
 
 const DroppableTeam = ({ team }: DroppableTeamProps) => {
-  const { setNodeRef, isOver } = useDroppable({
+  const { isOver, setNodeRef } = useDroppable({
     id: `team-${team.id}`,
   });
 
-  const totalPoints = team.players.reduce((sum, player) => 
-    sum + getRankPoints(player.current_rank || 'Unranked'), 0
-  );
-
-  const averagePoints = team.players.length > 0 
-    ? Math.round(totalPoints / team.players.length)
-    : 0;
-
   return (
-    <Card 
-      ref={setNodeRef}
-      className={`bg-slate-800 border-slate-700 ${
-        isOver ? 'ring-2 ring-blue-500 bg-slate-700' : ''
-      }`}
-    >
+    <Card className={`bg-slate-800 border-slate-700 transition-colors ${isOver ? 'border-blue-500 bg-slate-700' : ''}`}>
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-white text-lg">{team.name}</CardTitle>
+        <CardTitle className="text-white flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-slate-300">
-              <Users className="w-3 h-3 mr-1" />
-              {team.players.length}/5
+            <Users className="w-4 h-4" />
+            {team.name}
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-slate-300 border-slate-500">
+              {team.members.length} players
             </Badge>
-            <Badge variant="secondary">
-              Avg: {averagePoints}
+            <Badge variant="outline" className="text-blue-300 border-blue-500">
+              Avg: {Math.round(team.avgRankScore)} pts
             </Badge>
           </div>
-        </div>
-        <div className="text-sm text-slate-400">
-          Total Points: {totalPoints}
-        </div>
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <SortableContext 
-          items={team.players.map(p => p.id)} 
+          items={team.members.map(p => p.id)} 
           strategy={verticalListSortingStrategy}
         >
-          <div className="space-y-2 min-h-[300px] border-2 border-dashed border-slate-600 rounded p-2">
-            {team.players.map((player) => (
-              <DraggablePlayer key={player.id} player={player} />
-            ))}
-            {team.players.length === 0 && (
-              <div className="flex items-center justify-center h-[280px] text-slate-500">
+          <div 
+            ref={setNodeRef}
+            className="space-y-2 min-h-[100px] border-2 border-dashed border-slate-600 rounded-lg p-4"
+          >
+            {team.members.length === 0 ? (
+              <p className="text-slate-400 text-center py-4">
                 Drop players here
-              </div>
+              </p>
+            ) : (
+              team.members.map(player => (
+                <DraggablePlayer key={player.id} player={player} />
+              ))
             )}
           </div>
         </SortableContext>

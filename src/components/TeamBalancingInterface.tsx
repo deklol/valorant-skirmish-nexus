@@ -18,8 +18,8 @@ interface TeamBalancingInterfaceProps {
 
 interface Player {
   id: string;
-  username: string;
-  rank_score: number;
+  discord_username: string;
+  rank_points: number;
   riot_id?: string;
 }
 
@@ -56,8 +56,8 @@ const TeamBalancingInterface = ({ tournamentId, onTeamsUpdated }: TeamBalancingI
             user_id,
             users (
               id,
-              username,
-              rank_score,
+              discord_username,
+              rank_points,
               riot_id
             )
           )
@@ -70,13 +70,13 @@ const TeamBalancingInterface = ({ tournamentId, onTeamsUpdated }: TeamBalancingI
 
       // Fetch tournament participants to find unassigned players
       const { data: participantsData, error: participantsError } = await supabase
-        .from('tournament_participants')
+        .from('tournament_signups')
         .select(`
           user_id,
           users (
             id,
-            username,
-            rank_score,
+            discord_username,
+            rank_points,
             riot_id
           )
         `)
@@ -93,13 +93,13 @@ const TeamBalancingInterface = ({ tournamentId, onTeamsUpdated }: TeamBalancingI
           .filter(user => user)
           .map(user => ({
             id: user.id,
-            username: user.username,
-            rank_score: user.rank_score || 0,
+            discord_username: user.discord_username || 'Unknown',
+            rank_points: user.rank_points || 0,
             riot_id: user.riot_id
           }));
 
         const avgRankScore = members.length > 0 
-          ? members.reduce((sum, member) => sum + member.rank_score, 0) / members.length
+          ? members.reduce((sum, member) => sum + member.rank_points, 0) / members.length
           : 0;
 
         return {
@@ -120,8 +120,8 @@ const TeamBalancingInterface = ({ tournamentId, onTeamsUpdated }: TeamBalancingI
         .filter(user => user && !allAssignedUserIds.has(user.id))
         .map(user => ({
           id: user.id,
-          username: user.username,
-          rank_score: user.rank_score || 0,
+          discord_username: user.discord_username || 'Unknown',
+          rank_points: user.rank_points || 0,
           riot_id: user.riot_id
         }));
 
@@ -198,7 +198,7 @@ const TeamBalancingInterface = ({ tournamentId, onTeamsUpdated }: TeamBalancingI
           if (team.id === sourceTeamId) {
             const newMembers = team.members.filter(p => p.id !== player.id);
             const avgRankScore = newMembers.length > 0 
-              ? newMembers.reduce((sum, member) => sum + member.rank_score, 0) / newMembers.length
+              ? newMembers.reduce((sum, member) => sum + member.rank_points, 0) / newMembers.length
               : 0;
             return { ...team, members: newMembers, avgRankScore };
           }
@@ -224,7 +224,7 @@ const TeamBalancingInterface = ({ tournamentId, onTeamsUpdated }: TeamBalancingI
           if (team.id === sourceTeamId) {
             const newMembers = team.members.filter(p => p.id !== player.id);
             const avgRankScore = newMembers.length > 0 
-              ? newMembers.reduce((sum, member) => sum + member.rank_score, 0) / newMembers.length
+              ? newMembers.reduce((sum, member) => sum + member.rank_points, 0) / newMembers.length
               : 0;
             return { ...team, members: newMembers, avgRankScore };
           }
@@ -240,7 +240,7 @@ const TeamBalancingInterface = ({ tournamentId, onTeamsUpdated }: TeamBalancingI
       prevTeams.map(team => {
         if (team.id === targetTeamId) {
           const newMembers = [...team.members, player];
-          const avgRankScore = newMembers.reduce((sum, member) => sum + member.rank_score, 0) / newMembers.length;
+          const avgRankScore = newMembers.reduce((sum, member) => sum + member.rank_points, 0) / newMembers.length;
           return { ...team, members: newMembers, avgRankScore };
         }
         return team;

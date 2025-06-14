@@ -3,14 +3,13 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Users, Trophy, MessageSquare, Shuffle } from "lucide-react";
+import { Settings, Users, Trophy, MessageSquare } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import Header from "@/components/Header";
 import DiscordWebhookManager from "@/components/DiscordWebhookManager";
 import CreateTournamentDialog from "@/components/CreateTournamentDialog";
 import TournamentManagement from "@/components/TournamentManagement";
 import AdminLogoutAll from "@/components/AdminLogoutAll";
-import TeamBalancingInterface from "@/components/TeamBalancingInterface";
 
 const Admin = () => {
   const { isAdmin } = useAuth();
@@ -58,10 +57,6 @@ const Admin = () => {
               <Trophy className="w-4 h-4 mr-2" />
               Tournaments
             </TabsTrigger>
-            <TabsTrigger value="balancing" className="text-white data-[state=active]:bg-red-600">
-              <Shuffle className="w-4 h-4 mr-2" />
-              Team Balancing
-            </TabsTrigger>
             <TabsTrigger value="users" className="text-white data-[state=active]:bg-red-600">
               <Users className="w-4 h-4 mr-2" />
               Users
@@ -78,10 +73,6 @@ const Admin = () => {
 
           <TabsContent value="tournaments">
             <TournamentManagement />
-          </TabsContent>
-
-          <TabsContent value="balancing">
-            <TeamBalancingInterface />
           </TabsContent>
 
           <TabsContent value="users">
