@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -47,20 +46,12 @@ const MatchDetails = () => {
     console.log("[MatchDetails] Data from useMatchData:", { match, userTeamId, isAdmin });
   }
 
-  // On Score Report or Team Rebalance, refetch + toast.
+  // On Score Report, refetch + toast.
   const handleScoreSubmitted = () => {
     if (fetchMatch) fetchMatch();
     toast({
       title: "Score Reported",
       description: "Match score has been submitted and tournament updated",
-    });
-  };
-
-  const handleTeamsRebalanced = () => {
-    if (fetchMatch) fetchMatch();
-    toast({
-      title: "Teams Updated",
-      description: "Match teams have been rebalanced",
     });
   };
 
@@ -119,7 +110,6 @@ const MatchDetails = () => {
           userTeamId={userTeamId}
           isAdmin={isAdmin}
           onScoreSubmitted={handleScoreSubmitted}
-          onTeamsRebalanced={handleTeamsRebalanced}
         />
       </div>
     </div>
@@ -127,4 +117,3 @@ const MatchDetails = () => {
 };
 
 export default MatchDetails;
-

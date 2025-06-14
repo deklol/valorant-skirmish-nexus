@@ -5,7 +5,7 @@ import MatchScoreCards from "./MatchScoreCards";
 import MatchInformation from "./MatchInformation";
 import MapVetoManager from "@/components/MapVetoManager";
 import ScoreReporting from "@/components/ScoreReporting";
-import MatchTeamBalancing from "@/components/MatchTeamBalancing";
+// Removed: import MatchTeamBalancing from "@/components/MatchTeamBalancing";
 
 interface Match {
   id: string;
@@ -40,7 +40,7 @@ interface MatchTabsProps {
   userTeamId: string | null;
   isAdmin: boolean;
   onScoreSubmitted: () => void;
-  onTeamsRebalanced: () => void;
+  // Removed: onTeamsRebalanced: () => void;
 }
 
 const MatchTabs = ({
@@ -48,20 +48,16 @@ const MatchTabs = ({
   userTeamId,
   isAdmin,
   onScoreSubmitted,
-  onTeamsRebalanced
+  // Removed: onTeamsRebalanced
 }: MatchTabsProps) => {
+  // Only show the Overview tab; admin tab was only used for team balancing.
   return (
     <Tabs defaultValue="overview" className="space-y-6">
       <TabsList className="bg-slate-800 border-slate-700">
         <TabsTrigger value="overview" className="text-slate-300 data-[state=active]:text-white">
           Overview
         </TabsTrigger>
-        {isAdmin && (
-          <TabsTrigger value="admin" className="text-slate-300 data-[state=active]:text-white">
-            <Settings className="w-4 h-4 mr-2" />
-            Admin
-          </TabsTrigger>
-        )}
+        {/* Removed admin tab for team balancing */}
       </TabsList>
 
       <TabsContent value="overview" className="space-y-6">
@@ -106,20 +102,10 @@ const MatchTabs = ({
           />
         )}
       </TabsContent>
-
-      {isAdmin && (
-        <TabsContent value="admin" className="space-y-6">
-          <MatchTeamBalancing
-            matchId={match.id}
-            team1Id={match.team1_id}
-            team2Id={match.team2_id}
-            tournamentId={match.tournament?.id || ''}
-            onTeamsRebalanced={onTeamsRebalanced}
-          />
-        </TabsContent>
-      )}
+      {/* Admin tab removed */}
     </Tabs>
   );
 };
 
 export default MatchTabs;
+
