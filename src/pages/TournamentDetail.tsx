@@ -21,8 +21,6 @@ import TeamBalancingInterface from "@/components/TeamBalancingInterface";
 
 import type { Database } from "@/integrations/supabase/types";
 
-type Tournament = Database["public"]["Tables"]["tournaments"]["Row"];
-
 type Team = {
   id: string;
   name: string;
@@ -67,7 +65,7 @@ type Match = {
 
 const TournamentDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const [tournament, setTournament] = useState<Tournament | null>(null);
+  const [tournament, setTournament] = useState<Database["public"]["Tables"]["tournaments"]["Row"] | null>(null);
   const [parsedMapVetoRounds, setParsedMapVetoRounds] = useState<number[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
@@ -145,10 +143,11 @@ const TournamentDetail = () => {
       }
 
       console.log('Tournament data fetched:', tournamentData);
-      
       const vetoRoundsParsed = parseMapVetoRounds(tournamentData.map_veto_required_rounds);
 
-      const parsedTournament: Tournament = {
+      // Remove any use of end_time here, don't assign or check for it
+      // Just assign from the Supabase row value, do NOT retype/override map_veto_required_rounds
+      setTournament({
         ...tournamentData,
         enable_map_veto: tournamentData.enable_map_veto || false,
         check_in_required: tournamentData.check_in_required ?? true,
@@ -156,9 +155,7 @@ const TournamentDetail = () => {
         registration_closes_at: tournamentData.registration_closes_at || tournamentData.start_time,
         check_in_starts_at: tournamentData.check_in_starts_at || tournamentData.start_time,
         check_in_ends_at: tournamentData.check_in_ends_at || tournamentData.start_time
-      };
-      
-      setTournament(parsedTournament);
+      } as Database["public"]["Tables"]["tournaments"]["Row"]);
       setParsedMapVetoRounds(vetoRoundsParsed);
       setTeams(tournamentData.teams || []);
       setMatches(tournamentData.matches || []);
@@ -393,6 +390,7 @@ const TournamentDetail = () => {
                     <div>
                       <div className="text-sm text-slate-400">Map Veto</div>
                       <div className="text-white">Enabled</div>
+                      {/* FIX: Use parsedMapVetoRounds for length/join */}
                       {parsedMapVetoRounds.length > 0 && (
                         <div className="text-sm text-slate-500">
                           Required rounds: {parsedMapVetoRounds.join(', ')}
