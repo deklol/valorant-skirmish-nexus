@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,55 +19,32 @@ import ComprehensiveTournamentEditor from "@/components/ComprehensiveTournamentE
 import ForceCheckInManager from "@/components/ForceCheckInManager";
 import TeamBalancingInterface from "@/components/TeamBalancingInterface";
 
-interface Tournament {
-  id: string;
-  name: string;
-  description: string;
-  status: string;
-  max_teams: number;
-  max_players: number;
-  team_size: number;
-  bracket_type: string;
-  match_format: string;
-  final_match_format?: string;
-  semifinal_match_format?: string;
-  enable_map_veto: boolean;
-  map_veto_required_rounds: number[];
-  start_time: string;
-  prize_pool?: string;
-  registration_opens_at: string;
-  registration_closes_at: string;
-  check_in_starts_at: string;
-  check_in_ends_at: string;
-  check_in_required: boolean;
-  end_time?: string;
-  created_at: string;
-  teams?: Team[];
-  matches?: Match[];
-}
+import type { Database } from "@/integrations/supabase/types";
 
-interface Team {
+type Tournament = Database["public"]["Tables"]["tournaments"]["Row"];
+
+type Team = {
   id: string;
   name: string;
   seed?: number;
   total_rank_points: number;
   team_members: TeamMember[];
-}
+};
 
-interface TeamMember {
+type TeamMember = {
   user_id: string;
   is_captain: boolean;
   users: User;
-}
+};
 
-interface User {
+type User = {
   discord_username: string;
   discord_avatar_url: string | null;
   current_rank: string;
   riot_id: string;
-}
+};
 
-interface Match {
+type Match = {
   id: string;
   tournament_id: string;
   round_number: number;
@@ -87,7 +63,7 @@ interface Match {
   team1: { name: string };
   team2: { name: string };
   winner: { name: string } | null;
-}
+};
 
 const TournamentDetail = () => {
   const { id } = useParams<{ id: string }>();

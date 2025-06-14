@@ -763,7 +763,6 @@ export type Database = {
           created_by: string | null
           description: string | null
           enable_map_veto: boolean | null
-          end_time: string | null
           final_match_format: Database["public"]["Enums"]["match_format"] | null
           id: string
           map_veto_required_rounds: Json | null
@@ -791,7 +790,6 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           enable_map_veto?: boolean | null
-          end_time?: string | null
           final_match_format?:
             | Database["public"]["Enums"]["match_format"]
             | null
@@ -821,7 +819,6 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           enable_map_veto?: boolean | null
-          end_time?: string | null
           final_match_format?:
             | Database["public"]["Enums"]["match_format"]
             | null
