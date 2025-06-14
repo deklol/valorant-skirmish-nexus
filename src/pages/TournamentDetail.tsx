@@ -460,7 +460,7 @@ const TournamentDetail = () => {
               <ComprehensiveTournamentEditor
                 tournament={{
                   ...tournament,
-                  // Omit end_time (if ComprehensiveTournamentEditor expects it, it must be optional there)
+                  // end_time removed/ignored
                 }}
                 onTournamentUpdated={handleRefresh}
               />
@@ -483,7 +483,7 @@ const TournamentDetail = () => {
                     final_match_format: tournament.final_match_format,
                     semifinal_match_format: tournament.semifinal_match_format,
                     enable_map_veto: tournament.enable_map_veto,
-                    map_veto_required_rounds: parsedMapVetoRounds, // <--- fix!
+                    map_veto_required_rounds: parsedMapVetoRounds // <--- key fix
                   }}
                   teams={teams}
                   onBracketGenerated={handleRefresh}

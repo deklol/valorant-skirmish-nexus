@@ -15,7 +15,6 @@ interface Tournament {
   name: string;
   description: string | null;
   start_time: string | null;
-  end_time: string | null;
   registration_opens_at: string | null;
   registration_closes_at: string | null;
   check_in_starts_at: string | null;
@@ -40,7 +39,6 @@ const ComprehensiveTournamentEditor = ({ tournament, onTournamentUpdated }: Comp
     name: tournament.name,
     description: tournament.description || '',
     start_time: tournament.start_time ? new Date(tournament.start_time).toISOString().slice(0, 16) : '',
-    end_time: tournament.end_time ? new Date(tournament.end_time).toISOString().slice(0, 16) : '',
     registration_opens_at: tournament.registration_opens_at ? new Date(tournament.registration_opens_at).toISOString().slice(0, 16) : '',
     registration_closes_at: tournament.registration_closes_at ? new Date(tournament.registration_closes_at).toISOString().slice(0, 16) : '',
     check_in_starts_at: tournament.check_in_starts_at ? new Date(tournament.check_in_starts_at).toISOString().slice(0, 16) : '',
@@ -62,7 +60,6 @@ const ComprehensiveTournamentEditor = ({ tournament, onTournamentUpdated }: Comp
         name: formData.name,
         description: formData.description || null,
         start_time: formData.start_time ? new Date(formData.start_time).toISOString() : null,
-        end_time: formData.end_time ? new Date(formData.end_time).toISOString() : null,
         registration_opens_at: formData.registration_opens_at ? new Date(formData.registration_opens_at).toISOString() : null,
         registration_closes_at: formData.registration_closes_at ? new Date(formData.registration_closes_at).toISOString() : null,
         check_in_starts_at: formData.check_in_starts_at ? new Date(formData.check_in_starts_at).toISOString() : null,
@@ -103,12 +100,10 @@ const ComprehensiveTournamentEditor = ({ tournament, onTournamentUpdated }: Comp
   };
 
   const handleCancel = () => {
-    // Reset form data to original values
     setFormData({
       name: tournament.name,
       description: tournament.description || '',
       start_time: tournament.start_time ? new Date(tournament.start_time).toISOString().slice(0, 16) : '',
-      end_time: tournament.end_time ? new Date(tournament.end_time).toISOString().slice(0, 16) : '',
       registration_opens_at: tournament.registration_opens_at ? new Date(tournament.registration_opens_at).toISOString().slice(0, 16) : '',
       registration_closes_at: tournament.registration_closes_at ? new Date(tournament.registration_closes_at).toISOString().slice(0, 16) : '',
       check_in_starts_at: tournament.check_in_starts_at ? new Date(tournament.check_in_starts_at).toISOString().slice(0, 16) : '',
@@ -210,12 +205,6 @@ const ComprehensiveTournamentEditor = ({ tournament, onTournamentUpdated }: Comp
                 <Label className="text-slate-300">Tournament Start</Label>
                 <p className="text-white mt-1">
                   {tournament.start_time ? new Date(tournament.start_time).toLocaleString() : 'Not set'}
-                </p>
-              </div>
-              <div>
-                <Label className="text-slate-300">Tournament End</Label>
-                <p className="text-white mt-1">
-                  {tournament.end_time ? new Date(tournament.end_time).toLocaleString() : 'Not set'}
                 </p>
               </div>
               <div>
@@ -379,16 +368,6 @@ const ComprehensiveTournamentEditor = ({ tournament, onTournamentUpdated }: Comp
                 type="datetime-local"
                 value={formData.start_time}
                 onChange={(e) => setFormData(prev => ({ ...prev, start_time: e.target.value }))}
-                className="bg-slate-700 border-slate-600 text-white"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="end_time" className="text-slate-300">Tournament End</Label>
-              <Input
-                id="end_time"
-                type="datetime-local"
-                value={formData.end_time}
-                onChange={(e) => setFormData(prev => ({ ...prev, end_time: e.target.value }))}
                 className="bg-slate-700 border-slate-600 text-white"
               />
             </div>
