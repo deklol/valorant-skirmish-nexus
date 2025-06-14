@@ -1,12 +1,12 @@
-
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar, Users, Map, Shuffle, Settings, Clock, Trophy } from "lucide-react";
+import { Calendar, Users, Map, Trophy, Clock, Settings, UserCheck, Scale } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import BracketGenerator from "@/components/BracketGenerator";
@@ -15,6 +15,9 @@ import TournamentParticipants from "@/components/TournamentParticipants";
 import TournamentRegistration from "@/components/TournamentRegistration";
 import IntegratedBracketView from "@/components/IntegratedBracketView";
 import TournamentWinnerDisplay from "@/components/TournamentWinnerDisplay";
+import ComprehensiveTournamentEditor from "@/components/ComprehensiveTournamentEditor";
+import ForceCheckInManager from "@/components/ForceCheckInManager";
+import TeamBalancingInterface from "@/components/TeamBalancingInterface";
 
 interface Tournament {
   id: string;
@@ -329,159 +332,222 @@ const TournamentDetail = () => {
           />
         )}
 
-        {/* Admin Controls */}
-        {isAdmin && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Tournament Status Manager */}
-            <TournamentStatusManager
+        {/* Main Content Tabs */}
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 bg-slate-800 border-slate-700">
+            <TabsTrigger value="overview" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
+              Overview
+            </TabsTrigger>
+            {isAdmin && (
+              <>
+                <TabsTrigger value="admin" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
+                  <Settings className="w-4 h-4 mr-2" />
+                  Admin
+                </TabsTrigger>
+                <TabsTrigger value="players" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
+                  <UserCheck className="w-4 h-4 mr-2" />
+                  Players
+                </TabsTrigger>
+                <TabsTrigger value="balancing" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
+                  <Scale className="w-4 h-4 mr-2" />
+                  Balance
+                </TabsTrigger>
+              </>
+            )}
+          </TabsList>
+
+          {/* Overview Tab - Available to all users */}
+          <TabsContent value="overview" className="space-y-6">
+            {/* Tournament Participants */}
+            <TournamentParticipants
               tournamentId={tournament.id}
-              currentStatus={tournament.status}
-              onStatusChange={handleRefresh}
+              maxPlayers={tournament.max_players}
+              isAdmin={isAdmin}
             />
 
-            {/* Bracket Generator */}
-            <BracketGenerator
-              tournamentId={tournament.id}
-              tournament={{
-                status: tournament.status,
-                max_teams: tournament.max_teams,
-                bracket_type: tournament.bracket_type,
-                match_format: tournament.match_format,
-                final_match_format: tournament.final_match_format,
-                semifinal_match_format: tournament.semifinal_match_format,
-                enable_map_veto: tournament.enable_map_veto,
-                map_veto_required_rounds: tournament.map_veto_required_rounds
-              }}
-              teams={teams}
-              onBracketGenerated={handleRefresh}
-            />
-          </div>
-        )}
+            {/* Bracket View */}
+            {matches.length > 0 && (
+              <Card className="bg-slate-800/90 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="text-xl font-bold text-white flex items-center gap-2">
+                    <Trophy className="w-5 h-5" />
+                    Tournament Bracket
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <IntegratedBracketView
+                    tournamentId={tournament.id}
+                  />
+                </CardContent>
+              </Card>
+            )}
 
-        {/* Tournament Participants */}
-        <TournamentParticipants
-          tournamentId={tournament.id}
-          maxPlayers={tournament.max_players}
-          isAdmin={isAdmin}
-        />
-
-        {/* Bracket View */}
-        {matches.length > 0 && (
-          <Card className="bg-slate-800/90 border-slate-700">
-            <CardHeader>
-              <CardTitle className="text-xl font-bold text-white flex items-center gap-2">
-                <Trophy className="w-5 h-5" />
-                Tournament Bracket
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <IntegratedBracketView
-                tournamentId={tournament.id}
-              />
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Tournament Information */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Tournament Details */}
-          <Card className="bg-slate-800/90 border-slate-700">
-            <CardHeader>
-              <CardTitle className="text-xl font-bold text-white">Tournament Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="text-sm text-slate-400">Format</div>
-                  <div className="text-white">{tournament.bracket_type.replace('_', ' ')}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-slate-400">Team Size</div>
-                  <div className="text-white">{tournament.team_size}v{tournament.team_size}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-slate-400">Max Teams</div>
-                  <div className="text-white">{tournament.max_teams}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-slate-400">Max Players</div>
-                  <div className="text-white">{tournament.max_players}</div>
-                </div>
-              </div>
-              
-              {tournament.enable_map_veto && (
-                <div>
-                  <div className="text-sm text-slate-400">Map Veto</div>
-                  <div className="text-white">Enabled</div>
-                  {tournament.map_veto_required_rounds.length > 0 && (
-                    <div className="text-sm text-slate-500">
-                      Required rounds: {tournament.map_veto_required_rounds.join(', ')}
+            {/* Tournament Information */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Tournament Details */}
+              <Card className="bg-slate-800/90 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="text-xl font-bold text-white">Tournament Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <div className="text-sm text-slate-400">Format</div>
+                      <div className="text-white">{tournament.bracket_type.replace('_', ' ')}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-slate-400">Team Size</div>
+                      <div className="text-white">{tournament.team_size}v{tournament.team_size}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-slate-400">Max Teams</div>
+                      <div className="text-white">{tournament.max_teams}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-slate-400">Max Players</div>
+                      <div className="text-white">{tournament.max_players}</div>
+                    </div>
+                  </div>
+                  
+                  {tournament.enable_map_veto && (
+                    <div>
+                      <div className="text-sm text-slate-400">Map Veto</div>
+                      <div className="text-white">Enabled</div>
+                      {tournament.map_veto_required_rounds.length > 0 && (
+                        <div className="text-sm text-slate-500">
+                          Required rounds: {tournament.map_veto_required_rounds.join(', ')}
+                        </div>
+                      )}
                     </div>
                   )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
 
-          {/* Tournament Timeline */}
-          <Card className="bg-slate-800/90 border-slate-700">
-            <CardHeader>
-              <CardTitle className="text-xl font-bold text-white">Timeline</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <Clock className="w-4 h-4 text-slate-400" />
-                  <div>
-                    <div className="text-sm text-slate-400">Registration Opens</div>
-                    <div className="text-white text-sm">{formatDate(tournament.registration_opens_at)}</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Clock className="w-4 h-4 text-slate-400" />
-                  <div>
-                    <div className="text-sm text-slate-400">Registration Closes</div>
-                    <div className="text-white text-sm">{formatDate(tournament.registration_closes_at)}</div>
-                  </div>
-                </div>
-                {tournament.check_in_required && (
-                  <>
+              {/* Tournament Timeline */}
+              <Card className="bg-slate-800/90 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="text-xl font-bold text-white">Timeline</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
                     <div className="flex items-center gap-3">
                       <Clock className="w-4 h-4 text-slate-400" />
                       <div>
-                        <div className="text-sm text-slate-400">Check-in Starts</div>
-                        <div className="text-white text-sm">{formatDate(tournament.check_in_starts_at)}</div>
+                        <div className="text-sm text-slate-400">Registration Opens</div>
+                        <div className="text-white text-sm">{formatDate(tournament.registration_opens_at)}</div>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <Clock className="w-4 h-4 text-slate-400" />
                       <div>
-                        <div className="text-sm text-slate-400">Check-in Ends</div>
-                        <div className="text-white text-sm">{formatDate(tournament.check_in_ends_at)}</div>
+                        <div className="text-sm text-slate-400">Registration Closes</div>
+                        <div className="text-white text-sm">{formatDate(tournament.registration_closes_at)}</div>
                       </div>
                     </div>
-                  </>
-                )}
-                <div className="flex items-center gap-3">
-                  <Clock className="w-4 h-4 text-slate-400" />
-                  <div>
-                    <div className="text-sm text-slate-400">Tournament Starts</div>
-                    <div className="text-white text-sm">{formatDate(tournament.start_time)}</div>
-                  </div>
-                </div>
-                {tournament.end_time && (
-                  <div className="flex items-center gap-3">
-                    <Clock className="w-4 h-4 text-slate-400" />
-                    <div>
-                      <div className="text-sm text-slate-400">Tournament Ended</div>
-                      <div className="text-white text-sm">{formatDate(tournament.end_time)}</div>
+                    {tournament.check_in_required && (
+                      <>
+                        <div className="flex items-center gap-3">
+                          <Clock className="w-4 h-4 text-slate-400" />
+                          <div>
+                            <div className="text-sm text-slate-400">Check-in Starts</div>
+                            <div className="text-white text-sm">{formatDate(tournament.check_in_starts_at)}</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Clock className="w-4 h-4 text-slate-400" />
+                          <div>
+                            <div className="text-sm text-slate-400">Check-in Ends</div>
+                            <div className="text-white text-sm">{formatDate(tournament.check_in_ends_at)}</div>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                    <div className="flex items-center gap-3">
+                      <Clock className="w-4 h-4 text-slate-400" />
+                      <div>
+                        <div className="text-sm text-slate-400">Tournament Starts</div>
+                        <div className="text-white text-sm">{formatDate(tournament.start_time)}</div>
+                      </div>
                     </div>
+                    {tournament.end_time && (
+                      <div className="flex items-center gap-3">
+                        <Clock className="w-4 h-4 text-slate-400" />
+                        <div>
+                          <div className="text-sm text-slate-400">Tournament Ended</div>
+                          <div className="text-white text-sm">{formatDate(tournament.end_time)}</div>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Admin Management Tab */}
+          {isAdmin && (
+            <TabsContent value="admin" className="space-y-6">
+              {/* Comprehensive Tournament Editor */}
+              <ComprehensiveTournamentEditor
+                tournament={tournament}
+                onTournamentUpdated={handleRefresh}
+              />
+
+              {/* Tournament Status Manager & Bracket Generator */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <TournamentStatusManager
+                  tournamentId={tournament.id}
+                  currentStatus={tournament.status}
+                  onStatusChange={handleRefresh}
+                />
+
+                <BracketGenerator
+                  tournamentId={tournament.id}
+                  tournament={{
+                    status: tournament.status,
+                    max_teams: tournament.max_teams,
+                    bracket_type: tournament.bracket_type,
+                    match_format: tournament.match_format,
+                    final_match_format: tournament.final_match_format,
+                    semifinal_match_format: tournament.semifinal_match_format,
+                    enable_map_veto: tournament.enable_map_veto,
+                    map_veto_required_rounds: tournament.map_veto_required_rounds
+                  }}
+                  teams={teams}
+                  onBracketGenerated={handleRefresh}
+                />
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </TabsContent>
+          )}
+
+          {/* Player Management Tab */}
+          {isAdmin && (
+            <TabsContent value="players" className="space-y-6">
+              {/* Force Check-In Manager */}
+              <ForceCheckInManager
+                tournamentId={tournament.id}
+                onCheckInUpdate={handleRefresh}
+              />
+
+              {/* Tournament Participants with Admin Controls */}
+              <TournamentParticipants
+                tournamentId={tournament.id}
+                maxPlayers={tournament.max_players}
+                isAdmin={true}
+              />
+            </TabsContent>
+          )}
+
+          {/* Team Balancing Tab */}
+          {isAdmin && (
+            <TabsContent value="balancing" className="space-y-6">
+              <TeamBalancingInterface
+                tournamentId={tournament.id}
+                onBalanceComplete={handleRefresh}
+              />
+            </TabsContent>
+          )}
+        </Tabs>
       </div>
     </div>
   );
