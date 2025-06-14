@@ -484,6 +484,7 @@ const MapVetoManager = ({
           )}
         </div>
 
+        {/* Updated: Map Veto start logic allows session with status 'pending' */}
         {!mapVetoAvailable ? (
           <div className="flex items-center gap-2 p-3 bg-gray-500/10 border border-gray-500/20 rounded-lg">
             <AlertCircle className="w-4 h-4 text-gray-500" />
@@ -492,7 +493,8 @@ const MapVetoManager = ({
               {isAdmin && " Use admin controls above to override."}
             </span>
           </div>
-        ) : !vetoSession ? (
+        )
+        : ((!vetoSession || vetoSession?.status === 'pending') ? (
           <div className="text-center space-y-4">
             <p className="text-slate-400">
               Map veto has not been started for this match yet
@@ -563,9 +565,10 @@ const MapVetoManager = ({
               </div>
             )}
           </div>
-        )}
+        ))}
       </CardContent>
-      {vetoSession && team1Id && team2Id && mapVetoAvailable && (
+      {/* Only open the dialog if a "real" ongoing session exists */}
+      {vetoSession && vetoSession.status === "in_progress" && team1Id && team2Id && mapVetoAvailable && (
         <MapVetoDialog
           open={vetoDialogOpen}
           onOpenChange={setVetoDialogOpen}
