@@ -19,6 +19,8 @@ import TeamBalancingTool from "@/components/TeamBalancingTool";
 import TeamBalancingInterface from "@/components/TeamBalancingInterface";
 import BracketGenerator from "@/components/BracketGenerator";
 import ComprehensiveTournamentEditor from "@/components/ComprehensiveTournamentEditor";
+import CheckInEnforcement from "@/components/CheckInEnforcement";
+import MatchManager from "@/components/MatchManager";
 
 interface Tournament {
   id: string;
@@ -34,8 +36,9 @@ interface Tournament {
   max_players: number;
   prize_pool: string | null;
   status: 'draft' | 'open' | 'balancing' | 'live' | 'completed' | 'archived' | null;
-  match_format: string | null;
+  match_format: "BO1" | "BO3" | "BO5" | null;
   bracket_type: string | null;
+  check_in_required: boolean | null;
 }
 
 interface Match {
@@ -432,12 +435,15 @@ const TournamentDetail = () => {
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 bg-slate-800 border-slate-700">
+          <TabsList className="grid w-full grid-cols-5 bg-slate-800 border-slate-700">
             <TabsTrigger value="overview" className="text-slate-300 data-[state=active]:bg-slate-700 data-[state=active]:text-white">
               Overview
             </TabsTrigger>
             <TabsTrigger value="bracket" className="text-slate-300 data-[state=active]:bg-slate-700 data-[state=active]:text-white">
               Bracket
+            </TabsTrigger>
+            <TabsTrigger value="matches" className="text-slate-300 data-[state=active]:bg-slate-700 data-[state=active]:text-white">
+              Matches
             </TabsTrigger>
             <TabsTrigger value="participants" className="text-slate-300 data-[state=active]:bg-slate-700 data-[state=active]:text-white">
               Participants
@@ -450,6 +456,18 @@ const TournamentDetail = () => {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
+            {/* Check-In Enforcement */}
+            {tournament.check_in_required && tournament.check_in_starts_at && tournament.check_in_ends_at && user && isRegistered && (
+              <CheckInEnforcement
+                tournamentId={tournament.id}
+                tournamentName={tournament.name}
+                checkInStartTime={tournament.check_in_starts_at}
+                checkInEndTime={tournament.check_in_ends_at}
+                checkInRequired={tournament.check_in_required}
+                onCheckInChange={fetchParticipants}
+              />
+            )}
+
             {tournament.status === 'open' && user && (
               <Card className="bg-slate-800 border-slate-700">
                 <CardHeader>
@@ -542,6 +560,16 @@ const TournamentDetail = () => {
 
           <TabsContent value="bracket">
             <IntegratedBracketView tournamentId={tournament.id} />
+          </TabsContent>
+
+          <TabsContent value="matches">
+            <MatchManager 
+              tournamentId={tournament.id}
+              onMatchUpdate={() => {
+                fetchMatches();
+                fetchTournament();
+              }}
+            />
           </TabsContent>
 
           <TabsContent value="participants">

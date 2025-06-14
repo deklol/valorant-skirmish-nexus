@@ -23,7 +23,7 @@ interface Tournament {
   max_teams: number;
   max_players: number;
   prize_pool: string | null;
-  status: string;
+  status: "draft" | "open" | "balancing" | "live" | "completed" | "archived";
   match_format: "BO1" | "BO3" | "BO5" | null;
   bracket_type: string | null;
 }
@@ -48,8 +48,8 @@ const ComprehensiveTournamentEditor = ({ tournament, onTournamentUpdated }: Comp
     max_teams: tournament.max_teams.toString(),
     max_players: tournament.max_players.toString(),
     prize_pool: tournament.prize_pool || '',
-    status: tournament.status,
-    match_format: tournament.match_format || 'BO1' as "BO1" | "BO3" | "BO5",
+    status: tournament.status as "draft" | "open" | "balancing" | "live" | "completed" | "archived",
+    match_format: (tournament.match_format || 'BO1') as "BO1" | "BO3" | "BO5",
     bracket_type: tournament.bracket_type || 'single_elimination'
   });
   const { toast } = useToast();
@@ -71,7 +71,7 @@ const ComprehensiveTournamentEditor = ({ tournament, onTournamentUpdated }: Comp
         max_players: parseInt(formData.max_players),
         prize_pool: formData.prize_pool || null,
         status: formData.status,
-        match_format: formData.match_format as "BO1" | "BO3" | "BO5",
+        match_format: formData.match_format,
         bracket_type: formData.bracket_type,
         updated_at: new Date().toISOString()
       };
@@ -116,8 +116,8 @@ const ComprehensiveTournamentEditor = ({ tournament, onTournamentUpdated }: Comp
       max_teams: tournament.max_teams.toString(),
       max_players: tournament.max_players.toString(),
       prize_pool: tournament.prize_pool || '',
-      status: tournament.status,
-      match_format: tournament.match_format || 'BO1' as "BO1" | "BO3" | "BO5",
+      status: tournament.status as "draft" | "open" | "balancing" | "live" | "completed" | "archived",
+      match_format: (tournament.match_format || 'BO1') as "BO1" | "BO3" | "BO5",
       bracket_type: tournament.bracket_type || 'single_elimination'
     });
     setEditing(false);
@@ -274,7 +274,7 @@ const ComprehensiveTournamentEditor = ({ tournament, onTournamentUpdated }: Comp
             </div>
             <div className="space-y-2">
               <Label htmlFor="status" className="text-slate-300">Status</Label>
-              <Select value={formData.status} onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}>
+              <Select value={formData.status} onValueChange={(value: "draft" | "open" | "balancing" | "live" | "completed" | "archived") => setFormData(prev => ({ ...prev, status: value }))}>
                 <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                   <SelectValue />
                 </SelectTrigger>
