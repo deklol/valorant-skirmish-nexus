@@ -457,7 +457,6 @@ const TournamentDetail = () => {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
-            {/* Check-In Enforcement */}
             {tournament.check_in_required && tournament.check_in_starts_at && tournament.check_in_ends_at && user && isRegistered && (
               <CheckInEnforcement
                 tournamentId={tournament.id}
@@ -601,6 +600,16 @@ const TournamentDetail = () => {
                   fetchTournament();
                 }}
               />
+
+              {/* Manual Team Balancing Interface */}
+              <Card className="bg-slate-800 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="text-white">Team Balancing</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TeamBalancingInterface tournamentId={tournament.id} />
+                </CardContent>
+              </Card>
 
               {(tournament.status === 'open' || tournament.status === 'balancing') && (
                 <>

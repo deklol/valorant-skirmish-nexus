@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import MatchResultsSubmission from './MatchResultsSubmission';
+import AdminMatchControls from './AdminMatchControls';
 import processMatchResults from './MatchResultsProcessor';
 
 interface MatchManagerProps {
@@ -21,6 +21,7 @@ const MatchManager = ({ tournamentId, onMatchUpdate }: MatchManagerProps) => {
   const [matches, setMatches] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
+  const [expandedMatch, setExpandedMatch] = useState<string | null>(null);
   const { user, isAdmin } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -140,7 +141,7 @@ const MatchManager = ({ tournamentId, onMatchUpdate }: MatchManagerProps) => {
   return (
     <Card className="bg-slate-800 border-slate-700">
       <CardHeader>
-        <CardTitle className="text-white">Matches</CardTitle>
+        <CardTitle className="text-white">Match Management</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <Tabs 
@@ -190,6 +191,16 @@ const MatchManager = ({ tournamentId, onMatchUpdate }: MatchManagerProps) => {
                               Your Match
                             </Badge>
                           )}
+                          {isAdmin && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setExpandedMatch(expandedMatch === match.id ? null : match.id)}
+                              className="text-xs h-7 px-2 bg-red-700 hover:bg-red-800 border-red-600"
+                            >
+                              {expandedMatch === match.id ? 'Hide' : 'Admin'}
+                            </Button>
+                          )}
                           <Button
                             variant="outline"
                             size="sm"
@@ -223,6 +234,16 @@ const MatchManager = ({ tournamentId, onMatchUpdate }: MatchManagerProps) => {
                         <div className="flex items-center justify-center gap-2 mt-3 text-green-400">
                           <Trophy className="w-4 h-4" />
                           <span className="font-medium">{match.winner.name} won</span>
+                        </div>
+                      )}
+
+                      {/* Admin Controls */}
+                      {isAdmin && expandedMatch === match.id && (
+                        <div className="mt-4">
+                          <AdminMatchControls 
+                            match={match}
+                            onMatchUpdate={handleResultsSubmitted}
+                          />
                         </div>
                       )}
                       
