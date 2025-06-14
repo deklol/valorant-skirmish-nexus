@@ -21,6 +21,7 @@ import BracketGenerator from "@/components/BracketGenerator";
 import ComprehensiveTournamentEditor from "@/components/ComprehensiveTournamentEditor";
 import CheckInEnforcement from "@/components/CheckInEnforcement";
 import MatchManager from "@/components/MatchManager";
+import ForceCheckInManager from "@/components/ForceCheckInManager";
 
 interface Tournament {
   id: string;
@@ -591,6 +592,14 @@ const TournamentDetail = () => {
                 tournamentId={tournament.id}
                 currentStatus={tournament.status || 'draft'}
                 onStatusChange={fetchTournament}
+              />
+
+              <ForceCheckInManager
+                tournamentId={tournament.id}
+                onCheckInUpdate={() => {
+                  fetchParticipants();
+                  fetchTournament();
+                }}
               />
 
               {(tournament.status === 'open' || tournament.status === 'balancing') && (
