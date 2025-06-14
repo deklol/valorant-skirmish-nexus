@@ -1,8 +1,9 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trophy, Users, Clock, Eye, ExternalLink, RefreshCw } from "lucide-react";
+import { Trophy, Users, Clock, ExternalLink, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 
@@ -51,7 +52,7 @@ const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => 
       
       console.log('Fetching bracket data for tournament:', tournamentId);
       
-      // Fetch tournament details first
+      // Fetch tournament details
       const { data: tournamentData, error: tournamentError } = await supabase
         .from('tournaments')
         .select('max_teams, bracket_type, match_format, status, name')
@@ -70,64 +71,37 @@ const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => 
       console.log('Tournament data:', tournamentData);
       setTournament(tournamentData);
 
-      // Fetch matches first
+      // Fetch matches with proper team joins - using the same approach as BracketView
       const { data: matchesData, error: matchesError } = await supabase
         .from('matches')
-        .select('*')
+        .select(`
+          *,
+          team1:teams!matches_team1_id_fkey (name, id),
+          team2:teams!matches_team2_id_fkey (name, id)
+        `)
         .eq('tournament_id', tournamentId)
         .order('round_number', { ascending: true })
         .order('match_number', { ascending: true });
 
       if (matchesError) {
         console.error('Matches error:', matchesError);
+        // Don't throw error, just log and continue with empty matches
         console.warn('Could not fetch matches, continuing with empty bracket');
         setMatches([]);
         return;
       }
 
-      if (!matchesData || matchesData.length === 0) {
-        console.log('No matches found for tournament');
-        setMatches([]);
-        return;
-      }
-
-      // Get all unique team IDs from matches
-      const teamIds = new Set<string>();
-      matchesData.forEach(match => {
-        if (match.team1_id) teamIds.add(match.team1_id);
-        if (match.team2_id) teamIds.add(match.team2_id);
-      });
-
-      // Fetch team data separately
-      let teamsData: any[] = [];
-      if (teamIds.size > 0) {
-        const { data: teams, error: teamsError } = await supabase
-          .from('teams')
-          .select('id, name')
-          .in('id', Array.from(teamIds));
-
-        if (teamsError) {
-          console.error('Teams error:', teamsError);
-        } else {
-          teamsData = teams || [];
-        }
-      }
-
-      // Create a map for quick team lookup
-      const teamMap = new Map();
-      teamsData.forEach(team => {
-        teamMap.set(team.id, team);
-      });
-
-      // Combine matches with team data
-      const matchesWithTeams = matchesData.map(match => ({
+      console.log('Raw matches data:', matchesData);
+      
+      // Process the matches data to ensure proper structure
+      const processedMatches = (matchesData || []).map(match => ({
         ...match,
-        team1: match.team1_id ? teamMap.get(match.team1_id) : null,
-        team2: match.team2_id ? teamMap.get(match.team2_id) : null
+        team1: match.team1 && typeof match.team1 === 'object' && 'name' in match.team1 ? match.team1 : null,
+        team2: match.team2 && typeof match.team2 === 'object' && 'name' in match.team2 ? match.team2 : null
       }));
 
-      console.log('Matches with teams:', matchesWithTeams);
-      setMatches(matchesWithTeams);
+      console.log('Processed matches:', processedMatches);
+      setMatches(processedMatches);
 
     } catch (error: any) {
       console.error('Error fetching bracket:', error);
@@ -244,7 +218,8 @@ const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => 
     );
   }
 
-  if (matches.length === 0) {
+  // Only show "no bracket" message if tournament is NOT live/completed AND no matches exist
+  if (matches.length === 0 && !['live', 'completed'].includes(tournament.status)) {
     return (
       <Card className="bg-slate-800 border-slate-700">
         <CardHeader>
@@ -294,6 +269,7 @@ const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => 
     );
   }
 
+  // If we reach here, we either have matches OR the tournament is live/completed, so show the bracket
   const bracketStructure = generateBracketStructure(tournament.max_teams || 8);
 
   return (
