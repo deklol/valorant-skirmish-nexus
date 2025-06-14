@@ -1,11 +1,10 @@
-
 import { useState, useEffect } from 'react';
-import { DndContext, closestCenter, DragEndEvent } from '@dnd-kit/core';
+import { DndContext, closestCenter, DragEndEvent, DragOverlay, useDraggable, useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Users, Shuffle, Save, Plus } from "lucide-react";
+import { AlertTriangle, Users, Shuffle, Save, Plus, GripVertical } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { getRankPoints, calculateTeamBalance } from "@/utils/rankingSystem";
@@ -33,6 +32,115 @@ interface Team {
   totalWeight: number;
   isPlaceholder?: boolean;
 }
+
+// Draggable Player Component
+const DraggablePlayer = ({ player }: { player: Player }) => {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: player.id,
+  });
+
+  const style = transform ? {
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+  } : undefined;
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      className={`flex items-center justify-between p-2 bg-slate-700 rounded cursor-move transition-opacity ${
+        isDragging ? 'opacity-50' : ''
+      }`}
+    >
+      <div className="flex items-center gap-2">
+        <GripVertical className="w-4 h-4 text-slate-400" />
+        <div>
+          <span className="text-white font-medium">{player.discord_username}</span>
+          <div className="text-xs text-slate-400">
+            {player.current_rank} • {player.weight_rating} pts
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Droppable Team Component
+const DroppableTeam = ({ team, teamSize }: { team: Team; teamSize: number }) => {
+  const { isOver, setNodeRef } = useDroppable({
+    id: team.isPlaceholder ? `placeholder-${team.id}` : `team-${team.id}`,
+  });
+
+  return (
+    <Card className="bg-slate-800 border-slate-700">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-white text-lg flex items-center gap-2">
+            {team.name}
+            {team.isPlaceholder && (
+              <Badge variant="outline" className="text-xs text-slate-400 border-slate-600">
+                Placeholder
+              </Badge>
+            )}
+          </CardTitle>
+          <Badge className="bg-indigo-600 text-white">
+            {team.totalWeight} pts
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div 
+          ref={setNodeRef}
+          className={`space-y-2 min-h-[100px] border-2 border-dashed rounded-lg p-4 transition-colors ${
+            isOver ? 'border-blue-400 bg-blue-900/20' : 'border-slate-600'
+          }`}
+        >
+          {team.members.length === 0 ? (
+            <p className="text-slate-400 text-center py-4">
+              Drop players here
+              {teamSize > 1 && ` (max ${teamSize} players)`}
+            </p>
+          ) : (
+            team.members.map((player, playerIndex) => (
+              <DraggablePlayer key={player.id} player={player} />
+            ))
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+// Droppable Unassigned Area
+const DroppableUnassigned = ({ players }: { players: Player[] }) => {
+  const { isOver, setNodeRef } = useDroppable({
+    id: 'unassigned',
+  });
+
+  return (
+    <Card className="bg-slate-800 border-slate-700 min-h-[200px]">
+      <CardContent className="p-4">
+        <div 
+          ref={setNodeRef}
+          className={`space-y-2 min-h-[150px] border-2 border-dashed rounded-lg p-4 transition-colors ${
+            isOver ? 'border-blue-400 bg-blue-900/20' : 'border-slate-600'
+          }`}
+        >
+          {players.length === 0 ? (
+            <p className="text-slate-400 text-center py-8">
+              All players assigned to teams
+            </p>
+          ) : (
+            players.map(player => (
+              <DraggablePlayer key={player.id} player={player} />
+            ))
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdated }: TeamBalancingInterfaceProps) => {
   const [teams, setTeams] = useState<Team[]>([]);
@@ -250,11 +358,10 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
       
       if (targetTeam) {
         // Check team capacity
-        const maxPlayersPerTeam = teamSize;
-        if (targetTeam.members.length >= maxPlayersPerTeam) {
+        if (targetTeam.members.length >= teamSize) {
           toast({
             title: "Team Full",
-            description: `Team ${targetTeam.name} is already at maximum capacity (${maxPlayersPerTeam} players)`,
+            description: `Team ${targetTeam.name} is already at maximum capacity (${teamSize} players)`,
             variant: "destructive",
           });
           return;
@@ -506,93 +613,14 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
               <Shuffle className="w-4 h-4" />
               Teams ({teams.length}/{maxTeams})
             </h3>
-            {teams.map((team, index) => (
-              <Card key={team.id} className="bg-slate-800 border-slate-700">
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-white text-lg flex items-center gap-2">
-                      {team.name}
-                      {team.isPlaceholder && (
-                        <Badge variant="outline" className="text-xs text-slate-400 border-slate-600">
-                          Placeholder
-                        </Badge>
-                      )}
-                    </CardTitle>
-                    <Badge className="bg-indigo-600 text-white">
-                      {team.totalWeight} pts
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <SortableContext 
-                    items={team.members.map(p => p.id)} 
-                    strategy={verticalListSortingStrategy}
-                  >
-                    <div 
-                      id={team.isPlaceholder ? `placeholder-${index}` : `team-${team.id}`}
-                      className="space-y-2 min-h-[100px] border-2 border-dashed border-slate-600 rounded-lg p-4"
-                    >
-                      {team.members.length === 0 ? (
-                        <p className="text-slate-400 text-center py-4">
-                          Drop players here
-                          {teamSize > 1 && ` (max ${teamSize} players)`}
-                        </p>
-                      ) : (
-                        team.members.map((player, playerIndex) => (
-                          <div key={player.id} className="flex items-center justify-between p-2 bg-slate-700 rounded cursor-move">
-                            <div>
-                              <span className="text-white font-medium">
-                                {player.discord_username}
-                                {playerIndex === 0 && teamSize > 1 && (
-                                  <Badge variant="outline" className="ml-2 text-xs">Captain</Badge>
-                                )}
-                              </span>
-                              <div className="text-xs text-slate-400">
-                                {player.current_rank} • {player.weight_rating} pts
-                              </div>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </SortableContext>
-                </CardContent>
-              </Card>
+            {teams.map((team) => (
+              <DroppableTeam key={team.id} team={team} teamSize={teamSize} />
             ))}
           </div>
 
           <div className="space-y-4">
             <h3 className="text-white font-medium">Unassigned Players ({unassignedPlayers.length})</h3>
-            <Card className="bg-slate-800 border-slate-700 min-h-[200px]">
-              <CardContent className="p-4">
-                <SortableContext 
-                  items={unassignedPlayers.map(p => p.id)} 
-                  strategy={verticalListSortingStrategy}
-                >
-                  <div 
-                    id="unassigned"
-                    className="space-y-2 min-h-[150px] border-2 border-dashed border-slate-600 rounded-lg p-4"
-                  >
-                    {unassignedPlayers.length === 0 ? (
-                      <p className="text-slate-400 text-center py-8">
-                        All players assigned to teams
-                      </p>
-                    ) : (
-                      unassignedPlayers.map(player => (
-                        <div key={player.id} className="flex items-center justify-between p-2 bg-slate-700 rounded cursor-move">
-                          <div>
-                            <span className="text-white font-medium">{player.discord_username}</span>
-                            <div className="text-xs text-slate-400">
-                              {player.current_rank} • {player.weight_rating} pts
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </SortableContext>
-              </CardContent>
-            </Card>
+            <DroppableUnassigned players={unassignedPlayers} />
           </div>
         </div>
       </div>
