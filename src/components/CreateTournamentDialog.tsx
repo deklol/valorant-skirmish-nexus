@@ -29,6 +29,11 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
     max_teams: 10,
     prize_pool: "",
     start_time: "",
+    registration_opens_at: "",
+    registration_closes_at: "",
+    check_in_starts_at: "",
+    check_in_ends_at: "",
+    check_in_required: true,
     enable_map_veto: false,
     map_veto_all_matches: false,
     map_veto_final_rounds_only: false,
@@ -45,16 +50,21 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
       
       const calculatedMaxTeams = Math.floor(formData.max_players / formData.team_size);
       
+      // Set default times if not provided
+      const startTime = formData.start_time || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      const registrationOpens = formData.registration_opens_at || new Date().toISOString();
+      const registrationCloses = formData.registration_closes_at || new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString();
+      const checkInStarts = formData.check_in_starts_at || new Date(Date.now() + 22 * 60 * 60 * 1000).toISOString();
+      const checkInEnds = formData.check_in_ends_at || new Date(Date.now() + 23 * 60 * 60 * 1000).toISOString();
+      
       // Calculate map veto required rounds based on selection
       let mapVetoRequiredRounds: number[] = [];
       if (formData.enable_map_veto && formData.map_veto_final_rounds_only) {
-        // For final rounds only, we'll calculate this during bracket generation
-        // But we can estimate: if 8+ teams, then rounds 3,4 (semi+final)
         const estimatedRounds = Math.ceil(Math.log2(calculatedMaxTeams));
         if (estimatedRounds >= 2) {
-          mapVetoRequiredRounds = [estimatedRounds - 1, estimatedRounds]; // Semi and Final
+          mapVetoRequiredRounds = [estimatedRounds - 1, estimatedRounds];
         } else {
-          mapVetoRequiredRounds = [estimatedRounds]; // Just Final
+          mapVetoRequiredRounds = [estimatedRounds];
         }
       }
       
@@ -68,7 +78,12 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
         max_players: formData.max_players,
         max_teams: calculatedMaxTeams,
         prize_pool: formData.prize_pool,
-        start_time: formData.start_time,
+        start_time: startTime,
+        registration_opens_at: registrationOpens,
+        registration_closes_at: registrationCloses,
+        check_in_starts_at: checkInStarts,
+        check_in_ends_at: checkInEnds,
+        check_in_required: formData.check_in_required,
         enable_map_veto: formData.enable_map_veto,
         map_veto_required_rounds: formData.map_veto_all_matches ? [] : mapVetoRequiredRounds,
         status: 'draft' as const
@@ -106,11 +121,17 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
         max_teams: 10,
         prize_pool: "",
         start_time: "",
+        registration_opens_at: "",
+        registration_closes_at: "",
+        check_in_starts_at: "",
+        check_in_ends_at: "",
+        check_in_required: true,
         enable_map_veto: false,
         map_veto_all_matches: false,
         map_veto_final_rounds_only: false,
       });
 
+      // Close dialog and trigger refresh
       onOpenChange?.(false);
       onTournamentCreated?.();
     } catch (error: any) {
@@ -241,10 +262,80 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
                     value={formData.start_time}
                     onChange={(e) => setFormData(prev => ({ ...prev, start_time: e.target.value }))}
                     className="bg-slate-700 border-slate-600 text-white"
-                    required
                   />
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Registration & Check-in Settings */}
+          <Card className="bg-slate-700 border-slate-600">
+            <CardHeader>
+              <CardTitle className="text-white text-lg">Registration & Check-in</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="registration_opens_at" className="text-white">Registration Opens</Label>
+                  <Input
+                    id="registration_opens_at"
+                    type="datetime-local"
+                    value={formData.registration_opens_at}
+                    onChange={(e) => setFormData(prev => ({ ...prev, registration_opens_at: e.target.value }))}
+                    className="bg-slate-700 border-slate-600 text-white"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="registration_closes_at" className="text-white">Registration Closes</Label>
+                  <Input
+                    id="registration_closes_at"
+                    type="datetime-local"
+                    value={formData.registration_closes_at}
+                    onChange={(e) => setFormData(prev => ({ ...prev, registration_closes_at: e.target.value }))}
+                    className="bg-slate-700 border-slate-600 text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="check_in_required"
+                  checked={formData.check_in_required}
+                  onCheckedChange={(checked) => 
+                    setFormData(prev => ({ ...prev, check_in_required: !!checked }))
+                  }
+                />
+                <Label htmlFor="check_in_required" className="text-white">
+                  Require player check-in
+                </Label>
+              </div>
+
+              {formData.check_in_required && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="check_in_starts_at" className="text-white">Check-in Starts</Label>
+                    <Input
+                      id="check_in_starts_at"
+                      type="datetime-local"
+                      value={formData.check_in_starts_at}
+                      onChange={(e) => setFormData(prev => ({ ...prev, check_in_starts_at: e.target.value }))}
+                      className="bg-slate-700 border-slate-600 text-white"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="check_in_ends_at" className="text-white">Check-in Ends</Label>
+                    <Input
+                      id="check_in_ends_at"
+                      type="datetime-local"
+                      value={formData.check_in_ends_at}
+                      onChange={(e) => setFormData(prev => ({ ...prev, check_in_ends_at: e.target.value }))}
+                      className="bg-slate-700 border-slate-600 text-white"
+                    />
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 

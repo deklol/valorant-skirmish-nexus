@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -79,6 +78,12 @@ const Tournaments = () => {
   useEffect(() => {
     fetchTournaments();
   }, []);
+
+  const handleTournamentCreated = () => {
+    console.log('Tournament created, refreshing list and closing dialog...');
+    setCreateDialogOpen(false);
+    fetchTournaments();
+  };
 
   const filteredTournaments = tournaments.filter(tournament => {
     const matchesSearch = tournament.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -195,10 +200,7 @@ const Tournaments = () => {
           console.log('Dialog open state changed to:', open);
           setCreateDialogOpen(open);
         }}
-        onTournamentCreated={() => {
-          console.log('Tournament created, refreshing list...');
-          fetchTournaments();
-        }}
+        onTournamentCreated={handleTournamentCreated}
       />
     </div>
   );

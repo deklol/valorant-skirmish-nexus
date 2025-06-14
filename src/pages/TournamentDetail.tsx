@@ -6,16 +6,23 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar, Users, Map, Shuffle } from "lucide-react";
+import { Calendar, Users, Map, Shuffle, Settings, Clock, Trophy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import BracketGenerator from "@/components/BracketGenerator";
+import TournamentStatusManager from "@/components/TournamentStatusManager";
+import TournamentParticipants from "@/components/TournamentParticipants";
+import TournamentRegistration from "@/components/TournamentRegistration";
+import IntegratedBracketView from "@/components/IntegratedBracketView";
 
 interface Tournament {
   id: string;
   name: string;
+  description: string;
   status: string;
   max_teams: number;
+  max_players: number;
+  team_size: number;
   bracket_type: string;
   match_format: string;
   final_match_format?: string;
@@ -23,6 +30,14 @@ interface Tournament {
   enable_map_veto: boolean;
   map_veto_required_rounds: number[];
   start_time: string;
+  end_time?: string;
+  prize_pool?: string;
+  registration_opens_at: string;
+  registration_closes_at: string;
+  check_in_starts_at: string;
+  check_in_ends_at: string;
+  check_in_required: boolean;
+  created_at: string;
   teams?: Team[];
   matches?: Match[];
 }
@@ -30,6 +45,8 @@ interface Tournament {
 interface Team {
   id: string;
   name: string;
+  seed?: number;
+  total_rank_points: number;
   team_members: TeamMember[];
 }
 
@@ -42,6 +59,8 @@ interface TeamMember {
 interface User {
   discord_username: string;
   discord_avatar_url: string | null;
+  current_rank: string;
+  riot_id: string;
 }
 
 interface Match {
@@ -55,6 +74,11 @@ interface Match {
   status: string;
   score_team1: number;
   score_team2: number;
+  best_of: number;
+  map_veto_enabled: boolean;
+  scheduled_time?: string;
+  started_at?: string;
+  completed_at?: string;
   team1: { name: string };
   team2: { name: string };
   winner: { name: string } | null;
@@ -67,19 +91,19 @@ const TournamentDetail = () => {
   const [matches, setMatches] = useState<Match[]>([]);
   const [signups, setSignups] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
   const { toast } = useToast();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
 
   useEffect(() => {
     if (id) {
       fetchTournamentDetails();
     }
-  }, [id]);
+  }, [id, refreshKey]);
 
   const parseMapVetoRounds = (value: any): number[] => {
     if (!value) return [];
     if (Array.isArray(value)) {
-      // Handle array of numbers or strings that can be converted to numbers
       return value.map(item => {
         if (typeof item === 'number') return item;
         if (typeof item === 'string') {
@@ -105,6 +129,7 @@ const TournamentDetail = () => {
       setLoading(true);
       console.log('Fetching tournament details for ID:', id);
 
+      // Fetch tournament with all related data
       const { data: tournamentData, error: tournamentError } = await supabase
         .from('tournaments')
         .select(`
@@ -116,7 +141,9 @@ const TournamentDetail = () => {
               is_captain,
               users (
                 discord_username,
-                discord_avatar_url
+                discord_avatar_url,
+                current_rank,
+                riot_id
               )
             )
           ),
@@ -137,18 +164,22 @@ const TournamentDetail = () => {
 
       console.log('Tournament data fetched:', tournamentData);
       
-      // Parse the tournament data and handle JSON fields properly
       const parsedTournament: Tournament = {
         ...tournamentData,
         enable_map_veto: tournamentData.enable_map_veto || false,
-        map_veto_required_rounds: parseMapVetoRounds(tournamentData.map_veto_required_rounds)
+        map_veto_required_rounds: parseMapVetoRounds(tournamentData.map_veto_required_rounds),
+        check_in_required: tournamentData.check_in_required ?? true,
+        registration_opens_at: tournamentData.registration_opens_at || tournamentData.start_time,
+        registration_closes_at: tournamentData.registration_closes_at || tournamentData.start_time,
+        check_in_starts_at: tournamentData.check_in_starts_at || tournamentData.start_time,
+        check_in_ends_at: tournamentData.check_in_ends_at || tournamentData.start_time
       };
       
       setTournament(parsedTournament);
       setTeams(tournamentData.teams || []);
       setMatches(tournamentData.matches || []);
 
-      // Fetch signups
+      // Fetch signups separately for better performance
       const { data: signupsData, error: signupsError } = await supabase
         .from('tournament_signups')
         .select(`
@@ -159,7 +190,8 @@ const TournamentDetail = () => {
             current_rank,
             rank_points,
             weight_rating,
-            discord_avatar_url
+            discord_avatar_url,
+            riot_id
           )
         `)
         .eq('tournament_id', id);
@@ -184,6 +216,10 @@ const TournamentDetail = () => {
     }
   };
 
+  const handleRefresh = () => {
+    setRefreshKey(prev => prev + 1);
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-GB", {
       day: "2-digit",
@@ -205,7 +241,7 @@ const TournamentDetail = () => {
     };
 
     return (
-      <Badge className={variants[status]}>
+      <Badge className={variants[status as keyof typeof variants] || variants.draft}>
         {status.charAt(0).toUpperCase() + status.slice(1)}
       </Badge>
     );
@@ -216,7 +252,7 @@ const TournamentDetail = () => {
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
-            <p className="text-white">Loading tournament details...</p>
+            <p className="text-white text-lg">Loading tournament details...</p>
           </div>
         </div>
       </div>
@@ -228,7 +264,7 @@ const TournamentDetail = () => {
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
-            <p className="text-white">Tournament not found</p>
+            <p className="text-white text-lg">Tournament not found</p>
           </div>
         </div>
       </div>
@@ -242,31 +278,59 @@ const TournamentDetail = () => {
         <Card className="bg-slate-800/90 border-slate-700">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-2xl font-bold text-white">{tournament.name}</CardTitle>
+              <div>
+                <CardTitle className="text-2xl font-bold text-white">{tournament.name}</CardTitle>
+                {tournament.description && (
+                  <p className="text-slate-300 mt-2">{tournament.description}</p>
+                )}
+              </div>
               {getStatusBadge(tournament.status)}
             </div>
           </CardHeader>
           <CardContent className="text-slate-300">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
                 <span>{formatDate(tournament.start_time)}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Users className="w-4 h-4" />
-                <span>{tournament.max_teams} Teams</span>
+                <span>{tournament.team_size}v{tournament.team_size} • {tournament.max_teams} Teams</span>
               </div>
               <div className="flex items-center gap-2">
                 <Map className="w-4 h-4" />
                 <span>{tournament.match_format}</span>
               </div>
+              {tournament.prize_pool && (
+                <div className="flex items-center gap-2">
+                  <Trophy className="w-4 h-4" />
+                  <span>{tournament.prize_pool}</span>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Tournament Management (Admin Only) */}
+        {/* Registration Component - Available to all users */}
+        {tournament.status === 'open' && (
+          <TournamentRegistration
+            tournamentId={tournament.id}
+            tournament={tournament}
+            onRegistrationChange={handleRefresh}
+          />
+        )}
+
+        {/* Admin Controls */}
         {isAdmin && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Tournament Status Manager */}
+            <TournamentStatusManager
+              tournamentId={tournament.id}
+              currentStatus={tournament.status}
+              onStatusChange={handleRefresh}
+            />
+
+            {/* Bracket Generator */}
             <BracketGenerator
               tournamentId={tournament.id}
               tournament={{
@@ -280,91 +344,139 @@ const TournamentDetail = () => {
                 map_veto_required_rounds: tournament.map_veto_required_rounds
               }}
               teams={teams}
-              onBracketGenerated={fetchTournamentDetails}
+              onBracketGenerated={handleRefresh}
             />
-
-            <Card className="bg-slate-800/90 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-xl font-bold text-white flex items-center gap-2">
-                  <Shuffle className="w-5 h-5" />
-                  Team Balancing
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-slate-400">
-                  Automatically balance teams based on player weight ratings.
-                </p>
-                <Button className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white">
-                  Balance Teams
-                </Button>
-              </CardContent>
-            </Card>
           </div>
         )}
 
-        {/* Signups */}
-        <Card className="bg-slate-800/90 border-slate-700">
-          <CardHeader>
-            <CardTitle className="text-xl font-bold text-white">Signups ({signups.length})</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {signups.length === 0 ? (
-              <p className="text-slate-400">No signups yet.</p>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {signups.map((signup) => (
-                  <div key={signup.id} className="flex items-center gap-3">
-                    <Avatar>
-                      <AvatarImage src={signup.users?.discord_avatar_url} />
-                      <AvatarFallback>{signup.users?.discord_username?.charAt(0)}</AvatarFallback>
-                    </Avatar>
+        {/* Tournament Participants */}
+        <TournamentParticipants
+          tournamentId={tournament.id}
+          maxPlayers={tournament.max_players}
+          isAdmin={isAdmin}
+        />
+
+        {/* Bracket View */}
+        {matches.length > 0 && (
+          <Card className="bg-slate-800/90 border-slate-700">
+            <CardHeader>
+              <CardTitle className="text-xl font-bold text-white flex items-center gap-2">
+                <Trophy className="w-5 h-5" />
+                Tournament Bracket
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <IntegratedBracketView
+                tournamentId={tournament.id}
+                matches={matches}
+                teams={teams}
+                isAdmin={isAdmin}
+                onMatchUpdate={handleRefresh}
+              />
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Tournament Information */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Tournament Details */}
+          <Card className="bg-slate-800/90 border-slate-700">
+            <CardHeader>
+              <CardTitle className="text-xl font-bold text-white">Tournament Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-sm text-slate-400">Format</div>
+                  <div className="text-white">{tournament.bracket_type.replace('_', ' ')}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-slate-400">Team Size</div>
+                  <div className="text-white">{tournament.team_size}v{tournament.team_size}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-slate-400">Max Teams</div>
+                  <div className="text-white">{tournament.max_teams}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-slate-400">Max Players</div>
+                  <div className="text-white">{tournament.max_players}</div>
+                </div>
+              </div>
+              
+              {tournament.enable_map_veto && (
+                <div>
+                  <div className="text-sm text-slate-400">Map Veto</div>
+                  <div className="text-white">Enabled</div>
+                  {tournament.map_veto_required_rounds.length > 0 && (
+                    <div className="text-sm text-slate-500">
+                      Required rounds: {tournament.map_veto_required_rounds.join(', ')}
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Tournament Timeline */}
+          <Card className="bg-slate-800/90 border-slate-700">
+            <CardHeader>
+              <CardTitle className="text-xl font-bold text-white">Timeline</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <Clock className="w-4 h-4 text-slate-400" />
+                  <div>
+                    <div className="text-sm text-slate-400">Registration Opens</div>
+                    <div className="text-white text-sm">{formatDate(tournament.registration_opens_at)}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Clock className="w-4 h-4 text-slate-400" />
+                  <div>
+                    <div className="text-sm text-slate-400">Registration Closes</div>
+                    <div className="text-white text-sm">{formatDate(tournament.registration_closes_at)}</div>
+                  </div>
+                </div>
+                {tournament.check_in_required && (
+                  <>
+                    <div className="flex items-center gap-3">
+                      <Clock className="w-4 h-4 text-slate-400" />
+                      <div>
+                        <div className="text-sm text-slate-400">Check-in Starts</div>
+                        <div className="text-white text-sm">{formatDate(tournament.check_in_starts_at)}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Clock className="w-4 h-4 text-slate-400" />
+                      <div>
+                        <div className="text-sm text-slate-400">Check-in Ends</div>
+                        <div className="text-white text-sm">{formatDate(tournament.check_in_ends_at)}</div>
+                      </div>
+                    </div>
+                  </>
+                )}
+                <div className="flex items-center gap-3">
+                  <Clock className="w-4 h-4 text-slate-400" />
+                  <div>
+                    <div className="text-sm text-slate-400">Tournament Starts</div>
+                    <div className="text-white text-sm">{formatDate(tournament.start_time)}</div>
+                  </div>
+                </div>
+                {tournament.end_time && (
+                  <div className="flex items-center gap-3">
+                    <Clock className="w-4 h-4 text-slate-400" />
                     <div>
-                      <div className="font-medium text-white">{signup.users?.discord_username}</div>
-                      <div className="text-sm text-slate-400">{signup.users?.current_rank}</div>
+                      <div className="text-sm text-slate-400">Tournament Ended</div>
+                      <div className="text-white text-sm">{formatDate(tournament.end_time)}</div>
                     </div>
                   </div>
-                ))}
+                )}
               </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Bracket */}
-        <Card className="bg-slate-800/90 border-slate-700">
-          <CardHeader>
-            <CardTitle className="text-xl font-bold text-white">Bracket</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {matches.length === 0 ? (
-              <p className="text-slate-400">Bracket not generated yet.</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="text-left">
-                      <th className="text-slate-400 font-medium py-2">Round</th>
-                      <th className="text-slate-400 font-medium py-2">Match</th>
-                      <th className="text-slate-400 font-medium py-2">Team 1</th>
-                      <th className="text-slate-400 font-medium py-2">Team 2</th>
-                      <th className="text-slate-400 font-medium py-2">Winner</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {matches.map((match) => (
-                      <tr key={match.id} className="border-b border-slate-700">
-                        <td className="py-3 text-white">{match.round_number}</td>
-                        <td className="py-3 text-white">{match.match_number}</td>
-                        <td className="py-3 text-white">{match.team1?.name || 'TBD'}</td>
-                        <td className="py-3 text-white">{match.team2?.name || 'TBD'}</td>
-                        <td className="py-3 text-green-400">{match.winner?.name || 'TBD'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
