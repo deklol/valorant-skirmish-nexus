@@ -86,29 +86,46 @@ const AdminMatchControls = ({ match, onMatchUpdate }: AdminMatchControlsProps) =
   const overrideResults = async () => {
     setLoading(true);
     try {
-      const updateData: any = {
-        score_team1: overrideScore1,
-        score_team2: overrideScore2,
-        status: 'completed'
-      };
-
-      if (overrideWinner) {
-        updateData.winner_id = overrideWinner;
+      // If setting the match to 'completed', always use processMatchResults for bracket safety!
+      const isWin = overrideWinner && overrideWinner.length > 0 && overrideScore1 !== overrideScore2;
+      if (isWin && match.status !== 'completed') {
+        // Infer which team lost by comparing against inputs
+        let loserId = '';
+        if (overrideWinner === match.team1_id) {
+          loserId = match.team2_id;
+        } else if (overrideWinner === match.team2_id) {
+          loserId = match.team1_id;
+        }
+        // Use new processor (Bracket safe!)
+        const processor = (await import('./MatchResultsProcessor')).processMatchResults;
+        await processor({
+          matchId: match.id,
+          winnerId: overrideWinner,
+          loserId,
+          tournamentId: match.tournament_id,
+          scoreTeam1: overrideScore1,
+          scoreTeam2: overrideScore2,
+          onComplete: onMatchUpdate,
+        });
+      } else {
+        // Fallback: Just update scores (for ties or to clear winner)
+        const updateData: any = {
+          score_team1: overrideScore1,
+          score_team2: overrideScore2,
+          status: overrideScore1 !== overrideScore2 ? 'completed' : 'pending',
+          winner_id: isWin ? overrideWinner : null,
+        };
+        await supabase
+          .from('matches')
+          .update(updateData)
+          .eq('id', match.id);
+        onMatchUpdate();
       }
-
-      const { error } = await supabase
-        .from('matches')
-        .update(updateData)
-        .eq('id', match.id);
-
-      if (error) throw error;
 
       toast({
         title: "Match Results Overridden",
-        description: "Match results have been forcefully updated",
+        description: "Match results have been updated (bracket-safely)",
       });
-
-      onMatchUpdate();
     } catch (error) {
       console.error('Error overriding match results:', error);
       toast({

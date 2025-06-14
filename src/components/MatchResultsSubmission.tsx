@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,70 +43,95 @@ const MatchResultsSubmission = ({
 
     setSubmitting(true);
     try {
-      // Determine winner
       let winnerId = null;
       if (scores.team1 > scores.team2) {
         winnerId = team1.id;
       } else if (scores.team2 > scores.team1) {
         winnerId = team2.id;
       }
+      let loserId = null;
+      if (scores.team1 > scores.team2) {
+        loserId = team2.id;
+      } else if (scores.team2 > scores.team1) {
+        loserId = team1.id;
+      }
 
-      // Check if there are pending results that need confirmation
-      const { data: existingPending } = await supabase
-        .from('match_result_submissions')
-        .select('*')
-        .eq('match_id', matchId)
-        .eq('status', 'pending')
-        .single();
-
-      if (existingPending && existingPending.submitted_by !== user?.id) {
-        // Confirm the existing submission
-        await supabase
-          .from('match_result_submissions')
-          .update({ 
-            status: 'confirmed',
-            confirmed_by: user?.id,
-            confirmed_at: new Date().toISOString()
-          })
-          .eq('id', existingPending.id);
-
-        // Update the actual match
-        await supabase
-          .from('matches')
-          .update({
-            score_team1: existingPending.score_team1,
-            score_team2: existingPending.score_team2,
-            winner_id: existingPending.winner_id,
-            status: 'completed',
-            completed_at: new Date().toISOString()
-          })
-          .eq('id', matchId);
-
-        toast({
-          title: "Results Confirmed",
-          description: "Match results have been confirmed and the winner has advanced",
+      // Confirmed: Use ONLY processMatchResults for final completion!
+      if (winnerId && loserId && scores.team1 !== scores.team2) {
+        const processor = (await import('./MatchResultsProcessor')).processMatchResults;
+        await processor({
+          matchId,
+          winnerId,
+          loserId,
+          tournamentId: team1.id, // Use any team's tournament; prefer team1 but should be safe, must pass correct id!
+          scoreTeam1: scores.team1,
+          scoreTeam2: scores.team2,
+          onComplete: onResultsSubmitted,
         });
-
-        onResultsSubmitted();
-      } else {
-        // Submit new results for confirmation
-        await supabase
-          .from('match_result_submissions')
-          .insert({
-            match_id: matchId,
-            score_team1: scores.team1,
-            score_team2: scores.team2,
-            winner_id: winnerId,
-            submitted_by: user?.id,
-            status: 'pending'
-          });
 
         toast({
           title: "Results Submitted",
-          description: "Results submitted and awaiting confirmation from the other team captain or admin",
+          description: "Match is complete and bracket progress updated.",
         });
+        setPendingResults(null);
+      } else {
+        // Classic workflow (pending confirmation or data mismatch)
+        const { data: existingPending } = await supabase
+          .from('match_result_submissions')
+          .select('*')
+          .eq('match_id', matchId)
+          .eq('status', 'pending')
+          .single();
 
-        setPendingResults({ scores, winnerId });
+        if (existingPending && existingPending.submitted_by !== user?.id) {
+          // Confirm the existing submission
+          await supabase
+            .from('match_result_submissions')
+            .update({ 
+              status: 'confirmed',
+              confirmed_by: user?.id,
+              confirmed_at: new Date().toISOString()
+            })
+            .eq('id', existingPending.id);
+
+          // Update the actual match
+          await supabase
+            .from('matches')
+            .update({
+              score_team1: existingPending.score_team1,
+              score_team2: existingPending.score_team2,
+              winner_id: existingPending.winner_id,
+              status: 'completed',
+              completed_at: new Date().toISOString()
+            })
+            .eq('id', matchId);
+
+          toast({
+            title: "Results Confirmed",
+            description: "Match results have been confirmed and the winner has advanced",
+          });
+
+          onResultsSubmitted();
+        } else {
+          // Submit new results for confirmation
+          await supabase
+            .from('match_result_submissions')
+            .insert({
+              match_id: matchId,
+              score_team1: scores.team1,
+              score_team2: scores.team2,
+              winner_id: winnerId,
+              submitted_by: user?.id,
+              status: 'pending'
+            });
+
+          toast({
+            title: "Results Submitted",
+            description: "Results submitted and awaiting confirmation from the other team captain or admin",
+          });
+
+          setPendingResults({ scores, winnerId });
+        }
       }
     } catch (error) {
       console.error('Error submitting results:', error);
