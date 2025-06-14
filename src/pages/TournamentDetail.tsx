@@ -1,29 +1,36 @@
 
+import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Users, Trophy, MapPin, Clock, CheckCircle } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Calendar, Users, Trophy, Settings, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import TournamentRegistration from "@/components/TournamentRegistration";
+import TournamentParticipants from "@/components/TournamentParticipants";
 import BracketGenerator from "@/components/BracketGenerator";
 import IntegratedBracketView from "@/components/IntegratedBracketView";
-import TournamentParticipants from "@/components/TournamentParticipants";
-import TournamentManagement from "@/components/TournamentManagement";
-import { useToast } from "@/hooks/use-toast";
+import MatchManager from "@/components/MatchManager";
+import ComprehensiveTournamentEditor from "@/components/ComprehensiveTournamentEditor";
+import TeamBalancingInterface from "@/components/TeamBalancingInterface";
 
 interface Tournament {
   id: string;
   name: string;
   description: string | null;
   start_time: string | null;
+  end_time: string | null;
   status: string;
   max_teams: number;
   max_players: number;
+  team_size: number;
   bracket_type: string;
   match_format: string;
+  final_match_format?: string;
+  semifinal_match_format?: string;
   registration_opens_at: string | null;
   registration_closes_at: string | null;
   check_in_required: boolean;
@@ -31,33 +38,39 @@ interface Tournament {
   check_in_ends_at: string | null;
   prize_pool: string | null;
   created_by: string | null;
-  team_size: number;
+  created_at: string;
+  updated_at: string;
+  enable_map_veto: boolean;
+  map_veto_required_rounds?: number[];
 }
 
 const TournamentDetail = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { user, isAdmin } = useAuth();
+  const { toast } = useToast();
+  
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [loading, setLoading] = useState(true);
-  const [signupCount, setSignupCount] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [registrationCount, setRegistrationCount] = useState(0);
   const [checkedInCount, setCheckedInCount] = useState(0);
   const [isRegistered, setIsRegistered] = useState(false);
-  const [isCheckedIn, setIsCheckedIn] = useState(false);
-  const [teamCount, setTeamCount] = useState(0);
-  const { user } = useAuth();
-  const { toast } = useToast();
+  const [teams, setTeams] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
     if (id) {
       fetchTournament();
-      fetchSignupStats();
-      if (user) {
-        checkRegistrationStatus();
-      }
+      fetchRegistrationData();
     }
   }, [id, user]);
 
   const fetchTournament = async () => {
     try {
+      setLoading(true);
+      setError(null);
+      
       const { data, error } = await supabase
         .from('tournaments')
         .select('*')
@@ -65,71 +78,96 @@ const TournamentDetail = () => {
         .single();
 
       if (error) throw error;
+      
+      if (!data) {
+        throw new Error('Tournament not found');
+      }
+
       setTournament(data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching tournament:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load tournament details",
-        variant: "destructive",
-      });
+      setError(error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchSignupStats = async () => {
+  const fetchRegistrationData = async () => {
+    if (!id) return;
+
     try {
-      const { count: totalSignups } = await supabase
+      // Get registration counts
+      const { data: signups, error: signupsError } = await supabase
         .from('tournament_signups')
-        .select('*', { count: 'exact', head: true })
+        .select('is_checked_in')
         .eq('tournament_id', id);
 
-      const { count: checkedIn } = await supabase
-        .from('tournament_signups')
-        .select('*', { count: 'exact', head: true })
-        .eq('tournament_id', id)
-        .eq('is_checked_in', true);
+      if (signupsError) throw signupsError;
 
-      const { count: teams } = await supabase
+      setRegistrationCount(signups?.length || 0);
+      setCheckedInCount(signups?.filter(s => s.is_checked_in)?.length || 0);
+
+      // Check if current user is registered
+      if (user) {
+        const { data: userSignup } = await supabase
+          .from('tournament_signups')
+          .select('id')
+          .eq('tournament_id', id)
+          .eq('user_id', user.id)
+          .single();
+
+        setIsRegistered(!!userSignup);
+      }
+
+      // Fetch teams
+      const { data: teamsData, error: teamsError } = await supabase
         .from('teams')
-        .select('*', { count: 'exact', head: true })
+        .select(`
+          *,
+          team_members (
+            user_id,
+            is_captain,
+            users (discord_username, current_rank)
+          )
+        `)
         .eq('tournament_id', id);
 
-      setSignupCount(totalSignups || 0);
-      setCheckedInCount(checkedIn || 0);
-      setTeamCount(teams || 0);
-    } catch (error) {
-      console.error('Error fetching signup stats:', error);
+      if (teamsError) throw teamsError;
+      setTeams(teamsData || []);
+
+    } catch (error: any) {
+      console.error('Error fetching registration data:', error);
     }
   };
 
-  const checkRegistrationStatus = async () => {
-    if (!user || !id) return;
+  const handleRegistrationUpdate = () => {
+    fetchRegistrationData();
+  };
 
-    try {
-      const { data } = await supabase
-        .from('tournament_signups')
-        .select('is_checked_in')
-        .eq('tournament_id', id)
-        .eq('user_id', user.id)
-        .single();
+  const handleTournamentUpdate = () => {
+    fetchTournament();
+    fetchRegistrationData();
+  };
 
-      if (data) {
-        setIsRegistered(true);
-        setIsCheckedIn(data.is_checked_in);
-      }
-    } catch (error) {
-      // User is not registered
-      setIsRegistered(false);
-      setIsCheckedIn(false);
-    }
+  const getStatusBadge = (status: string) => {
+    const variants: Record<string, string> = {
+      draft: "bg-gray-500/20 text-gray-400",
+      published: "bg-blue-500/20 text-blue-400",
+      balancing: "bg-orange-500/20 text-orange-400",
+      live: "bg-green-500/20 text-green-400",
+      completed: "bg-purple-500/20 text-purple-400"
+    };
+
+    return (
+      <Badge className={variants[status] || variants.draft}>
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </Badge>
+    );
   };
 
   const formatDateTime = (dateString: string | null) => {
-    if (!dateString) return "Not set";
+    if (!dateString) return "TBD";
     return new Date(dateString).toLocaleDateString("en-GB", {
-      weekday: "short",
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -138,196 +176,244 @@ const TournamentDetail = () => {
     });
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'draft': return 'bg-gray-500';
-      case 'published': return 'bg-blue-500';
-      case 'live': return 'bg-green-500';
-      case 'completed': return 'bg-purple-500';
-      default: return 'bg-gray-500';
-    }
-  };
-
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-center items-center h-64">
-          <p className="text-slate-400">Loading tournament details...</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <p className="text-white text-lg">Loading tournament...</p>
+          </div>
         </div>
       </div>
     );
   }
 
-  if (!tournament) {
+  if (error || !tournament) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-white mb-4">Tournament Not Found</h1>
-          <p className="text-slate-400">The tournament you're looking for doesn't exist or has been removed.</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <div className="container mx-auto px-4 py-8">
+          <Card className="bg-slate-800 border-slate-700">
+            <CardContent className="py-8 text-center">
+              <AlertCircle className="w-16 h-16 mx-auto text-red-500 mb-4" />
+              <h2 className="text-2xl font-bold text-white mb-2">Tournament Not Found</h2>
+              <p className="text-slate-400 mb-4">{error || "The tournament you're looking for doesn't exist."}</p>
+              <Button onClick={() => navigate('/tournaments')} className="bg-red-600 hover:bg-red-700">
+                Back to Tournaments
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
   }
-
-  const isAdmin = user?.role === 'admin';
-  const isCreator = user?.id === tournament.created_by;
-  const canManage = isAdmin || isCreator;
 
   return (
-    <div className="container mx-auto px-4 py-8 space-y-6">
-      {/* Tournament Header */}
-      <Card className="bg-slate-800 border-slate-700">
-        <CardHeader>
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div>
-              <CardTitle className="text-3xl font-bold text-white mb-2">
-                {tournament.name}
-              </CardTitle>
-              <div className="flex flex-wrap items-center gap-2 mb-4">
-                <Badge className={`${getStatusColor(tournament.status)} text-white`}>
-                  {tournament.status.toUpperCase()}
-                </Badge>
-                <Badge variant="outline" className="border-slate-600 text-slate-300">
-                  {tournament.bracket_type.replace('_', ' ')}
-                </Badge>
-                <Badge variant="outline" className="border-slate-600 text-slate-300">
-                  {tournament.match_format}
-                </Badge>
-                <Badge variant="outline" className="border-slate-600 text-slate-300">
-                  {tournament.team_size}v{tournament.team_size}
-                </Badge>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <div className="container mx-auto px-4 py-8">
+        {/* Tournament Header */}
+        <Card className="bg-slate-800 border-slate-700 mb-6">
+          <CardHeader>
+            <div className="flex justify-between items-start">
+              <div className="space-y-2">
+                <CardTitle className="text-2xl text-white flex items-center gap-3">
+                  <Trophy className="w-6 h-6" />
+                  {tournament.name}
+                </CardTitle>
+                <div className="flex items-center gap-4 flex-wrap">
+                  {getStatusBadge(tournament.status)}
+                  <Badge variant="outline" className="border-slate-600 text-slate-300">
+                    <Users className="w-3 h-3 mr-1" />
+                    {registrationCount}/{tournament.max_players} Players
+                  </Badge>
+                  <Badge variant="outline" className="border-slate-600 text-slate-300">
+                    <Calendar className="w-3 h-3 mr-1" />
+                    {formatDateTime(tournament.start_time)}
+                  </Badge>
+                  {tournament.check_in_required && (
+                    <Badge variant="outline" className="border-green-600 text-green-300">
+                      {checkedInCount} Checked In
+                    </Badge>
+                  )}
+                </div>
+              </div>
+              
+              <div className="flex gap-2">
+                {isAdmin && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setActiveTab('admin')}
+                    className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white"
+                  >
+                    <Settings className="w-4 h-4 mr-2" />
+                    Admin
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  onClick={() => navigate('/tournaments')}
+                  className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                >
+                  Back to Tournaments
+                </Button>
               </div>
             </div>
             
-            {/* Registration/Check-in Status */}
-            {user && tournament.status === 'published' && (
-              <div className="flex flex-col gap-2">
-                {isRegistered ? (
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span className="text-green-400">
-                      {isCheckedIn ? 'Checked In' : 'Registered'}
-                    </span>
+            {tournament.description && (
+              <p className="text-slate-400 mt-4">{tournament.description}</p>
+            )}
+          </CardHeader>
+        </Card>
+
+        {/* Tournament Content Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="bg-slate-800 border-slate-700">
+            <TabsTrigger value="overview" className="text-slate-300 data-[state=active]:text-white">
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="participants" className="text-slate-300 data-[state=active]:text-white">
+              Participants ({registrationCount})
+            </TabsTrigger>
+            <TabsTrigger value="bracket" className="text-slate-300 data-[state=active]:text-white">
+              Bracket
+            </TabsTrigger>
+            <TabsTrigger value="matches" className="text-slate-300 data-[state=active]:text-white">
+              Matches
+            </TabsTrigger>
+            {isAdmin && (
+              <TabsTrigger value="balancing" className="text-slate-300 data-[state=active]:text-white">
+                Team Balancing
+              </TabsTrigger>
+            )}
+            {isAdmin && (
+              <TabsTrigger value="admin" className="text-slate-300 data-[state=active]:text-white">
+                <Settings className="w-4 h-4 mr-2" />
+                Admin
+              </TabsTrigger>
+            )}
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              <TournamentRegistration
+                tournament={tournament}
+                isRegistered={isRegistered}
+                registrationCount={registrationCount}
+                checkedInCount={checkedInCount}
+                onRegistrationUpdate={handleRegistrationUpdate}
+              />
+              
+              <Card className="bg-slate-800 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="text-white">Tournament Details</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-slate-400 text-sm">Format</p>
+                      <p className="text-white font-medium">{tournament.bracket_type.replace('_', ' ')}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-400 text-sm">Match Format</p>
+                      <p className="text-white font-medium">{tournament.match_format}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-400 text-sm">Team Size</p>
+                      <p className="text-white font-medium">{tournament.team_size} players</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-400 text-sm">Max Teams</p>
+                      <p className="text-white font-medium">{tournament.max_teams}</p>
+                    </div>
                   </div>
-                ) : null}
-              </div>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
-          {tournament.description && (
-            <p className="text-slate-300 mb-4">{tournament.description}</p>
+
+                  {tournament.prize_pool && (
+                    <div>
+                      <p className="text-slate-400 text-sm">Prize Pool</p>
+                      <p className="text-white font-medium">{tournament.prize_pool}</p>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-slate-400 text-sm">Registration</p>
+                      <p className="text-white text-sm">
+                        {formatDateTime(tournament.registration_opens_at)} - {formatDateTime(tournament.registration_closes_at)}
+                      </p>
+                    </div>
+                    
+                    {tournament.check_in_required && (
+                      <div>
+                        <p className="text-slate-400 text-sm">Check-in Period</p>
+                        <p className="text-white text-sm">
+                          {formatDateTime(tournament.check_in_starts_at)} - {formatDateTime(tournament.check_in_ends_at)}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="participants">
+            <TournamentParticipants 
+              tournamentId={tournament.id} 
+              onUpdate={handleRegistrationUpdate}
+            />
+          </TabsContent>
+
+          <TabsContent value="bracket" className="space-y-6">
+            <div className="grid gap-6">
+              {isAdmin && tournament.status === 'balancing' && (
+                <BracketGenerator
+                  tournamentId={tournament.id}
+                  tournament={{
+                    status: tournament.status,
+                    max_teams: tournament.max_teams,
+                    bracket_type: tournament.bracket_type,
+                    match_format: tournament.match_format,
+                    final_match_format: tournament.final_match_format,
+                    semifinal_match_format: tournament.semifinal_match_format,
+                    enable_map_veto: tournament.enable_map_veto,
+                    map_veto_required_rounds: tournament.map_veto_required_rounds
+                  }}
+                  teams={teams}
+                  onBracketGenerated={handleTournamentUpdate}
+                />
+              )}
+              
+              <IntegratedBracketView tournamentId={tournament.id} />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="matches">
+            <MatchManager 
+              tournamentId={tournament.id}
+              onMatchUpdate={handleTournamentUpdate}
+            />
+          </TabsContent>
+
+          {isAdmin && (
+            <TabsContent value="balancing">
+              <TeamBalancingInterface
+                tournamentId={tournament.id}
+                tournament={tournament}
+                onTeamsUpdated={handleTournamentUpdate}
+              />
+            </TabsContent>
           )}
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="flex items-center gap-2 text-slate-400">
-              <Calendar className="w-5 h-5" />
-              <div>
-                <p className="text-sm">Start Time</p>
-                <p className="text-white">{formatDateTime(tournament.start_time)}</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-2 text-slate-400">
-              <Users className="w-5 h-5" />
-              <div>
-                <p className="text-sm">Participants</p>
-                <p className="text-white">{signupCount}/{tournament.max_players}</p>
-              </div>
-            </div>
-            
-            {tournament.check_in_required && (
-              <div className="flex items-center gap-2 text-slate-400">
-                <CheckCircle className="w-5 h-5" />
-                <div>
-                  <p className="text-sm">Checked In</p>
-                  <p className="text-white">{checkedInCount}</p>
-                </div>
-              </div>
-            )}
-            
-            <div className="flex items-center gap-2 text-slate-400">
-              <Trophy className="w-5 h-5" />
-              <div>
-                <p className="text-sm">Teams</p>
-                <p className="text-white">{teamCount}/{tournament.max_teams}</p>
-              </div>
-            </div>
-            
-            {tournament.prize_pool && (
-              <div className="flex items-center gap-2 text-slate-400">
-                <MapPin className="w-5 h-5" />
-                <div>
-                  <p className="text-sm">Prize Pool</p>
-                  <p className="text-white">{tournament.prize_pool}</p>
-                </div>
-              </div>
-            )}
-            
-            {tournament.check_in_required && (
-              <div className="flex items-center gap-2 text-slate-400">
-                <Clock className="w-5 h-5" />
-                <div>
-                  <p className="text-sm">Check-in Period</p>
-                  <p className="text-white text-xs">
-                    {formatDateTime(tournament.check_in_starts_at)} - {formatDateTime(tournament.check_in_ends_at)}
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* Tournament Registration */}
-      {tournament.status === 'published' && (
-        <TournamentRegistration
-          tournamentId={tournament.id}
-          maxPlayers={tournament.max_players}
-          currentPlayers={signupCount}
-          registrationOpensAt={tournament.registration_opens_at}
-          registrationClosesAt={tournament.registration_closes_at}
-          checkInRequired={tournament.check_in_required}
-          checkInStartsAt={tournament.check_in_starts_at}
-          checkInEndsAt={tournament.check_in_ends_at}
-          isRegistered={isRegistered}
-          isCheckedIn={isCheckedIn}
-          onRegistrationChange={() => {
-            fetchSignupStats();
-            checkRegistrationStatus();
-          }}
-        />
-      )}
-
-      {/* Tournament Management (Admin/Creator Only) */}
-      {canManage && (
-        <TournamentManagement 
-          tournamentId={tournament.id}
-          tournamentStatus={tournament.status}
-          maxTeams={tournament.max_teams}
-          teamSize={tournament.team_size}
-          onTournamentUpdate={fetchTournament}
-        />
-      )}
-
-      {/* Bracket Generator (Admin/Creator Only) */}
-      {canManage && ['published', 'live'].includes(tournament.status) && (
-        <BracketGenerator
-          tournamentId={tournament.id}
-          maxTeams={tournament.max_teams}
-          bracketType={tournament.bracket_type}
-          matchFormat={tournament.match_format}
-        />
-      )}
-
-      {/* Tournament Bracket */}
-      <IntegratedBracketView tournamentId={tournament.id} />
-
-      {/* Tournament Participants */}
-      <TournamentParticipants 
-        tournamentId={tournament.id}
-        showAdminControls={canManage}
-      />
+          {isAdmin && (
+            <TabsContent value="admin">
+              <ComprehensiveTournamentEditor
+                tournament={tournament}
+                onTournamentUpdated={handleTournamentUpdate}
+              />
+            </TabsContent>
+          )}
+        </Tabs>
+      </div>
     </div>
   );
 };

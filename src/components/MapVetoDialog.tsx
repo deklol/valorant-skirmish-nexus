@@ -1,14 +1,11 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Map, Ban, CheckCircle, Crown, AlertCircle } from "lucide-react";
+import { Map, Ban, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { canUserPerformVeto } from "@/utils/captainUtils";
-import { useAuth } from "@/hooks/useAuth";
 
 interface MapVetoDialogProps {
   open: boolean;
@@ -41,35 +38,14 @@ const MapVetoDialog = ({ open, onOpenChange, matchId, team1Name, team2Name, curr
   const [vetoActions, setVetoActions] = useState<VetoAction[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentAction, setCurrentAction] = useState<'ban' | 'pick'>('ban');
-  const [canVeto, setCanVeto] = useState(false);
-  const [vetoPermissionReason, setVetoPermissionReason] = useState<string>('');
-  const { user } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
     if (open) {
       fetchMaps();
       fetchVetoActions();
-      checkVetoPermissions();
     }
-  }, [open, matchId, userTeamId, user?.id]);
-
-  const checkVetoPermissions = async () => {
-    if (!user?.id || !userTeamId) {
-      setCanVeto(false);
-      setVetoPermissionReason('You must be logged in and part of a team');
-      return;
-    }
-
-    const { canVeto: canPerformVeto, reason } = await canUserPerformVeto(
-      user.id,
-      userTeamId,
-      matchId
-    );
-
-    setCanVeto(canPerformVeto);
-    setVetoPermissionReason(reason || '');
-  };
+  }, [open, matchId]);
 
   const fetchMaps = async () => {
     try {
@@ -114,15 +90,6 @@ const MapVetoDialog = ({ open, onOpenChange, matchId, team1Name, team2Name, curr
       toast({
         title: "Not Your Turn",
         description: "Wait for your turn to make a selection",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!canVeto) {
-      toast({
-        title: "Permission Denied",
-        description: vetoPermissionReason,
         variant: "destructive",
       });
       return;
@@ -179,7 +146,6 @@ const MapVetoDialog = ({ open, onOpenChange, matchId, team1Name, team2Name, curr
   };
 
   const isUserTurn = userTeamId === currentTeamTurn;
-  const canUserAct = isUserTurn && canVeto;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -203,12 +169,6 @@ const MapVetoDialog = ({ open, onOpenChange, matchId, team1Name, team2Name, curr
                   {currentAction === 'ban' ? 'BAN' : 'PICK'} Phase
                 </Badge>
               </div>
-              {!canVeto && (
-                <div className="flex items-center gap-2 mt-2 p-2 bg-yellow-500/10 border border-yellow-500/20 rounded">
-                  <Crown className="w-4 h-4 text-yellow-400" />
-                  <span className="text-yellow-400 text-sm">{vetoPermissionReason}</span>
-                </div>
-              )}
             </CardContent>
           </Card>
 
@@ -253,11 +213,11 @@ const MapVetoDialog = ({ open, onOpenChange, matchId, team1Name, team2Name, curr
                   className={`border-slate-600 transition-all cursor-pointer ${
                     !available 
                       ? 'bg-slate-700 opacity-50' 
-                      : canUserAct && available
+                      : isUserTurn && available
                         ? 'bg-slate-800 hover:bg-slate-700 hover:border-slate-500'
                         : 'bg-slate-800'
                   }`}
-                  onClick={() => available && canUserAct && handleMapAction(map.id)}
+                  onClick={() => available && isUserTurn && handleMapAction(map.id)}
                 >
                   <CardContent className="p-4">
                     <div className="space-y-3">
@@ -285,13 +245,9 @@ const MapVetoDialog = ({ open, onOpenChange, matchId, team1Name, team2Name, curr
                           <Badge className={status.action === 'ban' ? "bg-red-500/20 text-red-400 border-red-500/30" : "bg-green-500/20 text-green-400 border-green-500/30"}>
                             {status.action.toUpperCase()} by {status.team}
                           </Badge>
-                        ) : available && canUserAct ? (
+                        ) : available && isUserTurn ? (
                           <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
                             Click to {currentAction.toUpperCase()}
-                          </Badge>
-                        ) : available && isUserTurn && !canVeto ? (
-                          <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
-                            Captain Only
                           </Badge>
                         ) : (
                           <Badge className="bg-slate-500/20 text-slate-400 border-slate-500/30">
@@ -310,7 +266,6 @@ const MapVetoDialog = ({ open, onOpenChange, matchId, team1Name, team2Name, curr
           <Card className="bg-slate-800 border-slate-700">
             <CardContent className="p-4">
               <div className="text-sm text-slate-400 space-y-1">
-                <p>• <Crown className="w-3 h-3 inline mr-1" /> Only team captains can perform map veto actions</p>
                 <p>• Teams alternate between banning and picking maps</p>
                 <p>• Banned maps cannot be played in this match</p>
                 <p>• Picked maps will be played in the order they were selected</p>
