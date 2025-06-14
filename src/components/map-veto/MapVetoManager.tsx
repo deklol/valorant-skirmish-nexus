@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect, useRef, useCallback } from "react";
 import MapVetoDialog from "./MapVetoDialog";
 import { useMapVetoSessionRealtime } from "@/hooks/useMapVetoRealtime";
+import ErrorBoundary from "../ErrorBoundary";
 
 interface MapVetoManagerProps {
   matchId: string;
@@ -602,21 +603,23 @@ const MapVetoManager = ({
       </CardContent>
       {/* Only open the dialog if a "real" ongoing session exists */}
       {vetoSession && vetoSession.status === "in_progress" && team1Id && team2Id && mapVetoAvailable && (
-        <MapVetoDialog
-          open={vetoDialogOpen}
-          onOpenChange={setVetoDialogOpen}
-          matchId={matchId}
-          vetoSessionId={vetoSession.id}
-          team1Name={team1Name}
-          team2Name={team2Name}
-          currentTeamTurn={vetoSession.current_turn_team_id || team1Id}
-          userTeamId={userTeamId}
-          isUserCaptain={isUserCaptain}
-          teamSize={teamSize}
-          team1Id={team1Id}
-          team2Id={team2Id}
-          bestOf={matchSettings?.best_of || 1}
-        />
+        <ErrorBoundary>
+          <MapVetoDialog
+            open={vetoDialogOpen}
+            onOpenChange={setVetoDialogOpen}
+            matchId={matchId}
+            vetoSessionId={vetoSession.id}
+            team1Name={team1Name}
+            team2Name={team2Name}
+            currentTeamTurn={vetoSession.current_turn_team_id || team1Id}
+            userTeamId={userTeamId}
+            isUserCaptain={isUserCaptain}
+            teamSize={teamSize}
+            team1Id={team1Id}
+            team2Id={team2Id}
+            bestOf={matchSettings?.best_of || 1}
+          />
+        </ErrorBoundary>
       )}
     </Card>
   );

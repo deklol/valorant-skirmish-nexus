@@ -1,8 +1,9 @@
-
 import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-// Utility to safely unsubscribe and remove a channel
+// Utility to safely unsubscribe and remove a channel (dedup-aware)
+const globalChannelRegistry = new Map<string, any>();
+
 function cleanupChannel(channelRef: React.MutableRefObject<any>) {
   if (channelRef.current) {
     try {
@@ -14,6 +15,10 @@ function cleanupChannel(channelRef: React.MutableRefObject<any>) {
       supabase.removeChannel(channelRef.current);
     } catch (e) {
       console.warn('[MapVetoRealtime] Channel remove error (cleanup):', e);
+    }
+    // Remove from registry
+    if (channelRef.current._name) {
+      globalChannelRegistry.delete(channelRef.current._name);
     }
     channelRef.current = null;
   }
@@ -30,16 +35,19 @@ export function useMapVetoActionsRealtime(
   const channelRef = useRef<any>(null);
 
   useEffect(() => {
-    // On id change or unmount: always cleanup first!
+    // Always cleanup first!
     cleanupChannel(channelRef);
 
     if (!vetoSessionId) return;
 
     const channelName = `map-veto-actions-${vetoSessionId}`;
-    const channel = supabase
-      .channel(channelName);
+    // Deduplication: if already exists, re-use
+    if (globalChannelRegistry.has(channelName)) {
+      channelRef.current = globalChannelRegistry.get(channelName);
+      return () => cleanupChannel(channelRef);
+    }
+    const channel = supabase.channel(channelName);
 
-    // Listen for inserts/updates on the actions table
     channel.on(
       "postgres_changes",
       {
@@ -53,7 +61,6 @@ export function useMapVetoActionsRealtime(
       }
     );
 
-    // Only subscribe ONCE per instance
     channel.subscribe((status) => {
       if (status === "SUBSCRIBED") {
         console.log(`[MapVetoRealtime] Subscribed to ${channelName}`);
@@ -61,13 +68,13 @@ export function useMapVetoActionsRealtime(
     });
 
     channelRef.current = channel;
+    channel._name = channelName; // for registry
+    globalChannelRegistry.set(channelName, channel);
 
-    // Cleanup on id change or unmount
+    // Cleanup on id change/unmount
     return () => {
       cleanupChannel(channelRef);
     };
-    // Only re-run when session ID changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vetoSessionId]);
 }
 
@@ -87,8 +94,12 @@ export function useMapVetoSessionRealtime(
     if (!vetoSessionId) return;
 
     const channelName = `map-veto-session-${vetoSessionId}`;
-    const channel = supabase
-      .channel(channelName);
+    // Deduplication: if already exists, re-use
+    if (globalChannelRegistry.has(channelName)) {
+      channelRef.current = globalChannelRegistry.get(channelName);
+      return () => cleanupChannel(channelRef);
+    }
+    const channel = supabase.channel(channelName);
 
     channel.on(
       "postgres_changes",
@@ -103,7 +114,6 @@ export function useMapVetoSessionRealtime(
       }
     );
 
-    // Only subscribe once!
     channel.subscribe((status) => {
       if (status === "SUBSCRIBED") {
         console.log(`[MapVetoRealtime] Subscribed to ${channelName}`);
@@ -111,12 +121,12 @@ export function useMapVetoSessionRealtime(
     });
 
     channelRef.current = channel;
+    channel._name = channelName; // for registry
+    globalChannelRegistry.set(channelName, channel);
 
     // Cleanup on id change / unmount
     return () => {
       cleanupChannel(channelRef);
     };
-    // Only re-run when session id changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vetoSessionId]);
 }
