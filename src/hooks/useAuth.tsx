@@ -24,6 +24,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -68,15 +69,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setUser(null);
             setProfile(null);
             setLoading(false);
+            setInitialized(true);
           }
           return;
         }
 
-        console.log('Initial session user ID:', session?.user?.id);
+        console.log('Initial session:', session?.user?.id ? 'User found' : 'No user');
         
         if (session?.user && mounted) {
           console.log('Setting user from initial session');
           setUser(session.user);
+          // Fetch profile after setting user
           await fetchProfile(session.user.id);
         } else if (mounted) {
           console.log('No initial session found');
@@ -86,6 +89,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         if (mounted) {
           setLoading(false);
+          setInitialized(true);
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
@@ -93,6 +97,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setUser(null);
           setProfile(null);
           setLoading(false);
+          setInitialized(true);
         }
       }
     };
@@ -100,34 +105,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state change event:', event, 'User ID:', session?.user?.id);
+        console.log('Auth state change:', event, session?.user?.id ? 'User present' : 'No user');
         
         if (!mounted) return;
         
-        // Handle different auth events appropriately
         if (event === 'SIGNED_OUT') {
-          console.log('User signed out, clearing state');
+          console.log('User signed out');
           setUser(null);
           setProfile(null);
+          setLoading(false);
         } else if (event === 'SIGNED_IN' && session?.user) {
-          console.log('User signed in, updating state');
+          console.log('User signed in');
           setUser(session.user);
-          // Defer profile fetching to avoid blocking
+          setLoading(false);
+          // Fetch profile in next tick to avoid blocking UI
           setTimeout(() => {
             if (mounted) {
               fetchProfile(session.user.id);
             }
           }, 0);
         } else if (event === 'TOKEN_REFRESHED' && session?.user) {
-          console.log('Token refreshed, maintaining state');
+          console.log('Token refreshed');
           setUser(session.user);
-        } else if (event === 'INITIAL_SESSION') {
-          // Don't clear state on INITIAL_SESSION - let initializeAuth handle it
-          console.log('Initial session event - handled by initializeAuth');
-        }
-        
-        // Only set loading to false after we've handled the event
-        if (event !== 'INITIAL_SESSION') {
+          setLoading(false);
+        } else if (!session) {
+          console.log('No session in auth state change');
+          setUser(null);
+          setProfile(null);
           setLoading(false);
         }
       }
@@ -145,18 +149,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signOut = async () => {
     try {
       console.log('Signing out...');
-      // Clear state immediately
-      setUser(null);
-      setProfile(null);
+      setLoading(true);
       
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error('Error signing out:', error);
         throw error;
       }
+      
+      // Clear state
+      setUser(null);
+      setProfile(null);
+      setLoading(false);
+      
       console.log('Successfully signed out');
     } catch (error) {
       console.error('Error during sign out:', error);
+      setLoading(false);
       throw error;
     }
   };
@@ -187,6 +196,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     !profile.riot_id_last_updated ||
     new Date(profile.riot_id_last_updated).getTime() < Date.now() - (30 * 24 * 60 * 60 * 1000)
   );
+
+  // Don't render children until auth is initialized
+  if (!initialized) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+        <div className="text-white text-xl">Initializing...</div>
+      </div>
+    );
+  }
 
   return (
     <AuthContext.Provider value={{
