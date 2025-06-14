@@ -166,6 +166,19 @@ const MapVetoDialog = ({
     return { ok: true, reason: null };
   };
 
+  // --- Helper: Checks if a map is still available (not picked or banned) ---
+  const isMapAvailable = useCallback(
+    (mapId: string) =>
+      !vetoActions.some((action) => action.map_id === mapId),
+    [vetoActions]
+  );
+
+  // --- Helper: Get next team's turn id (swap between team1Id and team2Id) ---
+  const getNextTeamId = () => {
+    if (!team1Id || !team2Id) return null;
+    return currentTurnTeamId === team1Id ? team2Id : team1Id;
+  };
+
   // ---- MAIN ACTION HANDLER W/ ENHANCED DB ERROR HANDLING & LOGGING ----
   const handleMapAction = async (mapId: string) => {
     console.log("[ACTION] handleMapAction", { mapId, vetoComplete, currentAction, bansMade, totalBansNeeded, userTeamId, currentTurnTeamId });
