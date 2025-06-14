@@ -72,13 +72,16 @@ const MatchTeamBalancing = ({
       if (teamsData) {
         const processedTeams = teamsData.map(team => {
           const members = team.team_members
-            .map(tm => tm.users)
-            .filter(user => user)
-            .map(user => ({
+            .map(tm => ({
               user_id: tm.user_id,
-              discord_username: user.discord_username || 'Unknown',
-              rank_points: user.rank_points || getRankPoints(user.current_rank || 'Unranked'),
-              current_rank: user.current_rank || 'Unranked'
+              user: tm.users
+            }))
+            .filter(member => member.user)
+            .map(member => ({
+              user_id: member.user_id,
+              discord_username: member.user.discord_username || 'Unknown',
+              rank_points: member.user.rank_points || getRankPoints(member.user.current_rank || 'Unranked'),
+              current_rank: member.user.current_rank || 'Unranked'
             }));
 
           const totalRankPoints = members.reduce((sum, member) => sum + member.rank_points, 0);
