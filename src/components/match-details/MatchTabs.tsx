@@ -1,5 +1,6 @@
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings } from "lucide-react";
+import { Settings, Users, User } from "lucide-react";
 import MatchScoreCards from "./MatchScoreCards";
 import MatchInformation from "./MatchInformation";
 import MapVetoManager from "@/components/MapVetoManager";
@@ -7,7 +8,7 @@ import ScoreReporting from "@/components/ScoreReporting";
 import { useTeamPlayers } from "./useTeamPlayers";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { User, Users } from "lucide-react";
+import ClickableUsername from "@/components/ClickableUsername";
 
 interface Match {
   id: string;
@@ -42,7 +43,6 @@ interface MatchTabsProps {
   userTeamId: string | null;
   isAdmin: boolean;
   onScoreSubmitted: () => void;
-  // Removed: onTeamsRebalanced: () => void;
 }
 
 const MatchTabs = ({
@@ -50,20 +50,16 @@ const MatchTabs = ({
   userTeamId,
   isAdmin,
   onScoreSubmitted,
-  // Removed: onTeamsRebalanced
 }: MatchTabsProps) => {
-  // Fetch team players using the new hook
   const { players: team1Players, loading: loadingTeam1 } = useTeamPlayers(match.team1_id);
   const { players: team2Players, loading: loadingTeam2 } = useTeamPlayers(match.team2_id);
 
-  // Only show the Overview tab; admin tab was only used for team balancing.
   return (
     <Tabs defaultValue="overview" className="space-y-6">
       <TabsList className="bg-slate-800 border-slate-700">
         <TabsTrigger value="overview" className="text-slate-300 data-[state=active]:text-white">
           Overview
         </TabsTrigger>
-        {/* Removed admin tab for team balancing */}
       </TabsList>
 
       <TabsContent value="overview" className="space-y-6">
@@ -74,7 +70,6 @@ const MatchTabs = ({
           team2Score={match.score_team2}
         />
 
-        {/* Map Veto Manager */}
         {match.team1_id && match.team2_id && (
           <MapVetoManager
             matchId={match.id}
@@ -100,7 +95,6 @@ const MatchTabs = ({
           team2Name={match.team2?.name || 'Team 2'}
         />
 
-        {/* Score Reporting */}
         {match.status !== 'completed' && (userTeamId || isAdmin) && (
           <ScoreReporting
             match={match}
@@ -116,33 +110,44 @@ const MatchTabs = ({
               Teams &amp; Players
             </CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-col md:flex-row gap-6">
+          <CardContent className="flex flex-col md:flex-row gap-8">
             {/* Team 1 */}
             <div className="flex-1">
-              <div className="mb-2 flex items-center gap-2">
+              <div className="flex items-center gap-2 mb-2">
                 <span className="font-bold text-lg text-white">{match.team1?.name || "Team 1"}</span>
                 {match.team1_id === match.winner_id && (
                   <Badge className="bg-green-600 text-white ml-2">Winner</Badge>
                 )}
               </div>
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 {loadingTeam1 ? (
                   <div className="text-slate-400">Loading...</div>
                 ) : team1Players.length === 0 ? (
                   <div className="text-slate-400">No players</div>
                 ) : (
                   team1Players.map(player => (
-                    <div key={player.user_id} className="flex items-center gap-3 py-1 px-2 rounded hover:bg-slate-700 transition">
-                      <User className="w-4 h-4 text-blue-400" />
-                      <span className="font-medium text-white">{player.discord_username}</span>
+                    <div
+                      key={player.user_id}
+                      className="flex flex-wrap items-center gap-x-4 gap-y-1 border border-slate-700 rounded-xl bg-slate-900/70 px-3 py-2 shadow-sm hover:bg-slate-700/50 transition duration-150"
+                    >
+                      <User className="w-4 h-4 text-blue-400 mr-1" />
+                      
+                      <ClickableUsername
+                        userId={player.user_id}
+                        username={player.discord_username}
+                        className="text-blue-400 font-medium"
+                      />
+
                       {player.is_captain && (
-                        <Badge className="bg-yellow-500 text-black ml-2">Captain</Badge>
+                        <Badge className="bg-yellow-400/90 text-black ml-2 py-0.5 px-2 text-xs">Captain</Badge>
                       )}
-                      <span className="ml-auto text-xs text-slate-300">
-                        Rank: <span className="font-semibold">{player.current_rank || "Unranked"}</span>
+
+                      <span className="text-xs text-slate-300 ml-6">
+                        <span className="font-semibold">Rank:</span> <span>{player.current_rank || "Unranked"}</span>
                       </span>
-                      <span className="text-xs text-purple-300 ml-3">
-                        Weight: <span className="font-semibold">{player.weight_rating ?? "—"}</span>
+
+                      <span className="text-xs text-purple-300 ml-4">
+                        <span className="font-semibold">Weight:</span> <span>{player.weight_rating ?? "—"}</span>
                       </span>
                     </div>
                   ))
@@ -151,30 +156,41 @@ const MatchTabs = ({
             </div>
             {/* Team 2 */}
             <div className="flex-1">
-              <div className="mb-2 flex items-center gap-2">
+              <div className="flex items-center gap-2 mb-2">
                 <span className="font-bold text-lg text-white">{match.team2?.name || "Team 2"}</span>
                 {match.team2_id === match.winner_id && (
                   <Badge className="bg-green-600 text-white ml-2">Winner</Badge>
                 )}
               </div>
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 {loadingTeam2 ? (
                   <div className="text-slate-400">Loading...</div>
                 ) : team2Players.length === 0 ? (
                   <div className="text-slate-400">No players</div>
                 ) : (
                   team2Players.map(player => (
-                    <div key={player.user_id} className="flex items-center gap-3 py-1 px-2 rounded hover:bg-slate-700 transition">
-                      <User className="w-4 h-4 text-blue-400" />
-                      <span className="font-medium text-white">{player.discord_username}</span>
+                    <div
+                      key={player.user_id}
+                      className="flex flex-wrap items-center gap-x-4 gap-y-1 border border-slate-700 rounded-xl bg-slate-900/70 px-3 py-2 shadow-sm hover:bg-slate-700/50 transition duration-150"
+                    >
+                      <User className="w-4 h-4 text-blue-400 mr-1" />
+                      
+                      <ClickableUsername
+                        userId={player.user_id}
+                        username={player.discord_username}
+                        className="text-blue-400 font-medium"
+                      />
+
                       {player.is_captain && (
-                        <Badge className="bg-yellow-500 text-black ml-2">Captain</Badge>
+                        <Badge className="bg-yellow-400/90 text-black ml-2 py-0.5 px-2 text-xs">Captain</Badge>
                       )}
-                      <span className="ml-auto text-xs text-slate-300">
-                        Rank: <span className="font-semibold">{player.current_rank || "Unranked"}</span>
+
+                      <span className="text-xs text-slate-300 ml-6">
+                        <span className="font-semibold">Rank:</span> <span>{player.current_rank || "Unranked"}</span>
                       </span>
-                      <span className="text-xs text-purple-300 ml-3">
-                        Weight: <span className="font-semibold">{player.weight_rating ?? "—"}</span>
+
+                      <span className="text-xs text-purple-300 ml-4">
+                        <span className="font-semibold">Weight:</span> <span>{player.weight_rating ?? "—"}</span>
                       </span>
                     </div>
                   ))
@@ -185,7 +201,6 @@ const MatchTabs = ({
         </Card>
         {/* End Teams & Players Panel */}
       </TabsContent>
-      {/* Admin tab removed */}
     </Tabs>
   );
 };
