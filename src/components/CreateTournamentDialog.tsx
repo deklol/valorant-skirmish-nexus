@@ -1,15 +1,12 @@
-import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Plus } from "lucide-react";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Calendar, Trophy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -20,89 +17,59 @@ interface CreateTournamentDialogProps {
 }
 
 const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: CreateTournamentDialogProps) => {
-  const [internalOpen, setInternalOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    prizePool: '',
-    maxPlayers: 40,
-    maxTeams: 8,
-    matchFormat: 'BO1' as 'BO1' | 'BO3',
-    bracketType: 'single_elimination',
-    registrationOpensAt: new Date(),
-    registrationClosesAt: new Date(),
-    checkInStartsAt: new Date(),
-    checkInEndsAt: new Date(),
-    startTime: new Date(),
-    endTime: new Date(),
-    checkInRequired: true
+    name: "",
+    description: "",
+    match_format: "BO3",
+    team_size: 5, // Default to 5v5
+    max_players: 50,
+    max_teams: 10,
+    prize_pool: "",
+    start_time: "",
   });
-
+  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-  
-  const isOpen = open !== undefined ? open : internalOpen;
-  const setIsOpen = onOpenChange || setInternalOpen;
-
-  const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const { error } = await supabase
+      // Calculate max_teams based on team_size and max_players
+      const calculatedMaxTeams = Math.floor(formData.max_players / formData.team_size);
+      
+      const { data, error } = await supabase
         .from('tournaments')
         .insert({
-          name: formData.name,
-          description: formData.description,
-          prize_pool: formData.prizePool,
-          max_players: formData.maxPlayers,
-          max_teams: formData.maxTeams,
-          match_format: formData.matchFormat,
-          bracket_type: formData.bracketType,
-          registration_opens_at: formData.registrationOpensAt.toISOString(),
-          registration_closes_at: formData.registrationClosesAt.toISOString(),
-          check_in_starts_at: formData.checkInStartsAt.toISOString(),
-          check_in_ends_at: formData.checkInEndsAt.toISOString(),
-          start_time: formData.startTime.toISOString(),
-          end_time: formData.endTime.toISOString(),
-          check_in_required: formData.checkInRequired,
+          ...formData,
+          max_teams: calculatedMaxTeams,
+          team_size: formData.team_size,
           status: 'draft'
-        });
+        })
+        .select()
+        .single();
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       toast({
         title: "Tournament Created",
-        description: "Your tournament has been created successfully.",
+        description: `${formData.name} has been created successfully`,
       });
 
-      setIsOpen(false);
-      onTournamentCreated?.();
-      
       // Reset form
       setFormData({
-        name: '',
-        description: '',
-        prizePool: '',
-        maxPlayers: 40,
-        maxTeams: 8,
-        matchFormat: 'BO1',
-        bracketType: 'single_elimination',
-        registrationOpensAt: new Date(),
-        registrationClosesAt: new Date(),
-        checkInStartsAt: new Date(),
-        checkInEndsAt: new Date(),
-        startTime: new Date(),
-        endTime: new Date(),
-        checkInRequired: true
+        name: "",
+        description: "",
+        match_format: "BO3",
+        team_size: 5,
+        max_players: 50,
+        max_teams: 10,
+        prize_pool: "",
+        start_time: "",
       });
 
+      onOpenChange?.(false);
+      onTournamentCreated?.();
     } catch (error: any) {
       console.error('Error creating tournament:', error);
       toast({
@@ -115,196 +82,171 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
     }
   };
 
-  const DateTimePicker = ({ label, value, onChange }: { label: string; value: Date; onChange: (date: Date) => void }) => (
-    <div className="space-y-2">
-      <Label>{label}</Label>
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            className={cn(
-              "w-full justify-start text-left font-normal",
-              !value && "text-muted-foreground"
-            )}
-          >
-            <CalendarIcon className="mr-2 h-4 w-4" />
-            {value ? format(value, "PPP HH:mm") : <span>Pick a date</span>}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0">
-          <Calendar
-            mode="single"
-            selected={value}
-            onSelect={(date) => date && onChange(date)}
-            initialFocus
-          />
-          <div className="p-3 border-t">
-            <Input
-              type="time"
-              value={format(value, "HH:mm")}
-              onChange={(e) => {
-                const [hours, minutes] = e.target.value.split(':');
-                const newDate = new Date(value);
-                newDate.setHours(parseInt(hours), parseInt(minutes));
-                onChange(newDate);
-              }}
-            />
-          </div>
-        </PopoverContent>
-      </Popover>
-    </div>
+  const handleTeamSizeChange = (teamSize: number) => {
+    setFormData(prev => ({
+      ...prev,
+      team_size: teamSize,
+      max_teams: Math.floor(prev.max_players / teamSize)
+    }));
+  };
+
+  const triggerButton = (
+    <Button className="bg-red-600 hover:bg-red-700 text-white">
+      <Trophy className="w-4 h-4 mr-2" />
+      Create Tournament
+    </Button>
   );
 
-  const DialogComponent = (
-    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-      <DialogHeader>
-        <DialogTitle>Create New Tournament</DialogTitle>
-      </DialogHeader>
-      
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      {!open && !onOpenChange && <DialogTrigger asChild>{triggerButton}</DialogTrigger>}
+      <DialogContent className="sm:max-w-[500px] bg-slate-800 border-slate-700">
+        <DialogHeader>
+          <DialogTitle className="text-white flex items-center gap-2">
+            <Trophy className="w-5 h-5 text-yellow-500" />
+            Create New Tournament
+          </DialogTitle>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Tournament Name</Label>
+            <Label htmlFor="name" className="text-white">Tournament Name</Label>
             <Input
               id="name"
               value={formData.name}
-              onChange={(e) => handleInputChange('name', e.target.value)}
-              placeholder="TGH Weekly Skirmish #54"
+              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              className="bg-slate-700 border-slate-600 text-white"
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="prizePool">Prize Pool</Label>
-            <Input
-              id="prizePool"
-              value={formData.prizePool}
-              onChange={(e) => handleInputChange('prizePool', e.target.value)}
-              placeholder="£50 prize pool"
-            />
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="description">Description</Label>
-          <Textarea
-            id="description"
-            value={formData.description}
-            onChange={(e) => handleInputChange('description', e.target.value)}
-            placeholder="Tournament description..."
-            rows={3}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="maxPlayers">Max Players</Label>
-            <Input
-              id="maxPlayers"
-              type="number"
-              value={formData.maxPlayers}
-              onChange={(e) => handleInputChange('maxPlayers', parseInt(e.target.value))}
-              min="2"
-              max="200"
+            <Label htmlFor="description" className="text-white">Description</Label>
+            <Textarea
+              id="description"
+              value={formData.description}
+              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              className="bg-slate-700 border-slate-600 text-white"
+              rows={3}
             />
           </div>
 
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="match_format" className="text-white">Match Format</Label>
+              <Select
+                value={formData.match_format}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, match_format: value }))}
+              >
+                <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="BO1">Best of 1</SelectItem>
+                  <SelectItem value="BO3">Best of 3</SelectItem>
+                  <SelectItem value="BO5">Best of 5</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="team_size" className="text-white">Team Size</Label>
+              <Select
+                value={formData.team_size.toString()}
+                onValueChange={(value) => handleTeamSizeChange(parseInt(value))}
+              >
+                <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1v1 (Solo)</SelectItem>
+                  <SelectItem value="2">2v2 (Duo)</SelectItem>
+                  <SelectItem value="3">3v3 (Trio)</SelectItem>
+                  <SelectItem value="4">4v4 (Squad)</SelectItem>
+                  <SelectItem value="5">5v5 (Full Team)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="max_players" className="text-white">Max Players</Label>
+              <Input
+                id="max_players"
+                type="number"
+                value={formData.max_players}
+                onChange={(e) => {
+                  const maxPlayers = parseInt(e.target.value);
+                  setFormData(prev => ({
+                    ...prev,
+                    max_players: maxPlayers,
+                    max_teams: Math.floor(maxPlayers / prev.team_size)
+                  }));
+                }}
+                className="bg-slate-700 border-slate-600 text-white"
+                min="1"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="max_teams" className="text-white">Max Teams</Label>
+              <Input
+                id="max_teams"
+                type="number"
+                value={formData.max_teams}
+                className="bg-slate-700 border-slate-600 text-white"
+                disabled
+                title="Automatically calculated based on max players and team size"
+              />
+              <p className="text-xs text-slate-400">Auto-calculated: {formData.max_players} ÷ {formData.team_size}</p>
+            </div>
+          </div>
+
           <div className="space-y-2">
-            <Label htmlFor="maxTeams">Max Teams</Label>
+            <Label htmlFor="prize_pool" className="text-white">Prize Pool</Label>
             <Input
-              id="maxTeams"
-              type="number"
-              value={formData.maxTeams}
-              onChange={(e) => handleInputChange('maxTeams', parseInt(e.target.value))}
-              min="2"
-              max="100"
+              id="prize_pool"
+              value={formData.prize_pool}
+              onChange={(e) => setFormData(prev => ({ ...prev, prize_pool: e.target.value }))}
+              className="bg-slate-700 border-slate-600 text-white"
+              placeholder="e.g., $500 or RP 5000"
             />
           </div>
 
           <div className="space-y-2">
-            <Label>Match Format</Label>
-            <Select value={formData.matchFormat} onValueChange={(value: 'BO1' | 'BO3') => handleInputChange('matchFormat', value)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="BO1">Best of 1</SelectItem>
-                <SelectItem value="BO3">Best of 3</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label htmlFor="start_time" className="text-white">Start Time</Label>
+            <Input
+              id="start_time"
+              type="datetime-local"
+              value={formData.start_time}
+              onChange={(e) => setFormData(prev => ({ ...prev, start_time: e.target.value }))}
+              className="bg-slate-700 border-slate-600 text-white"
+              required
+            />
           </div>
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <DateTimePicker
-            label="Registration Opens At"
-            value={formData.registrationOpensAt}
-            onChange={(date) => handleInputChange('registrationOpensAt', date)}
-          />
-          <DateTimePicker
-            label="Registration Closes At"
-            value={formData.registrationClosesAt}
-            onChange={(date) => handleInputChange('registrationClosesAt', date)}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <DateTimePicker
-            label="Check-in Starts At"
-            value={formData.checkInStartsAt}
-            onChange={(date) => handleInputChange('checkInStartsAt', date)}
-          />
-          <DateTimePicker
-            label="Check-in Ends At"
-            value={formData.checkInEndsAt}
-            onChange={(date) => handleInputChange('checkInEndsAt', date)}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <DateTimePicker
-            label="Tournament Starts At"
-            value={formData.startTime}
-            onChange={(date) => handleInputChange('startTime', date)}
-          />
-          <DateTimePicker
-            label="Tournament Ends At"
-            value={formData.endTime}
-            onChange={(date) => handleInputChange('endTime', date)}
-          />
-        </div>
-
-        <div className="flex justify-end space-x-2">
-          <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={loading}>
-            {loading ? "Creating..." : "Create Tournament"}
-          </Button>
-        </div>
-      </form>
-    </DialogContent>
-  );
-
-  if (open !== undefined) {
-    // Controlled mode
-    return (
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        {DialogComponent}
-      </Dialog>
-    );
-  }
-
-  // Uncontrolled mode with trigger
-  return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button className="bg-red-600 hover:bg-red-700 text-white">
-          <Plus className="w-4 h-4 mr-2" />
-          Create Tournament
-        </Button>
-      </DialogTrigger>
-      {DialogComponent}
+          <div className="flex justify-end gap-2 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange?.(false)}
+              className="border-slate-600 text-slate-300 hover:bg-slate-700"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={loading}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              <Calendar className="w-4 h-4 mr-2" />
+              {loading ? "Creating..." : "Create Tournament"}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
     </Dialog>
   );
 };

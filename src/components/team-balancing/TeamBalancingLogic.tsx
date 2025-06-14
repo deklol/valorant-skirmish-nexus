@@ -12,14 +12,17 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
   const { notifyTeamAssigned } = useEnhancedNotifications();
 
   const balanceTeams = async () => {
-    // Get tournament details
+    // Get tournament details including team_size
     const { data: tournament } = await supabase
       .from('tournaments')
-      .select('name, match_format')
+      .select('name, match_format, team_size')
       .eq('id', tournamentId)
       .single();
 
     if (!tournament) throw new Error('Tournament not found');
+
+    const teamSize = tournament.team_size || 5; // Default to 5v5 if not set
+    console.log(`Tournament team size: ${teamSize}v${teamSize}`);
 
     // Get all signups with user details and rank points (including checked-in players)
     const { data: signups } = await supabase
@@ -43,27 +46,25 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
 
     const totalPlayers = signups.length;
     
-    // Determine if this is a 1v1 tournament based on match format or player count
-    const is1v1Tournament = tournament.match_format && ['BO1', 'BO3', 'BO5'].includes(tournament.match_format) && totalPlayers <= maxTeams;
-    
+    // Determine team configuration based on team size
     let teamsToCreate: number;
     let playersPerTeam: number;
 
-    if (is1v1Tournament || totalPlayers <= maxTeams) {
-      // For 1v1 tournaments or when we have fewer players than max teams
-      // Create one team per player
+    if (teamSize === 1) {
+      // 1v1 format - each player gets their own team
       teamsToCreate = totalPlayers;
       playersPerTeam = 1;
       console.log(`Creating 1v1 format: ${teamsToCreate} teams with 1 player each`);
     } else {
-      // For team tournaments, distribute players across maxTeams
-      teamsToCreate = maxTeams;
-      playersPerTeam = Math.floor(totalPlayers / maxTeams);
+      // Team format (2v2, 3v3, 4v4, 5v5)
+      teamsToCreate = Math.min(maxTeams, Math.floor(totalPlayers / teamSize));
+      playersPerTeam = teamSize;
       
-      if (playersPerTeam < 1) {
-        throw new Error(`Need at least ${maxTeams} checked-in players to form ${maxTeams} teams`);
+      if (teamsToCreate < 2) {
+        throw new Error(`Need at least ${teamSize * 2} checked-in players to form teams for ${teamSize}v${teamSize} format`);
       }
-      console.log(`Creating team format: ${teamsToCreate} teams with ${playersPerTeam} players each`);
+      
+      console.log(`Creating ${teamSize}v${teamSize} format: ${teamsToCreate} teams with ${playersPerTeam} players each`);
     }
 
     // Clear existing teams
@@ -74,10 +75,10 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
       .filter(signup => signup.users)
       .sort((a, b) => (b.users?.rank_points || 0) - (a.users?.rank_points || 0));
 
-    if (is1v1Tournament || totalPlayers <= maxTeams) {
+    if (teamSize === 1) {
       await createIndividualTeams(sortedPlayers);
     } else {
-      await createBalancedTeams(sortedPlayers, teamsToCreate);
+      await createBalancedTeams(sortedPlayers, teamsToCreate, teamSize);
     }
 
     onTeamsBalanced();
@@ -138,16 +139,24 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
     }
   };
 
-  const createBalancedTeams = async (sortedPlayers: any[], teamsToCreate: number) => {
-    // Create teams using snake draft algorithm for team tournaments
+  const createBalancedTeams = async (sortedPlayers: any[], teamsToCreate: number, teamSize: number) => {
+    // Create teams using snake draft algorithm for optimal balance
     const teams: any[][] = Array(teamsToCreate).fill(null).map(() => []);
     let currentTeam = 0;
     let direction = 1; // 1 for forward, -1 for backward
 
+    // Distribute players using snake draft for maximum balance
     for (const player of sortedPlayers) {
-      teams[currentTeam].push(player);
+      if (teams[currentTeam].length < teamSize) {
+        teams[currentTeam].push(player);
+      }
       
-      // Move to next team
+      // Move to next team only if current team has room
+      if (teams[currentTeam].length < teamSize) {
+        continue; // Stay on current team until it's full
+      }
+      
+      // Move to next team when current is full
       currentTeam += direction;
       
       // Reverse direction when we reach the end
@@ -158,6 +167,10 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
         currentTeam = 0;
         direction = 1;
       }
+      
+      // If we've filled all teams to capacity, break
+      const allTeamsFull = teams.every(team => team.length === teamSize);
+      if (allTeamsFull) break;
     }
 
     // Create teams in database

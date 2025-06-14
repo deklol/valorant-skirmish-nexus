@@ -3,13 +3,15 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Users, Trophy, MessageSquare } from "lucide-react";
+import { Settings, Users, Trophy, MessageSquare, Map } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import Header from "@/components/Header";
 import DiscordWebhookManager from "@/components/DiscordWebhookManager";
 import CreateTournamentDialog from "@/components/CreateTournamentDialog";
 import TournamentManagement from "@/components/TournamentManagement";
 import AdminLogoutAll from "@/components/AdminLogoutAll";
+import MapManager from "@/components/MapManager";
+import UserManagement from "@/components/UserManagement";
 
 const Admin = () => {
   const { isAdmin } = useAuth();
@@ -39,7 +41,7 @@ const Admin = () => {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-white mb-2">Admin Dashboard</h1>
-            <p className="text-slate-400">Manage tournaments, users, and system settings</p>
+            <p className="text-slate-400">Manage tournaments, users, maps, and system settings</p>
           </div>
           
           <Button 
@@ -61,6 +63,10 @@ const Admin = () => {
               <Users className="w-4 h-4 mr-2" />
               Users
             </TabsTrigger>
+            <TabsTrigger value="maps" className="text-white data-[state=active]:bg-red-600">
+              <Map className="w-4 h-4 mr-2" />
+              Maps
+            </TabsTrigger>
             <TabsTrigger value="announcements" className="text-white data-[state=active]:bg-red-600">
               <MessageSquare className="w-4 h-4 mr-2" />
               Announcements
@@ -76,17 +82,11 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="users">
-            <div className="space-y-6">
-              <AdminLogoutAll />
-              <Card className="bg-slate-800 border-slate-700">
-                <CardHeader>
-                  <CardTitle className="text-white">User Management</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-slate-400">User management features coming soon...</p>
-                </CardContent>
-              </Card>
-            </div>
+            <UserManagement />
+          </TabsContent>
+
+          <TabsContent value="maps">
+            <MapManager />
           </TabsContent>
 
           <TabsContent value="announcements">
@@ -94,14 +94,17 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="settings">
-            <Card className="bg-slate-800 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white">System Settings</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-slate-400">System settings panel coming soon...</p>
-              </CardContent>
-            </Card>
+            <div className="space-y-6">
+              <AdminLogoutAll />
+              <Card className="bg-slate-800 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="text-white">System Settings</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-slate-400">Additional system settings panel coming soon...</p>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
