@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -127,4 +126,7 @@ export default function MapVetoResults({ matchId }: MapVetoResultsProps) {
       </CardContent>
     </Card>
   );
+
+  // Final safeguard; never return undefined.
+  return null; // fallback; should never hit
 }

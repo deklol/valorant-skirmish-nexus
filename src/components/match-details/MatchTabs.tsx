@@ -54,6 +54,11 @@ const MatchTabs = ({
   const { players: team1Players, loading: loadingTeam1 } = useTeamPlayers(match.team1_id);
   const { players: team2Players, loading: loadingTeam2 } = useTeamPlayers(match.team2_id);
 
+  // Safe fallback: ensure always returning JSX or null
+  if (!match) {
+    return null;
+  }
+
   return (
     <Tabs defaultValue="overview" className="space-y-6">
       <TabsList className="bg-slate-800 border-slate-700">

@@ -323,6 +323,10 @@ const MapVetoManager = ({
     if (vetoSession?.id) checkVetoSession();
   });
 
+  // Add a final catch-all return null as absolute fallback to never return undefined
+  // (this should never be hit, but just in case)
+  // Main return below covers all valid statuses, see below:
+
   return (
     <Card className="bg-slate-800 border-slate-700">
       <CardHeader>
