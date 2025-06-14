@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -22,7 +21,7 @@ interface MapData {
   id: string;
   name: string;
   display_name: string;
-  image_url: string | null;
+  thumbnail_url: string | null;
 }
 
 interface VetoAction {
@@ -224,9 +223,9 @@ const MapVetoDialog = ({ open, onOpenChange, matchId, team1Name, team2Name, curr
                     <div className="space-y-3">
                       {/* Map Image Placeholder */}
                       <div className="aspect-video bg-slate-600 rounded-lg flex items-center justify-center">
-                        {map.image_url ? (
+                        {map.thumbnail_url ? (
                           <img 
-                            src={map.image_url} 
+                            src={map.thumbnail_url} 
                             alt={map.display_name}
                             className="w-full h-full object-cover rounded-lg"
                           />
