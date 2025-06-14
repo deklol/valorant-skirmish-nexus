@@ -23,6 +23,7 @@ interface MapVetoDialogProps {
   // NEW:
   team1Id: string | null;
   team2Id: string | null;
+  bestOf?: number; // <-- Add bestOf
 }
 
 interface MapData {
@@ -60,11 +61,11 @@ const MapVetoDialog = ({
   // NEW
   team1Id,
   team2Id,
+  bestOf = 1
 }: MapVetoDialogProps) => {
   const [maps, setMaps] = useState<MapData[]>([]);
   const [vetoActions, setVetoActions] = useState<VetoAction[]>([]);
   const [loading, setLoading] = useState(false);
-  const [currentAction, setCurrentAction] = useState<'ban' | 'pick'>('ban');
   const { toast } = useToast();
 
   // --- Realtime subscriptions ---
@@ -84,7 +85,6 @@ const MapVetoDialog = ({
         .order('order_number');
       if (error) throw error;
       setVetoActions(data || []);
-      setCurrentAction((data?.length || 0) % 2 === 0 ? "ban" : "pick");
     } catch {}
   }, [vetoSessionId]);
 
@@ -118,8 +118,27 @@ const MapVetoDialog = ({
     }
   };
 
+  const totalBansNeeded = maps.length - (bestOf === 1 ? 1 : bestOf);
+  const bansDone = vetoActions.filter(a => a.action === 'ban').length;
+  const picksDone = vetoActions.filter(a => a.action === 'pick').length;
+  const remainingMaps = maps.filter(map =>
+    !vetoActions.some(action => action.map_id === map.id)
+  );
+
+  // Determine current action phase
+  let currentAction: 'ban' | 'pick' = 'ban';
+  if (bestOf === 1) {
+    // Only bans, then "auto-pick"
+    if (remainingMaps.length === 1 && vetoActions.length >= totalBansNeeded) {
+      currentAction = 'pick';
+    }
+  } else {
+    // Alternate ban/pick in series
+    currentAction = (vetoActions.length % 2 === 0) ? 'ban' : 'pick';
+  }
+
   const handleMapAction = async (mapId: string) => {
-    if (!userTeamId || userTeamId !== currentTeamTurn) {
+    if (!userTeamId || userTeamId !== currentTeamTurn || !canAct) {
       toast({
         title: "Not Your Turn",
         description: "Wait for your turn to make a selection",
@@ -127,32 +146,48 @@ const MapVetoDialog = ({
       });
       return;
     }
-
     setLoading(true);
     try {
-      // Fix: await the getUser call and get the user id correctly
       const { data: authUser } = await supabase.auth.getUser();
       const performedById = authUser?.user?.id ?? null;
+
+      // In BO1 and only 1 map remaining, this is the "picked" map
+      let actionType: 'ban' | 'pick' = currentAction;
+      if (bestOf === 1 && remainingMaps.length === 1) {
+        actionType = 'pick';
+      }
 
       const { error } = await supabase.from('map_veto_actions').insert({
         veto_session_id: vetoSessionId,
         team_id: userTeamId,
         map_id: mapId,
-        action: currentAction,
+        action: actionType,
         order_number: vetoActions.length + 1,
         performed_by: performedById
       });
-
       if (error) throw error;
 
       toast({
-        title: `Map ${currentAction === 'ban' ? 'Banned' : 'Picked'}`,
-        description: `Successfully ${currentAction === 'ban' ? 'banned' : 'picked'} the map`,
+        title: `Map ${actionType === 'ban' ? 'Banned' : 'Picked'}`,
+        description: `Successfully ${actionType === 'ban' ? 'banned' : 'picked'} the map`,
       });
 
-      const mapCount = maps.length;
-      // If this is the last action, complete the veto session
-      if (vetoActions.length + 1 >= mapCount) {
+      // For BO1: after pick, complete veto
+      if (bestOf === 1 && actionType === 'pick') {
+        await supabase
+          .from("map_veto_sessions")
+          .update({
+            status: "completed",
+            completed_at: new Date().toISOString()
+          })
+          .eq("id", vetoSessionId);
+
+        toast({
+          title: "Map Veto Completed",
+          description: `Map selected!`,
+        });
+      } else if (bestOf !== 1 && vetoActions.length + 1 >= maps.length) {
+        // Series mode: finish after correct number of picks
         await supabase
           .from("map_veto_sessions")
           .update({
@@ -166,8 +201,7 @@ const MapVetoDialog = ({
           description: "All veto actions are finished. Match is ready.",
         });
       } else {
-        // Alternate the turn to other team
-        // Make sure both team IDs are present
+        // Alternate the turn to the other team as before
         if (team1Id && team2Id) {
           const nextTurnId = userTeamId === team1Id ? team2Id : team1Id;
           await supabase
@@ -296,17 +330,23 @@ const MapVetoDialog = ({
               const status = getMapStatus(map.id);
               const available = isMapAvailable(map.id);
 
+              // In BO1: if only 1 map left, only it should be pickable
+              const canClick =
+                canAct &&
+                available &&
+                (!bestOf || bestOf !== 1 || remainingMaps.length === 1 || totalBansNeeded > 0);
+
               return (
                 <Card
                   key={map.id}
                   className={`border-slate-600 transition-all cursor-pointer ${
                     !available
                       ? 'bg-slate-700 opacity-50'
-                      : canAct && available
+                      : canClick
                         ? 'bg-slate-800 hover:bg-slate-700 hover:border-slate-500'
                         : 'bg-slate-800'
                   }`}
-                  onClick={() => available && canAct && handleMapAction(map.id)}
+                  onClick={() => available && canClick && handleMapAction(map.id)}
                 >
                   <CardContent className="p-4">
                     <div className="space-y-3">
@@ -334,9 +374,13 @@ const MapVetoDialog = ({
                           <Badge className={status.action === 'ban' ? "bg-red-500/20 text-red-400 border-red-500/30" : "bg-green-500/20 text-green-400 border-green-500/30"}>
                             {status.action.toUpperCase()} by {status.team}
                           </Badge>
-                        ) : available && isUserTurn ? (
-                          <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
-                            Click to {currentAction.toUpperCase()}
+                        ) : (canClick && (bestOf === 1 && remainingMaps.length === 1)) ? (
+                          <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                            Click to PICK
+                          </Badge>
+                        ) : (canClick) ? (
+                          <Badge className="bg-red-500/20 text-red-400 border-red-500/30">
+                            Click to BAN
                           </Badge>
                         ) : (
                           <Badge className="bg-slate-500/20 text-slate-400 border-slate-500/30">
@@ -370,4 +414,4 @@ const MapVetoDialog = ({
 
 export default MapVetoDialog;
 
-// NOTE: This file is now > 280 lines. Consider refactoring this dialog into smaller subcomponents!
+// NOTE: This file is now > 300 lines. Consider refactoring into smaller subcomponents!

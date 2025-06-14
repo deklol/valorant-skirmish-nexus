@@ -614,6 +614,7 @@ const MapVetoManager = ({
           teamSize={teamSize}
           team1Id={team1Id}
           team2Id={team2Id}
+          bestOf={matchSettings?.best_of || 1} // <-- Pass best_of to dialog
         />
       )}
     </Card>
