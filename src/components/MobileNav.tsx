@@ -2,26 +2,25 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { User } from "@supabase/supabase-js";
+import { Calendar, Trophy, Users, User as UserIcon, LogOut, Shield } from "lucide-react";
 
 interface MobileNavProps {
-  isOpen: boolean;
-  onClose: () => void;
-  navItems: Array<{
-    to: string;
-    icon: React.ComponentType<any>;
-    label: string;
-  }>;
-  adminNavItems: Array<{
-    to: string;
-    icon: React.ComponentType<any>;
-    label: string;
-  }>;
   user: User | null;
+  isAdmin: boolean;
   onSignOut: () => Promise<void>;
+  onClose: () => void;
 }
 
-const MobileNav = ({ isOpen, onClose, navItems, adminNavItems, user, onSignOut }: MobileNavProps) => {
-  if (!isOpen) return null;
+const MobileNav = ({ user, isAdmin, onSignOut, onClose }: MobileNavProps) => {
+  const navItems = [
+    { to: "/tournaments", icon: Calendar, label: "Tournaments" },
+    { to: "/leaderboard", icon: Trophy, label: "Leaderboard" },
+    { to: "/brackets", icon: Users, label: "Brackets" },
+  ];
+
+  const adminNavItems = isAdmin ? [
+    { to: "/admin", icon: Shield, label: "Admin" },
+  ] : [];
 
   return (
     <div className="md:hidden bg-slate-800 border-t border-slate-700">
@@ -55,6 +54,7 @@ const MobileNav = ({ isOpen, onClose, navItems, adminNavItems, user, onSignOut }
           <div className="mt-4 pt-4 border-t border-slate-700 space-y-2">
             <Link to="/profile" onClick={onClose}>
               <Button variant="ghost" className="w-full text-white hover:bg-slate-700 justify-start">
+                <UserIcon className="w-4 h-4 mr-2" />
                 Profile
               </Button>
             </Link>
@@ -66,6 +66,7 @@ const MobileNav = ({ isOpen, onClose, navItems, adminNavItems, user, onSignOut }
               }}
               className="w-full text-slate-300 hover:text-white hover:bg-slate-700 justify-start"
             >
+              <LogOut className="w-4 h-4 mr-2" />
               Sign Out
             </Button>
           </div>

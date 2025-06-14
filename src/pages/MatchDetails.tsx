@@ -1,120 +1,65 @@
+
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Clock, Trophy, Map, Settings } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { Badge } from "@/components/ui/badge";
+import { Trophy, Users, Calendar, Clock, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
+import ScoreReporting from "@/components/ScoreReporting";
 import MapVetoManager from "@/components/MapVetoManager";
 
-interface MatchDetail {
+interface Match {
   id: string;
-  tournament_id: string;
-  round_number: number;
   match_number: number;
-  status: "pending" | "live" | "completed";
-  best_of: number;
-  score_team1: number;
-  score_team2: number;
+  round_number: number;
+  team1_id: string | null;
+  team2_id: string | null;
+  score_team1: number | null;
+  score_team2: number | null;
+  status: string;
+  winner_id: string | null;
   scheduled_time: string | null;
   started_at: string | null;
   completed_at: string | null;
-  stream_url: string | null;
-  notes: string | null;
-  team1?: { id: string; name: string } | null;
-  team2?: { id: string; name: string } | null;
-  winner?: { id: string; name: string } | null;
-  tournament?: { name: string } | null;
-}
-
-interface MatchMap {
-  id: string;
-  map_order: number;
-  team1_score: number;
-  team2_score: number;
-  winner_team_id: string | null;
-  started_at: string | null;
-  completed_at: string | null;
-  map?: { name: string; display_name: string };
+  team1?: { 
+    id: string;
+    name: string; 
+  } | null;
+  team2?: { 
+    id: string;
+    name: string; 
+  } | null;
+  tournament?: {
+    id: string;
+    name: string;
+  } | null;
 }
 
 const MatchDetails = () => {
   const { id } = useParams<{ id: string }>();
-  const [match, setMatch] = useState<MatchDetail | null>(null);
-  const [matchMaps, setMatchMaps] = useState<MatchMap[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [vetoDialogOpen, setVetoDialogOpen] = useState(false);
+  const navigate = useNavigate();
+  const [match, setMatch] = useState<Match | null>(null);
   const [userTeamId, setUserTeamId] = useState<string | null>(null);
-  const { user, isAdmin } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const { user } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
-    const fetchMatchDetails = async () => {
-      if (!id) return;
-
-      try {
-        const { data: matchData, error: matchError } = await supabase
-          .from('matches')
-          .select(`
-            *,
-            team1:teams!matches_team1_id_fkey (id, name),
-            team2:teams!matches_team2_id_fkey (id, name),
-            winner:teams!matches_winner_id_fkey (id, name),
-            tournament:tournaments!matches_tournament_id_fkey (name)
-          `)
-          .eq('id', id)
-          .single();
-
-        if (matchError) throw matchError;
-
-        const { data: mapsData, error: mapsError } = await supabase
-          .from('match_maps')
-          .select(`
-            *,
-            maps:map_id (name, display_name)
-          `)
-          .eq('match_id', id)
-          .order('map_order');
-
-        if (mapsError) throw mapsError;
-
-        setMatch(matchData);
-        setMatchMaps(mapsData || []);
-
-        // Check if user is part of either team
-        if (user && matchData.team1_id && matchData.team2_id) {
-          const { data: teamMember } = await supabase
-            .from('team_members')
-            .select('team_id')
-            .eq('user_id', user.id)
-            .in('team_id', [matchData.team1_id, matchData.team2_id])
-            .single();
-
-          if (teamMember) {
-            setUserTeamId(teamMember.team_id);
-          }
-        }
-
-      } catch (error: any) {
-        console.error('Error fetching match:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load match details",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
+    if (id) {
+      fetchMatch();
+      if (user) {
+        checkUserTeam();
+        checkAdminStatus();
       }
-    };
+    }
+  }, [id, user]);
 
-    fetchMatchDetails();
-  }, [id, user, toast]);
-
-  // Add real-time subscription for match updates
+  // Real-time subscription for match updates
   useEffect(() => {
     if (!id) return;
 
@@ -129,8 +74,7 @@ const MatchDetails = () => {
           filter: `id=eq.${id}`
         },
         () => {
-          // Refetch match data when updated
-          fetchMatchDetails();
+          fetchMatch();
         }
       )
       .subscribe();
@@ -140,29 +84,93 @@ const MatchDetails = () => {
     };
   }, [id]);
 
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, string> = {
-      pending: "bg-gray-500/20 text-gray-400",
-      live: "bg-red-500/20 text-red-400",
-      completed: "bg-green-500/20 text-green-400"
-    };
+  const fetchMatch = async () => {
+    if (!id) return;
 
-    return (
-      <Badge className={variants[status] || variants.pending}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
-      </Badge>
-    );
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('matches')
+        .select(`
+          *,
+          team1:teams!matches_team1_id_fkey (id, name),
+          team2:teams!matches_team2_id_fkey (id, name),
+          tournament:tournaments!matches_tournament_id_fkey (id, name)
+        `)
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      setMatch(data);
+    } catch (error: any) {
+      console.error('Error fetching match:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load match details",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const formatDateTime = (dateString: string | null) => {
-    if (!dateString) return "TBD";
-    return new Date(dateString).toLocaleDateString("en-GB", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit"
-    });
+  const checkUserTeam = async () => {
+    if (!user || !id) return;
+
+    try {
+      // First get the match to find team IDs
+      const { data: matchData } = await supabase
+        .from('matches')
+        .select('team1_id, team2_id')
+        .eq('id', id)
+        .single();
+
+      if (!matchData || (!matchData.team1_id && !matchData.team2_id)) return;
+
+      // Check if user is in either team
+      const teamIds = [matchData.team1_id, matchData.team2_id].filter(Boolean);
+      
+      const { data: teamMember } = await supabase
+        .from('team_members')
+        .select('team_id')
+        .eq('user_id', user.id)
+        .in('team_id', teamIds)
+        .single();
+
+      setUserTeamId(teamMember?.team_id || null);
+    } catch (error) {
+      // User is not in any of the teams
+      setUserTeamId(null);
+    }
+  };
+
+  const checkAdminStatus = async () => {
+    if (!user) return;
+
+    try {
+      const { data } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      setIsAdmin(data?.role === 'admin');
+    } catch (error) {
+      setIsAdmin(false);
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return <Badge variant="outline">Pending</Badge>;
+      case 'live':
+        return <Badge className="bg-green-600">Live</Badge>;
+      case 'completed':
+        return <Badge className="bg-gray-600">Completed</Badge>;
+      default:
+        return <Badge>Unknown</Badge>;
+    }
   };
 
   if (loading) {
@@ -171,7 +179,7 @@ const MatchDetails = () => {
         <Header />
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
-            <p className="text-white text-lg">Loading match...</p>
+            <p className="text-white text-lg">Loading match details...</p>
           </div>
         </div>
       </div>
@@ -185,6 +193,10 @@ const MatchDetails = () => {
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
             <p className="text-white text-lg">Match not found</p>
+            <Button onClick={() => navigate(-1)} className="mt-4 bg-red-600 hover:bg-red-700">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Go Back
+            </Button>
           </div>
         </div>
       </div>
@@ -196,205 +208,147 @@ const MatchDetails = () => {
       <Header />
       
       <div className="container mx-auto px-4 py-8">
-        {/* Match Header */}
-        <div className="flex items-start justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-white mb-2">
-              {match.team1?.name || "TBD"} vs {match.team2?.name || "TBD"}
-            </h1>
-            <div className="flex items-center gap-4 mb-4">
-              {getStatusBadge(match.status)}
-              <Badge variant="outline" className="border-slate-600 text-slate-300">
-                Best of {match.best_of}
-              </Badge>
-              <Badge variant="outline" className="border-slate-600 text-slate-300">
-                Round {match.round_number}
-              </Badge>
-            </div>
-            <p className="text-slate-400">{match.tournament?.name}</p>
-          </div>
+        <div className="mb-8">
+          <Button 
+            onClick={() => navigate(-1)} 
+            variant="ghost" 
+            className="text-slate-300 hover:text-white mb-4"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
           
-          <div className="flex gap-2">
-            {isAdmin && (
-              <Button className="bg-red-600 hover:bg-red-700 text-white">
-                <Settings className="w-4 h-4 mr-2" />
-                Manage Match
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* Score Display */}
-        <Card className="bg-slate-800 border-slate-700 mb-8">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-center">
-              <div className="text-center flex-1">
-                <div className="text-2xl font-bold text-white mb-2">{match.team1?.name || "TBD"}</div>
-                <div className="text-4xl font-bold text-blue-500">{match.score_team1}</div>
-              </div>
-              
-              <div className="text-center px-8">
-                <div className="text-slate-400 text-lg">vs</div>
-                {match.status === 'completed' && match.winner && (
-                  <div className="mt-2">
-                    <Trophy className="w-6 h-6 text-yellow-500 mx-auto" />
-                    <div className="text-yellow-500 text-sm mt-1">Winner</div>
-                  </div>
+          <div className="flex items-center gap-4 mb-6">
+            <div>
+              <h1 className="text-3xl font-bold text-white">
+                {match.team1?.name || 'TBD'} vs {match.team2?.name || 'TBD'}
+              </h1>
+              <div className="flex items-center gap-2 text-slate-400">
+                {getStatusBadge(match.status)}
+                <span>Round {match.round_number}</span>
+                <span>•</span>
+                <span>Match #{match.match_number}</span>
+                {match.tournament && (
+                  <>
+                    <span>•</span>
+                    <span>{match.tournament.name}</span>
+                  </>
                 )}
               </div>
-              
-              <div className="text-center flex-1">
-                <div className="text-2xl font-bold text-white mb-2">{match.team2?.name || "TBD"}</div>
-                <div className="text-4xl font-bold text-red-500">{match.score_team2}</div>
-              </div>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Match Info */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <Card className="bg-slate-800 border-slate-700">
-            <CardContent className="p-4 text-center">
-              <Clock className="w-6 h-6 mx-auto text-slate-400 mb-2" />
-              <div className="text-white font-medium">Scheduled</div>
-              <div className="text-slate-400 text-sm">{formatDateTime(match.scheduled_time)}</div>
-            </CardContent>
-          </Card>
-          
-          {match.started_at && (
-            <Card className="bg-slate-800 border-slate-700">
-              <CardContent className="p-4 text-center">
-                <Users className="w-6 h-6 mx-auto text-green-400 mb-2" />
-                <div className="text-white font-medium">Started</div>
-                <div className="text-slate-400 text-sm">{formatDateTime(match.started_at)}</div>
-              </CardContent>
-            </Card>
-          )}
-          
-          {match.completed_at && (
-            <Card className="bg-slate-800 border-slate-700">
-              <CardContent className="p-4 text-center">
-                <Trophy className="w-6 h-6 mx-auto text-yellow-500 mb-2" />
-                <div className="text-white font-medium">Completed</div>
-                <div className="text-slate-400 text-sm">{formatDateTime(match.completed_at)}</div>
-              </CardContent>
-            </Card>
-          )}
+          </div>
         </div>
 
-        {/* Map Veto Manager - Add this before the tabs */}
-        {match.team1 && match.team2 && (
-          <div className="mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <Card className="bg-slate-800 border-slate-700">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                Team 1: {match.team1?.name || 'TBD'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center">
+                <div className="text-4xl font-bold text-white">
+                  {match.score_team1 || 0}
+                </div>
+                <div className="text-slate-400">Score</div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-slate-800 border-slate-700">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                Team 2: {match.team2?.name || 'TBD'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center">
+                <div className="text-4xl font-bold text-white">
+                  {match.score_team2 || 0}
+                </div>
+                <div className="text-slate-400">Score</div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="space-y-6">
+          {/* Map Veto Manager */}
+          {match.team1_id && match.team2_id && (
             <MapVetoManager
               matchId={match.id}
-              team1Id={match.team1.id}
-              team2Id={match.team2.id}
-              team1Name={match.team1.name}
-              team2Name={match.team2.name}
+              team1Id={match.team1_id}
+              team2Id={match.team2_id}
+              team1Name={match.team1?.name || 'Team 1'}
+              team2Name={match.team2?.name || 'Team 2'}
               matchStatus={match.status}
               userTeamId={userTeamId}
               isAdmin={isAdmin}
             />
-          </div>
-        )}
+          )}
 
-        {/* Tabs */}
-        <Tabs defaultValue="maps" className="space-y-4">
-          <TabsList className="bg-slate-800 border-slate-700">
-            <TabsTrigger value="maps" className="text-white data-[state=active]:bg-red-600">Maps</TabsTrigger>
-            <TabsTrigger value="details" className="text-white data-[state=active]:bg-red-600">Details</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="maps" className="space-y-4">
-            <Card className="bg-slate-800 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white">Map Results</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {matchMaps.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Map className="w-12 h-12 mx-auto text-slate-400 mb-4" />
-                    <p className="text-slate-400">No maps played yet</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {matchMaps.map((matchMap) => (
-                      <div key={matchMap.id} className="bg-slate-700 p-4 rounded-lg">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h3 className="text-white font-medium">Map {matchMap.map_order}: {matchMap.map?.display_name}</h3>
-                            <div className="text-slate-400 text-sm mt-1">
-                              {matchMap.completed_at ? 'Completed' : matchMap.started_at ? 'In Progress' : 'Pending'}
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-white text-lg font-bold">
-                              {matchMap.team1_score} - {matchMap.team2_score}
-                            </div>
-                            {matchMap.winner_team_id && (
-                              <div className="text-yellow-500 text-sm">
-                                {matchMap.winner_team_id === match.team1?.id ? match.team1?.name : match.team2?.name} wins
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="details" className="space-y-4">
-            <Card className="bg-slate-800 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white">Match Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <h4 className="text-white font-medium mb-2">Tournament</h4>
-                    <p className="text-slate-400">{match.tournament?.name}</p>
-                  </div>
-                  <div>
-                    <h4 className="text-white font-medium mb-2">Format</h4>
-                    <p className="text-slate-400">Best of {match.best_of}</p>
-                  </div>
-                  <div>
-                    <h4 className="text-white font-medium mb-2">Round</h4>
-                    <p className="text-slate-400">Round {match.round_number}, Match {match.match_number}</p>
-                  </div>
-                  <div>
-                    <h4 className="text-white font-medium mb-2">Status</h4>
-                    {getStatusBadge(match.status)}
+          {/* Match Details */}
+          <Card className="bg-slate-800 border-slate-700">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <Trophy className="w-5 h-5" />
+                Match Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <div className="text-sm text-slate-400">Scheduled Time</div>
+                  <div className="text-white">
+                    {match.scheduled_time ? new Date(match.scheduled_time).toLocaleString() : 'Not scheduled'}
                   </div>
                 </div>
-                
-                {match.stream_url && (
+                <div>
+                  <div className="text-sm text-slate-400">Status</div>
+                  <div className="text-white">{getStatusBadge(match.status)}</div>
+                </div>
+                {match.started_at && (
                   <div>
-                    <h4 className="text-white font-medium mb-2">Stream</h4>
-                    <a 
-                      href={match.stream_url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-blue-400 hover:text-blue-300 underline"
-                    >
-                      Watch Live Stream
-                    </a>
+                    <div className="text-sm text-slate-400">Started</div>
+                    <div className="text-white">{new Date(match.started_at).toLocaleString()}</div>
                   </div>
                 )}
-                
-                {match.notes && (
+                {match.completed_at && (
                   <div>
-                    <h4 className="text-white font-medium mb-2">Notes</h4>
-                    <p className="text-slate-400">{match.notes}</p>
+                    <div className="text-sm text-slate-400">Completed</div>
+                    <div className="text-white">{new Date(match.completed_at).toLocaleString()}</div>
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+              </div>
+
+              {match.winner_id && (
+                <div className="mt-4 p-4 bg-green-900/20 border border-green-700 rounded-lg">
+                  <div className="text-green-400 font-medium">Winner:</div>
+                  <div className="text-white text-lg">
+                    {match.winner_id === match.team1_id ? match.team1?.name : match.team2?.name}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Score Reporting */}
+          {match.status !== 'completed' && (userTeamId || isAdmin) && (
+            <ScoreReporting
+              match={match}
+              onScoreSubmitted={() => {
+                fetchMatch();
+                toast({
+                  title: "Score Reported",
+                  description: "Match score has been submitted",
+                });
+              }}
+            />
+          )}
+        </div>
       </div>
     </div>
   );

@@ -75,7 +75,7 @@ const MapVetoManager = ({
         .insert({
           match_id: matchId,
           current_turn_team_id: team1Id, // Team 1 starts
-          status: 'active',
+          status: 'pending',
           started_at: new Date().toISOString()
         })
         .select()
@@ -142,7 +142,7 @@ const MapVetoManager = ({
   };
 
   const canParticipate = userTeamId && (userTeamId === team1Id || userTeamId === team2Id);
-  const isVetoActive = vetoSession?.status === 'active';
+  const isVetoActive = vetoSession?.status === 'in_progress';
   const isVetoComplete = vetoSession?.status === 'completed';
 
   if (matchStatus === 'completed') {
@@ -188,7 +188,7 @@ const MapVetoManager = ({
                         : "bg-gray-500/20 text-gray-400 border-gray-500/30"
                   }
                 >
-                  {vetoSession.status === 'active' ? 'In Progress' : 
+                  {vetoSession.status === 'in_progress' ? 'In Progress' : 
                    vetoSession.status === 'completed' ? 'Completed' : 
                    'Pending'}
                 </Badge>
