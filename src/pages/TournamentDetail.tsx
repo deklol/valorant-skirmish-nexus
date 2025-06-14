@@ -35,7 +35,6 @@ interface Tournament {
   enable_map_veto: boolean;
   map_veto_required_rounds: number[];
   start_time: string;
-  end_time?: string;
   prize_pool?: string;
   registration_opens_at: string;
   registration_closes_at: string;
