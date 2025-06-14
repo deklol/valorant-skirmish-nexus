@@ -20,6 +20,9 @@ interface MapVetoDialogProps {
   userTeamId: string | null;
   isUserCaptain?: boolean;
   teamSize?: number | null;
+  // NEW:
+  team1Id: string | null;
+  team2Id: string | null;
 }
 
 interface MapData {
@@ -54,6 +57,9 @@ const MapVetoDialog = ({
   userTeamId,
   isUserCaptain = false,
   teamSize = null,
+  // NEW
+  team1Id,
+  team2Id,
 }: MapVetoDialogProps) => {
   const [maps, setMaps] = useState<MapData[]>([]);
   const [vetoActions, setVetoActions] = useState<VetoAction[]>([]);
@@ -144,8 +150,8 @@ const MapVetoDialog = ({
         description: `Successfully ${currentAction === 'ban' ? 'banned' : 'picked'} the map`,
       });
 
-      // Session completion handling (if needed) can still happen here
       const mapCount = maps.length;
+      // If this is the last action, complete the veto session
       if (vetoActions.length + 1 >= mapCount) {
         await supabase
           .from("map_veto_sessions")
@@ -160,7 +166,17 @@ const MapVetoDialog = ({
           description: "All veto actions are finished. Match is ready.",
         });
       } else {
-        // Session's current_turn_team_id will change via MapVetoManager subscription, not here
+        // Alternate the turn to other team
+        // Make sure both team IDs are present
+        if (team1Id && team2Id) {
+          const nextTurnId = userTeamId === team1Id ? team2Id : team1Id;
+          await supabase
+            .from("map_veto_sessions")
+            .update({
+              current_turn_team_id: nextTurnId
+            })
+            .eq("id", vetoSessionId);
+        }
       }
 
       await fetchVetoActions();

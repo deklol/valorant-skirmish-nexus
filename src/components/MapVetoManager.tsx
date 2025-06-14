@@ -483,6 +483,8 @@ const MapVetoManager = ({
           userTeamId={userTeamId}
           isUserCaptain={isUserCaptain}
           teamSize={teamSize}
+          team1Id={team1Id}
+          team2Id={team2Id}
         />
       )}
     </Card>
