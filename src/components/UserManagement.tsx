@@ -1,16 +1,17 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Users, Edit, Ban, Shield, ShieldOff, Search } from "lucide-react";
+import { Users, Edit, Ban, Shield, ShieldOff, Search, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import ClickableUsername from "./ClickableUsername";
 
 interface UserData {
   id: string;
@@ -26,6 +27,10 @@ interface UserData {
   tournaments_played: number;
   tournaments_won: number;
   created_at: string;
+  bio: string | null;
+  twitter_handle: string | null;
+  twitch_handle: string | null;
+  profile_visibility: string | null;
 }
 
 // Define all available ranks with proper subdivisions
@@ -59,7 +64,11 @@ const UserManagement = () => {
     discord_username: '',
     riot_id: '',
     current_rank: '',
-    role: 'player' as 'admin' | 'player' | 'viewer'
+    role: 'player' as 'admin' | 'player' | 'viewer',
+    bio: '',
+    twitter_handle: '',
+    twitch_handle: '',
+    profile_visibility: 'public'
   });
   const { toast } = useToast();
 
@@ -106,7 +115,11 @@ const UserManagement = () => {
       discord_username: user.discord_username || '',
       riot_id: user.riot_id || '',
       current_rank: user.current_rank || '',
-      role: user.role
+      role: user.role,
+      bio: user.bio || '',
+      twitter_handle: user.twitter_handle || '',
+      twitch_handle: user.twitch_handle || '',
+      profile_visibility: user.profile_visibility || 'public'
     });
     setEditDialogOpen(true);
   };
@@ -121,7 +134,11 @@ const UserManagement = () => {
           discord_username: editForm.discord_username || null,
           riot_id: editForm.riot_id || null,
           current_rank: editForm.current_rank || null,
-          role: editForm.role
+          role: editForm.role,
+          bio: editForm.bio || null,
+          twitter_handle: editForm.twitter_handle || null,
+          twitch_handle: editForm.twitch_handle || null,
+          profile_visibility: editForm.profile_visibility
         })
         .eq('id', editingUser.id);
 
@@ -313,7 +330,20 @@ const UserManagement = () => {
               {filteredUsers.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell className="text-white font-medium">
-                    {user.discord_username || 'No username'}
+                    <div className="flex items-center gap-2">
+                      <ClickableUsername 
+                        userId={user.id}
+                        username={user.discord_username || 'No username'}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => window.open(`/profile/${user.id}`, '_blank')}
+                        className="p-1 h-6 w-6"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                      </Button>
+                    </div>
                   </TableCell>
                   <TableCell className="text-white">
                     {user.riot_id || 'No Riot ID'}
@@ -383,67 +413,126 @@ const UserManagement = () => {
 
         {/* Edit User Dialog */}
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-          <DialogContent className="bg-slate-800 border-slate-700">
+          <DialogContent className="bg-slate-800 border-slate-700 max-w-2xl">
             <DialogHeader>
               <DialogTitle className="text-white">Edit User</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
+            <div className="space-y-4 max-h-96 overflow-y-auto">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="discord_username" className="text-white">Discord Username</Label>
+                  <Input
+                    id="discord_username"
+                    value={editForm.discord_username}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, discord_username: e.target.value }))}
+                    className="bg-slate-700 border-slate-600 text-white"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="riot_id" className="text-white">Riot ID</Label>
+                  <Input
+                    id="riot_id"
+                    value={editForm.riot_id}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, riot_id: e.target.value }))}
+                    className="bg-slate-700 border-slate-600 text-white"
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="current_rank" className="text-white">Current Rank</Label>
+                  <Select
+                    value={editForm.current_rank}
+                    onValueChange={(value) => 
+                      setEditForm(prev => ({ ...prev, current_rank: value }))
+                    }
+                  >
+                    <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                      <SelectValue placeholder="Select a rank" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-700 border-slate-600">
+                      {AVAILABLE_RANKS.map((rank) => (
+                        <SelectItem key={rank} value={rank} className="text-white hover:bg-slate-600">
+                          {rank}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="role" className="text-white">Role</Label>
+                  <Select
+                    value={editForm.role}
+                    onValueChange={(value: 'admin' | 'player' | 'viewer') => 
+                      setEditForm(prev => ({ ...prev, role: value }))
+                    }
+                  >
+                    <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-700 border-slate-600">
+                      <SelectItem value="player" className="text-white hover:bg-slate-600">Player</SelectItem>
+                      <SelectItem value="admin" className="text-white hover:bg-slate-600">Admin</SelectItem>
+                      <SelectItem value="viewer" className="text-white hover:bg-slate-600">Viewer</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
               <div className="space-y-2">
-                <Label htmlFor="discord_username" className="text-white">Discord Username</Label>
-                <Input
-                  id="discord_username"
-                  value={editForm.discord_username}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, discord_username: e.target.value }))}
+                <Label htmlFor="bio" className="text-white">Bio</Label>
+                <Textarea
+                  id="bio"
+                  value={editForm.bio}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, bio: e.target.value }))}
                   className="bg-slate-700 border-slate-600 text-white"
+                  placeholder="User biography..."
+                  rows={3}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="riot_id" className="text-white">Riot ID</Label>
-                <Input
-                  id="riot_id"
-                  value={editForm.riot_id}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, riot_id: e.target.value }))}
-                  className="bg-slate-700 border-slate-600 text-white"
-                />
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="twitter_handle" className="text-white">Twitter Handle</Label>
+                  <Input
+                    id="twitter_handle"
+                    value={editForm.twitter_handle}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, twitter_handle: e.target.value }))}
+                    className="bg-slate-700 border-slate-600 text-white"
+                    placeholder="username (without @)"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="twitch_handle" className="text-white">Twitch Handle</Label>
+                  <Input
+                    id="twitch_handle"
+                    value={editForm.twitch_handle}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, twitch_handle: e.target.value }))}
+                    className="bg-slate-700 border-slate-600 text-white"
+                    placeholder="username"
+                  />
+                </div>
               </div>
+
               <div className="space-y-2">
-                <Label htmlFor="current_rank" className="text-white">Current Rank</Label>
+                <Label htmlFor="profile_visibility" className="text-white">Profile Visibility</Label>
                 <Select
-                  value={editForm.current_rank}
+                  value={editForm.profile_visibility}
                   onValueChange={(value) => 
-                    setEditForm(prev => ({ ...prev, current_rank: value }))
-                  }
-                >
-                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                    <SelectValue placeholder="Select a rank" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-slate-700 border-slate-600">
-                    {AVAILABLE_RANKS.map((rank) => (
-                      <SelectItem key={rank} value={rank} className="text-white hover:bg-slate-600">
-                        {rank}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="role" className="text-white">Role</Label>
-                <Select
-                  value={editForm.role}
-                  onValueChange={(value: 'admin' | 'player' | 'viewer') => 
-                    setEditForm(prev => ({ ...prev, role: value }))
+                    setEditForm(prev => ({ ...prev, profile_visibility: value }))
                   }
                 >
                   <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-slate-700 border-slate-600">
-                    <SelectItem value="player" className="text-white hover:bg-slate-600">Player</SelectItem>
-                    <SelectItem value="admin" className="text-white hover:bg-slate-600">Admin</SelectItem>
-                    <SelectItem value="viewer" className="text-white hover:bg-slate-600">Viewer</SelectItem>
+                    <SelectItem value="public" className="text-white hover:bg-slate-600">Public</SelectItem>
+                    <SelectItem value="private" className="text-white hover:bg-slate-600">Private</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+              
               <div className="flex justify-end gap-2 pt-4">
                 <Button
                   variant="outline"

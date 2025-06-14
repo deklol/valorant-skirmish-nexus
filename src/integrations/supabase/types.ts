@@ -873,23 +873,29 @@ export type Database = {
         Row: {
           ban_expires_at: string | null
           ban_reason: string | null
+          bio: string | null
           created_at: string | null
           current_rank: string | null
+          discord_avatar_url: string | null
           discord_id: string | null
           discord_username: string | null
           id: string
           is_banned: boolean | null
           is_phantom: boolean | null
           last_rank_update: string | null
+          last_seen: string | null
           losses: number | null
           mvp_awards: number | null
           peak_rank: string | null
+          profile_visibility: string | null
           rank_points: number | null
           riot_id: string | null
           riot_id_last_updated: string | null
           role: Database["public"]["Enums"]["user_role"] | null
           tournaments_played: number | null
           tournaments_won: number | null
+          twitch_handle: string | null
+          twitter_handle: string | null
           updated_at: string | null
           weight_rating: number | null
           wins: number | null
@@ -897,23 +903,29 @@ export type Database = {
         Insert: {
           ban_expires_at?: string | null
           ban_reason?: string | null
+          bio?: string | null
           created_at?: string | null
           current_rank?: string | null
+          discord_avatar_url?: string | null
           discord_id?: string | null
           discord_username?: string | null
           id: string
           is_banned?: boolean | null
           is_phantom?: boolean | null
           last_rank_update?: string | null
+          last_seen?: string | null
           losses?: number | null
           mvp_awards?: number | null
           peak_rank?: string | null
+          profile_visibility?: string | null
           rank_points?: number | null
           riot_id?: string | null
           riot_id_last_updated?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
           tournaments_played?: number | null
           tournaments_won?: number | null
+          twitch_handle?: string | null
+          twitter_handle?: string | null
           updated_at?: string | null
           weight_rating?: number | null
           wins?: number | null
@@ -921,23 +933,29 @@ export type Database = {
         Update: {
           ban_expires_at?: string | null
           ban_reason?: string | null
+          bio?: string | null
           created_at?: string | null
           current_rank?: string | null
+          discord_avatar_url?: string | null
           discord_id?: string | null
           discord_username?: string | null
           id?: string
           is_banned?: boolean | null
           is_phantom?: boolean | null
           last_rank_update?: string | null
+          last_seen?: string | null
           losses?: number | null
           mvp_awards?: number | null
           peak_rank?: string | null
+          profile_visibility?: string | null
           rank_points?: number | null
           riot_id?: string | null
           riot_id_last_updated?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
           tournaments_played?: number | null
           tournaments_won?: number | null
+          twitch_handle?: string | null
+          twitter_handle?: string | null
           updated_at?: string | null
           weight_rating?: number | null
           wins?: number | null
@@ -963,9 +981,56 @@ export type Database = {
         }
         Returns: string
       }
+      get_user_match_history: {
+        Args: { profile_user_id: string; match_limit?: number }
+        Returns: {
+          match_id: string
+          tournament_name: string
+          match_date: string
+          team_name: string
+          opponent_team_name: string
+          user_team_score: number
+          opponent_team_score: number
+          is_winner: boolean
+        }[]
+      }
+      get_user_profile: {
+        Args: { profile_user_id: string }
+        Returns: {
+          id: string
+          discord_username: string
+          riot_id: string
+          current_rank: string
+          rank_points: number
+          wins: number
+          losses: number
+          tournaments_played: number
+          tournaments_won: number
+          mvp_awards: number
+          bio: string
+          twitter_handle: string
+          twitch_handle: string
+          discord_avatar_url: string
+          profile_visibility: string
+          last_seen: string
+          created_at: string
+          peak_rank: string
+        }[]
+      }
       get_user_role: {
         Args: { user_uuid: string }
         Returns: Database["public"]["Enums"]["user_role"]
+      }
+      get_user_tournament_history: {
+        Args: { profile_user_id: string }
+        Returns: {
+          tournament_id: string
+          tournament_name: string
+          tournament_date: string
+          team_name: string
+          team_status: string
+          placement: string
+        }[]
       }
       increment_user_losses: {
         Args: { user_id: string }
