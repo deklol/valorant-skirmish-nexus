@@ -1,8 +1,9 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Map, Play, Settings } from "lucide-react";
+import { Map, Play, Settings, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -17,6 +18,7 @@ interface MapVetoManagerProps {
   team2Name: string;
   matchStatus: string;
   userTeamId: string | null;
+  roundNumber?: number;
   isAdmin?: boolean;
 }
 
@@ -28,18 +30,47 @@ const MapVetoManager = ({
   team2Name, 
   matchStatus,
   userTeamId,
-  isAdmin = false
+  roundNumber,
+  isAdmin =false
 }: MapVetoManagerProps) => {
   const [vetoSession, setVetoSession] = useState<any>(null);
   const [vetoDialogOpen, setVetoDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [tournamentSettings, setTournamentSettings] = useState<any>(null);
+  const [matchSettings, setMatchSettings] = useState<any>(null);
   const { user } = useAuth();
   const { toast } = useToast();
   const { notifyMapVetoReady } = useEnhancedNotifications();
 
   useEffect(() => {
     checkVetoSession();
+    fetchTournamentAndMatchSettings();
   }, [matchId]);
+
+  const fetchTournamentAndMatchSettings = async () => {
+    try {
+      // Get match details including tournament settings
+      const { data: matchData, error: matchError } = await supabase
+        .from('matches')
+        .select(`
+          map_veto_enabled,
+          round_number,
+          tournaments:tournament_id (
+            enable_map_veto,
+            map_veto_required_rounds
+          )
+        `)
+        .eq('id', matchId)
+        .single();
+
+      if (matchError) throw matchError;
+
+      setMatchSettings(matchData);
+      setTournamentSettings(matchData.tournaments);
+    } catch (error) {
+      console.error('Error fetching tournament/match settings:', error);
+    }
+  };
 
   const checkVetoSession = async () => {
     try {
@@ -56,11 +87,72 @@ const MapVetoManager = ({
     }
   };
 
+  const isMapVetoAvailable = () => {
+    // Admin override takes precedence
+    if (matchSettings?.map_veto_enabled !== null) {
+      return matchSettings.map_veto_enabled;
+    }
+
+    // Check tournament settings
+    if (!tournamentSettings?.enable_map_veto) {
+      return false;
+    }
+
+    // If no specific rounds defined, veto is available for all matches
+    if (!tournamentSettings.map_veto_required_rounds || 
+        tournamentSettings.map_veto_required_rounds.length === 0) {
+      return true;
+    }
+
+    // Check if current round requires veto
+    const currentRound = roundNumber || matchSettings?.round_number;
+    return tournamentSettings.map_veto_required_rounds.includes(currentRound);
+  };
+
+  const toggleMapVetoForMatch = async (enabled: boolean) => {
+    if (!isAdmin) return;
+
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('matches')
+        .update({ map_veto_enabled: enabled })
+        .eq('id', matchId);
+
+      if (error) throw error;
+
+      setMatchSettings(prev => ({ ...prev, map_veto_enabled: enabled }));
+      
+      toast({
+        title: "Map Veto Updated",
+        description: `Map veto ${enabled ? 'enabled' : 'disabled'} for this match`,
+      });
+    } catch (error: any) {
+      console.error('Error updating map veto setting:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update map veto setting",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const initializeMapVeto = async () => {
     if (!team1Id || !team2Id) {
       toast({
         title: "Error",
         description: "Both teams must be assigned before starting map veto",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!isMapVetoAvailable()) {
+      toast({
+        title: "Error",
+        description: "Map veto is not enabled for this match",
         variant: "destructive",
       });
       return;
@@ -143,6 +235,7 @@ const MapVetoManager = ({
   const canParticipate = userTeamId && (userTeamId === team1Id || userTeamId === team2Id);
   const isVetoActive = vetoSession?.status === 'in_progress';
   const isVetoComplete = vetoSession?.status === 'completed';
+  const mapVetoAvailable = isMapVetoAvailable();
 
   if (matchStatus === 'completed') {
     return null; // Don't show veto for completed matches
@@ -157,7 +250,58 @@ const MapVetoManager = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {!vetoSession ? (
+        {/* Map Veto Availability Status */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-white font-medium">Map Veto:</span>
+            <Badge 
+              className={
+                mapVetoAvailable
+                  ? "bg-green-500/20 text-green-400 border-green-500/30"
+                  : "bg-gray-500/20 text-gray-400 border-gray-500/30"
+              }
+            >
+              {mapVetoAvailable ? 'Available' : 'Not Available'}
+            </Badge>
+            {matchSettings?.map_veto_enabled !== null && (
+              <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
+                Admin Override
+              </Badge>
+            )}
+          </div>
+          
+          {/* Admin Controls for Map Veto */}
+          {isAdmin && (
+            <div className="flex gap-2">
+              <Button
+                onClick={() => toggleMapVetoForMatch(true)}
+                disabled={loading || matchSettings?.map_veto_enabled === true}
+                size="sm"
+                className="bg-green-600/20 hover:bg-green-600/30 border-green-600/30 text-green-400"
+              >
+                Enable Veto
+              </Button>
+              <Button
+                onClick={() => toggleMapVetoForMatch(false)}
+                disabled={loading || matchSettings?.map_veto_enabled === false}
+                size="sm"
+                className="bg-red-600/20 hover:bg-red-600/30 border-red-600/30 text-red-400"
+              >
+                Disable Veto
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {!mapVetoAvailable ? (
+          <div className="flex items-center gap-2 p-3 bg-gray-500/10 border border-gray-500/20 rounded-lg">
+            <AlertCircle className="w-4 h-4 text-gray-500" />
+            <span className="text-gray-500 text-sm">
+              Map veto is not enabled for this match. 
+              {isAdmin && " Use admin controls above to override."}
+            </span>
+          </div>
+        ) : !vetoSession ? (
           <div className="text-center space-y-4">
             <p className="text-slate-400">
               Map veto has not been started for this match yet
@@ -230,7 +374,7 @@ const MapVetoManager = ({
       </CardContent>
 
       {/* Map Veto Dialog */}
-      {vetoSession && team1Id && team2Id && (
+      {vetoSession && team1Id && team2Id && mapVetoAvailable && (
         <MapVetoDialog
           open={vetoDialogOpen}
           onOpenChange={setVetoDialogOpen}

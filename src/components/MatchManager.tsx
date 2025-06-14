@@ -118,6 +118,15 @@ const MatchManager = ({ tournamentId, onMatchUpdate }: MatchManagerProps) => {
     }
   };
 
+  const getMatchFormatBadge = (bestOf: number) => {
+    const format = bestOf === 1 ? 'BO1' : bestOf === 3 ? 'BO3' : bestOf === 5 ? 'BO5' : `BO${bestOf}`;
+    const colorClass = bestOf === 1 ? 'bg-gray-500/20 text-gray-400' : 
+                      bestOf === 3 ? 'bg-blue-500/20 text-blue-400' : 
+                      'bg-purple-500/20 text-purple-400';
+    
+    return <Badge variant="outline" className={colorClass}>{format}</Badge>;
+  };
+
   const handleResultsSubmitted = () => {
     fetchMatches();
     onMatchUpdate();
@@ -169,11 +178,17 @@ const MatchManager = ({ tournamentId, onMatchUpdate }: MatchManagerProps) => {
                     <div className="p-4">
                       <div className="flex justify-between items-start mb-4">
                         <div className="space-y-1">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <Badge variant="outline" className="bg-slate-900/50 text-slate-300">
                               Round {match.round_number}
                             </Badge>
                             {getStatusBadge(match.status)}
+                            {getMatchFormatBadge(match.best_of || 1)}
+                            {match.map_veto_enabled !== null && (
+                              <Badge variant="outline" className="bg-blue-500/20 text-blue-400 border-blue-500/30">
+                                {match.map_veto_enabled ? 'Veto On' : 'Veto Off'}
+                              </Badge>
+                            )}
                           </div>
                           {match.scheduled_time && (
                             <div className="flex items-center gap-1 text-xs text-slate-400">

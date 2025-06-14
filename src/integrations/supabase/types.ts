@@ -377,6 +377,7 @@ export type Database = {
           completed_at: string | null
           created_at: string | null
           id: string
+          map_veto_enabled: boolean | null
           match_number: number
           notes: string | null
           round_number: number
@@ -398,6 +399,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string | null
           id?: string
+          map_veto_enabled?: boolean | null
           match_number: number
           notes?: string | null
           round_number: number
@@ -419,6 +421,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string | null
           id?: string
+          map_veto_enabled?: boolean | null
           match_number?: number
           notes?: string | null
           round_number?: number
@@ -759,8 +762,11 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           description: string | null
+          enable_map_veto: boolean | null
           end_time: string | null
+          final_match_format: Database["public"]["Enums"]["match_format"] | null
           id: string
+          map_veto_required_rounds: Json | null
           match_format: Database["public"]["Enums"]["match_format"] | null
           max_players: number
           max_teams: number
@@ -768,6 +774,9 @@ export type Database = {
           prize_pool: string | null
           registration_closes_at: string | null
           registration_opens_at: string | null
+          semifinal_match_format:
+            | Database["public"]["Enums"]["match_format"]
+            | null
           start_time: string | null
           status: Database["public"]["Enums"]["tournament_status"] | null
           team_size: number | null
@@ -781,8 +790,13 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           description?: string | null
+          enable_map_veto?: boolean | null
           end_time?: string | null
+          final_match_format?:
+            | Database["public"]["Enums"]["match_format"]
+            | null
           id?: string
+          map_veto_required_rounds?: Json | null
           match_format?: Database["public"]["Enums"]["match_format"] | null
           max_players?: number
           max_teams: number
@@ -790,6 +804,9 @@ export type Database = {
           prize_pool?: string | null
           registration_closes_at?: string | null
           registration_opens_at?: string | null
+          semifinal_match_format?:
+            | Database["public"]["Enums"]["match_format"]
+            | null
           start_time?: string | null
           status?: Database["public"]["Enums"]["tournament_status"] | null
           team_size?: number | null
@@ -803,8 +820,13 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           description?: string | null
+          enable_map_veto?: boolean | null
           end_time?: string | null
+          final_match_format?:
+            | Database["public"]["Enums"]["match_format"]
+            | null
           id?: string
+          map_veto_required_rounds?: Json | null
           match_format?: Database["public"]["Enums"]["match_format"] | null
           max_players?: number
           max_teams?: number
@@ -812,6 +834,9 @@ export type Database = {
           prize_pool?: string | null
           registration_closes_at?: string | null
           registration_opens_at?: string | null
+          semifinal_match_format?:
+            | Database["public"]["Enums"]["match_format"]
+            | null
           start_time?: string | null
           status?: Database["public"]["Enums"]["tournament_status"] | null
           team_size?: number | null
