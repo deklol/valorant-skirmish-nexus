@@ -179,15 +179,18 @@ export default function VetoMedicManager() {
     if (!forceSession) return;
     setActionSessionId(forceSession.id);
     try {
-      // Find the opposite team for final pick
       let sessionRow = forceSession;
-      // Find which team's turn it was last
+      // DEFENSIVE: extract team1/team2 from match object
+      const team1Id = sessionRow.match?.team1?.id || null;
+      const team2Id = sessionRow.match?.team2?.id || null;
+      const currentTurnTeamId = sessionRow.current_turn_team_id;
+      // Find the opposite team for final pick
       let oppositeTeam: string | null = null;
-      if (sessionRow.team1_id && sessionRow.team2_id && sessionRow.current_turn_team_id) {
+      if (team1Id && team2Id && currentTurnTeamId) {
         oppositeTeam =
-          sessionRow.current_turn_team_id === sessionRow.team1_id
-            ? sessionRow.team2_id
-            : sessionRow.team1_id;
+          currentTurnTeamId === team1Id
+            ? team2Id
+            : team1Id;
       }
       // Insert pick actions for each selected map as 'pick'
       for (const mapId of selectedMapIds) {
@@ -297,6 +300,7 @@ export default function VetoMedicManager() {
           ) : (
             <div className="space-y-4">
               {sessions.map((session) => {
+                // Carefully extract match/team info
                 const match = session.match;
                 const team1 = match?.team1;
                 const team2 = match?.team2;
