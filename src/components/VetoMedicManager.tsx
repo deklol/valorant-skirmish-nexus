@@ -8,6 +8,24 @@ import { useToast } from "@/hooks/use-toast";
 import MapPickerDialog from "./MapPickerDialog";
 import VetoMedicHistory from "./VetoMedicHistory";
 
+// --- Enhanced interfaces for defensive types ---
+interface TeamInfo {
+  id: string;
+  name: string;
+}
+
+interface TournamentInfo {
+  id: string;
+  name: string;
+}
+
+interface MatchInfo {
+  id: string;
+  tournament: TournamentInfo | null;
+  team1: TeamInfo | null;
+  team2: TeamInfo | null;
+}
+
 interface VetoSession {
   id: string;
   match_id: string | null;
@@ -15,16 +33,10 @@ interface VetoSession {
   current_turn_team_id: string | null;
   started_at: string | null;
   completed_at: string | null;
+  match: MatchInfo | null;
 }
 
-interface VetoSessionWithDetails extends VetoSession {
-  match: {
-    id: string;
-    tournament: { name: string; id: string } | null;
-    team1: { id: string; name: string } | null;
-    team2: { id: string; name: string } | null;
-  } | null;
-}
+type VetoSessionWithDetails = VetoSession;
 
 export default function VetoMedicManager() {
   const [sessions, setSessions] = useState<VetoSessionWithDetails[]>([]);
@@ -33,14 +45,14 @@ export default function VetoMedicManager() {
   const [forceDialogOpen, setForceDialogOpen] = useState(false);
   const [maps, setMaps] = useState<any[]>([]);
   const [pickableMaps, setPickableMaps] = useState<any[]>([]);
-  const [forceSession, setForceSession] = useState<VetoSession | null>(null);
+  const [forceSession, setForceSession] = useState<VetoSessionWithDetails | null>(null);
   const [historyBySession, setHistoryBySession] = useState<Record<string, any[]>>({});
   const { toast } = useToast();
 
   // Fetch ALL veto sessions (not limited to pending/in_progress!)
   const fetchSessions = useCallback(async () => {
     setLoading(true);
-    // Enhanced select with joins: match + teams + tournaments
+
     const { data, error } = await supabase
       .from("map_veto_sessions")
       .select(`
@@ -54,11 +66,31 @@ export default function VetoMedicManager() {
       `)
       .order("started_at", { ascending: false })
       .limit(40); // for admin, fetch the latest 40
+
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
       setSessions([]);
     } else {
-      setSessions(data || []);
+      // Defensive: ensure correct type
+      setSessions(
+        (data || []).map((session: any) => ({
+          ...session,
+          match: session.match
+            ? {
+                ...session.match,
+                tournament: session.match.tournament && session.match.tournament.id
+                  ? session.match.tournament
+                  : null,
+                team1: session.match.team1 && session.match.team1.id
+                  ? session.match.team1
+                  : null,
+                team2: session.match.team2 && session.match.team2.id
+                  ? session.match.team2
+                  : null,
+              }
+            : null,
+        }))
+      );
     }
     setLoading(false);
   }, [toast]);
@@ -119,7 +151,7 @@ export default function VetoMedicManager() {
   };
 
   // Open the force-complete dialog, fetch possible maps to pick
-  const openForceDialog = async (session: VetoSession) => {
+  const openForceDialog = async (session: VetoSessionWithDetails) => {
     setForceSession(session);
     setActionSessionId(session.id);
 

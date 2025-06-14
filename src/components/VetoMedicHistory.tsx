@@ -102,7 +102,7 @@ const VetoMedicHistory: React.FC<VetoMedicHistoryProps> = ({
                   </TableCell>
                   <TableCell>
                     {i === actions.length - 1 && status === "in_progress" && (
-                      <Button size="xs" variant="outline" className="border border-red-500/40 text-red-400 px-2 py-1"
+                      <Button size="sm" variant="outline" className="border border-red-500/40 text-red-400 px-2 py-1"
                         onClick={onRollback} disabled={loading}>
                         <XCircle className="w-3 h-3 mr-1" />
                         Rollback
@@ -120,4 +120,3 @@ const VetoMedicHistory: React.FC<VetoMedicHistoryProps> = ({
 };
 
 export default VetoMedicHistory;
-
