@@ -79,19 +79,6 @@ const Leaderboard = () => {
     }
   };
 
-  const getRankColor = (rank: number) => {
-    switch (rank) {
-      case 1:
-        return "text-yellow-500";
-      case 2:
-        return "text-gray-400";
-      case 3:
-        return "text-amber-600";
-      default:
-        return "text-slate-400";
-    }
-  };
-
   const getSortTitle = () => {
     switch (sortBy) {
       case 'tournament_wins':
@@ -116,6 +103,11 @@ const Leaderboard = () => {
       default:
         return <Trophy className="w-8 h-8 text-blue-500" />;
     }
+  };
+
+  const calculateWinRate = (wins: number, losses: number) => {
+    if (wins + losses === 0) return 0;
+    return Math.round((wins / (wins + losses)) * 100);
   };
 
   if (loading) {
@@ -184,15 +176,15 @@ const Leaderboard = () => {
                     </div>
                     <div className="text-center">
                       <div className="font-bold text-yellow-400">{player.tournaments_won || 0}</div>
-                      <div className="text-slate-400">T-Wins</div>
+                      <div className="text-slate-400">Tournament Wins</div>
                     </div>
                     <div className="text-center">
                       <div className="font-bold text-green-400">{player.wins || 0}</div>
-                      <div className="text-slate-400">M-Wins</div>
+                      <div className="text-slate-400">Match Wins</div>
                     </div>
                     <div className="text-center">
-                      <div className="font-bold text-blue-400">{player.wins || 0}-{player.losses || 0}</div>
-                      <div className="text-slate-400">W-L</div>
+                      <div className="font-bold text-blue-400">{calculateWinRate(player.wins || 0, player.losses || 0)}%</div>
+                      <div className="text-slate-400">Win Rate</div>
                     </div>
                   </div>
                 </div>

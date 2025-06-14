@@ -981,6 +981,10 @@ export type Database = {
         }
         Returns: string
       }
+      fix_missing_tournament_wins: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       get_user_match_history: {
         Args: { profile_user_id: string; match_limit?: number }
         Returns: {
