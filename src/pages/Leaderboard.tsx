@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Trophy, Medal, Award, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import Header from '@/components/Header';
 import ClickableUsername from '@/components/ClickableUsername';
 
 interface Player {
@@ -73,7 +72,6 @@ const Leaderboard = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
-        <Header />
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
             <p className="text-white">Loading leaderboard...</p>
@@ -85,7 +83,6 @@ const Leaderboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
-      <Header />
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center gap-3 mb-8">
           <Users className="w-8 h-8 text-blue-500" />

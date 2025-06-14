@@ -2,7 +2,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Archive as ArchiveIcon, Calendar, Trophy, Users } from "lucide-react";
-import Header from '@/components/Header';
 
 const Archive = () => {
   // Mock archived tournament data - will be replaced with real data
@@ -19,7 +18,6 @@ const Archive = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
-      <Header />
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center gap-3 mb-8">
           <ArchiveIcon className="w-8 h-8 text-slate-400" />
