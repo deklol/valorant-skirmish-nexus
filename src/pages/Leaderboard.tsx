@@ -138,7 +138,7 @@ const Leaderboard = () => {
             <SelectContent className="bg-slate-800 border-slate-700">
               <SelectItem value="tournament_wins" className="text-white">Tournament Wins</SelectItem>
               <SelectItem value="match_wins" className="text-white">Match Wins</SelectItem>
-              <SelectItem value="rank_points" className="text-white">VAL Rank</SelectItem>
+              <SelectItem value="rank_points" className="text-white">VALORANT Rank</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -172,7 +172,7 @@ const Leaderboard = () => {
                   <div className="flex items-center gap-6 text-sm">
                     <div className="text-center">
                       <div className="font-bold text-indigo-400">{player.rank_points || 0}</div>
-                      <div className="text-slate-400">Points</div>
+                      <div className="text-slate-400">Rank Points</div>
                     </div>
                     <div className="text-center">
                       <div className="font-bold text-yellow-400">{player.tournaments_won || 0}</div>
