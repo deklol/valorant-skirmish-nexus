@@ -170,19 +170,19 @@ const AdminMatchControls = ({ match, onMatchUpdate }: AdminMatchControlsProps) =
           <Label className="text-slate-300">Force Status Change</Label>
           <div className="flex gap-2">
             <Select value={newStatus} onValueChange={setNewStatus}>
-              <SelectTrigger className="bg-slate-700 border-slate-600">
+              <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="live">Live</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
+              <SelectContent className="bg-slate-800 border-slate-600">
+                <SelectItem value="pending" className="text-white hover:bg-slate-700">Pending</SelectItem>
+                <SelectItem value="live" className="text-white hover:bg-slate-700">Live</SelectItem>
+                <SelectItem value="completed" className="text-white hover:bg-slate-700">Completed</SelectItem>
               </SelectContent>
             </Select>
             <Button
               onClick={forceStatusChange}
               disabled={loading || newStatus === match.status}
-              className="bg-orange-600 hover:bg-orange-700"
+              className="bg-orange-600 hover:bg-orange-700 text-white border-orange-500"
             >
               Force Update
             </Button>
@@ -197,12 +197,12 @@ const AdminMatchControls = ({ match, onMatchUpdate }: AdminMatchControlsProps) =
               type="datetime-local"
               value={newScheduledTime}
               onChange={(e) => setNewScheduledTime(e.target.value)}
-              className="bg-slate-700 border-slate-600"
+              className="bg-slate-800 border-slate-600 text-white"
             />
             <Button
               onClick={rescheduleMatch}
               disabled={loading || !newScheduledTime}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-blue-600 hover:bg-blue-700 text-white border-blue-500"
             >
               <Calendar className="w-4 h-4 mr-2" />
               Reschedule
@@ -220,7 +220,7 @@ const AdminMatchControls = ({ match, onMatchUpdate }: AdminMatchControlsProps) =
                 type="number"
                 value={overrideScore1}
                 onChange={(e) => setOverrideScore1(parseInt(e.target.value) || 0)}
-                className="bg-slate-700 border-slate-600"
+                className="bg-slate-800 border-slate-600 text-white"
               />
             </div>
             <div>
@@ -229,27 +229,27 @@ const AdminMatchControls = ({ match, onMatchUpdate }: AdminMatchControlsProps) =
                 type="number"
                 value={overrideScore2}
                 onChange={(e) => setOverrideScore2(parseInt(e.target.value) || 0)}
-                className="bg-slate-700 border-slate-600"
+                className="bg-slate-800 border-slate-600 text-white"
               />
             </div>
           </div>
           <Select value={overrideWinner} onValueChange={setOverrideWinner}>
-            <SelectTrigger className="bg-slate-700 border-slate-600">
+            <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
               <SelectValue placeholder="Select winner" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-slate-800 border-slate-600">
               {match.team1 && (
-                <SelectItem value={match.team1_id}>{match.team1.name}</SelectItem>
+                <SelectItem value={match.team1_id} className="text-white hover:bg-slate-700">{match.team1.name}</SelectItem>
               )}
               {match.team2 && (
-                <SelectItem value={match.team2_id}>{match.team2.name}</SelectItem>
+                <SelectItem value={match.team2_id} className="text-white hover:bg-slate-700">{match.team2.name}</SelectItem>
               )}
             </SelectContent>
           </Select>
           <Button
             onClick={overrideResults}
             disabled={loading}
-            className="w-full bg-red-600 hover:bg-red-700"
+            className="w-full bg-red-600 hover:bg-red-700 text-white border-red-500"
           >
             <Trophy className="w-4 h-4 mr-2" />
             Override Results
@@ -261,7 +261,7 @@ const AdminMatchControls = ({ match, onMatchUpdate }: AdminMatchControlsProps) =
           <Button
             onClick={initializeMapVeto}
             disabled={loading}
-            className="w-full bg-purple-600 hover:bg-purple-700"
+            className="w-full bg-purple-600 hover:bg-purple-700 text-white border-purple-500"
           >
             Initialize Map Veto
           </Button>

@@ -150,9 +150,9 @@ const MapVetoDialog = ({ open, onOpenChange, matchId, team1Name, team2Name, curr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-slate-900 border-slate-700 text-white">
         <DialogHeader>
-          <DialogTitle>Map Veto - {team1Name} vs {team2Name}</DialogTitle>
+          <DialogTitle className="text-white">Map Veto - {team1Name} vs {team2Name}</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-6">
@@ -166,7 +166,7 @@ const MapVetoDialog = ({ open, onOpenChange, matchId, team1Name, team2Name, curr
                     {isUserTurn ? "Your Team" : "Opponent"}
                   </span>
                 </div>
-                <Badge className={currentAction === 'ban' ? "bg-red-500/20 text-red-400" : "bg-green-500/20 text-green-400"}>
+                <Badge className={currentAction === 'ban' ? "bg-red-500/20 text-red-400 border-red-500/30" : "bg-green-500/20 text-green-400 border-green-500/30"}>
                   {currentAction === 'ban' ? 'BAN' : 'PICK'} Phase
                 </Badge>
               </div>
@@ -192,7 +192,7 @@ const MapVetoDialog = ({ open, onOpenChange, matchId, team1Name, team2Name, curr
                           <span className="text-white">{action.map?.display_name}</span>
                         </div>
                       </div>
-                      <Badge className={action.action === 'ban' ? "bg-red-500/20 text-red-400" : "bg-green-500/20 text-green-400"}>
+                      <Badge className={action.action === 'ban' ? "bg-red-500/20 text-red-400 border-red-500/30" : "bg-green-500/20 text-green-400 border-green-500/30"}>
                         {action.action.toUpperCase()}
                       </Badge>
                     </div>
@@ -211,11 +211,11 @@ const MapVetoDialog = ({ open, onOpenChange, matchId, team1Name, team2Name, curr
               return (
                 <Card 
                   key={map.id} 
-                  className={`border-slate-700 transition-all cursor-pointer ${
+                  className={`border-slate-600 transition-all cursor-pointer ${
                     !available 
                       ? 'bg-slate-700 opacity-50' 
                       : isUserTurn && available
-                        ? 'bg-slate-800 hover:bg-slate-700 hover:border-slate-600'
+                        ? 'bg-slate-800 hover:bg-slate-700 hover:border-slate-500'
                         : 'bg-slate-800'
                   }`}
                   onClick={() => available && isUserTurn && handleMapAction(map.id)}
@@ -243,15 +243,15 @@ const MapVetoDialog = ({ open, onOpenChange, matchId, team1Name, team2Name, curr
                       {/* Status */}
                       <div className="text-center">
                         {status ? (
-                          <Badge className={status.action === 'ban' ? "bg-red-500/20 text-red-400" : "bg-green-500/20 text-green-400"}>
+                          <Badge className={status.action === 'ban' ? "bg-red-500/20 text-red-400 border-red-500/30" : "bg-green-500/20 text-green-400 border-green-500/30"}>
                             {status.action.toUpperCase()} by {status.team}
                           </Badge>
                         ) : available && isUserTurn ? (
-                          <Badge className="bg-blue-500/20 text-blue-400">
+                          <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
                             Click to {currentAction.toUpperCase()}
                           </Badge>
                         ) : (
-                          <Badge className="bg-slate-500/20 text-slate-400">
+                          <Badge className="bg-slate-500/20 text-slate-400 border-slate-500/30">
                             Available
                           </Badge>
                         )}
