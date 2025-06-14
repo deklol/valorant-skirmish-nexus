@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -158,6 +159,15 @@ const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => 
 
   const canParticipateInVeto = (match: MatchData) => {
     return userTeamId && (userTeamId === match.team1_id || userTeamId === match.team2_id);
+  };
+
+  const handleViewMatch = (matchId: string) => {
+    try {
+      console.log('Navigating to match:', matchId);
+      navigate(`/match/${matchId}`);
+    } catch (error) {
+      console.error('Error navigating to match:', error);
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -393,7 +403,7 @@ const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => 
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  onClick={() => navigate(`/match/${existingMatch.id}`)}
+                                  onClick={() => handleViewMatch(existingMatch.id)}
                                   className="border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-white"
                                 >
                                   View Match
