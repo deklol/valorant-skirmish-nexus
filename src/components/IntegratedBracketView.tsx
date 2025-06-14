@@ -1,11 +1,11 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trophy, Users, Clock, ExternalLink, RefreshCw } from "lucide-react";
+import { Trophy, Users, Clock, ExternalLink, RefreshCw, Map, Play } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
 interface IntegratedBracketViewProps {
   tournamentId: string;
@@ -22,6 +22,7 @@ interface MatchData {
   score_team1: number;
   score_team2: number;
   scheduled_time: string | null;
+  map_veto_enabled: boolean;
   team1?: { name: string; id: string } | null;
   team2?: { name: string; id: string } | null;
 }
@@ -34,16 +35,48 @@ interface Tournament {
   name: string;
 }
 
+interface MapVetoSession {
+  id: string;
+  match_id: string;
+  status: string;
+  current_turn_team_id: string | null;
+}
+
 const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => {
   const [matches, setMatches] = useState<MatchData[]>([]);
   const [tournament, setTournament] = useState<Tournament | null>(null);
+  const [vetoSessions, setVetoSessions] = useState<MapVetoSession[]>([]);
+  const [userTeamId, setUserTeamId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchBracketData();
-  }, [tournamentId]);
+    if (user?.id) {
+      fetchUserTeam();
+    }
+  }, [tournamentId, user?.id]);
+
+  const fetchUserTeam = async () => {
+    if (!user?.id) return;
+
+    try {
+      const { data: teamMember } = await supabase
+        .from('team_members')
+        .select('team_id, teams!inner(tournament_id)')
+        .eq('user_id', user.id)
+        .eq('teams.tournament_id', tournamentId)
+        .single();
+
+      if (teamMember) {
+        setUserTeamId(teamMember.team_id);
+      }
+    } catch (error) {
+      console.error('Error fetching user team:', error);
+    }
+  };
 
   const fetchBracketData = async () => {
     try {
@@ -71,7 +104,7 @@ const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => 
       console.log('Tournament data:', tournamentData);
       setTournament(tournamentData);
 
-      // Fetch matches with proper team joins - using the same approach as BracketView
+      // Fetch matches with proper team joins
       const { data: matchesData, error: matchesError } = await supabase
         .from('matches')
         .select(`
@@ -85,23 +118,31 @@ const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => 
 
       if (matchesError) {
         console.error('Matches error:', matchesError);
-        // Don't throw error, just log and continue with empty matches
         console.warn('Could not fetch matches, continuing with empty bracket');
         setMatches([]);
-        return;
+      } else {
+        const processedMatches = (matchesData || []).map(match => ({
+          ...match,
+          team1: match.team1 && typeof match.team1 === 'object' && 'name' in match.team1 ? match.team1 : null,
+          team2: match.team2 && typeof match.team2 === 'object' && 'name' in match.team2 ? match.team2 : null
+        }));
+
+        console.log('Processed matches:', processedMatches);
+        setMatches(processedMatches);
+
+        // Fetch map veto sessions for matches with veto enabled
+        const vetoEnabledMatches = processedMatches.filter(m => m.map_veto_enabled);
+        if (vetoEnabledMatches.length > 0) {
+          const { data: vetoData } = await supabase
+            .from('map_veto_sessions')
+            .select('*')
+            .in('match_id', vetoEnabledMatches.map(m => m.id));
+
+          if (vetoData) {
+            setVetoSessions(vetoData);
+          }
+        }
       }
-
-      console.log('Raw matches data:', matchesData);
-      
-      // Process the matches data to ensure proper structure
-      const processedMatches = (matchesData || []).map(match => ({
-        ...match,
-        team1: match.team1 && typeof match.team1 === 'object' && 'name' in match.team1 ? match.team1 : null,
-        team2: match.team2 && typeof match.team2 === 'object' && 'name' in match.team2 ? match.team2 : null
-      }));
-
-      console.log('Processed matches:', processedMatches);
-      setMatches(processedMatches);
 
     } catch (error: any) {
       console.error('Error fetching bracket:', error);
@@ -109,6 +150,14 @@ const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => 
     } finally {
       setLoading(false);
     }
+  };
+
+  const getVetoSession = (matchId: string) => {
+    return vetoSessions.find(session => session.match_id === matchId);
+  };
+
+  const canParticipateInVeto = (match: MatchData) => {
+    return userTeamId && (userTeamId === match.team1_id || userTeamId === match.team2_id);
   };
 
   const getStatusBadge = (status: string) => {
@@ -329,6 +378,8 @@ const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => 
                   <div className="space-y-3">
                     {Array.from({ length: roundInfo.matchCount }, (_, matchIndex) => {
                       const existingMatch = roundMatches.find(m => m.match_number === matchIndex + 1);
+                      const vetoSession = existingMatch ? getVetoSession(existingMatch.id) : null;
+                      const canParticipate = existingMatch ? canParticipateInVeto(existingMatch) : false;
                       
                       return (
                         <div key={`${roundInfo.round}-${matchIndex}`} className="bg-slate-700 p-3 rounded-lg">
@@ -338,8 +389,29 @@ const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => 
                               {existingMatch ? getStatusBadge(existingMatch.status) : (
                                 <Badge className="bg-gray-500/20 text-gray-400">Pending</Badge>
                               )}
+                              {existingMatch && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => navigate(`/match/${existingMatch.id}`)}
+                                  className="border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-white"
+                                >
+                                  View Match
+                                </Button>
+                              )}
                             </div>
                           </div>
+                          
+                          {/* Map Veto Alert for Participants */}
+                          {existingMatch?.map_veto_enabled && vetoSession?.status === 'in_progress' && canParticipate && (
+                            <div className="mb-3 p-2 bg-yellow-500/20 border border-yellow-500/50 rounded-lg">
+                              <div className="flex items-center gap-2">
+                                <Map className="w-4 h-4 text-yellow-400" />
+                                <span className="text-yellow-400 text-sm font-medium">Map Veto Ready!</span>
+                              </div>
+                              <p className="text-yellow-300 text-xs mt-1">Click "View Match" to participate in map selection</p>
+                            </div>
+                          )}
                           
                           <div className="space-y-2">
                             <div className={`p-2 rounded flex items-center justify-between ${
@@ -386,12 +458,20 @@ const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => 
                               <Clock className="w-3 h-3" />
                               <span>{existingMatch ? formatTime(existingMatch.scheduled_time) : "TBD"}</span>
                             </div>
-                            {existingMatch?.status === "live" && (
-                              <div className="flex items-center gap-1">
-                                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                                <span className="text-red-400">LIVE</span>
-                              </div>
-                            )}
+                            <div className="flex items-center gap-2">
+                              {existingMatch?.status === "live" && (
+                                <div className="flex items-center gap-1">
+                                  <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                                  <span className="text-red-400">LIVE</span>
+                                </div>
+                              )}
+                              {existingMatch?.map_veto_enabled && (
+                                <div className="flex items-center gap-1">
+                                  <Map className="w-3 h-3 text-blue-400" />
+                                  <span className="text-blue-400">Veto</span>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                       );
