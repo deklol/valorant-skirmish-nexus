@@ -40,6 +40,7 @@ const MapVetoManager = ({
   const [matchSettings, setMatchSettings] = useState<any>(null);
   const [settingsLoading, setSettingsLoading] = useState(true);
   const [teamSize, setTeamSize] = useState<number | null>(null);
+  const [resettingVeto, setResettingVeto] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const { notifyMapVetoReady } = useEnhancedNotifications();
@@ -266,6 +267,50 @@ const MapVetoManager = ({
     }
   };
 
+  const resetVetoSession = async () => {
+    if (!isAdmin || !vetoSession) return;
+    setResettingVeto(true);
+    try {
+      // 1. Delete all actions associated with this session
+      const { error: actionsErr } = await supabase
+        .from('map_veto_actions')
+        .delete()
+        .eq('veto_session_id', vetoSession.id);
+
+      if (actionsErr) throw actionsErr;
+
+      // 2. Reset the session status and relevant fields
+      const { error: sessionErr } = await supabase
+        .from('map_veto_sessions')
+        .update({
+          status: 'pending',
+          current_turn_team_id: null,
+          started_at: null,
+          completed_at: null,
+        })
+        .eq('id', vetoSession.id);
+
+      if (sessionErr) throw sessionErr;
+
+      toast({
+        title: "Veto Session Reset",
+        description: "Map veto has been cleared and reset.",
+      });
+
+      // Refetch session to update UI
+      checkVetoSession();
+    } catch (error) {
+      console.error('Error resetting veto session:', error);
+      toast({
+        title: "Error",
+        description: "Failed to reset map veto session",
+        variant: "destructive",
+      });
+    } finally {
+      setResettingVeto(false);
+    }
+  };
+
   const canParticipate = userTeamId && (userTeamId === team1Id || userTeamId === team2Id);
   const isVetoActive = vetoSession?.status === 'in_progress';
   const isVetoComplete = vetoSession?.status === 'completed';
@@ -370,6 +415,7 @@ const MapVetoManager = ({
           </div>
           {isAdmin && (
             <div className="flex gap-2">
+              {/* Enable/Disable Veto buttons */}
               <Button
                 onClick={() => toggleMapVetoForMatch(true)}
                 disabled={loading || matchSettings?.map_veto_enabled === true}
@@ -386,6 +432,17 @@ const MapVetoManager = ({
               >
                 Disable Veto
               </Button>
+              {/* Admin Reset Veto button */}
+              {vetoSession && (
+                <Button
+                  onClick={resetVetoSession}
+                  disabled={resettingVeto}
+                  size="sm"
+                  className="bg-yellow-600/20 hover:bg-yellow-600/30 border-yellow-600/30 text-yellow-400"
+                >
+                  {resettingVeto ? 'Resetting...' : 'Reset Veto'}
+                </Button>
+              )}
             </div>
           )}
         </div>
