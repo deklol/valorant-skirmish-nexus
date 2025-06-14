@@ -8,6 +8,7 @@ import { Search, Plus, Filter } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import TournamentCard from "@/components/TournamentCard";
+import CreateTournamentDialog from "@/components/CreateTournamentDialog";
 
 interface Tournament {
   id: string;
@@ -26,55 +27,56 @@ const Tournaments = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [formatFilter, setFormatFilter] = useState("all");
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const { isAdmin } = useAuth();
 
-  useEffect(() => {
-    const fetchTournaments = async () => {
-      console.log('Fetching tournaments...');
-      try {
-        setLoading(true);
-        
-        const { data: tournamentsData, error } = await supabase
-          .from('tournaments')
-          .select('*')
-          .order('start_time', { ascending: true });
+  const fetchTournaments = async () => {
+    console.log('Fetching tournaments...');
+    try {
+      setLoading(true);
+      
+      const { data: tournamentsData, error } = await supabase
+        .from('tournaments')
+        .select('*')
+        .order('start_time', { ascending: true });
 
-        if (error) {
-          throw error;
-        }
-
-        console.log('Raw tournaments data:', tournamentsData);
-
-        // Get signup counts for each tournament
-        const tournamentsWithSignups = await Promise.all(
-          (tournamentsData || []).map(async (tournament) => {
-            const { count } = await supabase
-              .from('tournament_signups')
-              .select('*', { count: 'exact' })
-              .eq('tournament_id', tournament.id);
-
-            return {
-              id: tournament.id,
-              name: tournament.name,
-              currentSignups: count || 0,
-              maxPlayers: tournament.max_players,
-              prizePool: tournament.prize_pool || 'TBD',
-              startTime: new Date(tournament.start_time),
-              status: tournament.status as "open" | "balancing" | "live" | "completed",
-              format: (tournament.match_format === 'BO5' ? 'BO3' : tournament.match_format) as "BO1" | "BO3"
-            };
-          })
-        );
-
-        console.log('Processed tournaments:', tournamentsWithSignups);
-        setTournaments(tournamentsWithSignups);
-      } catch (error) {
-        console.error('Error fetching tournaments:', error);
-      } finally {
-        setLoading(false);
+      if (error) {
+        throw error;
       }
-    };
 
+      console.log('Raw tournaments data:', tournamentsData);
+
+      // Get signup counts for each tournament
+      const tournamentsWithSignups = await Promise.all(
+        (tournamentsData || []).map(async (tournament) => {
+          const { count } = await supabase
+            .from('tournament_signups')
+            .select('*', { count: 'exact' })
+            .eq('tournament_id', tournament.id);
+
+          return {
+            id: tournament.id,
+            name: tournament.name,
+            currentSignups: count || 0,
+            maxPlayers: tournament.max_players,
+            prizePool: tournament.prize_pool || 'TBD',
+            startTime: new Date(tournament.start_time),
+            status: tournament.status as "open" | "balancing" | "live" | "completed",
+            format: (tournament.match_format === 'BO5' ? 'BO3' : tournament.match_format) as "BO1" | "BO3"
+          };
+        })
+      );
+
+      console.log('Processed tournaments:', tournamentsWithSignups);
+      setTournaments(tournamentsWithSignups);
+    } catch (error) {
+      console.error('Error fetching tournaments:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchTournaments();
   }, []);
 
@@ -109,7 +111,10 @@ const Tournaments = () => {
           </div>
           
           {isAdmin && (
-            <Button className="bg-red-600 hover:bg-red-700 text-white">
+            <Button 
+              onClick={() => setCreateDialogOpen(true)}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
               <Plus className="w-4 h-4 mr-2" />
               Create Tournament
             </Button>
@@ -179,6 +184,13 @@ const Tournaments = () => {
           </Card>
         )}
       </div>
+
+      {/* Create Tournament Dialog */}
+      <CreateTournamentDialog 
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        onTournamentCreated={fetchTournaments}
+      />
     </div>
   );
 };

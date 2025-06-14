@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,9 +21,9 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    match_format: "BO3",
-    semifinal_match_format: "",
-    final_match_format: "",
+    match_format: "BO3" as "BO1" | "BO3" | "BO5",
+    semifinal_match_format: "" as "" | "BO1" | "BO3" | "BO5",
+    final_match_format: "" as "" | "BO1" | "BO3" | "BO5",
     team_size: 5,
     max_players: 50,
     max_teams: 10,
@@ -60,7 +59,7 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
       const tournamentData = {
         name: formData.name,
         description: formData.description,
-        match_format: formData.match_format as "BO1" | "BO3" | "BO5",
+        match_format: formData.match_format,
         semifinal_match_format: formData.semifinal_match_format || null,
         final_match_format: formData.final_match_format || null,
         team_size: formData.team_size,
@@ -253,7 +252,7 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
                 <Label htmlFor="match_format" className="text-white">Standard Matches</Label>
                 <Select
                   value={formData.match_format}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, match_format: value }))}
+                  onValueChange={(value: "BO1" | "BO3" | "BO5") => setFormData(prev => ({ ...prev, match_format: value }))}
                 >
                   <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                     <SelectValue />
@@ -271,7 +270,7 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
                   <Label htmlFor="semifinal_match_format" className="text-white">Semifinals (Optional Override)</Label>
                   <Select
                     value={formData.semifinal_match_format}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, semifinal_match_format: value }))}
+                    onValueChange={(value: "" | "BO1" | "BO3" | "BO5") => setFormData(prev => ({ ...prev, semifinal_match_format: value }))}
                   >
                     <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                       <SelectValue placeholder="Same as standard" />
@@ -289,7 +288,7 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
                   <Label htmlFor="final_match_format" className="text-white">Finals (Optional Override)</Label>
                   <Select
                     value={formData.final_match_format}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, final_match_format: value }))}
+                    onValueChange={(value: "" | "BO1" | "BO3" | "BO5") => setFormData(prev => ({ ...prev, final_match_format: value }))}
                   >
                     <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                       <SelectValue placeholder="Same as standard" />

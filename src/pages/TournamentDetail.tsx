@@ -1,178 +1,149 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Clock, Settings, Trophy, Users, AlertTriangle, CheckCircle } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import Header from "@/components/Header";
-import TournamentEditDialog from "@/components/TournamentEditDialog";
-import AutomatedScheduling from "@/components/AutomatedScheduling";
-import ScoreReporting from "@/components/ScoreReporting";
-import IntegratedBracketView from "@/components/IntegratedBracketView";
-import TournamentParticipants from "@/components/TournamentParticipants";
-import TournamentStatusManager from "@/components/TournamentStatusManager";
-import TeamBalancingTool from "@/components/team-balancing/TeamBalancingTool";
-import TeamBalancingInterface from "@/components/TeamBalancingInterface";
+import { Calendar, Users, Map, Shuffle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import BracketGenerator from "@/components/BracketGenerator";
-import ComprehensiveTournamentEditor from "@/components/ComprehensiveTournamentEditor";
-import CheckInEnforcement from "@/components/CheckInEnforcement";
-import MatchManager from "@/components/MatchManager";
-import ForceCheckInManager from "@/components/ForceCheckInManager";
-import TournamentWinnerDisplay from "@/components/TournamentWinnerDisplay";
 
 interface Tournament {
   id: string;
   name: string;
-  description: string | null;
-  start_time: string | null;
-  end_time: string | null;
-  registration_opens_at: string | null;
-  registration_closes_at: string | null;
-  check_in_starts_at: string | null;
-  check_in_ends_at: string | null;
-  max_teams: number;
-  max_players: number;
-  prize_pool: string | null;
-  status: 'draft' | 'open' | 'balancing' | 'live' | 'completed' | 'archived' | null;
-  match_format: "BO1" | "BO3" | "BO5" | null;
-  bracket_type: string | null;
-  check_in_required: boolean | null;
-}
-
-interface Match {
-  id: string;
-  match_number: number;
-  round_number: number;
-  team1_id: string | null;
-  team2_id: string | null;
-  score_team1: number | null;
-  score_team2: number | null;
   status: string;
-  winner_id: string | null;
-  tournament_id?: string;
-  team1?: { name: string } | null;
-  team2?: { name: string } | null;
-  scheduled_time: string | null;
+  max_teams: number;
+  bracket_type: string;
+  match_format: string;
+  final_match_format?: string;
+  semifinal_match_format?: string;
+  enable_map_veto: boolean;
+  map_veto_required_rounds?: number[];
+  start_time: string;
+  teams?: Team[];
+  matches?: Match[];
 }
 
 interface Team {
   id: string;
   name: string;
-  seed: number | null;
-  total_rank_points: number | null;
-  status: string | null;
+  team_members: TeamMember[];
 }
 
-interface Participant {
+interface TeamMember {
+  user_id: string;
+  is_captain: boolean;
+  users: User;
+}
+
+interface User {
+  discord_username: string;
+  discord_avatar_url: string | null;
+}
+
+interface Match {
   id: string;
-  user_id: string | null;
-  tournament_id: string | null;
-  is_checked_in: boolean | null;
-  users?: {
-    discord_username: string | null;
-  };
+  tournament_id: string;
+  round_number: number;
+  match_number: number;
+  team1_id: string;
+  team2_id: string;
+  winner_id: string | null;
+  status: string;
+  score_team1: number;
+  score_team2: number;
+  team1: { name: string };
+  team2: { name: string };
+  winner: { name: string } | null;
 }
 
 const TournamentDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const [tournament, setTournament] = useState<Tournament | null>(null);
-  const [matches, setMatches] = useState<Match[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
-  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [signups, setSignups] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isRegistered, setIsRegistered] = useState(false);
-  const { user } = useAuth();
   const { toast } = useToast();
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { isAdmin } = useAuth();
 
   useEffect(() => {
     if (id) {
-      fetchTournament();
-      fetchMatches();
-      fetchTeams();
-      fetchParticipants();
-      if (user) {
-        checkRegistrationStatus();
-      }
+      fetchTournamentDetails();
     }
-  }, [id, user]);
-
-  useEffect(() => {
-    const checkAdminStatus = async () => {
-      if (user) {
-        const { data } = await supabase
-          .from('users')
-          .select('role')
-          .eq('id', user.id)
-          .single();
-        setIsAdmin(data?.role === 'admin');
-      } else {
-        setIsAdmin(false);
-      }
-    };
-
-    checkAdminStatus();
-  }, [user]);
-
-  // Add real-time subscription for tournament updates
-  useEffect(() => {
-    if (!id) return;
-
-    const channel = supabase
-      .channel(`tournament-${id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'tournaments',
-          filter: `id=eq.${id}`
-        },
-        () => {
-          fetchTournament();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'matches',
-          filter: `tournament_id=eq.${id}`
-        },
-        () => {
-          fetchMatches();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, [id]);
 
-  const fetchTournament = async () => {
-    if (!id) return;
-
+  const fetchTournamentDetails = async () => {
     try {
-      const { data, error } = await supabase
+      setLoading(true);
+      console.log('Fetching tournament details for ID:', id);
+
+      const { data: tournamentData, error: tournamentError } = await supabase
         .from('tournaments')
-        .select('*')
+        .select(`
+          *,
+          teams (
+            *,
+            team_members (
+              user_id,
+              is_captain,
+              users (
+                discord_username,
+                discord_avatar_url
+              )
+            )
+          ),
+          matches (
+            *,
+            team1:teams!matches_team1_id_fkey (name),
+            team2:teams!matches_team2_id_fkey (name),
+            winner:teams!matches_winner_id_fkey (name)
+          )
+        `)
         .eq('id', id)
         .single();
 
-      if (error) throw error;
-      setTournament(data);
+      if (tournamentError) {
+        console.error('Tournament fetch error:', tournamentError);
+        throw tournamentError;
+      }
+
+      console.log('Tournament data fetched:', tournamentData);
+      setTournament(tournamentData);
+      setTeams(tournamentData.teams || []);
+      setMatches(tournamentData.matches || []);
+
+      // Fetch signups
+      const { data: signupsData, error: signupsError } = await supabase
+        .from('tournament_signups')
+        .select(`
+          *,
+          users (
+            id,
+            discord_username,
+            current_rank,
+            rank_points,
+            weight_rating,
+            discord_avatar_url
+          )
+        `)
+        .eq('tournament_id', id);
+
+      if (signupsError) {
+        console.error('Signups fetch error:', signupsError);
+        throw signupsError;
+      }
+
+      console.log('Signups data fetched:', signupsData);
+      setSignups(signupsData || []);
+
     } catch (error: any) {
-      console.error('Error fetching tournament:', error);
+      console.error('Error fetching tournament details:', error);
       toast({
         title: "Error",
-        description: "Failed to load tournament",
+        description: error.message || "Failed to load tournament details",
         variant: "destructive",
       });
     } finally {
@@ -180,201 +151,39 @@ const TournamentDetail = () => {
     }
   };
 
-  const fetchMatches = async () => {
-    if (!id) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('matches')
-        .select(`
-          *, 
-          team1:teams!matches_team1_id_fkey (name),
-          team2:teams!matches_team2_id_fkey (name)
-        `)
-        .eq('tournament_id', id)
-        .order('round_number', { ascending: true })
-        .order('match_number', { ascending: true });
-
-      if (error) throw error;
-      
-      // Add tournament_id to each match for proper processing
-      const matchesWithTournamentId = (data || []).map(match => ({
-        ...match,
-        tournament_id: id
-      }));
-      
-      setMatches(matchesWithTournamentId);
-    } catch (error: any) {
-      console.error('Error fetching matches:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load matches",
-        variant: "destructive",
-      });
-    }
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
   };
 
-  const fetchTeams = async () => {
-    if (!id) return;
+  const getStatusBadge = (status: string) => {
+    const variants = {
+      draft: "bg-gray-500/20 text-gray-400",
+      open: "bg-green-500/20 text-green-400",
+      balancing: "bg-yellow-500/20 text-yellow-400",
+      live: "bg-red-500/20 text-red-400",
+      completed: "bg-blue-500/20 text-blue-400",
+      archived: "bg-slate-500/20 text-slate-400"
+    };
 
-    try {
-      const { data, error } = await supabase
-        .from('teams')
-        .select('*')
-        .eq('tournament_id', id);
-
-      if (error) throw error;
-      setTeams(data || []);
-    } catch (error: any) {
-      console.error('Error fetching teams:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load teams",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const fetchParticipants = async () => {
-    if (!id) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('tournament_signups')
-        .select(`
-          id,
-          user_id,
-          tournament_id,
-          is_checked_in,
-          users:user_id (
-            discord_username
-          )
-        `)
-        .eq('tournament_id', id);
-
-      if (error) throw error;
-      setParticipants(data || []);
-    } catch (error: any) {
-      console.error('Error fetching participants:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load participants",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const checkRegistrationStatus = async () => {
-    if (!user || !id) return;
-
-    try {
-      const { data } = await supabase
-        .from('tournament_signups')
-        .select('id')
-        .eq('tournament_id', id)
-        .eq('user_id', user.id)
-        .single();
-
-      setIsRegistered(!!data);
-    } catch (error) {
-      setIsRegistered(false);
-    }
-  };
-
-  const handleRegistration = async () => {
-    if (!user || !id) return;
-
-    try {
-      if (isRegistered) {
-        const { error } = await supabase
-          .from('tournament_signups')
-          .delete()
-          .eq('tournament_id', id)
-          .eq('user_id', user.id);
-
-        if (error) throw error;
-        setIsRegistered(false);
-        toast({
-          title: "Unregistered",
-          description: "You have been removed from the tournament",
-        });
-      } else {
-        const { error } = await supabase
-          .from('tournament_signups')
-          .insert({
-            tournament_id: id,
-            user_id: user.id,
-          });
-
-        if (error) throw error;
-        setIsRegistered(true);
-        toast({
-          title: "Registered",
-          description: "You have been registered for the tournament",
-        });
-      }
-      fetchParticipants();
-    } catch (error: any) {
-      console.error('Error handling registration:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update registration",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleStatusChange = async (newStatus: 'draft' | 'open' | 'balancing' | 'live' | 'completed' | 'archived') => {
-    if (!id) return;
-
-    try {
-      const { error } = await supabase
-        .from('tournaments')
-        .update({ status: newStatus })
-        .eq('id', id);
-
-      if (error) throw error;
-
-      setTournament(prev => prev ? { ...prev, status: newStatus } : null);
-      toast({
-        title: "Tournament Updated",
-        description: `Tournament status changed to ${newStatus}`,
-      });
-    } catch (error: any) {
-      console.error('Error updating tournament status:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update tournament status",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const getStatusBadge = (status: string | null) => {
-    switch (status) {
-      case 'draft':
-        return <Badge variant="outline">Draft</Badge>;
-      case 'open':
-        return <Badge className="bg-green-600">Open for Registration</Badge>;
-      case 'balancing':
-        return <Badge className="bg-yellow-600">Balancing Teams</Badge>;
-      case 'live':
-        return <Badge className="bg-blue-600">Live</Badge>;
-      case 'completed':
-        return <Badge className="bg-gray-600">Completed</Badge>;
-      case 'archived':
-        return <Badge className="bg-gray-800">Archived</Badge>;
-      default:
-        return <Badge>Unknown</Badge>;
-    }
+    return (
+      <Badge className={variants[status]}>
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </Badge>
+    );
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
-            <p className="text-white text-lg">Loading tournament details...</p>
+            <p className="text-white">Loading tournament details...</p>
           </div>
         </div>
       </div>
@@ -383,13 +192,10 @@ const TournamentDetail = () => {
 
   if (!tournament) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
-            <p className="text-white text-lg">Tournament not found</p>
-            <Button onClick={() => navigate('/tournaments')} className="mt-4 bg-red-600 hover:bg-red-700">
-              Back to Tournaments
-            </Button>
+            <p className="text-white">Tournament not found</p>
           </div>
         </div>
       </div>
@@ -397,328 +203,135 @@ const TournamentDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <div className="flex items-center gap-4 mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-white">
-                {tournament.name}
-              </h1>
-              <div className="flex items-center gap-2 text-slate-400">
-                {getStatusBadge(tournament.status)}
-                {tournament.start_time && (
-                  <>
-                    <Calendar className="w-4 h-4" />
-                    {new Date(tournament.start_time).toLocaleDateString()}
-                  </>
-                )}
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
+      <div className="container mx-auto px-4 py-8 space-y-8">
+        {/* Tournament Header */}
+        <Card className="bg-slate-800/90 border-slate-700">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-2xl font-bold text-white">{tournament.name}</CardTitle>
+              {getStatusBadge(tournament.status)}
+            </div>
+          </CardHeader>
+          <CardContent className="text-slate-300">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                <span>{formatDate(tournament.start_time)}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                <span>{tournament.max_teams} Teams</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Map className="w-4 h-4" />
+                <span>{tournament.match_format}</span>
               </div>
             </div>
-          </div>
+          </CardContent>
+        </Card>
 
-          <Card className="bg-slate-800 border-slate-700">
-            <CardContent className="text-slate-300 p-6">
-              {tournament.description || 'No description provided.'}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Tournament Winner Display - Add this before the stats grid */}
-        {tournament.status === 'completed' && (
-          <div className="mb-8">
-            <TournamentWinnerDisplay 
+        {/* Tournament Management (Admin Only) */}
+        {isAdmin && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <BracketGenerator
               tournamentId={tournament.id}
-              tournamentStatus={tournament.status}
+              tournament={{
+                status: tournament.status,
+                max_teams: tournament.max_teams,
+                bracket_type: tournament.bracket_type,
+                match_format: tournament.match_format,
+                final_match_format: tournament.final_match_format,
+                semifinal_match_format: tournament.semifinal_match_format,
+                enable_map_veto: tournament.enable_map_veto || false,
+                map_veto_required_rounds: tournament.map_veto_required_rounds || []
+              }}
+              teams={teams}
+              onBracketGenerated={fetchTournamentDetails}
             />
+
+            <Card className="bg-slate-800/90 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-xl font-bold text-white flex items-center gap-2">
+                  <Shuffle className="w-5 h-5" />
+                  Team Balancing
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-slate-400">
+                  Automatically balance teams based on player weight ratings.
+                </p>
+                <Button className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white">
+                  Balance Teams
+                </Button>
+              </CardContent>
+            </Card>
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="bg-slate-800 border-slate-700">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-white flex items-center gap-2">
-                <Users className="w-5 h-5" />
-                Participants
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">
-                {participants.length}/{tournament.max_players}
-              </div>
-              <div className="text-sm text-slate-400">
-                Players registered
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-slate-800 border-slate-700">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-white flex items-center gap-2">
-                <Trophy className="w-5 h-5" />
-                Prize Pool
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">
-                {tournament.prize_pool || 'TBD'}
-              </div>
-              <div className="text-sm text-slate-400">
-                Total prizes
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-slate-800 border-slate-700">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-white flex items-center gap-2">
-                <Clock className="w-5 h-5" />
-                Format
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">
-                {tournament.match_format || 'BO1'}
-              </div>
-              <div className="text-sm text-slate-400">
-                Match format
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 bg-slate-800 border-slate-700">
-            <TabsTrigger value="overview" className="text-slate-300 data-[state=active]:bg-slate-700 data-[state=active]:text-white">
-              Overview
-            </TabsTrigger>
-            <TabsTrigger value="bracket" className="text-slate-300 data-[state=active]:bg-slate-700 data-[state=active]:text-white">
-              Bracket
-            </TabsTrigger>
-            <TabsTrigger value="matches" className="text-slate-300 data-[state=active]:bg-slate-700 data-[state=active]:text-white">
-              Matches
-            </TabsTrigger>
-            <TabsTrigger value="participants" className="text-slate-300 data-[state=active]:bg-slate-700 data-[state=active]:text-white">
-              Participants
-            </TabsTrigger>
-            {isAdmin && (
-              <TabsTrigger value="admin" className="text-slate-300 data-[state=active]:bg-slate-700 data-[state=active]:text-white">
-                Admin
-              </TabsTrigger>
-            )}
-          </TabsList>
-
-          <TabsContent value="overview" className="space-y-6">
-            {tournament.check_in_required && tournament.check_in_starts_at && tournament.check_in_ends_at && user && isRegistered && (
-              <CheckInEnforcement
-                tournamentId={tournament.id}
-                tournamentName={tournament.name}
-                checkInStartTime={tournament.check_in_starts_at}
-                checkInEndTime={tournament.check_in_ends_at}
-                checkInRequired={tournament.check_in_required}
-                onCheckInChange={fetchParticipants}
-              />
-            )}
-
-            {tournament.status === 'open' && user && (
-              <Card className="bg-slate-800 border-slate-700">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <Users className="w-5 h-5" />
-                    Tournament Registration
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between">
+        {/* Signups */}
+        <Card className="bg-slate-800/90 border-slate-700">
+          <CardHeader>
+            <CardTitle className="text-xl font-bold text-white">Signups ({signups.length})</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {signups.length === 0 ? (
+              <p className="text-slate-400">No signups yet.</p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {signups.map((signup) => (
+                  <div key={signup.id} className="flex items-center gap-3">
+                    <Avatar>
+                      <AvatarImage src={signup.users?.discord_avatar_url} />
+                      <AvatarFallback>{signup.users?.discord_username?.charAt(0)}</AvatarFallback>
+                    </Avatar>
                     <div>
-                      <p className="text-slate-300">
-                        {isRegistered ? 'You are registered for this tournament' : 'Register for this tournament'}
-                      </p>
-                      <p className="text-sm text-slate-400">
-                        {participants.length} / {tournament.max_players} players registered
-                      </p>
+                      <div className="font-medium text-white">{signup.users?.discord_username}</div>
+                      <div className="text-sm text-slate-400">{signup.users?.current_rank}</div>
                     </div>
-                    <Button
-                      onClick={handleRegistration}
-                      className={isRegistered ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"}
-                    >
-                      {isRegistered ? 'Unregister' : 'Register'}
-                    </Button>
                   </div>
-                </CardContent>
-              </Card>
+                ))}
+              </div>
             )}
+          </CardContent>
+        </Card>
 
-            <Card className="bg-slate-800 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white">Tournament Details</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <div className="text-sm text-slate-400">Start Time</div>
-                    <div className="text-white">
-                      {tournament.start_time ? new Date(tournament.start_time).toLocaleString() : 'TBD'}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-slate-400">End Time</div>
-                    <div className="text-white">
-                      {tournament.end_time ? new Date(tournament.end_time).toLocaleString() : 'TBD'}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-slate-400">Registration Opens</div>
-                    <div className="text-white">
-                      {tournament.registration_opens_at ? new Date(tournament.registration_opens_at).toLocaleString() : 'TBD'}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-slate-400">Registration Closes</div>
-                    <div className="text-white">
-                      {tournament.registration_closes_at ? new Date(tournament.registration_closes_at).toLocaleString() : 'TBD'}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {matches.length > 0 && (
-              <Card className="bg-slate-800 border-slate-700">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <Trophy className="w-5 h-5" />
-                    Tournament Matches
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {matches.map((match) => (
-                    <ScoreReporting
-                      key={match.id}
-                      match={match}
-                      onScoreSubmitted={() => {
-                        fetchMatches();
-                        fetchTournament();
-                        toast({
-                          title: "Score Reported",
-                          description: "Match score has been submitted and tournament updated",
-                        });
-                      }}
-                    />
-                  ))}
-                </CardContent>
-              </Card>
+        {/* Bracket */}
+        <Card className="bg-slate-800/90 border-slate-700">
+          <CardHeader>
+            <CardTitle className="text-xl font-bold text-white">Bracket</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {matches.length === 0 ? (
+              <p className="text-slate-400">Bracket not generated yet.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="text-left">
+                      <th className="text-slate-400 font-medium py-2">Round</th>
+                      <th className="text-slate-400 font-medium py-2">Match</th>
+                      <th className="text-slate-400 font-medium py-2">Team 1</th>
+                      <th className="text-slate-400 font-medium py-2">Team 2</th>
+                      <th className="text-slate-400 font-medium py-2">Winner</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {matches.map((match) => (
+                      <tr key={match.id} className="border-b border-slate-700">
+                        <td className="py-3 text-white">{match.round_number}</td>
+                        <td className="py-3 text-white">{match.match_number}</td>
+                        <td className="py-3 text-white">{match.team1?.name || 'TBD'}</td>
+                        <td className="py-3 text-white">{match.team2?.name || 'TBD'}</td>
+                        <td className="py-3 text-green-400">{match.winner?.name || 'TBD'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
-          </TabsContent>
-
-          <TabsContent value="bracket">
-            <IntegratedBracketView tournamentId={tournament.id} />
-          </TabsContent>
-
-          <TabsContent value="matches">
-            <MatchManager 
-              tournamentId={tournament.id}
-              onMatchUpdate={() => {
-                fetchMatches();
-                fetchTournament();
-              }}
-            />
-          </TabsContent>
-
-          <TabsContent value="participants">
-            <TournamentParticipants 
-              tournamentId={tournament.id} 
-              maxPlayers={tournament.max_players}
-              isAdmin={isAdmin}
-            />
-          </TabsContent>
-
-          {isAdmin && (
-            <TabsContent value="admin" className="space-y-6">
-              <ComprehensiveTournamentEditor
-                tournament={tournament}
-                onTournamentUpdated={fetchTournament}
-              />
-
-              <TournamentStatusManager
-                tournamentId={tournament.id}
-                currentStatus={tournament.status || 'draft'}
-                onStatusChange={fetchTournament}
-              />
-
-              <ForceCheckInManager
-                tournamentId={tournament.id}
-                onCheckInUpdate={() => {
-                  fetchParticipants();
-                  fetchTournament();
-                }}
-              />
-
-              {/* Manual Team Balancing Interface */}
-              <Card className="bg-slate-800 border-slate-700">
-                <CardHeader>
-                  <CardTitle className="text-white">Team Balancing</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <TeamBalancingInterface tournamentId={tournament.id} />
-                </CardContent>
-              </Card>
-
-              {(tournament.status === 'open' || tournament.status === 'balancing') && (
-                <>
-                  <TeamBalancingTool
-                    tournamentId={tournament.id}
-                    maxTeams={tournament.max_teams || 8}
-                    onTeamsBalanced={() => {
-                      fetchTeams();
-                      fetchParticipants();
-                      toast({
-                        title: "Teams Balanced",
-                        description: "Teams have been automatically balanced",
-                      });
-                    }}
-                  />
-                  
-                  <TeamBalancingInterface tournamentId={tournament.id} />
-                </>
-              )}
-
-              {tournament.status === 'balancing' && (
-                <BracketGenerator
-                  tournamentId={tournament.id}
-                  tournament={{
-                    status: tournament.status || 'draft',
-                    max_teams: tournament.max_teams || 8,
-                    bracket_type: tournament.bracket_type || 'single_elimination',
-                    match_format: tournament.match_format || 'BO1'
-                  }}
-                  teams={teams}
-                  onBracketGenerated={() => {
-                    fetchMatches();
-                    fetchTournament();
-                    toast({
-                      title: "Bracket Generated",
-                      description: "Tournament bracket has been created",
-                    });
-                  }}
-                />
-              )}
-
-              {tournament.status === 'live' && (
-                <AutomatedScheduling
-                  tournamentId={tournament.id}
-                  onScheduleCreated={() => {
-                    fetchMatches();
-                    toast({
-                      title: "Schedule Updated",
-                      description: "Tournament schedule has been automatically generated",
-                    });
-                  }}
-                />
-              )}
-            </TabsContent>
-          )}
-        </Tabs>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
