@@ -401,54 +401,54 @@ const TournamentDetail = () => {
                 </CardContent>
               </Card>
 
-            {/* Tournament Timeline */}
-            <Card className="bg-slate-800/90 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-xl font-bold text-white">Timeline</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <Clock className="w-4 h-4 text-slate-400" />
-                    <div>
-                      <div className="text-sm text-slate-400">Registration Opens</div>
-                      <div className="text-white text-sm">{formatDate(tournament.registration_opens_at)}</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Clock className="w-4 h-4 text-slate-400" />
-                    <div>
-                      <div className="text-sm text-slate-400">Registration Closes</div>
-                      <div className="text-white text-sm">{formatDate(tournament.registration_closes_at)}</div>
-                    </div>
-                  </div>
-                  {tournament.check_in_required && (
-                    <>
-                      <div className="flex items-center gap-3">
-                        <Clock className="w-4 h-4 text-slate-400" />
-                        <div>
-                          <div className="text-sm text-slate-400">Check-in Starts</div>
-                          <div className="text-white text-sm">{formatDate(tournament.check_in_starts_at)}</div>
-                        </div>
+              {/* Tournament Timeline */}
+              <Card className="bg-slate-800/90 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="text-xl font-bold text-white">Timeline</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <Clock className="w-4 h-4 text-slate-400" />
+                      <div>
+                        <div className="text-sm text-slate-400">Registration Opens</div>
+                        <div className="text-white text-sm">{formatDate(tournament.registration_opens_at)}</div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <Clock className="w-4 h-4 text-slate-400" />
-                        <div>
-                          <div className="text-sm text-slate-400">Check-in Ends</div>
-                          <div className="text-white text-sm">{formatDate(tournament.check_in_ends_at)}</div>
-                        </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Clock className="w-4 h-4 text-slate-400" />
+                      <div>
+                        <div className="text-sm text-slate-400">Registration Closes</div>
+                        <div className="text-white text-sm">{formatDate(tournament.registration_closes_at)}</div>
                       </div>
-                    </>
-                  )}
-                  <div className="flex items-center gap-3">
-                    <Clock className="w-4 h-4 text-slate-400" />
-                    <div>
-                      <div className="text-sm text-slate-400">Tournament Starts</div>
-                      <div className="text-white text-sm">{formatDate(tournament.start_time)}</div>
+                    </div>
+                    {tournament.check_in_required && (
+                      <>
+                        <div className="flex items-center gap-3">
+                          <Clock className="w-4 h-4 text-slate-400" />
+                          <div>
+                            <div className="text-sm text-slate-400">Check-in Starts</div>
+                            <div className="text-white text-sm">{formatDate(tournament.check_in_starts_at)}</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Clock className="w-4 h-4 text-slate-400" />
+                          <div>
+                            <div className="text-sm text-slate-400">Check-in Ends</div>
+                            <div className="text-white text-sm">{formatDate(tournament.check_in_ends_at)}</div>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                    <div className="flex items-center gap-3">
+                      <Clock className="w-4 h-4 text-slate-400" />
+                      <div>
+                        <div className="text-sm text-slate-400">Tournament Starts</div>
+                        <div className="text-white text-sm">{formatDate(tournament.start_time)}</div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </CardContent>
+                </CardContent>
               </Card>
             </div>
           </TabsContent>
@@ -458,7 +458,10 @@ const TournamentDetail = () => {
             <TabsContent value="admin" className="space-y-6">
               {/* Comprehensive Tournament Editor */}
               <ComprehensiveTournamentEditor
-                tournament={tournament}
+                tournament={{
+                  ...tournament,
+                  // Omit end_time (if ComprehensiveTournamentEditor expects it, it must be optional there)
+                }}
                 onTournamentUpdated={handleRefresh}
               />
 
@@ -480,7 +483,7 @@ const TournamentDetail = () => {
                     final_match_format: tournament.final_match_format,
                     semifinal_match_format: tournament.semifinal_match_format,
                     enable_map_veto: tournament.enable_map_veto,
-                    map_veto_required_rounds: tournament.map_veto_required_rounds
+                    map_veto_required_rounds: parsedMapVetoRounds, // <--- fix!
                   }}
                   teams={teams}
                   onBracketGenerated={handleRefresh}
