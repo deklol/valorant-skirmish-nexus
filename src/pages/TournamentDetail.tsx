@@ -76,6 +76,30 @@ const TournamentDetail = () => {
     }
   }, [id]);
 
+  const parseMapVetoRounds = (value: any): number[] => {
+    if (!value) return [];
+    if (Array.isArray(value)) {
+      // Handle array of numbers or strings that can be converted to numbers
+      return value.map(item => {
+        if (typeof item === 'number') return item;
+        if (typeof item === 'string') {
+          const parsed = parseInt(item, 10);
+          return isNaN(parsed) ? 0 : parsed;
+        }
+        return 0;
+      }).filter(num => num > 0);
+    }
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed.map(item => parseInt(item, 10)).filter(num => !isNaN(num)) : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  };
+
   const fetchTournamentDetails = async () => {
     try {
       setLoading(true);
@@ -117,9 +141,7 @@ const TournamentDetail = () => {
       const parsedTournament: Tournament = {
         ...tournamentData,
         enable_map_veto: tournamentData.enable_map_veto || false,
-        map_veto_required_rounds: Array.isArray(tournamentData.map_veto_required_rounds) 
-          ? tournamentData.map_veto_required_rounds 
-          : []
+        map_veto_required_rounds: parseMapVetoRounds(tournamentData.map_veto_required_rounds)
       };
       
       setTournament(parsedTournament);

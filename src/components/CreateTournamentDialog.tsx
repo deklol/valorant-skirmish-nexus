@@ -41,6 +41,8 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
     setLoading(true);
 
     try {
+      console.log('Submitting tournament creation form with data:', formData);
+      
       const calculatedMaxTeams = Math.floor(formData.max_players / formData.team_size);
       
       // Calculate map veto required rounds based on selection
@@ -72,13 +74,20 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
         status: 'draft' as const
       };
 
+      console.log('Tournament data to be inserted:', tournamentData);
+
       const { data, error } = await supabase
         .from('tournaments')
         .insert(tournamentData)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Tournament creation error:', error);
+        throw error;
+      }
+
+      console.log('Tournament created successfully:', data);
 
       toast({
         title: "Tournament Created",

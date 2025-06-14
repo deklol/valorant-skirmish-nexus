@@ -112,7 +112,10 @@ const Tournaments = () => {
           
           {isAdmin && (
             <Button 
-              onClick={() => setCreateDialogOpen(true)}
+              onClick={() => {
+                console.log('Create Tournament button clicked');
+                setCreateDialogOpen(true);
+              }}
               className="bg-red-600 hover:bg-red-700 text-white"
             >
               <Plus className="w-4 h-4 mr-2" />
@@ -188,8 +191,14 @@ const Tournaments = () => {
       {/* Create Tournament Dialog */}
       <CreateTournamentDialog 
         open={createDialogOpen}
-        onOpenChange={setCreateDialogOpen}
-        onTournamentCreated={fetchTournaments}
+        onOpenChange={(open) => {
+          console.log('Dialog open state changed to:', open);
+          setCreateDialogOpen(open);
+        }}
+        onTournamentCreated={() => {
+          console.log('Tournament created, refreshing list...');
+          fetchTournaments();
+        }}
       />
     </div>
   );
