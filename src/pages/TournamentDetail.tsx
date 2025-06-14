@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,7 +21,7 @@ interface Tournament {
   final_match_format?: string;
   semifinal_match_format?: string;
   enable_map_veto: boolean;
-  map_veto_required_rounds?: number[];
+  map_veto_required_rounds: number[];
   start_time: string;
   teams?: Team[];
   matches?: Match[];
@@ -111,7 +112,17 @@ const TournamentDetail = () => {
       }
 
       console.log('Tournament data fetched:', tournamentData);
-      setTournament(tournamentData);
+      
+      // Parse the tournament data and handle JSON fields properly
+      const parsedTournament: Tournament = {
+        ...tournamentData,
+        enable_map_veto: tournamentData.enable_map_veto || false,
+        map_veto_required_rounds: Array.isArray(tournamentData.map_veto_required_rounds) 
+          ? tournamentData.map_veto_required_rounds 
+          : []
+      };
+      
+      setTournament(parsedTournament);
       setTeams(tournamentData.teams || []);
       setMatches(tournamentData.matches || []);
 
@@ -243,8 +254,8 @@ const TournamentDetail = () => {
                 match_format: tournament.match_format,
                 final_match_format: tournament.final_match_format,
                 semifinal_match_format: tournament.semifinal_match_format,
-                enable_map_veto: tournament.enable_map_veto || false,
-                map_veto_required_rounds: tournament.map_veto_required_rounds || []
+                enable_map_veto: tournament.enable_map_veto,
+                map_veto_required_rounds: tournament.map_veto_required_rounds
               }}
               teams={teams}
               onBracketGenerated={fetchTournamentDetails}
