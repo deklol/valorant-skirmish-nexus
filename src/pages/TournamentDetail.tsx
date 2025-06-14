@@ -41,6 +41,7 @@ interface Tournament {
   check_in_starts_at: string;
   check_in_ends_at: string;
   check_in_required: boolean;
+  end_time?: string;
   created_at: string;
   teams?: Team[];
   matches?: Match[];
