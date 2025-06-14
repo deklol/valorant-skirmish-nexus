@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,7 +24,7 @@ interface Tournament {
   max_players: number;
   prize_pool: string | null;
   status: string;
-  match_format: string | null;
+  match_format: "BO1" | "BO3" | "BO5" | null;
   bracket_type: string | null;
 }
 
@@ -50,7 +49,7 @@ const ComprehensiveTournamentEditor = ({ tournament, onTournamentUpdated }: Comp
     max_players: tournament.max_players.toString(),
     prize_pool: tournament.prize_pool || '',
     status: tournament.status,
-    match_format: tournament.match_format || 'BO1',
+    match_format: tournament.match_format || 'BO1' as "BO1" | "BO3" | "BO5",
     bracket_type: tournament.bracket_type || 'single_elimination'
   });
   const { toast } = useToast();
@@ -72,7 +71,7 @@ const ComprehensiveTournamentEditor = ({ tournament, onTournamentUpdated }: Comp
         max_players: parseInt(formData.max_players),
         prize_pool: formData.prize_pool || null,
         status: formData.status,
-        match_format: formData.match_format,
+        match_format: formData.match_format as "BO1" | "BO3" | "BO5",
         bracket_type: formData.bracket_type,
         updated_at: new Date().toISOString()
       };
@@ -118,7 +117,7 @@ const ComprehensiveTournamentEditor = ({ tournament, onTournamentUpdated }: Comp
       max_players: tournament.max_players.toString(),
       prize_pool: tournament.prize_pool || '',
       status: tournament.status,
-      match_format: tournament.match_format || 'BO1',
+      match_format: tournament.match_format || 'BO1' as "BO1" | "BO3" | "BO5",
       bracket_type: tournament.bracket_type || 'single_elimination'
     });
     setEditing(false);
@@ -342,7 +341,7 @@ const ComprehensiveTournamentEditor = ({ tournament, onTournamentUpdated }: Comp
             </div>
             <div className="space-y-2">
               <Label htmlFor="match_format" className="text-slate-300">Match Format</Label>
-              <Select value={formData.match_format} onValueChange={(value) => setFormData(prev => ({ ...prev, match_format: value }))}>
+              <Select value={formData.match_format} onValueChange={(value: "BO1" | "BO3" | "BO5") => setFormData(prev => ({ ...prev, match_format: value }))}>
                 <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                   <SelectValue />
                 </SelectTrigger>

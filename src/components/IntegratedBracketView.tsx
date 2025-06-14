@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -71,36 +70,64 @@ const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => 
       console.log('Tournament data:', tournamentData);
       setTournament(tournamentData);
 
-      // Fetch matches with team details using explicit column references
+      // Fetch matches first
       const { data: matchesData, error: matchesError } = await supabase
         .from('matches')
-        .select(`
-          id,
-          round_number,
-          match_number,
-          team1_id,
-          team2_id,
-          winner_id,
-          status,
-          score_team1,
-          score_team2,
-          scheduled_time,
-          team1:team1_id(name, id),
-          team2:team2_id(name, id)
-        `)
+        .select('*')
         .eq('tournament_id', tournamentId)
         .order('round_number', { ascending: true })
         .order('match_number', { ascending: true });
 
       if (matchesError) {
         console.error('Matches error:', matchesError);
-        // Don't throw error for matches, just log it and continue with empty array
         console.warn('Could not fetch matches, continuing with empty bracket');
         setMatches([]);
-      } else {
-        console.log('Matches data:', matchesData);
-        setMatches(matchesData || []);
+        return;
       }
+
+      if (!matchesData || matchesData.length === 0) {
+        console.log('No matches found for tournament');
+        setMatches([]);
+        return;
+      }
+
+      // Get all unique team IDs from matches
+      const teamIds = new Set<string>();
+      matchesData.forEach(match => {
+        if (match.team1_id) teamIds.add(match.team1_id);
+        if (match.team2_id) teamIds.add(match.team2_id);
+      });
+
+      // Fetch team data separately
+      let teamsData: any[] = [];
+      if (teamIds.size > 0) {
+        const { data: teams, error: teamsError } = await supabase
+          .from('teams')
+          .select('id, name')
+          .in('id', Array.from(teamIds));
+
+        if (teamsError) {
+          console.error('Teams error:', teamsError);
+        } else {
+          teamsData = teams || [];
+        }
+      }
+
+      // Create a map for quick team lookup
+      const teamMap = new Map();
+      teamsData.forEach(team => {
+        teamMap.set(team.id, team);
+      });
+
+      // Combine matches with team data
+      const matchesWithTeams = matchesData.map(match => ({
+        ...match,
+        team1: match.team1_id ? teamMap.get(match.team1_id) : null,
+        team2: match.team2_id ? teamMap.get(match.team2_id) : null
+      }));
+
+      console.log('Matches with teams:', matchesWithTeams);
+      setMatches(matchesWithTeams);
 
     } catch (error: any) {
       console.error('Error fetching bracket:', error);
