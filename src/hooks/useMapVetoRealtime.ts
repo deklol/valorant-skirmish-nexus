@@ -1,4 +1,3 @@
-
 import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -10,11 +9,41 @@ export function useMapVetoActionsRealtime(
 ) {
   const callbackRef = useRef(callback);
   callbackRef.current = callback;
+  const channelRef = useRef<any>(null);
 
   useEffect(() => {
-    if (!vetoSessionId) return;
+    if (!vetoSessionId) {
+      // Clean up any previous channel
+      if (channelRef.current) {
+        try {
+          channelRef.current.unsubscribe();
+        } catch {}
+        try {
+          supabase.removeChannel(channelRef.current);
+        } catch {}
+        channelRef.current = null;
+      }
+      return;
+    }
+
+    // Clean up existing channel BEFORE subscribing again
+    if (channelRef.current) {
+      try {
+        channelRef.current.unsubscribe();
+      } catch (e) {
+        console.warn('[MapVetoRealtime] Unsubscribe error:', e);
+      }
+      try {
+        supabase.removeChannel(channelRef.current);
+      } catch (e) {
+        console.warn('[MapVetoRealtime] Channel remove error:', e);
+      }
+    }
+
+    // Use a unique channel name per session
+    const channelName = `map-veto-actions-${vetoSessionId}`;
     const channel = supabase
-      .channel(`map-veto-actions-${vetoSessionId}`)
+      .channel(channelName)
       .on(
         "postgres_changes",
         {
@@ -27,11 +56,30 @@ export function useMapVetoActionsRealtime(
           if (callbackRef.current) callbackRef.current(payload);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          console.log(`[MapVetoRealtime] Subscribed to ${channelName}`);
+        }
+      });
+
+    channelRef.current = channel;
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channelRef.current) {
+        try {
+          channelRef.current.unsubscribe();
+        } catch (e) {
+          console.warn('[MapVetoRealtime] Unsubscribe error (cleanup):', e);
+        }
+        try {
+          supabase.removeChannel(channelRef.current);
+        } catch (e) {
+          console.warn('[MapVetoRealtime] Channel remove error (cleanup):', e);
+        }
+        channelRef.current = null;
+      }
     };
+    // Only re-create the channel when vetoSessionId changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vetoSessionId]);
 }
@@ -42,11 +90,38 @@ export function useMapVetoSessionRealtime(
 ) {
   const callbackRef = useRef(callback);
   callbackRef.current = callback;
+  const channelRef = useRef<any>(null);
 
   useEffect(() => {
-    if (!vetoSessionId) return;
+    if (!vetoSessionId) {
+      if (channelRef.current) {
+        try {
+          channelRef.current.unsubscribe();
+        } catch {}
+        try {
+          supabase.removeChannel(channelRef.current);
+        } catch {}
+        channelRef.current = null;
+      }
+      return;
+    }
+
+    if (channelRef.current) {
+      try {
+        channelRef.current.unsubscribe();
+      } catch (e) {
+        console.warn('[MapVetoRealtime] Unsubscribe error:', e);
+      }
+      try {
+        supabase.removeChannel(channelRef.current);
+      } catch (e) {
+        console.warn('[MapVetoRealtime] Channel remove error:', e);
+      }
+    }
+
+    const channelName = `map-veto-session-${vetoSessionId}`;
     const channel = supabase
-      .channel(`map-veto-session-${vetoSessionId}`)
+      .channel(channelName)
       .on(
         "postgres_changes",
         {
@@ -59,11 +134,30 @@ export function useMapVetoSessionRealtime(
           if (callbackRef.current) callbackRef.current(payload);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          console.log(`[MapVetoRealtime] Subscribed to ${channelName}`);
+        }
+      });
+
+    channelRef.current = channel;
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channelRef.current) {
+        try {
+          channelRef.current.unsubscribe();
+        } catch (e) {
+          console.warn('[MapVetoRealtime] Unsubscribe error (cleanup):', e);
+        }
+        try {
+          supabase.removeChannel(channelRef.current);
+        } catch (e) {
+          console.warn('[MapVetoRealtime] Channel remove error (cleanup):', e);
+        }
+        channelRef.current = null;
+      }
     };
+    // Only re-create the channel when vetoSessionId changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vetoSessionId]);
 }
