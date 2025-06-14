@@ -383,6 +383,8 @@ const BracketView = () => {
             team2Name={matches.find(m => m.id === selectedMatch)?.team2?.name || "Team 2"}
             currentTeamTurn={matches.find(m => m.id === selectedMatch)?.team1_id || ""}
             userTeamId={user?.id || null}
+            team1Id={matches.find(m => m.id === selectedMatch)?.team1_id || null}
+            team2Id={matches.find(m => m.id === selectedMatch)?.team2_id || null}
           />
         ) : (
           // Veto not started for this match yet
