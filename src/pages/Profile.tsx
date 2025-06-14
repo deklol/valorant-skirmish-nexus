@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -5,23 +6,37 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Trophy, Target, Calendar, Settings, Bell, RefreshCw, TrendingUp } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { User, Trophy, Target, Calendar, Settings, Bell, RefreshCw, TrendingUp, Twitter, Twitch, Clock, Award, Swords, Save } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import Header from "@/components/Header";
+import { formatDistanceToNow } from 'date-fns';
 import NotificationPreferences from "@/components/NotificationPreferences";
 import RiotIdDialog from "@/components/RiotIdDialog";
 import RankHistory from "@/components/RankHistory";
+import ProfileMatchHistory from '@/components/profile/ProfileMatchHistory';
+import ProfileTournamentHistory from '@/components/profile/ProfileTournamentHistory';
+import ProfileRankHistory from '@/components/profile/ProfileRankHistory';
 
 interface UserProfile {
+  id: string;
   discord_username: string;
   riot_id: string;
   current_rank: string;
+  peak_rank: string;
   wins: number;
   losses: number;
   tournaments_played: number;
   tournaments_won: number;
+  bio: string;
+  twitter_handle: string;
+  twitch_handle: string;
+  discord_avatar_url: string;
+  profile_visibility: string;
+  last_seen: string;
+  created_at: string;
 }
 
 const Profile = () => {
@@ -30,6 +45,12 @@ const Profile = () => {
   const [updating, setUpdating] = useState(false);
   const [refreshingRank, setRefreshingRank] = useState(false);
   const [showRiotDialog, setShowRiotDialog] = useState(false);
+  const [editingProfile, setEditingProfile] = useState({
+    bio: '',
+    twitter_handle: '',
+    twitch_handle: '',
+    profile_visibility: 'public'
+  });
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -51,6 +72,12 @@ const Profile = () => {
 
       if (error) throw error;
       setProfile(data);
+      setEditingProfile({
+        bio: data.bio || '',
+        twitter_handle: data.twitter_handle || '',
+        twitch_handle: data.twitch_handle || '',
+        profile_visibility: data.profile_visibility || 'public'
+      });
     } catch (error: any) {
       console.error('Error fetching profile:', error);
       toast({
@@ -93,6 +120,47 @@ const Profile = () => {
     }
   };
 
+  const saveProfileChanges = async () => {
+    if (!user) return;
+
+    setUpdating(true);
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({
+          bio: editingProfile.bio,
+          twitter_handle: editingProfile.twitter_handle,
+          twitch_handle: editingProfile.twitch_handle,
+          profile_visibility: editingProfile.profile_visibility
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      setProfile(prev => prev ? { 
+        ...prev, 
+        bio: editingProfile.bio,
+        twitter_handle: editingProfile.twitter_handle,
+        twitch_handle: editingProfile.twitch_handle,
+        profile_visibility: editingProfile.profile_visibility
+      } : null);
+      
+      toast({
+        title: "Success",
+        description: "Profile updated successfully",
+      });
+    } catch (error: any) {
+      console.error('Error updating profile:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update profile",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   const refreshRankData = async () => {
     if (!user || !profile?.riot_id) {
       toast({
@@ -111,7 +179,6 @@ const Profile = () => {
 
       if (error) throw error;
 
-      // Refresh profile data after rank update
       await fetchProfile();
       
       toast({
@@ -130,23 +197,17 @@ const Profile = () => {
     }
   };
 
-  const calculateWinRate = () => {
-    if (!profile || (profile.wins + profile.losses) === 0) return 0;
-    return Math.round((profile.wins / (profile.wins + profile.losses)) * 100);
-  };
-
   const handleRiotIdComplete = async () => {
     await fetchProfile();
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        <Header />
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center">
-            <p className="text-white text-lg">Loading profile...</p>
-          </div>
+      <div className="container mx-auto px-4 py-8">
+        <div className="animate-pulse">
+          <div className="h-8 bg-slate-700 rounded w-1/3 mb-4"></div>
+          <div className="h-32 bg-slate-700 rounded mb-4"></div>
+          <div className="h-96 bg-slate-700 rounded"></div>
         </div>
       </div>
     );
@@ -154,167 +215,318 @@ const Profile = () => {
 
   if (!user || !profile) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        <Header />
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center">
-            <p className="text-white text-lg">Please log in to view your profile</p>
-          </div>
-        </div>
+      <div className="container mx-auto px-4 py-8">
+        <Card className="bg-slate-800 border-slate-700">
+          <CardContent className="p-8 text-center">
+            <User className="w-16 h-16 text-slate-400 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-white mb-2">Please log in</h2>
+            <p className="text-slate-400">Please log in to view your profile.</p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      <Header />
-      
-      <div className="container mx-auto px-4 py-8">
-        {/* Profile Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center">
-              <User className="w-8 h-8 text-white" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-white">
-                {profile.discord_username || 'Unknown Player'}
-              </h1>
-              <p className="text-slate-400">
-                {profile.riot_id || 'No Riot ID set'}
-              </p>
-            </div>
-          </div>
-
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <Card className="bg-slate-800 border-slate-700">
-              <CardContent className="p-4 text-center">
-                <Trophy className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-white">{profile.tournaments_won}</div>
-                <div className="text-sm text-slate-300">Tournament Wins</div>
-              </CardContent>
-            </Card>
-            
-            <Card className="bg-slate-800 border-slate-700">
-              <CardContent className="p-4 text-center">
-                <Calendar className="w-8 h-8 text-blue-500 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-white">{profile.tournaments_played}</div>
-                <div className="text-sm text-slate-300">Tournaments Played</div>
-              </CardContent>
-            </Card>
-            
-            <Card className="bg-slate-800 border-slate-700">
-              <CardContent className="p-4 text-center">
-                <Target className="w-8 h-8 text-green-500 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-white">{calculateWinRate()}%</div>
-                <div className="text-sm text-slate-300">Match Win Rate</div>
-              </CardContent>
-            </Card>
-            
-            <Card className="bg-slate-800 border-slate-700">
-              <CardContent className="p-4 text-center">
-                <div className="text-lg font-bold text-white mb-2">
-                  {profile.wins} - {profile.losses}
+    <div className="container mx-auto px-4 py-8">
+      {/* Profile Header */}
+      <Card className="bg-slate-800 border-slate-700 mb-6">
+        <CardHeader>
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-4">
+              {profile.discord_avatar_url ? (
+                <img 
+                  src={profile.discord_avatar_url} 
+                  alt={profile.discord_username || 'User'} 
+                  className="w-16 h-16 rounded-full"
+                />
+              ) : (
+                <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center">
+                  <User className="w-8 h-8 text-white" />
                 </div>
-                <div className="text-sm text-slate-300">Match Record</div>
-                <Badge variant="outline" className="mt-1 border-slate-600 text-slate-300">
-                  {profile.current_rank || 'Unranked'}
-                </Badge>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {/* Profile Tabs */}
-        <Tabs defaultValue="settings" className="space-y-4">
-          <TabsList className="bg-slate-800 border-slate-700">
-            <TabsTrigger value="settings" className="text-white data-[state=active]:bg-red-600">
-              <Settings className="w-4 h-4 mr-2" />
-              Settings
-            </TabsTrigger>
-            <TabsTrigger value="rank-history" className="text-white data-[state=active]:bg-red-600">
-              <TrendingUp className="w-4 h-4 mr-2" />
-              Rank History
-            </TabsTrigger>
-            <TabsTrigger value="notifications" className="text-white data-[state=active]:bg-red-600">
-              <Bell className="w-4 h-4 mr-2" />
-              Notifications
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="settings" className="space-y-4">
-            <Card className="bg-slate-800 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white">Profile Settings</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="discord" className="text-slate-300">Discord Username</Label>
-                    <Input
-                      id="discord"
-                      value={profile.discord_username || ''}
-                      onChange={(e) => updateProfile('discord_username', e.target.value)}
-                      className="bg-slate-700 border-slate-600 text-white"
-                      placeholder="Enter Discord username"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="riot" className="text-slate-300">Riot ID</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="riot"
-                        value={profile.riot_id || ''}
-                        readOnly
-                        className="bg-slate-700 border-slate-600 text-white"
-                        placeholder="No Riot ID set"
-                      />
-                      <Button
-                        onClick={() => setShowRiotDialog(true)}
-                        className="bg-red-600 hover:bg-red-700"
-                      >
-                        Update
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex gap-2">
-                  <Button 
-                    onClick={() => fetchProfile()} 
-                    disabled={updating}
-                    className="bg-red-600 hover:bg-red-700"
-                  >
-                    {updating ? 'Updating...' : 'Refresh Profile'}
-                  </Button>
-                  
-                  {profile.riot_id && (
-                    <Button 
-                      onClick={refreshRankData} 
-                      disabled={refreshingRank}
-                      variant="outline"
-                      className="border-slate-600 text-slate-300 hover:bg-slate-700"
-                    >
-                      <RefreshCw className={`w-4 h-4 mr-2 ${refreshingRank ? 'animate-spin' : ''}`} />
-                      {refreshingRank ? 'Refreshing...' : 'Refresh Rank'}
-                    </Button>
+              )}
+              <div>
+                <CardTitle className="text-white text-2xl">
+                  {profile.discord_username || 'Unknown Player'}
+                </CardTitle>
+                <div className="flex items-center gap-2 mt-2">
+                  {profile.current_rank && (
+                    <Badge className="bg-blue-600 text-white">
+                      {profile.current_rank}
+                    </Badge>
+                  )}
+                  {profile.peak_rank && profile.peak_rank !== profile.current_rank && (
+                    <Badge variant="outline" className="border-yellow-600 text-yellow-400">
+                      Peak: {profile.peak_rank}
+                    </Badge>
                   )}
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+              </div>
+            </div>
+            
+            {/* Social Links */}
+            <div className="flex gap-2">
+              {profile.twitter_handle && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => window.open(`https://twitter.com/${profile.twitter_handle}`, '_blank')}
+                  className="border-slate-600 text-slate-300"
+                >
+                  <Twitter className="w-4 h-4" />
+                </Button>
+              )}
+              {profile.twitch_handle && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => window.open(`https://twitch.tv/${profile.twitch_handle}`, '_blank')}
+                  className="border-slate-600 text-slate-300"
+                >
+                  <Twitch className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardHeader>
+        
+        <CardContent>
+          {/* Bio */}
+          {profile.bio && (
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-white mb-2">About</h3>
+              <p className="text-slate-300">{profile.bio}</p>
+            </div>
+          )}
+          
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="bg-slate-700 rounded-lg p-4 text-center">
+              <div className="flex items-center justify-center mb-2">
+                <Swords className="w-5 h-5 text-green-400" />
+              </div>
+              <div className="text-2xl font-bold text-green-400">{profile.wins}</div>
+              <div className="text-sm text-slate-400">Match Wins</div>
+            </div>
+            <div className="bg-slate-700 rounded-lg p-4 text-center">
+              <div className="flex items-center justify-center mb-2">
+                <Target className="w-5 h-5 text-red-400" />
+              </div>
+              <div className="text-2xl font-bold text-red-400">{profile.losses}</div>
+              <div className="text-sm text-slate-400">Match Losses</div>
+            </div>
+            <div className="bg-slate-700 rounded-lg p-4 text-center">
+              <div className="flex items-center justify-center mb-2">
+                <Calendar className="w-5 h-5 text-blue-400" />
+              </div>
+              <div className="text-2xl font-bold text-blue-400">{profile.tournaments_played}</div>
+              <div className="text-sm text-slate-400">Tournaments Played</div>
+            </div>
+            <div className="bg-slate-700 rounded-lg p-4 text-center">
+              <div className="flex items-center justify-center mb-2">
+                <Trophy className="w-5 h-5 text-yellow-400" />
+              </div>
+              <div className="text-2xl font-bold text-yellow-400">{profile.tournaments_won}</div>
+              <div className="text-sm text-slate-400">Tournament Wins</div>
+            </div>
+          </div>
 
-          <TabsContent value="rank-history" className="space-y-4">
-            <RankHistory />
-          </TabsContent>
+          {/* Additional Info */}
+          <div className="flex flex-wrap gap-4 text-sm text-slate-400">
+            <div className="flex items-center gap-1">
+              <Calendar className="w-4 h-4" />
+              Joined {formatDistanceToNow(new Date(profile.created_at), { addSuffix: true })}
+            </div>
+            {profile.last_seen && (
+              <div className="flex items-center gap-1">
+                <Clock className="w-4 h-4" />
+                Last seen {formatDistanceToNow(new Date(profile.last_seen), { addSuffix: true })}
+              </div>
+            )}
+            {profile.riot_id && (
+              <div className="flex items-center gap-1">
+                <Award className="w-4 h-4" />
+                {profile.riot_id}
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
-          <TabsContent value="notifications" className="space-y-4">
-            <NotificationPreferences />
-          </TabsContent>
-        </Tabs>
-      </div>
+      {/* Profile Tabs */}
+      <Card className="bg-slate-800 border-slate-700">
+        <CardContent className="p-6">
+          <Tabs defaultValue="settings" className="w-full">
+            <TabsList className="grid w-full grid-cols-5 bg-slate-700">
+              <TabsTrigger value="settings" className="data-[state=active]:bg-slate-600">
+                <Settings className="w-4 h-4 mr-2" />
+                Settings
+              </TabsTrigger>
+              <TabsTrigger value="matches" className="data-[state=active]:bg-slate-600">
+                Match History
+              </TabsTrigger>
+              <TabsTrigger value="tournaments" className="data-[state=active]:bg-slate-600">
+                Tournaments
+              </TabsTrigger>
+              <TabsTrigger value="rank-history" className="data-[state=active]:bg-slate-600">
+                <TrendingUp className="w-4 h-4 mr-2" />
+                Rank History
+              </TabsTrigger>
+              <TabsTrigger value="notifications" className="data-[state=active]:bg-slate-600">
+                <Bell className="w-4 h-4 mr-2" />
+                Notifications
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="settings" className="mt-6 space-y-6">
+              <Card className="bg-slate-700 border-slate-600">
+                <CardHeader>
+                  <CardTitle className="text-white">Account Settings</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="discord" className="text-slate-300">Discord Username</Label>
+                      <Input
+                        id="discord"
+                        value={profile.discord_username || ''}
+                        onChange={(e) => updateProfile('discord_username', e.target.value)}
+                        className="bg-slate-600 border-slate-500 text-white"
+                        placeholder="Enter Discord username"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="riot" className="text-slate-300">Riot ID</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="riot"
+                          value={profile.riot_id || ''}
+                          readOnly
+                          className="bg-slate-600 border-slate-500 text-white"
+                          placeholder="No Riot ID set"
+                        />
+                        <Button
+                          onClick={() => setShowRiotDialog(true)}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          Update
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={() => fetchProfile()} 
+                      disabled={updating}
+                      className="bg-red-600 hover:bg-red-700"
+                    >
+                      {updating ? 'Updating...' : 'Refresh Profile'}
+                    </Button>
+                    
+                    {profile.riot_id && (
+                      <Button 
+                        onClick={refreshRankData} 
+                        disabled={refreshingRank}
+                        variant="outline"
+                        className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                      >
+                        <RefreshCw className={`w-4 h-4 mr-2 ${refreshingRank ? 'animate-spin' : ''}`} />
+                        {refreshingRank ? 'Refreshing...' : 'Refresh Rank'}
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-slate-700 border-slate-600">
+                <CardHeader>
+                  <CardTitle className="text-white">Profile Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="bio" className="text-slate-300">Bio</Label>
+                    <Textarea
+                      id="bio"
+                      value={editingProfile.bio}
+                      onChange={(e) => setEditingProfile(prev => ({ ...prev, bio: e.target.value }))}
+                      className="bg-slate-600 border-slate-500 text-white"
+                      placeholder="Tell us about yourself..."
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="twitter" className="text-slate-300">Twitter Handle</Label>
+                      <Input
+                        id="twitter"
+                        value={editingProfile.twitter_handle}
+                        onChange={(e) => setEditingProfile(prev => ({ ...prev, twitter_handle: e.target.value }))}
+                        className="bg-slate-600 border-slate-500 text-white"
+                        placeholder="@username"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="twitch" className="text-slate-300">Twitch Handle</Label>
+                      <Input
+                        id="twitch"
+                        value={editingProfile.twitch_handle}
+                        onChange={(e) => setEditingProfile(prev => ({ ...prev, twitch_handle: e.target.value }))}
+                        className="bg-slate-600 border-slate-500 text-white"
+                        placeholder="username"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="visibility" className="text-slate-300">Profile Visibility</Label>
+                    <Select 
+                      value={editingProfile.profile_visibility} 
+                      onValueChange={(value) => setEditingProfile(prev => ({ ...prev, profile_visibility: value }))}
+                    >
+                      <SelectTrigger className="bg-slate-600 border-slate-500 text-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-600 border-slate-500">
+                        <SelectItem value="public" className="text-white">Public - Anyone can view</SelectItem>
+                        <SelectItem value="private" className="text-white">Private - Only you can view</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <Button 
+                    onClick={saveProfileChanges} 
+                    disabled={updating}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    {updating ? 'Saving...' : 'Save Changes'}
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="matches" className="mt-6">
+              <ProfileMatchHistory userId={user.id} />
+            </TabsContent>
+            
+            <TabsContent value="tournaments" className="mt-6">
+              <ProfileTournamentHistory userId={user.id} />
+            </TabsContent>
+
+            <TabsContent value="rank-history" className="mt-6">
+              <ProfileRankHistory userId={user.id} />
+            </TabsContent>
+
+            <TabsContent value="notifications" className="mt-6">
+              <NotificationPreferences />
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
 
       <RiotIdDialog
         open={showRiotDialog}
