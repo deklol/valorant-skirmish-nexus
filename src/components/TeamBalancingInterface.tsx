@@ -4,7 +4,7 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Users, Shuffle, Save, Plus, GripVertical } from "lucide-react";
+import { AlertTriangle, Users, Shuffle, Save, Plus, GripVertical, Crown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { getRankPoints, calculateTeamBalance } from "@/utils/rankingSystem";
@@ -30,6 +30,7 @@ interface Team {
   name: string;
   members: Player[];
   totalWeight: number;
+  captainId?: string;
   isPlaceholder?: boolean;
 }
 
@@ -66,11 +67,18 @@ const DraggablePlayer = ({ player }: { player: Player }) => {
   );
 };
 
-// Droppable Team Component
+// Droppable Team Component with Captain Indicator
 const DroppableTeam = ({ team, teamSize }: { team: Team; teamSize: number }) => {
   const { isOver, setNodeRef } = useDroppable({
     id: team.isPlaceholder ? `placeholder-${team.id}` : `team-${team.id}`,
   });
+
+  // Determine captain (highest weight player)
+  const captain = team.members.length > 0 
+    ? team.members.reduce((highest, current) => 
+        current.weight_rating > highest.weight_rating ? current : highest
+      )
+    : null;
 
   return (
     <Card className="bg-slate-800 border-slate-700">
@@ -88,6 +96,12 @@ const DroppableTeam = ({ team, teamSize }: { team: Team; teamSize: number }) => 
             {team.totalWeight} pts
           </Badge>
         </div>
+        {captain && (
+          <div className="flex items-center gap-1 text-sm">
+            <Crown className="w-3 h-3 text-yellow-500" />
+            <span className="text-yellow-500">Captain: {captain.discord_username}</span>
+          </div>
+        )}
       </CardHeader>
       <CardContent>
         <div 
@@ -103,7 +117,12 @@ const DroppableTeam = ({ team, teamSize }: { team: Team; teamSize: number }) => 
             </p>
           ) : (
             team.members.map((player, playerIndex) => (
-              <DraggablePlayer key={player.id} player={player} />
+              <div key={player.id} className="relative">
+                <DraggablePlayer player={player} />
+                {player.id === captain?.id && (
+                  <Crown className="w-3 h-3 text-yellow-500 absolute -top-1 -right-1" />
+                )}
+              </div>
             ))
           )}
         </div>
@@ -167,6 +186,7 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
           name,
           team_members (
             user_id,
+            is_captain,
             users (
               id,
               discord_username,
@@ -202,16 +222,16 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
       // Process teams
       const processedTeams: Team[] = (teamsData || []).map(team => {
         const members = team.team_members
-          .map(member => member.users)
-          .filter(user => user)
-          .map(user => ({
-            id: user.id,
-            discord_username: user.discord_username || 'Unknown',
-            rank_points: user.rank_points || 0,
-            weight_rating: user.weight_rating || getRankPoints(user.current_rank || 'Unranked'),
-            current_rank: user.current_rank || 'Unranked',
-            riot_id: user.riot_id
-          }));
+          .map(member => ({
+            ...member.users,
+            id: member.users.id,
+            discord_username: member.users.discord_username || 'Unknown',
+            rank_points: member.users.rank_points || 0,
+            weight_rating: member.users.weight_rating || getRankPoints(member.users.current_rank || 'Unranked'),
+            current_rank: member.users.current_rank || 'Unranked',
+            riot_id: member.users.riot_id
+          }))
+          .filter(user => user);
 
         const totalWeight = members.reduce((sum, member) => sum + member.weight_rating, 0);
 
@@ -422,6 +442,7 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
     );
   };
 
+  // Enhanced saveTeamChanges with proper captain assignment
   const saveTeamChanges = async () => {
     setSaving(true);
     try {
@@ -444,11 +465,16 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
 
           if (createError) throw createError;
 
-          // Add the team members
-          const membersToInsert = team.members.map((member, index) => ({
+          // Determine captain based on highest weight_rating
+          const captain = team.members.reduce((highest, current) => 
+            current.weight_rating > highest.weight_rating ? current : highest
+          );
+
+          // Add the team members with proper captain assignment
+          const membersToInsert = team.members.map((member) => ({
             team_id: newTeam.id,
             user_id: member.id,
-            is_captain: index === 0 // First member is captain
+            is_captain: member.id === captain.id
           }));
 
           const { error: membersError } = await supabase
@@ -469,12 +495,17 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
             .delete()
             .eq('team_id', team.id);
 
-          // Add the new members
+          // Add the new members with proper captain assignment
           if (team.members.length > 0) {
-            const membersToInsert = team.members.map((member, index) => ({
+            // Determine captain based on highest weight_rating
+            const captain = team.members.reduce((highest, current) => 
+              current.weight_rating > highest.weight_rating ? current : highest
+            );
+
+            const membersToInsert = team.members.map((member) => ({
               team_id: team.id,
               user_id: member.id,
-              is_captain: index === 0 // First member is captain
+              is_captain: member.id === captain.id
             }));
 
             await supabase
@@ -486,7 +517,7 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
 
       toast({
         title: "Teams Updated",
-        description: "Team assignments have been saved successfully",
+        description: "Team assignments and captains have been saved successfully",
       });
 
       // Refresh the data
@@ -552,6 +583,10 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
               <p className="mt-1">
                 Tournament setup: {maxTeams} teams, {teamSize}v{teamSize} format
                 {teamSize === 1 ? ' (1v1 - each player gets their own team)' : ` (${teamSize} players per team)`}
+              </p>
+              <p className="mt-1 flex items-center gap-1">
+                <Crown className="w-3 h-3 text-yellow-500" />
+                <span className="text-yellow-500">Captain is automatically assigned to the highest-ranked player</span>
               </p>
             </div>
 

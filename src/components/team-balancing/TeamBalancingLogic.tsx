@@ -127,13 +127,13 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
 
       if (teamError) throw teamError;
 
-      // Add team member (player is automatically captain of their own team)
+      // Add team member (player is automatically captain of their own team in 1v1)
       await supabase
         .from('team_members')
         .insert({
           team_id: newTeam.id,
           user_id: player.user_id,
-          is_captain: true
+          is_captain: true // In 1v1, every player is their own captain
         });
 
       // Send notification to player
@@ -179,7 +179,7 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
       if (allTeamsFull) break;
     }
 
-    // Create teams in database
+    // Create teams in database with proper captain assignment
     for (let i = 0; i < teams.length; i++) {
       if (teams[i].length === 0) continue;
 
@@ -205,9 +205,16 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
 
       if (teamError) throw teamError;
 
-      // Add team members
-      for (let j = 0; j < teams[i].length; j++) {
-        const player = teams[i][j];
+      // Sort team members by weight_rating to assign captain to highest-ranked player
+      const sortedTeamMembers = teams[i].sort((a, b) => {
+        const aWeight = a.users?.weight_rating || getRankPoints(a.users?.current_rank || 'Unranked');
+        const bWeight = b.users?.weight_rating || getRankPoints(b.users?.current_rank || 'Unranked');
+        return bWeight - aWeight;
+      });
+
+      // Add team members with proper captain assignment
+      for (let j = 0; j < sortedTeamMembers.length; j++) {
+        const player = sortedTeamMembers[j];
         const isCaptain = j === 0; // First player (highest weight) is captain
 
         await supabase

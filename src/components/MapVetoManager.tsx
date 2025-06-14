@@ -1,13 +1,13 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Map, Play, Settings, AlertCircle } from "lucide-react";
+import { Map, Play, Settings, AlertCircle, Crown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
+import { canUserPerformVeto, getCaptainDisplayName } from "@/utils/captainUtils";
 import MapVetoDialog from "./MapVetoDialog";
 
 interface MapVetoManagerProps {
@@ -31,13 +31,17 @@ const MapVetoManager = ({
   matchStatus,
   userTeamId,
   roundNumber,
-  isAdmin =false
+  isAdmin = false
 }: MapVetoManagerProps) => {
   const [vetoSession, setVetoSession] = useState<any>(null);
   const [vetoDialogOpen, setVetoDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [tournamentSettings, setTournamentSettings] = useState<any>(null);
   const [matchSettings, setMatchSettings] = useState<any>(null);
+  const [canVeto, setCanVeto] = useState(false);
+  const [vetoPermissionReason, setVetoPermissionReason] = useState<string>('');
+  const [team1Captain, setTeam1Captain] = useState<string | null>(null);
+  const [team2Captain, setTeam2Captain] = useState<string | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
   const { notifyMapVetoReady } = useEnhancedNotifications();
@@ -45,7 +49,37 @@ const MapVetoManager = ({
   useEffect(() => {
     checkVetoSession();
     fetchTournamentAndMatchSettings();
-  }, [matchId]);
+    checkVetoPermissions();
+    fetchCaptainNames();
+  }, [matchId, userTeamId, user?.id]);
+
+  const fetchCaptainNames = async () => {
+    if (team1Id) {
+      const captain1 = await getCaptainDisplayName(team1Id);
+      setTeam1Captain(captain1);
+    }
+    if (team2Id) {
+      const captain2 = await getCaptainDisplayName(team2Id);
+      setTeam2Captain(captain2);
+    }
+  };
+
+  const checkVetoPermissions = async () => {
+    if (!user?.id || !userTeamId) {
+      setCanVeto(false);
+      setVetoPermissionReason('You must be logged in and part of a team');
+      return;
+    }
+
+    const { canVeto: canPerformVeto, reason } = await canUserPerformVeto(
+      user.id,
+      userTeamId,
+      matchId // Using matchId as tournament context
+    );
+
+    setCanVeto(canPerformVeto);
+    setVetoPermissionReason(reason || '');
+  };
 
   const fetchTournamentAndMatchSettings = async () => {
     try {
@@ -158,6 +192,16 @@ const MapVetoManager = ({
       return;
     }
 
+    // Check if user can start veto (captain or admin)
+    if (!isAdmin && !canVeto) {
+      toast({
+        title: "Permission Denied",
+        description: vetoPermissionReason,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       // Create veto session
@@ -181,7 +225,7 @@ const MapVetoManager = ({
       
       toast({
         title: "Map Veto Started",
-        description: "Teams can now participate in map selection",
+        description: "Team captains can now participate in map selection",
       });
     } catch (error: any) {
       console.error('Error initializing map veto:', error);
@@ -232,7 +276,6 @@ const MapVetoManager = ({
     }
   };
 
-  const canParticipate = userTeamId && (userTeamId === team1Id || userTeamId === team2Id);
   const isVetoActive = vetoSession?.status === 'in_progress';
   const isVetoComplete = vetoSession?.status === 'completed';
   const mapVetoAvailable = isMapVetoAvailable();
@@ -293,6 +336,30 @@ const MapVetoManager = ({
           )}
         </div>
 
+        {/* Captain Information */}
+        {mapVetoAvailable && (team1Captain || team2Captain) && (
+          <div className="grid grid-cols-2 gap-4 p-3 bg-slate-700/50 rounded-lg">
+            <div className="text-center">
+              <p className="text-slate-400 text-sm">{team1Name} Captain</p>
+              <div className="flex items-center justify-center gap-1 mt-1">
+                <Crown className="w-3 h-3 text-yellow-500" />
+                <span className="text-white text-sm font-medium">
+                  {team1Captain || 'Unknown'}
+                </span>
+              </div>
+            </div>
+            <div className="text-center">
+              <p className="text-slate-400 text-sm">{team2Name} Captain</p>
+              <div className="flex items-center justify-center gap-1 mt-1">
+                <Crown className="w-3 h-3 text-yellow-500" />
+                <span className="text-white text-sm font-medium">
+                  {team2Captain || 'Unknown'}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {!mapVetoAvailable ? (
           <div className="flex items-center gap-2 p-3 bg-gray-500/10 border border-gray-500/20 rounded-lg">
             <AlertCircle className="w-4 h-4 text-gray-500" />
@@ -306,7 +373,15 @@ const MapVetoManager = ({
             <p className="text-slate-400">
               Map veto has not been started for this match yet
             </p>
-            {(isAdmin || canParticipate) && (
+            {!canVeto && !isAdmin && (
+              <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                <p className="text-yellow-400 text-sm">
+                  <Crown className="w-4 h-4 inline mr-1" />
+                  {vetoPermissionReason}
+                </p>
+              </div>
+            )}
+            {(isAdmin || canVeto) && (
               <Button
                 onClick={initializeMapVeto}
                 disabled={loading || !team1Id || !team2Id}
@@ -337,7 +412,7 @@ const MapVetoManager = ({
                 </Badge>
               </div>
               
-              {isVetoActive && canParticipate && (
+              {isVetoActive && canVeto && (
                 <Button
                   onClick={() => setVetoDialogOpen(true)}
                   className="bg-green-600 hover:bg-green-700"
@@ -347,6 +422,15 @@ const MapVetoManager = ({
                 </Button>
               )}
             </div>
+
+            {isVetoActive && !canVeto && !isAdmin && (
+              <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                <p className="text-blue-400 text-sm">
+                  <Crown className="w-4 h-4 inline mr-1" />
+                  Only team captains can participate in map veto
+                </p>
+              </div>
+            )}
 
             {isAdmin && isVetoActive && (
               <div className="flex gap-2">
@@ -374,7 +458,7 @@ const MapVetoManager = ({
       </CardContent>
 
       {/* Map Veto Dialog */}
-      {vetoSession && team1Id && team2Id && mapVetoAvailable && (
+      {vetoSession && team1Id && team2Id && mapVetoAvailable && canVeto && (
         <MapVetoDialog
           open={vetoDialogOpen}
           onOpenChange={setVetoDialogOpen}
