@@ -28,6 +28,7 @@ const TournamentWinnerDisplay = ({ tournamentId, tournamentStatus }: TournamentW
     if (tournamentStatus === 'completed') {
       fetchTournamentWinner();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tournamentId, tournamentStatus]);
 
   const fetchTournamentWinner = async () => {
@@ -52,13 +53,7 @@ const TournamentWinnerDisplay = ({ tournamentId, tournamentStatus }: TournamentW
         .single();
 
       if (finalMatch?.winner_id && finalMatch.teams) {
-        // Ensure the winning team has the correct status
-        await supabase
-          .from('teams')
-          .update({ status: 'winner' })
-          .eq('id', finalMatch.winner_id);
-
-        // Get team members
+        // Just fetch team members for display, do not run any mutations/rpc!
         const { data: teamMembers } = await supabase
           .from('team_members')
           .select(`
@@ -72,17 +67,6 @@ const TournamentWinnerDisplay = ({ tournamentId, tournamentStatus }: TournamentW
           .eq('team_id', finalMatch.winner_id);
 
         if (teamMembers) {
-          // Increment tournament wins for all team members
-          for (const member of teamMembers) {
-            if (member.users?.id) {
-              await supabase.rpc('increment_user_tournament_wins', {
-                user_id: member.users.id
-              });
-              
-              console.log(`Incremented tournament wins for user: ${member.users.discord_username}`);
-            }
-          }
-
           setWinner({
             teamId: finalMatch.winner_id,
             teamName: finalMatch.teams.name,
@@ -93,9 +77,12 @@ const TournamentWinnerDisplay = ({ tournamentId, tournamentStatus }: TournamentW
             }))
           });
         }
+      } else {
+        setWinner(null);
       }
     } catch (error) {
       console.error('Error fetching tournament winner:', error);
+      setWinner(null);
     } finally {
       setLoading(false);
     }
