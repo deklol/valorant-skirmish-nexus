@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +16,7 @@ import ScoreReporting from "@/components/ScoreReporting";
 import IntegratedBracketView from "@/components/IntegratedBracketView";
 import TournamentParticipants from "@/components/TournamentParticipants";
 import TournamentStatusManager from "@/components/TournamentStatusManager";
-import TeamBalancingTool from "@/components/TeamBalancingTool";
+import TeamBalancingTool from "@/components/team-balancing/TeamBalancingTool";
 import TeamBalancingInterface from "@/components/TeamBalancingInterface";
 import BracketGenerator from "@/components/BracketGenerator";
 import ComprehensiveTournamentEditor from "@/components/ComprehensiveTournamentEditor";
