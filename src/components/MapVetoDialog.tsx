@@ -15,6 +15,8 @@ interface MapVetoDialogProps {
   team2Name: string;
   currentTeamTurn: string;
   userTeamId: string | null;
+  isUserCaptain?: boolean;
+  teamSize?: number | null;
 }
 
 interface MapData {
@@ -33,7 +35,17 @@ interface VetoAction {
   map?: MapData;
 }
 
-const MapVetoDialog = ({ open, onOpenChange, matchId, team1Name, team2Name, currentTeamTurn, userTeamId }: MapVetoDialogProps) => {
+const MapVetoDialog = ({
+  open,
+  onOpenChange,
+  matchId,
+  team1Name,
+  team2Name,
+  currentTeamTurn,
+  userTeamId,
+  isUserCaptain = false,
+  teamSize = null,
+}: MapVetoDialogProps) => {
   const [maps, setMaps] = useState<MapData[]>([]);
   const [vetoActions, setVetoActions] = useState<VetoAction[]>([]);
   const [loading, setLoading] = useState(false);
@@ -146,6 +158,10 @@ const MapVetoDialog = ({ open, onOpenChange, matchId, team1Name, team2Name, curr
   };
 
   const isUserTurn = userTeamId === currentTeamTurn;
+  const canAct = isUserTurn && (
+    (teamSize === 1) ||
+    (teamSize && teamSize > 1 && isUserCaptain)
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -162,8 +178,16 @@ const MapVetoDialog = ({ open, onOpenChange, matchId, team1Name, team2Name, curr
                 <div className="text-white">
                   <span className="font-medium">Current Turn: </span>
                   <span className={isUserTurn ? "text-green-400" : "text-red-400"}>
-                    {isUserTurn ? "Your Team" : "Opponent"}
+                    {isUserTurn
+                      ? (canAct
+                          ? (teamSize === 1 ? "Your Team" : isUserCaptain ? "Your Team Captain" : "Not Captain")
+                          : "Not Captain")
+                      : "Opponent"}
                   </span>
+                  {/* Show a badge if user is not the captain */}
+                  {(isUserTurn && teamSize && teamSize > 1 && !isUserCaptain) && (
+                    <span className="ml-2 text-xs text-yellow-400">(Only Captain can veto)</span>
+                  )}
                 </div>
                 <Badge className={currentAction === 'ban' ? "bg-red-500/20 text-red-400 border-red-500/30" : "bg-green-500/20 text-green-400 border-green-500/30"}>
                   {currentAction === 'ban' ? 'BAN' : 'PICK'} Phase
@@ -206,18 +230,18 @@ const MapVetoDialog = ({ open, onOpenChange, matchId, team1Name, team2Name, curr
             {maps.map((map) => {
               const status = getMapStatus(map.id);
               const available = isMapAvailable(map.id);
-              
+
               return (
-                <Card 
-                  key={map.id} 
+                <Card
+                  key={map.id}
                   className={`border-slate-600 transition-all cursor-pointer ${
-                    !available 
-                      ? 'bg-slate-700 opacity-50' 
-                      : isUserTurn && available
+                    !available
+                      ? 'bg-slate-700 opacity-50'
+                      : canAct && available
                         ? 'bg-slate-800 hover:bg-slate-700 hover:border-slate-500'
                         : 'bg-slate-800'
                   }`}
-                  onClick={() => available && isUserTurn && handleMapAction(map.id)}
+                  onClick={() => available && canAct && handleMapAction(map.id)}
                 >
                   <CardContent className="p-4">
                     <div className="space-y-3">
@@ -280,3 +304,5 @@ const MapVetoDialog = ({ open, onOpenChange, matchId, team1Name, team2Name, curr
 };
 
 export default MapVetoDialog;
+
+// NOTE: This file is now > 280 lines. Consider refactoring this dialog into smaller subcomponents!

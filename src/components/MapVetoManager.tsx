@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,6 +38,7 @@ const MapVetoManager = ({
   const [tournamentSettings, setTournamentSettings] = useState<any>(null);
   const [matchSettings, setMatchSettings] = useState<any>(null);
   const [settingsLoading, setSettingsLoading] = useState(true);
+  const [teamSize, setTeamSize] = useState<number | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
   const { notifyMapVetoReady } = useEnhancedNotifications();
@@ -250,6 +250,48 @@ const MapVetoManager = ({
   const isVetoComplete = vetoSession?.status === 'completed';
   const mapVetoAvailable = isMapVetoAvailable();
 
+  // Fetch team size (members per team)
+  useEffect(() => {
+    async function fetchTeamSize() {
+      if (!team1Id) return setTeamSize(null);
+      const { data, error } = await supabase
+        .from('team_members')
+        .select('user_id')
+        .eq('team_id', team1Id);
+
+      if (!error && data) setTeamSize(data.length);
+      else setTeamSize(null);
+    }
+    fetchTeamSize();
+  }, [team1Id]);
+
+  // Fetch user's captain status for their team
+  const [isUserCaptain, setIsUserCaptain] = useState<boolean>(false);
+  useEffect(() => {
+    if (!userTeamId || !team1Id && !team2Id) {
+      setIsUserCaptain(false);
+      return;
+    }
+    async function checkCaptain() {
+      // In 1v1, everyone is captain
+      if (teamSize === 1) {
+        setIsUserCaptain(true);
+        return;
+      }
+      // Otherwise: check team_members.is_captain
+      if (userTeamId) {
+        const { data, error } = await supabase
+          .from('team_members')
+          .select('is_captain')
+          .eq('team_id', userTeamId)
+          .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+          .maybeSingle();
+        setIsUserCaptain(!!data?.is_captain);
+      }
+    }
+    checkCaptain();
+  }, [userTeamId, teamSize]);
+
   // Defensive: Render nothing if match is completed or settings are still loading
   if (matchStatus === 'completed' || settingsLoading) {
     return null;
@@ -370,9 +412,12 @@ const MapVetoManager = ({
                 <Button
                   onClick={() => setVetoDialogOpen(true)}
                   className="bg-green-600 hover:bg-green-700"
+                  disabled={(!isUserCaptain && (teamSize && teamSize > 1))}
                 >
                   <Play className="w-4 h-4 mr-2" />
-                  Participate
+                  {(!isUserCaptain && (teamSize && teamSize > 1))
+                    ? "Only Captain May Veto"
+                    : "Participate"}
                 </Button>
               )}
             </div>
@@ -410,6 +455,8 @@ const MapVetoManager = ({
           team2Name={team2Name}
           currentTeamTurn={vetoSession.current_turn_team_id || team1Id}
           userTeamId={userTeamId}
+          isUserCaptain={isUserCaptain}
+          teamSize={teamSize}
         />
       )}
     </Card>
@@ -418,3 +465,4 @@ const MapVetoManager = ({
 
 export default MapVetoManager;
 
+// NOTE: This file is getting quite long (420+ lines). You should consider refactoring it into smaller files soon.

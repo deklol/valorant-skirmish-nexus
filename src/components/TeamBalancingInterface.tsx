@@ -422,12 +422,18 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
     );
   };
 
+  // Sort team members by highest weight before saving (captain = first player highest rating)
   const saveTeamChanges = async () => {
     setSaving(true);
     try {
+      // Re-sort members in each team by weight_rating descending
+      let reorderedTeams = teams.map(team => {
+        const sortedMembers = [...team.members].sort((a, b) => b.weight_rating - a.weight_rating);
+        return { ...team, members: sortedMembers };
+      });
       // First, create any placeholder teams that have members
-      const teamsWithMembers = teams.filter(team => team.members.length > 0);
-      
+      const teamsWithMembers = reorderedTeams.filter(team => team.members.length > 0);
+
       for (const team of teamsWithMembers) {
         if (team.isPlaceholder) {
           // Create the team in database
@@ -437,18 +443,18 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
               name: team.name,
               tournament_id: tournamentId,
               total_rank_points: team.totalWeight,
-              seed: teams.indexOf(team) + 1
+              seed: reorderedTeams.indexOf(team) + 1
             })
             .select()
             .single();
 
           if (createError) throw createError;
 
-          // Add the team members
+          // Add the team members (captain = highest weight)
           const membersToInsert = team.members.map((member, index) => ({
             team_id: newTeam.id,
             user_id: member.id,
-            is_captain: index === 0 // First member is captain
+            is_captain: index === 0 // First member is captain!
           }));
 
           const { error: membersError } = await supabase
@@ -469,12 +475,12 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
             .delete()
             .eq('team_id', team.id);
 
-          // Add the new members
+          // Add the new members (captain = highest weight)
           if (team.members.length > 0) {
             const membersToInsert = team.members.map((member, index) => ({
               team_id: team.id,
               user_id: member.id,
-              is_captain: index === 0 // First member is captain
+              is_captain: index === 0 // First member is captain!
             }));
 
             await supabase
@@ -486,7 +492,7 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
 
       toast({
         title: "Teams Updated",
-        description: "Team assignments have been saved successfully",
+        description: "Team assignments have been saved successfully, with captains auto-assigned.",
       });
 
       // Refresh the data
