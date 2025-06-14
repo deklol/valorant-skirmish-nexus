@@ -9,30 +9,16 @@ import MatchHeader from "@/components/match-details/MatchHeader";
 import MatchTabs from "@/components/match-details/MatchTabs";
 import { useMatchData } from "@/components/match-details/useMatchData";
 
-// Notes for maintainers:
-// - This page relies on useMatchData to fetch all required info
-// - Tournament info is only shown if included in match
-// - All null/undefined access is guarded, minimal assumptions made
-
 const MatchDetails = () => {
-  // Params & navigation
+  // React Router
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  // Auth & Toast
+  // Auth and Toast
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Data hook (robustly guards against undefined id/user)
-  const {
-    match,
-    userTeamId,
-    loading,
-    isAdmin,
-    fetchMatch,
-  } = useMatchData(id, user?.id);
-
-  // Reasonable handling for all app states:
+  // Defensive: null/undefined id check
   useEffect(() => {
     if (!id) {
       toast({
@@ -42,20 +28,36 @@ const MatchDetails = () => {
       });
       navigate(-1);
     }
-  }, [id, navigate, toast]);
+  }, [id, toast, navigate]);
 
-  // Score reported handler
+  // Main data hook
+  const {
+    match,
+    userTeamId,
+    loading,
+    isAdmin,
+    fetchMatch
+  } = useMatchData(id, user?.id);
+
+  // Defensive logging for debugging
+  if (typeof window !== "undefined") {
+    console.log("[MatchDetails] Params id:", id);
+    console.log("[MatchDetails] User:", user);
+    console.log("[MatchDetails] Loading:", loading);
+    console.log("[MatchDetails] Data from useMatchData:", { match, userTeamId, isAdmin });
+  }
+
+  // On Score Report or Team Rebalance, refetch + toast.
   const handleScoreSubmitted = () => {
-    fetchMatch && fetchMatch();
+    if (fetchMatch) fetchMatch();
     toast({
       title: "Score Reported",
       description: "Match score has been submitted and tournament updated",
     });
   };
 
-  // Teams rebalanced handler
   const handleTeamsRebalanced = () => {
-    fetchMatch && fetchMatch();
+    if (fetchMatch) fetchMatch();
     toast({
       title: "Teams Updated",
       description: "Match teams have been rebalanced",
@@ -65,47 +67,51 @@ const MatchDetails = () => {
   // Loading UI
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center">
-            <p className="text-white text-lg">Loading match details...</p>
-          </div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center">
+        <div className="container mx-auto px-4 py-8 text-center">
+          <p className="text-white text-lg">Loading match details...</p>
         </div>
       </div>
     );
   }
 
-  // Error UI for missing match (null)
+  // Defensive: If match is null after loading, show "not found" error
   if (!match) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center">
-            <p className="text-white text-lg">Match not found</p>
-            <Button
-              onClick={() => navigate(-1)}
-              className="mt-4 bg-red-600 hover:bg-red-700"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Go Back
-            </Button>
-          </div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center">
+        <div className="container mx-auto px-4 py-8 text-center">
+          <p className="text-white text-lg">Match not found</p>
+          <Button
+            onClick={() => navigate(-1)}
+            className="mt-4 bg-red-600 hover:bg-red-700"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Go Back
+          </Button>
         </div>
       </div>
     );
   }
 
-  // Standard match details UI
+  // Defensive: validate required match properties
+  const team1Name = match.team1 && match.team1.name ? match.team1.name : "TBD";
+  const team2Name = match.team2 && match.team2.name ? match.team2.name : "TBD";
+  const roundNumber = typeof match.round_number === "number" ? match.round_number : 1;
+  const matchNumber = typeof match.match_number === "number" ? match.match_number : 1;
+  const status = typeof match.status === "string" ? match.status : "pending";
+  const tournamentName = match.tournament && match.tournament.name ? match.tournament.name : undefined;
+
+  // Main Render
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       <div className="container mx-auto px-4 py-8">
         <MatchHeader
-          team1Name={match.team1?.name || "TBD"}
-          team2Name={match.team2?.name || "TBD"}
-          status={match.status}
-          roundNumber={match.round_number}
-          matchNumber={match.match_number}
-          tournamentName={match.tournament?.name}
+          team1Name={team1Name}
+          team2Name={team2Name}
+          status={status}
+          roundNumber={roundNumber}
+          matchNumber={matchNumber}
+          tournamentName={tournamentName}
           onBack={() => navigate(-1)}
         />
         <MatchTabs
