@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -75,7 +74,7 @@ const MapVetoManager = ({
         .insert({
           match_id: matchId,
           current_turn_team_id: team1Id, // Team 1 starts
-          status: 'pending',
+          status: 'in_progress',
           started_at: new Date().toISOString()
         })
         .select()
