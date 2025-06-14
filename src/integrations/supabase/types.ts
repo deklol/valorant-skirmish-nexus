@@ -989,6 +989,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_user_perform_veto: {
+        Args: {
+          p_veto_session_id: string
+          p_user_id: string
+          p_team_id: string
+        }
+        Returns: string
+      }
       create_notification: {
         Args: {
           p_user_id: string
@@ -1077,6 +1085,19 @@ export type Database = {
       is_team_captain: {
         Args: { user_uuid: string; team_uuid: string }
         Returns: boolean
+      }
+      is_user_on_team: {
+        Args: { p_user_id: string; p_team_id: string }
+        Returns: boolean
+      }
+      perform_veto_action: {
+        Args: {
+          p_veto_session_id: string
+          p_user_id: string
+          p_team_id: string
+          p_map_id: string
+        }
+        Returns: string
       }
       user_has_notification_enabled: {
         Args: { p_user_id: string; p_notification_type: string }
