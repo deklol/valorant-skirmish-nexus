@@ -4,7 +4,7 @@ import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trophy, Users, Clock } from "lucide-react";
+import { Trophy, Users, Clock, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import Header from "@/components/Header";
@@ -37,48 +37,78 @@ const Bracket = () => {
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { isAdmin } = useAuth();
 
   useEffect(() => {
-    const fetchBracketData = async () => {
-      if (!id) return;
-
-      try {
-        setLoading(true);
-        
-        const { data: tournamentData, error: tournamentError } = await supabase
-          .from('tournaments')
-          .select('*')
-          .eq('id', id)
-          .single();
-
-        if (tournamentError) throw tournamentError;
-
-        const { data: matchesData, error: matchesError } = await supabase
-          .from('matches')
-          .select(`
-            *,
-            team1:teams!matches_team1_id_fkey (name, id),
-            team2:teams!matches_team2_id_fkey (name, id),
-            winner:teams!matches_winner_id_fkey (name, id)
-          `)
-          .eq('tournament_id', id)
-          .order('round_number', { ascending: true })
-          .order('match_number', { ascending: true });
-
-        if (matchesError) throw matchesError;
-
-        setTournament(tournamentData);
-        setMatches(matchesData || []);
-      } catch (error) {
-        console.error('Error fetching bracket:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchBracketData();
   }, [id]);
+
+  const fetchBracketData = async () => {
+    if (!id) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      console.log('Fetching full bracket data for tournament:', id);
+      
+      const { data: tournamentData, error: tournamentError } = await supabase
+        .from('tournaments')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (tournamentError) {
+        console.error('Tournament error:', tournamentError);
+        throw new Error(`Failed to fetch tournament: ${tournamentError.message}`);
+      }
+
+      if (!tournamentData) {
+        throw new Error('Tournament not found');
+      }
+
+      console.log('Tournament data:', tournamentData);
+
+      // Use the same query structure as IntegratedBracketView
+      const { data: matchesData, error: matchesError } = await supabase
+        .from('matches')
+        .select(`
+          id,
+          round_number,
+          match_number,
+          team1_id,
+          team2_id,
+          winner_id,
+          status,
+          score_team1,
+          score_team2,
+          scheduled_time,
+          team1:team1_id(name, id),
+          team2:team2_id(name, id),
+          winner:winner_id(name, id)
+        `)
+        .eq('tournament_id', id)
+        .order('round_number', { ascending: true })
+        .order('match_number', { ascending: true });
+
+      if (matchesError) {
+        console.error('Matches error:', matchesError);
+        console.warn('Could not fetch matches, continuing with empty bracket');
+        setMatches([]);
+      } else {
+        console.log('Matches data:', matchesData);
+        setMatches(matchesData || []);
+      }
+
+      setTournament(tournamentData);
+    } catch (error: any) {
+      console.error('Error fetching bracket:', error);
+      setError(error.message || 'Failed to load bracket data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getMatchesByRound = (roundNumber: number) => {
     return matches.filter(match => match.round_number === roundNumber);
@@ -118,7 +148,27 @@ const Bracket = () => {
         <Header />
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
-            <p className="text-white text-lg">Loading bracket...</p>
+            <div className="flex items-center justify-center gap-2">
+              <RefreshCw className="w-4 h-4 animate-spin" />
+              <p className="text-white text-lg">Loading bracket...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <p className="text-red-400 text-lg mb-4">Error: {error}</p>
+            <Button onClick={fetchBracketData} className="bg-red-600 hover:bg-red-700">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Retry
+            </Button>
           </div>
         </div>
       </div>
@@ -151,11 +201,16 @@ const Bracket = () => {
             <p className="text-slate-400">Tournament bracket and match results</p>
           </div>
           
-          {isAdmin && (
-            <Button className="bg-red-600 hover:bg-red-700 text-white">
-              Generate Bracket
+          <div className="flex gap-2">
+            <Button
+              onClick={fetchBracketData}
+              variant="outline"
+              className="border-slate-600 text-slate-300 hover:bg-slate-700"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
             </Button>
-          )}
+          </div>
         </div>
 
         {matches.length === 0 ? (

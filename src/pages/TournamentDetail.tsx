@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +18,7 @@ import TournamentStatusManager from "@/components/TournamentStatusManager";
 import TeamBalancingTool from "@/components/TeamBalancingTool";
 import TeamBalancingInterface from "@/components/TeamBalancingInterface";
 import BracketGenerator from "@/components/BracketGenerator";
+import ComprehensiveTournamentEditor from "@/components/ComprehensiveTournamentEditor";
 
 interface Tournament {
   id: string;
@@ -554,50 +554,16 @@ const TournamentDetail = () => {
 
           {isAdmin && (
             <TabsContent value="admin" className="space-y-6">
+              <ComprehensiveTournamentEditor
+                tournament={tournament}
+                onTournamentUpdated={fetchTournament}
+              />
+
               <TournamentStatusManager
                 tournamentId={tournament.id}
                 currentStatus={tournament.status || 'draft'}
                 onStatusChange={fetchTournament}
               />
-
-              <Card className="bg-slate-800 border-slate-700">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <Settings className="w-5 h-5" />
-                    Tournament Management
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex flex-wrap gap-2">
-                    <TournamentEditDialog
-                      tournament={tournament}
-                      onTournamentUpdated={fetchTournament}
-                    />
-                    {tournament.status !== 'live' && tournament.status !== 'completed' && (
-                      <Button
-                        onClick={() => handleStatusChange('live')}
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        Start Tournament
-                      </Button>
-                    )}
-                    {tournament.status !== 'completed' && (
-                      <Button
-                        onClick={() => handleStatusChange('completed')}
-                        className="bg-gray-600 hover:bg-gray-700"
-                      >
-                        Complete Tournament
-                      </Button>
-                    )}
-                    <Button
-                      onClick={() => handleStatusChange('archived')}
-                      className="bg-slate-600 hover:bg-slate-700"
-                    >
-                      Archive Tournament
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
 
               {(tournament.status === 'open' || tournament.status === 'balancing') && (
                 <>

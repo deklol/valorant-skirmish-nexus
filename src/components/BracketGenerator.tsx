@@ -36,30 +36,75 @@ const BracketGenerator = ({ tournamentId, tournament, teams, onBracketGenerated 
     setLoading(true);
 
     try {
+      console.log('Starting bracket generation for tournament:', tournamentId);
+      console.log('Teams available:', teams.length);
+
+      // Clear any existing matches first
+      const { error: deleteError } = await supabase
+        .from('matches')
+        .delete()
+        .eq('tournament_id', tournamentId);
+
+      if (deleteError) {
+        console.error('Error clearing existing matches:', deleteError);
+        throw deleteError;
+      }
+
       // Seed teams (simple random seeding for now)
       const seededTeams = [...teams].sort(() => Math.random() - 0.5);
+      console.log('Seeded teams:', seededTeams.map(team => team.name));
       
       // Update team seeds
       for (let i = 0; i < seededTeams.length; i++) {
-        await supabase
+        const { error: seedError } = await supabase
           .from('teams')
           .update({ seed: i + 1 })
           .eq('id', seededTeams[i].id);
+
+        if (seedError) {
+          console.error('Error updating team seed:', seedError);
+          throw seedError;
+        }
       }
 
-      // Generate first round matches
+      // Calculate number of rounds needed for single elimination
       const rounds = Math.ceil(Math.log2(seededTeams.length));
       const matches = [];
+
+      console.log('Generating bracket with', rounds, 'rounds');
 
       // Create first round matches
       for (let i = 0; i < seededTeams.length; i += 2) {
         if (i + 1 < seededTeams.length) {
-          matches.push({
+          const match = {
             tournament_id: tournamentId,
             round_number: 1,
             match_number: Math.floor(i / 2) + 1,
             team1_id: seededTeams[i].id,
             team2_id: seededTeams[i + 1].id,
+            status: 'pending',
+            score_team1: 0,
+            score_team2: 0,
+            best_of: tournament.match_format === 'BO1' ? 1 : tournament.match_format === 'BO3' ? 3 : 5
+          };
+          matches.push(match);
+          console.log('Created first round match:', seededTeams[i].name, 'vs', seededTeams[i + 1].name);
+        }
+      }
+
+      // Handle odd number of teams (bye for last team)
+      if (seededTeams.length % 2 === 1) {
+        const byeTeam = seededTeams[seededTeams.length - 1];
+        console.log('Bye team:', byeTeam.name);
+        
+        // Create a bye match in round 2 for the bye team
+        if (rounds > 1) {
+          matches.push({
+            tournament_id: tournamentId,
+            round_number: 2,
+            match_number: 1,
+            team1_id: byeTeam.id,
+            team2_id: null,
             status: 'pending',
             score_team1: 0,
             score_team2: 0,
@@ -70,38 +115,58 @@ const BracketGenerator = ({ tournamentId, tournament, teams, onBracketGenerated 
 
       // Create placeholder matches for subsequent rounds
       for (let round = 2; round <= rounds; round++) {
-        const matchesInRound = Math.ceil(seededTeams.length / Math.pow(2, round));
+        const matchesInPreviousRound = Math.ceil(seededTeams.length / Math.pow(2, round - 1));
+        const matchesInRound = Math.ceil(matchesInPreviousRound / 2);
+        
         for (let match = 1; match <= matchesInRound; match++) {
-          matches.push({
-            tournament_id: tournamentId,
-            round_number: round,
-            match_number: match,
-            team1_id: null,
-            team2_id: null,
-            status: 'pending',
-            score_team1: 0,
-            score_team2: 0,
-            best_of: tournament.match_format === 'BO1' ? 1 : tournament.match_format === 'BO3' ? 3 : 5
-          });
+          // Skip if we already created a bye match for this position
+          const existingMatch = matches.find(m => m.round_number === round && m.match_number === match);
+          if (!existingMatch) {
+            matches.push({
+              tournament_id: tournamentId,
+              round_number: round,
+              match_number: match,
+              team1_id: null,
+              team2_id: null,
+              status: 'pending',
+              score_team1: 0,
+              score_team2: 0,
+              best_of: tournament.match_format === 'BO1' ? 1 : tournament.match_format === 'BO3' ? 3 : 5
+            });
+          }
         }
       }
 
+      console.log('Total matches to create:', matches.length);
+
       // Insert all matches
-      const { error } = await supabase
+      const { error: insertError } = await supabase
         .from('matches')
         .insert(matches);
 
-      if (error) throw error;
+      if (insertError) {
+        console.error('Error inserting matches:', insertError);
+        throw insertError;
+      }
+
+      console.log('Successfully created all matches');
 
       // Update tournament status to live
-      await supabase
+      const { error: statusError } = await supabase
         .from('tournaments')
         .update({ status: 'live' })
         .eq('id', tournamentId);
 
+      if (statusError) {
+        console.error('Error updating tournament status:', statusError);
+        throw statusError;
+      }
+
+      console.log('Tournament status updated to live');
+
       toast({
         title: "Bracket Generated",
-        description: "Tournament bracket has been created successfully",
+        description: `Tournament bracket created with ${matches.length} matches across ${rounds} rounds`,
       });
 
       onBracketGenerated();
@@ -110,7 +175,7 @@ const BracketGenerator = ({ tournamentId, tournament, teams, onBracketGenerated 
       console.error('Error generating bracket:', error);
       toast({
         title: "Error",
-        description: "Failed to generate bracket",
+        description: error.message || "Failed to generate bracket",
         variant: "destructive",
       });
     } finally {

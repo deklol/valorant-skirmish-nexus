@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trophy, Users, Clock, Eye, ExternalLink } from "lucide-react";
+import { Trophy, Users, Clock, Eye, ExternalLink, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 
@@ -30,12 +30,15 @@ interface Tournament {
   max_teams: number;
   bracket_type: string;
   match_format: string;
+  status: string;
+  name: string;
 }
 
 const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => {
   const [matches, setMatches] = useState<MatchData[]>([]);
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -44,29 +47,46 @@ const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => 
 
   const fetchBracketData = async () => {
     try {
+      setLoading(true);
+      setError(null);
+      
       console.log('Fetching bracket data for tournament:', tournamentId);
       
-      // Fetch tournament details
+      // Fetch tournament details first
       const { data: tournamentData, error: tournamentError } = await supabase
         .from('tournaments')
-        .select('max_teams, bracket_type, match_format')
+        .select('max_teams, bracket_type, match_format, status, name')
         .eq('id', tournamentId)
         .single();
 
       if (tournamentError) {
         console.error('Tournament error:', tournamentError);
-        throw tournamentError;
+        throw new Error(`Failed to fetch tournament: ${tournamentError.message}`);
+      }
+
+      if (!tournamentData) {
+        throw new Error('Tournament not found');
       }
 
       console.log('Tournament data:', tournamentData);
+      setTournament(tournamentData);
 
-      // Fetch matches with team details
+      // Fetch matches with team details using explicit column references
       const { data: matchesData, error: matchesError } = await supabase
         .from('matches')
         .select(`
-          *,
-          team1:teams!matches_team1_id_fkey (name, id),
-          team2:teams!matches_team2_id_fkey (name, id)
+          id,
+          round_number,
+          match_number,
+          team1_id,
+          team2_id,
+          winner_id,
+          status,
+          score_team1,
+          score_team2,
+          scheduled_time,
+          team1:team1_id(name, id),
+          team2:team2_id(name, id)
         `)
         .eq('tournament_id', tournamentId)
         .order('round_number', { ascending: true })
@@ -74,15 +94,17 @@ const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => 
 
       if (matchesError) {
         console.error('Matches error:', matchesError);
-        throw matchesError;
+        // Don't throw error for matches, just log it and continue with empty array
+        console.warn('Could not fetch matches, continuing with empty bracket');
+        setMatches([]);
+      } else {
+        console.log('Matches data:', matchesData);
+        setMatches(matchesData || []);
       }
 
-      console.log('Matches data:', matchesData);
-
-      setTournament(tournamentData);
-      setMatches(matchesData || []);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching bracket:', error);
+      setError(error.message || 'Failed to load bracket data');
     } finally {
       setLoading(false);
     }
@@ -144,7 +166,36 @@ const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => 
     return (
       <Card className="bg-slate-800 border-slate-700">
         <CardContent className="py-8 text-center">
-          <p className="text-slate-400">Loading bracket...</p>
+          <div className="flex items-center justify-center gap-2">
+            <RefreshCw className="w-4 h-4 animate-spin" />
+            <p className="text-slate-400">Loading bracket...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="bg-slate-800 border-slate-700">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center gap-2">
+            <Trophy className="w-5 h-5" />
+            Tournament Bracket
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <p className="text-red-400 mb-4">Error: {error}</p>
+            <Button 
+              onClick={fetchBracketData} 
+              variant="outline" 
+              className="border-slate-600 text-slate-300 hover:bg-slate-700"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Retry
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );
@@ -172,11 +223,45 @@ const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => 
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
             <Trophy className="w-5 h-5" />
-            Tournament Bracket
+            Tournament Bracket - {tournament.name}
           </CardTitle>
+          <div className="flex items-center gap-4 mt-2">
+            <Badge variant="outline" className="border-slate-600 text-slate-300">
+              {tournament.bracket_type.replace('_', ' ')}
+            </Badge>
+            <Badge variant="outline" className="border-slate-600 text-slate-300">
+              {tournament.match_format}
+            </Badge>
+            <Badge variant="outline" className="border-slate-600 text-slate-300">
+              Status: {tournament.status}
+            </Badge>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => navigate(`/bracket/${tournamentId}`)}
+              className="ml-auto border-slate-600 text-slate-300 hover:bg-slate-700"
+            >
+              <ExternalLink className="w-4 h-4 mr-2" />
+              Full Bracket View
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
-          <p className="text-slate-400 text-center py-8">No bracket generated yet.</p>
+          <div className="text-center py-8">
+            <Trophy className="w-16 h-16 mx-auto text-slate-400 mb-4" />
+            <p className="text-slate-400 text-lg mb-2">No bracket generated yet</p>
+            <p className="text-slate-500">
+              The tournament bracket will appear here once teams are balanced and matches are scheduled.
+            </p>
+            <Button 
+              onClick={fetchBracketData} 
+              variant="outline" 
+              className="mt-4 border-slate-600 text-slate-300 hover:bg-slate-700"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );
@@ -189,7 +274,7 @@ const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => 
       <CardHeader>
         <CardTitle className="text-white flex items-center gap-2">
           <Trophy className="w-5 h-5" />
-          Tournament Bracket
+          Tournament Bracket - {tournament.name}
         </CardTitle>
         <div className="flex items-center gap-4 mt-2">
           <Badge variant="outline" className="border-slate-600 text-slate-300">
@@ -198,15 +283,32 @@ const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => 
           <Badge variant="outline" className="border-slate-600 text-slate-300">
             {tournament.match_format}
           </Badge>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => navigate(`/bracket/${tournamentId}`)}
-            className="ml-auto border-slate-600 text-slate-300 hover:bg-slate-700"
-          >
-            <ExternalLink className="w-4 h-4 mr-2" />
-            Full Bracket View
-          </Button>
+          <Badge variant="outline" className="border-slate-600 text-slate-300">
+            Status: {tournament.status}
+          </Badge>
+          <Badge variant="outline" className="border-slate-600 text-slate-300">
+            {matches.length} matches
+          </Badge>
+          <div className="ml-auto flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={fetchBracketData}
+              className="border-slate-600 text-slate-300 hover:bg-slate-700"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => navigate(`/bracket/${tournamentId}`)}
+              className="border-slate-600 text-slate-300 hover:bg-slate-700"
+            >
+              <ExternalLink className="w-4 h-4 mr-2" />
+              Full View
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
