@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -511,7 +512,8 @@ const TournamentDetail = () => {
                     final_match_format: tournament.final_match_format,
                     semifinal_match_format: tournament.semifinal_match_format,
                     enable_map_veto: tournament.enable_map_veto,
-                    map_veto_required_rounds: tournament.map_veto_required_rounds
+                    map_veto_required_rounds: tournament.map_veto_required_rounds,
+                    end_time: tournament.end_time || null
                   }}
                   teams={teams}
                   onBracketGenerated={handleRefresh}
@@ -543,7 +545,7 @@ const TournamentDetail = () => {
             <TabsContent value="balancing" className="space-y-6">
               <TeamBalancingInterface
                 tournamentId={tournament.id}
-                onBalanceComplete={handleRefresh}
+                onTeamsUpdated={handleRefresh}
               />
             </TabsContent>
           )}
