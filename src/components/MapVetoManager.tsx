@@ -1,13 +1,13 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Map, Play, Settings, AlertCircle } from "lucide-react";
+import { Map, Play, Settings, AlertCircle, Crown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
+import { getUserCaptainInfoForMatch, ensureProperCaptain } from "@/utils/captainUtils";
 import MapVetoDialog from "./MapVetoDialog";
 
 interface MapVetoManagerProps {
@@ -31,13 +31,14 @@ const MapVetoManager = ({
   matchStatus,
   userTeamId,
   roundNumber,
-  isAdmin =false
+  isAdmin = false
 }: MapVetoManagerProps) => {
   const [vetoSession, setVetoSession] = useState<any>(null);
   const [vetoDialogOpen, setVetoDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [tournamentSettings, setTournamentSettings] = useState<any>(null);
   const [matchSettings, setMatchSettings] = useState<any>(null);
+  const [captainInfo, setCaptainInfo] = useState<any>(null);
   const { user } = useAuth();
   const { toast } = useToast();
   const { notifyMapVetoReady } = useEnhancedNotifications();
@@ -45,7 +46,21 @@ const MapVetoManager = ({
   useEffect(() => {
     checkVetoSession();
     fetchTournamentAndMatchSettings();
-  }, [matchId]);
+    if (user?.id) {
+      fetchCaptainInfo();
+    }
+  }, [matchId, user?.id]);
+
+  const fetchCaptainInfo = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const info = await getUserCaptainInfoForMatch(user.id, team1Id, team2Id);
+      setCaptainInfo(info);
+    } catch (error) {
+      console.error('Error fetching captain info:', error);
+    }
+  };
 
   const fetchTournamentAndMatchSettings = async () => {
     try {
@@ -158,6 +173,14 @@ const MapVetoManager = ({
       return;
     }
 
+    // Ensure proper captains are assigned before veto
+    try {
+      await ensureProperCaptain(team1Id);
+      await ensureProperCaptain(team2Id);
+    } catch (error) {
+      console.error('Error ensuring captains:', error);
+    }
+
     setLoading(true);
     try {
       // Create veto session
@@ -181,7 +204,7 @@ const MapVetoManager = ({
       
       toast({
         title: "Map Veto Started",
-        description: "Teams can now participate in map selection",
+        description: "Team captains can now participate in map selection",
       });
     } catch (error: any) {
       console.error('Error initializing map veto:', error);
@@ -232,7 +255,7 @@ const MapVetoManager = ({
     }
   };
 
-  const canParticipate = userTeamId && (userTeamId === team1Id || userTeamId === team2Id);
+  const canParticipateInVeto = captainInfo?.isCaptain || false;
   const isVetoActive = vetoSession?.status === 'in_progress';
   const isVetoComplete = vetoSession?.status === 'completed';
   const mapVetoAvailable = isMapVetoAvailable();
@@ -293,6 +316,22 @@ const MapVetoManager = ({
           )}
         </div>
 
+        {/* Captain Information */}
+        {captainInfo && userTeamId && (
+          <div className="flex items-center gap-2 p-3 bg-slate-700/50 border border-slate-600/50 rounded-lg">
+            <Crown className="w-4 h-4 text-yellow-500" />
+            <span className="text-slate-300 text-sm">
+              {captainInfo.isCaptain ? (
+                <span className="text-green-400 font-medium">You are the team captain</span>
+              ) : (
+                <span>
+                  Team Captain: <span className="text-yellow-400 font-medium">{captainInfo.captainName || 'Unknown'}</span>
+                </span>
+              )}
+            </span>
+          </div>
+        )}
+
         {!mapVetoAvailable ? (
           <div className="flex items-center gap-2 p-3 bg-gray-500/10 border border-gray-500/20 rounded-lg">
             <AlertCircle className="w-4 h-4 text-gray-500" />
@@ -306,7 +345,7 @@ const MapVetoManager = ({
             <p className="text-slate-400">
               Map veto has not been started for this match yet
             </p>
-            {(isAdmin || canParticipate) && (
+            {(isAdmin || canParticipateInVeto) && (
               <Button
                 onClick={initializeMapVeto}
                 disabled={loading || !team1Id || !team2Id}
@@ -315,6 +354,11 @@ const MapVetoManager = ({
                 <Map className="w-4 h-4 mr-2" />
                 {loading ? 'Starting...' : 'Start Map Veto'}
               </Button>
+            )}
+            {!canParticipateInVeto && !isAdmin && userTeamId && (
+              <p className="text-yellow-400 text-sm">
+                Only team captains can start the map veto process
+              </p>
             )}
           </div>
         ) : (
@@ -337,7 +381,7 @@ const MapVetoManager = ({
                 </Badge>
               </div>
               
-              {isVetoActive && canParticipate && (
+              {isVetoActive && canParticipateInVeto && (
                 <Button
                   onClick={() => setVetoDialogOpen(true)}
                   className="bg-green-600 hover:bg-green-700"
@@ -347,6 +391,15 @@ const MapVetoManager = ({
                 </Button>
               )}
             </div>
+
+            {isVetoActive && !canParticipateInVeto && !isAdmin && userTeamId && (
+              <div className="flex items-center gap-2 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                <AlertCircle className="w-4 h-4 text-yellow-500" />
+                <span className="text-yellow-400 text-sm">
+                  Only team captains can participate in map veto
+                </span>
+              </div>
+            )}
 
             {isAdmin && isVetoActive && (
               <div className="flex gap-2">
@@ -383,6 +436,7 @@ const MapVetoManager = ({
           team2Name={team2Name}
           currentTeamTurn={vetoSession.current_turn_team_id || team1Id}
           userTeamId={userTeamId}
+          isCaptain={canParticipateInVeto}
         />
       )}
     </Card>
