@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -49,10 +49,33 @@ const MapVetoManager = ({
     console.log("[MapVetoManager] Mount, matchId:", matchId);
   }, [matchId]);
 
+  // -- BEGIN: Prevent subscription churn
+  // Use a ref to prevent overlapping session fetches
+  const sessionFetchRef = useRef(false);
+
+  // Always define checkVetoSession as a stable function for use in effects/subscriptions
+  const checkVetoSession = useCallback(async () => {
+    if (sessionFetchRef.current) return; // avoid overlapping
+    sessionFetchRef.current = true;
+    try {
+      const { data: session, error } = await supabase
+        .from('map_veto_sessions')
+        .select('*')
+        .eq('match_id', matchId)
+        .maybeSingle();
+      setVetoSession(session ?? null);
+    } catch (error) {
+      setVetoSession(null);
+    } finally {
+      sessionFetchRef.current = false;
+    }
+  }, [matchId]);
+
   useEffect(() => {
     checkVetoSession();
     fetchTournamentAndMatchSettings();
-  }, [matchId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matchId]); // Don't include checkVetoSession in deps
 
   const fetchTournamentAndMatchSettings = async () => {
     setSettingsLoading(true);
@@ -86,32 +109,15 @@ const MapVetoManager = ({
     }
   };
 
-  // Defensive: always define this function
-  const checkVetoSession = async () => {
-    try {
-      const { data: session, error } = await supabase
-        .from('map_veto_sessions')
-        .select('*')
-        .eq('match_id', matchId)
-        .maybeSingle();
-
-      setVetoSession(session ?? null);
-    } catch (error) {
-      // No veto session exists yet
-      setVetoSession(null);
-    }
-  };
-
   // Always call useMapVetoSessionRealtime to obey React Rules of Hooks
-  // This call is unconditional and will be a no-op if `vetoSession?.id` is null/undefined
+  // Pass a stable callback that only triggers session fetch, not state change chain
   useMapVetoSessionRealtime(
     vetoSession?.id ? vetoSession.id : null,
-    (payload) => {
-      // Defensive: checkVetoSession should always exist
-      if (vetoSession?.id) {
-        checkVetoSession();
-      }
-    }
+    useCallback((payload) => {
+      // Only fetch session data, do NOT directly setVetoSession here
+      console.log("[MapVetoManager] Realtime update for session, refetching...");
+      checkVetoSession(); // this will update session once, no state recursion
+    }, [checkVetoSession])
   );
 
   const isMapVetoAvailable = () => {
