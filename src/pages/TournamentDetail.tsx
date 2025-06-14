@@ -14,6 +14,7 @@ import TournamentStatusManager from "@/components/TournamentStatusManager";
 import TournamentParticipants from "@/components/TournamentParticipants";
 import TournamentRegistration from "@/components/TournamentRegistration";
 import IntegratedBracketView from "@/components/IntegratedBracketView";
+import TournamentWinnerDisplay from "@/components/TournamentWinnerDisplay";
 
 interface Tournament {
   id: string;
@@ -311,6 +312,14 @@ const TournamentDetail = () => {
           </CardContent>
         </Card>
 
+        {/* Tournament Winner Display - Show for completed tournaments */}
+        {tournament.status === 'completed' && (
+          <TournamentWinnerDisplay 
+            tournamentId={tournament.id}
+            tournamentStatus={tournament.status}
+          />
+        )}
+
         {/* Registration Component - Available to all users */}
         {tournament.status === 'open' && (
           <TournamentRegistration
@@ -368,10 +377,6 @@ const TournamentDetail = () => {
             <CardContent>
               <IntegratedBracketView
                 tournamentId={tournament.id}
-                matches={matches}
-                teams={teams}
-                isAdmin={isAdmin}
-                onMatchUpdate={handleRefresh}
               />
             </CardContent>
           </Card>
