@@ -7,6 +7,60 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// TGH Skirmish Rank-to-Point System for weight_rating
+const RANK_WEIGHT_MAPPING: Record<string, number> = {
+  // Iron
+  'Iron 1': 10,
+  'Iron 2': 15,
+  'Iron 3': 20,
+  
+  // Bronze
+  'Bronze 1': 25,
+  'Bronze 2': 30,
+  'Bronze 3': 35,
+  
+  // Silver
+  'Silver 1': 40,
+  'Silver 2': 50,
+  'Silver 3': 60,
+  
+  // Gold
+  'Gold 1': 70,
+  'Gold 2': 80,
+  'Gold 3': 90,
+  
+  // Platinum
+  'Platinum 1': 100,
+  'Platinum 2': 115,
+  'Platinum 3': 130,
+  
+  // Diamond
+  'Diamond 1': 150,
+  'Diamond 2': 170,
+  'Diamond 3': 190,
+  
+  // Ascendant
+  'Ascendant 1': 215,
+  'Ascendant 2': 240,
+  'Ascendant 3': 265,
+  
+  // Immortal
+  'Immortal 1': 300,
+  'Immortal 2': 350,
+  'Immortal 3': 400,
+  
+  // Radiant
+  'Radiant': 500,
+  
+  // Default/Unknown
+  'Unranked': 150,
+  'Phantom': 150
+};
+
+const getWeightRating = (rank: string): number => {
+  return RANK_WEIGHT_MAPPING[rank] || 150;
+};
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -97,14 +151,19 @@ serve(async (req) => {
 
     console.log(`Parsed rank: ${currentRank}, RR: ${rankPoints}`);
 
+    // Calculate weight_rating based on rank
+    const weightRating = currentRank ? getWeightRating(currentRank) : 150;
+    console.log(`Calculated weight_rating: ${weightRating} for rank: ${currentRank}`);
+
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Update user's rank data
+    // Update user's rank data including weight_rating
     const updateData: any = {
-      last_rank_update: new Date().toISOString()
+      last_rank_update: new Date().toISOString(),
+      weight_rating: weightRating
     };
 
     if (currentRank) {
@@ -125,13 +184,14 @@ serve(async (req) => {
       throw updateError;
     }
 
-    console.log(`Successfully updated rank for user ${user_id}`);
+    console.log(`Successfully updated rank for user ${user_id}: rank=${currentRank}, weight_rating=${weightRating}, rr=${rankPoints}`);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         current_rank: currentRank, 
         rank_points: rankPoints,
+        weight_rating: weightRating,
         raw_response: rankText,
         message: currentRank ? 'Rank data retrieved successfully' : 'No rank data found'
       }),

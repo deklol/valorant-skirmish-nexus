@@ -57,14 +57,32 @@ export const calculateTeamBalance = (team1Points: number, team2Points: number) =
   const delta = Math.abs(team1Points - team2Points);
   
   let balanceStatus: 'ideal' | 'good' | 'warning' | 'poor';
-  if (delta <= 25) balanceStatus = 'ideal';
-  else if (delta <= 50) balanceStatus = 'good';
-  else if (delta <= 100) balanceStatus = 'warning';
-  else balanceStatus = 'poor';
+  let statusColor: string;
+  let statusMessage: string;
+  
+  if (delta <= 25) {
+    balanceStatus = 'ideal';
+    statusColor = 'text-green-400';
+    statusMessage = 'Perfectly balanced teams';
+  } else if (delta <= 50) {
+    balanceStatus = 'good';
+    statusColor = 'text-blue-400';
+    statusMessage = 'Well balanced teams';
+  } else if (delta <= 100) {
+    balanceStatus = 'warning';
+    statusColor = 'text-yellow-400';
+    statusMessage = 'Teams could be better balanced';
+  } else {
+    balanceStatus = 'poor';
+    statusColor = 'text-red-400';
+    statusMessage = '⚠️ Teams are poorly balanced - consider rebalancing';
+  }
 
   return {
     delta,
     balanceStatus,
+    statusColor,
+    statusMessage,
     team1Points,
     team2Points
   };
@@ -75,17 +93,17 @@ export const autoBalanceTeams = (players: any[], numTeams: number) => {
   const realPlayers = players.filter(p => !p.is_phantom);
   const phantomPlayers = players.filter(p => p.is_phantom);
 
-  // Sort real players by points (highest first)
+  // Sort real players by weight_rating (highest first)
   const sortedRealPlayers = [...realPlayers].sort((a, b) => {
-    const aPoints = getRankPoints(a.current_rank || 'Unranked');
-    const bPoints = getRankPoints(b.current_rank || 'Unranked');
+    const aPoints = a.weight_rating || getRankPoints(a.current_rank || 'Unranked');
+    const bPoints = b.weight_rating || getRankPoints(b.current_rank || 'Unranked');
     return bPoints - aPoints;
   });
 
-  // Sort phantom players by points (highest first)
+  // Sort phantom players by weight_rating (highest first)
   const sortedPhantomPlayers = [...phantomPlayers].sort((a, b) => {
-    const aPoints = getRankPoints(a.current_rank || 'Unranked');
-    const bPoints = getRankPoints(b.current_rank || 'Unranked');
+    const aPoints = a.weight_rating || getRankPoints(a.current_rank || 'Unranked');
+    const bPoints = b.weight_rating || getRankPoints(b.current_rank || 'Unranked');
     return bPoints - aPoints;
   });
 
@@ -102,7 +120,7 @@ export const autoBalanceTeams = (players: any[], numTeams: number) => {
   const totalPlayers = realPlayers.length + phantomPlayers.length;
   const playersToDistribute = Math.min(totalPlayers, totalAvailableSlots);
 
-  // First, distribute real players evenly across teams using round-robin
+  // First, distribute real players evenly across teams using snake draft
   let currentTeamIndex = 0;
   const allPlayersToDistribute = [...sortedRealPlayers];
 
@@ -112,23 +130,31 @@ export const autoBalanceTeams = (players: any[], numTeams: number) => {
     allPlayersToDistribute.push(...sortedPhantomPlayers.slice(0, spotsAfterRealPlayers));
   }
 
-  // Distribute players round-robin style, ensuring no team exceeds 5 players
+  // Distribute players using snake draft for maximum balance
+  let direction = 1; // 1 for forward, -1 for backward
+  
   for (const player of allPlayersToDistribute) {
-    // Find the next team that has space (less than 5 players)
-    let attempts = 0;
-    while (teams[currentTeamIndex].players.length >= 5 && attempts < numTeams) {
-      currentTeamIndex = (currentTeamIndex + 1) % numTeams;
-      attempts++;
-    }
-
-    // If we found a team with space, add the player
-    if (teams[currentTeamIndex].players.length < 5) {
-      const points = getRankPoints(player.current_rank || 'Unranked');
-      teams[currentTeamIndex].players.push(player);
-      teams[currentTeamIndex].totalPoints += points;
-      
-      // Move to next team for round-robin distribution
-      currentTeamIndex = (currentTeamIndex + 1) % numTeams;
+    // Find the team with the lowest total points that has space
+    const availableTeams = teams.filter(team => team.players.length < 5);
+    if (availableTeams.length === 0) break;
+    
+    // Use snake draft pattern
+    const targetTeam = availableTeams[currentTeamIndex % availableTeams.length];
+    
+    const points = player.weight_rating || getRankPoints(player.current_rank || 'Unranked');
+    targetTeam.players.push(player);
+    targetTeam.totalPoints += points;
+    
+    // Move to next team in snake pattern
+    currentTeamIndex += direction;
+    
+    // Reverse direction when we reach the end
+    if (currentTeamIndex >= availableTeams.length) {
+      currentTeamIndex = availableTeams.length - 1;
+      direction = -1;
+    } else if (currentTeamIndex < 0) {
+      currentTeamIndex = 0;
+      direction = 1;
     }
   }
 

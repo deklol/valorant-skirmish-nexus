@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { DndContext, closestCenter, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -8,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, Users, Shuffle, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { getRankPoints, calculateTeamBalance } from "@/utils/rankingSystem";
 import DraggablePlayer from './DraggablePlayer';
 import DroppableTeam from './DroppableTeam';
 
@@ -20,6 +20,8 @@ interface Player {
   id: string;
   discord_username: string;
   rank_points: number;
+  weight_rating: number;
+  current_rank: string;
   riot_id?: string;
 }
 
@@ -27,7 +29,7 @@ interface Team {
   id: string;
   name: string;
   members: Player[];
-  avgRankScore: number;
+  totalWeight: number;
 }
 
 const TeamBalancingInterface = ({ tournamentId, onTeamsUpdated }: TeamBalancingInterfaceProps) => {
@@ -58,6 +60,8 @@ const TeamBalancingInterface = ({ tournamentId, onTeamsUpdated }: TeamBalancingI
               id,
               discord_username,
               rank_points,
+              weight_rating,
+              current_rank,
               riot_id
             )
           )
@@ -65,8 +69,6 @@ const TeamBalancingInterface = ({ tournamentId, onTeamsUpdated }: TeamBalancingI
         .eq('tournament_id', tournamentId);
 
       if (teamsError) throw teamsError;
-
-      console.log('Teams data:', teamsData);
 
       // Fetch tournament participants to find unassigned players
       const { data: participantsData, error: participantsError } = await supabase
@@ -77,14 +79,14 @@ const TeamBalancingInterface = ({ tournamentId, onTeamsUpdated }: TeamBalancingI
             id,
             discord_username,
             rank_points,
+            weight_rating,
+            current_rank,
             riot_id
           )
         `)
         .eq('tournament_id', tournamentId);
 
       if (participantsError) throw participantsError;
-
-      console.log('Participants data:', participantsData);
 
       // Process teams
       const processedTeams: Team[] = (teamsData || []).map(team => {
@@ -95,18 +97,18 @@ const TeamBalancingInterface = ({ tournamentId, onTeamsUpdated }: TeamBalancingI
             id: user.id,
             discord_username: user.discord_username || 'Unknown',
             rank_points: user.rank_points || 0,
+            weight_rating: user.weight_rating || getRankPoints(user.current_rank || 'Unranked'),
+            current_rank: user.current_rank || 'Unranked',
             riot_id: user.riot_id
           }));
 
-        const avgRankScore = members.length > 0 
-          ? members.reduce((sum, member) => sum + member.rank_points, 0) / members.length
-          : 0;
+        const totalWeight = members.reduce((sum, member) => sum + member.weight_rating, 0);
 
         return {
           id: team.id,
           name: team.name,
           members,
-          avgRankScore
+          totalWeight
         };
       });
 
@@ -122,11 +124,10 @@ const TeamBalancingInterface = ({ tournamentId, onTeamsUpdated }: TeamBalancingI
           id: user.id,
           discord_username: user.discord_username || 'Unknown',
           rank_points: user.rank_points || 0,
+          weight_rating: user.weight_rating || getRankPoints(user.current_rank || 'Unranked'),
+          current_rank: user.current_rank || 'Unranked',
           riot_id: user.riot_id
         }));
-
-      console.log('Processed teams:', processedTeams);
-      console.log('Unassigned players:', unassigned);
 
       setTeams(processedTeams);
       setUnassignedPlayers(unassigned);
@@ -150,8 +151,6 @@ const TeamBalancingInterface = ({ tournamentId, onTeamsUpdated }: TeamBalancingI
     const playerId = active.id as string;
     const targetId = over.id as string;
 
-    console.log('Drag end - Player:', playerId, 'Target:', targetId);
-
     // Find the player being moved
     let player: Player | null = null;
     let sourceTeamId: string | null = null;
@@ -172,42 +171,31 @@ const TeamBalancingInterface = ({ tournamentId, onTeamsUpdated }: TeamBalancingI
       }
     }
 
-    if (!player) {
-      console.error('Player not found:', playerId);
-      return;
-    }
+    if (!player) return;
 
     // Handle movement
     if (targetId === 'unassigned') {
-      // Moving to unassigned
       movePlayerToUnassigned(player, sourceTeamId);
     } else if (targetId.startsWith('team-')) {
-      // Moving to a team
       const teamId = targetId.replace('team-', '');
       movePlayerToTeam(player, teamId, sourceTeamId);
     }
   };
 
   const movePlayerToUnassigned = (player: Player, sourceTeamId: string | null) => {
-    console.log('Moving player to unassigned:', player, 'from team:', sourceTeamId);
-    
     if (sourceTeamId) {
-      // Remove from team
       setTeams(prevTeams => 
         prevTeams.map(team => {
           if (team.id === sourceTeamId) {
             const newMembers = team.members.filter(p => p.id !== player.id);
-            const avgRankScore = newMembers.length > 0 
-              ? newMembers.reduce((sum, member) => sum + member.rank_points, 0) / newMembers.length
-              : 0;
-            return { ...team, members: newMembers, avgRankScore };
+            const totalWeight = newMembers.reduce((sum, member) => sum + member.weight_rating, 0);
+            return { ...team, members: newMembers, totalWeight };
           }
           return team;
         })
       );
     }
     
-    // Add to unassigned (if not already there)
     setUnassignedPlayers(prev => {
       if (prev.some(p => p.id === player.id)) return prev;
       return [...prev, player];
@@ -215,18 +203,14 @@ const TeamBalancingInterface = ({ tournamentId, onTeamsUpdated }: TeamBalancingI
   };
 
   const movePlayerToTeam = (player: Player, targetTeamId: string, sourceTeamId: string | null) => {
-    console.log('Moving player to team:', player, 'to team:', targetTeamId, 'from:', sourceTeamId);
-    
     // Remove from source
     if (sourceTeamId) {
       setTeams(prevTeams => 
         prevTeams.map(team => {
           if (team.id === sourceTeamId) {
             const newMembers = team.members.filter(p => p.id !== player.id);
-            const avgRankScore = newMembers.length > 0 
-              ? newMembers.reduce((sum, member) => sum + member.rank_points, 0) / newMembers.length
-              : 0;
-            return { ...team, members: newMembers, avgRankScore };
+            const totalWeight = newMembers.reduce((sum, member) => sum + member.weight_rating, 0);
+            return { ...team, members: newMembers, totalWeight };
           }
           return team;
         })
@@ -240,8 +224,8 @@ const TeamBalancingInterface = ({ tournamentId, onTeamsUpdated }: TeamBalancingI
       prevTeams.map(team => {
         if (team.id === targetTeamId) {
           const newMembers = [...team.members, player];
-          const avgRankScore = newMembers.reduce((sum, member) => sum + member.rank_points, 0) / newMembers.length;
-          return { ...team, members: newMembers, avgRankScore };
+          const totalWeight = newMembers.reduce((sum, member) => sum + member.weight_rating, 0);
+          return { ...team, members: newMembers, totalWeight };
         }
         return team;
       })
@@ -251,22 +235,21 @@ const TeamBalancingInterface = ({ tournamentId, onTeamsUpdated }: TeamBalancingI
   const saveTeamChanges = async () => {
     setSaving(true);
     try {
-      console.log('Saving team changes...');
-      
-      // For each team, update the team_members table
+      // For each team, update the team_members table and total_rank_points
       for (const team of teams) {
-        // First, remove all current members
-        const { error: deleteError } = await supabase
+        // Update team's total_rank_points
+        await supabase
+          .from('teams')
+          .update({ total_rank_points: team.totalWeight })
+          .eq('id', team.id);
+
+        // Remove all current members
+        await supabase
           .from('team_members')
           .delete()
           .eq('team_id', team.id);
 
-        if (deleteError) {
-          console.error('Error removing team members:', deleteError);
-          throw deleteError;
-        }
-
-        // Then add the new members
+        // Add the new members
         if (team.members.length > 0) {
           const membersToInsert = team.members.map((member, index) => ({
             team_id: team.id,
@@ -274,14 +257,9 @@ const TeamBalancingInterface = ({ tournamentId, onTeamsUpdated }: TeamBalancingI
             is_captain: index === 0 // First member is captain
           }));
 
-          const { error: insertError } = await supabase
+          await supabase
             .from('team_members')
             .insert(membersToInsert);
-
-          if (insertError) {
-            console.error('Error adding team members:', insertError);
-            throw insertError;
-          }
         }
       }
 
@@ -304,28 +282,13 @@ const TeamBalancingInterface = ({ tournamentId, onTeamsUpdated }: TeamBalancingI
   };
 
   const getBalanceAnalysis = () => {
-    if (teams.length === 0) return null;
+    if (teams.length < 2) return null;
 
-    const avgScores = teams.map(team => team.avgRankScore);
-    const maxScore = Math.max(...avgScores);
-    const minScore = Math.min(...avgScores);
-    const difference = maxScore - minScore;
-
-    let status = 'excellent';
-    let color = 'text-green-400';
+    const teamWeights = teams.map(team => team.totalWeight);
+    const maxWeight = Math.max(...teamWeights);
+    const minWeight = Math.min(...teamWeights);
     
-    if (difference > 200) {
-      status = 'poor';
-      color = 'text-red-400';
-    } else if (difference > 100) {
-      status = 'fair';
-      color = 'text-yellow-400';
-    } else if (difference > 50) {
-      status = 'good';
-      color = 'text-blue-400';
-    }
-
-    return { difference: Math.round(difference), status, color };
+    return calculateTeamBalance(maxWeight, minWeight);
   };
 
   if (loading) {
@@ -364,13 +327,18 @@ const TeamBalancingInterface = ({ tournamentId, onTeamsUpdated }: TeamBalancingI
                 <div className="flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 text-yellow-400" />
                   <span className="text-white text-sm">Balance Status:</span>
-                  <Badge className={`${balance.color} bg-slate-600 border-slate-500`}>
-                    {balance.status.toUpperCase()}
+                  <Badge className={`${balance.statusColor} bg-slate-600 border-slate-500`}>
+                    {balance.balanceStatus.toUpperCase()}
                   </Badge>
                 </div>
-                <span className="text-slate-300 text-sm">
-                  Rank difference: {balance.difference} points
-                </span>
+                <div className="text-right">
+                  <span className="text-slate-300 text-sm">
+                    Weight difference: {balance.delta} points
+                  </span>
+                  <p className={`text-xs ${balance.statusColor} mt-1`}>
+                    {balance.statusMessage}
+                  </p>
+                </div>
               </div>
             )}
 
@@ -394,10 +362,44 @@ const TeamBalancingInterface = ({ tournamentId, onTeamsUpdated }: TeamBalancingI
               Teams
             </h3>
             {teams.map(team => (
-              <DroppableTeam 
-                key={team.id} 
-                team={team}
-              />
+              <Card key={team.id} className="bg-slate-800 border-slate-700">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-white text-lg">{team.name}</CardTitle>
+                    <Badge className="bg-indigo-600 text-white">
+                      {team.totalWeight} pts
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <SortableContext 
+                    items={team.members.map(p => p.id)} 
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <div 
+                      id={`team-${team.id}`}
+                      className="space-y-2 min-h-[100px] border-2 border-dashed border-slate-600 rounded-lg p-4"
+                    >
+                      {team.members.length === 0 ? (
+                        <p className="text-slate-400 text-center py-4">
+                          Drop players here
+                        </p>
+                      ) : (
+                        team.members.map(player => (
+                          <div key={player.id} className="flex items-center justify-between p-2 bg-slate-700 rounded">
+                            <div>
+                              <span className="text-white font-medium">{player.discord_username}</span>
+                              <div className="text-xs text-slate-400">
+                                {player.current_rank} • {player.weight_rating} pts
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </SortableContext>
+                </CardContent>
+              </Card>
             ))}
           </div>
 
@@ -419,7 +421,14 @@ const TeamBalancingInterface = ({ tournamentId, onTeamsUpdated }: TeamBalancingI
                       </p>
                     ) : (
                       unassignedPlayers.map(player => (
-                        <DraggablePlayer key={player.id} player={player} />
+                        <div key={player.id} className="flex items-center justify-between p-2 bg-slate-700 rounded cursor-move">
+                          <div>
+                            <span className="text-white font-medium">{player.discord_username}</span>
+                            <div className="text-xs text-slate-400">
+                              {player.current_rank} • {player.weight_rating} pts
+                            </div>
+                          </div>
+                        </div>
                       ))
                     )}
                   </div>

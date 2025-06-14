@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
+import { getRankPoints } from "@/utils/rankingSystem";
 
 interface UseTeamBalancingProps {
   tournamentId: string;
@@ -24,7 +25,7 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
     const teamSize = tournament.team_size || 5; // Default to 5v5 if not set
     console.log(`Tournament team size: ${teamSize}v${teamSize}`);
 
-    // Get all signups with user details and rank points (including checked-in players)
+    // Get all signups with user details and weight_rating (including checked-in players)
     const { data: signups } = await supabase
       .from('tournament_signups')
       .select(`
@@ -70,10 +71,14 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
     // Clear existing teams
     await clearExistingTeams();
 
-    // Sort players by rank points (descending)
+    // Sort players by weight_rating (descending) with fallback to rank-based calculation
     const sortedPlayers = signups
       .filter(signup => signup.users)
-      .sort((a, b) => (b.users?.rank_points || 0) - (a.users?.rank_points || 0));
+      .sort((a, b) => {
+        const aWeight = a.users?.weight_rating || getRankPoints(a.users?.current_rank || 'Unranked');
+        const bWeight = b.users?.weight_rating || getRankPoints(b.users?.current_rank || 'Unranked');
+        return bWeight - aWeight;
+      });
 
     if (teamSize === 1) {
       await createIndividualTeams(sortedPlayers);
@@ -106,6 +111,7 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
     for (let i = 0; i < sortedPlayers.length; i++) {
       const player = sortedPlayers[i];
       const teamName = `${player.users?.discord_username || 'Player'} (Solo)`;
+      const playerWeight = player.users?.weight_rating || getRankPoints(player.users?.current_rank || 'Unranked');
       
       // Create team
       const { data: newTeam, error: teamError } = await supabase
@@ -113,7 +119,7 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
         .insert({
           name: teamName,
           tournament_id: tournamentId,
-          total_rank_points: player.users?.rank_points || 0,
+          total_rank_points: playerWeight,
           seed: i + 1
         })
         .select()
@@ -179,10 +185,11 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
 
       const teamName = `Team ${String.fromCharCode(65 + i)}`; // Team A, Team B, etc.
       
-      // Calculate total rank points for the team
-      const totalRankPoints = teams[i].reduce((sum, player) => 
-        sum + (player.users?.rank_points || 0), 0
-      );
+      // Calculate total weight_rating for the team
+      const totalWeight = teams[i].reduce((sum, player) => {
+        const weight = player.users?.weight_rating || getRankPoints(player.users?.current_rank || 'Unranked');
+        return sum + weight;
+      }, 0);
 
       // Create team
       const { data: newTeam, error: teamError } = await supabase
@@ -190,7 +197,7 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
         .insert({
           name: teamName,
           tournament_id: tournamentId,
-          total_rank_points: totalRankPoints,
+          total_rank_points: totalWeight,
           seed: i + 1
         })
         .select()
@@ -201,7 +208,7 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
       // Add team members
       for (let j = 0; j < teams[i].length; j++) {
         const player = teams[i][j];
-        const isCaptain = j === 0; // First player (highest rank) is captain
+        const isCaptain = j === 0; // First player (highest weight) is captain
 
         await supabase
           .from('team_members')

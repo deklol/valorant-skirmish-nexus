@@ -12,6 +12,7 @@ interface Player {
   discord_avatar_url: string | null;
   current_rank: string;
   rank_points: number;
+  weight_rating: number;
   tournaments_won: number;
   mvp_awards: number;
   wins: number;
@@ -30,9 +31,9 @@ const Players = () => {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('id, discord_username, discord_avatar_url, current_rank, rank_points, tournaments_won, mvp_awards, wins, losses')
+        .select('id, discord_username, discord_avatar_url, current_rank, rank_points, weight_rating, tournaments_won, mvp_awards, wins, losses')
         .eq('is_phantom', false)
-        .order('discord_username', { ascending: true });
+        .order('weight_rating', { ascending: false }); // Sort by weight_rating instead
 
       if (error) throw error;
       setPlayers(data || []);
@@ -120,16 +121,16 @@ const Players = () => {
                 <CardContent className="pt-0">
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div className="text-center p-2 bg-slate-700/50 rounded">
-                      <div className="font-bold text-indigo-400">{player.rank_points || 0}</div>
-                      <div className="text-slate-400 text-xs">Points</div>
+                      <div className="font-bold text-indigo-400">{player.weight_rating || 150}</div>
+                      <div className="text-slate-400 text-xs">Weight</div>
+                    </div>
+                    <div className="text-center p-2 bg-slate-700/50 rounded">
+                      <div className="font-bold text-purple-400">{player.rank_points || 0}</div>
+                      <div className="text-slate-400 text-xs">RR</div>
                     </div>
                     <div className="text-center p-2 bg-slate-700/50 rounded">
                       <div className="font-bold text-green-400">{player.tournaments_won || 0}</div>
                       <div className="text-slate-400 text-xs">Tournaments</div>
-                    </div>
-                    <div className="text-center p-2 bg-slate-700/50 rounded">
-                      <div className="font-bold text-yellow-400">{player.mvp_awards || 0}</div>
-                      <div className="text-slate-400 text-xs">MVPs</div>
                     </div>
                     <div className="text-center p-2 bg-slate-700/50 rounded">
                       <div className="font-bold text-blue-400">{calculateWinRate(player.wins || 0, player.losses || 0)}%</div>
