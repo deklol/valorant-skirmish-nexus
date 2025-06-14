@@ -1,4 +1,3 @@
-
 import { useState, useEffect, createContext, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
@@ -45,6 +44,67 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (error) {
       console.error('Error fetching profile:', error);
       setProfile(null);
+    }
+  };
+
+  const updateDiscordAvatar = async (user: User) => {
+    try {
+      // Extract Discord avatar information from user metadata
+      const discordId = user.user_metadata?.provider_id || user.user_metadata?.sub;
+      const discordUsername = user.user_metadata?.full_name || user.user_metadata?.name || user.user_metadata?.user_name;
+      const discordAvatarHash = user.user_metadata?.avatar_url;
+      
+      let discordAvatarUrl = null;
+      
+      // If we have Discord ID and avatar hash, construct the full Discord CDN URL
+      if (discordId && discordAvatarHash) {
+        // Check if avatar_url is already a full URL or just a hash
+        if (discordAvatarHash.startsWith('http')) {
+          discordAvatarUrl = discordAvatarHash;
+        } else {
+          discordAvatarUrl = `https://cdn.discordapp.com/avatars/${discordId}/${discordAvatarHash}.png?size=256`;
+        }
+      }
+      
+      console.log('Updating Discord avatar info:', {
+        discordId,
+        discordUsername,
+        discordAvatarUrl,
+        userMetadata: user.user_metadata
+      });
+
+      // Update the user profile with Discord information
+      const updateData: Partial<UserProfile> = {};
+      
+      if (discordUsername) {
+        updateData.discord_username = discordUsername;
+      }
+      
+      if (discordAvatarUrl) {
+        updateData.discord_avatar_url = discordAvatarUrl;
+      }
+      
+      if (discordId) {
+        updateData.discord_id = discordId;
+      }
+
+      // Only update if we have something to update
+      if (Object.keys(updateData).length > 0) {
+        const { error } = await supabase
+          .from('users')
+          .update(updateData)
+          .eq('id', user.id);
+
+        if (error) {
+          console.error('Error updating Discord avatar:', error);
+        } else {
+          console.log('Discord avatar updated successfully');
+          // Refresh the profile to get updated data
+          await fetchProfile(user.id);
+        }
+      }
+    } catch (error) {
+      console.error('Error in updateDiscordAvatar:', error);
     }
   };
 
@@ -118,12 +178,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           console.log('User signed in');
           setUser(session.user);
           setLoading(false);
-          // Fetch profile in next tick to avoid blocking UI
-          setTimeout(() => {
-            if (mounted) {
-              fetchProfile(session.user.id);
-            }
-          }, 0);
+          
+          // Check if this is a Discord OAuth sign-in and update avatar info
+          if (session.user.app_metadata?.provider === 'discord') {
+            console.log('Discord sign-in detected, updating avatar info');
+            setTimeout(() => {
+              if (mounted) {
+                updateDiscordAvatar(session.user);
+              }
+            }, 100);
+          } else {
+            // Fetch profile in next tick to avoid blocking UI
+            setTimeout(() => {
+              if (mounted) {
+                fetchProfile(session.user.id);
+              }
+            }, 0);
+          }
         } else if (event === 'TOKEN_REFRESHED' && session?.user) {
           console.log('Token refreshed');
           setUser(session.user);
