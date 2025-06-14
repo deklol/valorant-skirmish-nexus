@@ -1,10 +1,11 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, Trophy, Map, Settings } from "lucide-react";
@@ -22,8 +23,8 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
     name: "",
     description: "",
     match_format: "BO3" as "BO1" | "BO3" | "BO5",
-    semifinal_match_format: "" as "" | "BO1" | "BO3" | "BO5",
-    final_match_format: "" as "" | "BO1" | "BO3" | "BO5",
+    semifinal_match_format: "default" as "default" | "BO1" | "BO3" | "BO5",
+    final_match_format: "default" as "default" | "BO1" | "BO3" | "BO5",
     team_size: 5,
     max_players: 50,
     max_teams: 10,
@@ -72,8 +73,8 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
         name: formData.name,
         description: formData.description,
         match_format: formData.match_format,
-        semifinal_match_format: formData.semifinal_match_format || null,
-        final_match_format: formData.final_match_format || null,
+        semifinal_match_format: formData.semifinal_match_format === "default" ? null : formData.semifinal_match_format,
+        final_match_format: formData.final_match_format === "default" ? null : formData.final_match_format,
         team_size: formData.team_size,
         max_players: formData.max_players,
         max_teams: calculatedMaxTeams,
@@ -114,8 +115,8 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
         name: "",
         description: "",
         match_format: "BO3",
-        semifinal_match_format: "",
-        final_match_format: "",
+        semifinal_match_format: "default",
+        final_match_format: "default",
         team_size: 5,
         max_players: 50,
         max_teams: 10,
@@ -170,6 +171,9 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
             <Trophy className="w-5 h-5 text-yellow-500" />
             Create New Tournament
           </DialogTitle>
+          <DialogDescription className="text-slate-400">
+            Create a new tournament with custom settings for your Valorant community.
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -370,13 +374,13 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
                   <Label htmlFor="semifinal_match_format" className="text-white">Semifinals (Optional Override)</Label>
                   <Select
                     value={formData.semifinal_match_format}
-                    onValueChange={(value: "" | "BO1" | "BO3" | "BO5") => setFormData(prev => ({ ...prev, semifinal_match_format: value }))}
+                    onValueChange={(value: "default" | "BO1" | "BO3" | "BO5") => setFormData(prev => ({ ...prev, semifinal_match_format: value }))}
                   >
                     <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                       <SelectValue placeholder="Same as standard" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Same as standard</SelectItem>
+                      <SelectItem value="default">Same as standard</SelectItem>
                       <SelectItem value="BO1">Best of 1</SelectItem>
                       <SelectItem value="BO3">Best of 3</SelectItem>
                       <SelectItem value="BO5">Best of 5</SelectItem>
@@ -388,13 +392,13 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
                   <Label htmlFor="final_match_format" className="text-white">Finals (Optional Override)</Label>
                   <Select
                     value={formData.final_match_format}
-                    onValueChange={(value: "" | "BO1" | "BO3" | "BO5") => setFormData(prev => ({ ...prev, final_match_format: value }))}
+                    onValueChange={(value: "default" | "BO1" | "BO3" | "BO5") => setFormData(prev => ({ ...prev, final_match_format: value }))}
                   >
                     <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                       <SelectValue placeholder="Same as standard" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Same as standard</SelectItem>
+                      <SelectItem value="default">Same as standard</SelectItem>
                       <SelectItem value="BO1">Best of 1</SelectItem>
                       <SelectItem value="BO3">Best of 3</SelectItem>
                       <SelectItem value="BO5">Best of 5</SelectItem>
