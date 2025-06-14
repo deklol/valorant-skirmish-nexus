@@ -1,10 +1,9 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Map, Ban, CheckCircle, Crown, AlertCircle } from "lucide-react";
+import { Map, Ban, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -16,7 +15,6 @@ interface MapVetoDialogProps {
   team2Name: string;
   currentTeamTurn: string;
   userTeamId: string | null;
-  isCaptain: boolean;
 }
 
 interface MapData {
@@ -35,16 +33,7 @@ interface VetoAction {
   map?: MapData;
 }
 
-const MapVetoDialog = ({ 
-  open, 
-  onOpenChange, 
-  matchId, 
-  team1Name, 
-  team2Name, 
-  currentTeamTurn, 
-  userTeamId,
-  isCaptain 
-}: MapVetoDialogProps) => {
+const MapVetoDialog = ({ open, onOpenChange, matchId, team1Name, team2Name, currentTeamTurn, userTeamId }: MapVetoDialogProps) => {
   const [maps, setMaps] = useState<MapData[]>([]);
   const [vetoActions, setVetoActions] = useState<VetoAction[]>([]);
   const [loading, setLoading] = useState(false);
@@ -97,15 +86,6 @@ const MapVetoDialog = ({
   };
 
   const handleMapAction = async (mapId: string) => {
-    if (!isCaptain) {
-      toast({
-        title: "Not Authorized",
-        description: "Only team captains can perform map veto actions",
-        variant: "destructive",
-      });
-      return;
-    }
-
     if (!userTeamId || userTeamId !== currentTeamTurn) {
       toast({
         title: "Not Your Turn",
@@ -166,7 +146,6 @@ const MapVetoDialog = ({
   };
 
   const isUserTurn = userTeamId === currentTeamTurn;
-  const canMakeAction = isCaptain && isUserTurn;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -176,30 +155,14 @@ const MapVetoDialog = ({
         </DialogHeader>
         
         <div className="space-y-6">
-          {/* Captain Authorization Notice */}
-          {!isCaptain && (
-            <Card className="bg-red-900/20 border-red-500/30">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="w-5 h-5 text-red-400" />
-                  <div>
-                    <p className="text-red-400 font-medium">Captain Access Required</p>
-                    <p className="text-red-300 text-sm">Only team captains can perform map veto actions</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
           {/* Current Turn Indicator */}
           <Card className="bg-slate-800 border-slate-700">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
-                <div className="text-white flex items-center gap-2">
-                  <Crown className="w-4 h-4 text-yellow-500" />
+                <div className="text-white">
                   <span className="font-medium">Current Turn: </span>
-                  <span className={canMakeAction ? "text-green-400" : "text-red-400"}>
-                    {isUserTurn ? "Your Team Captain" : "Opponent Captain"}
+                  <span className={isUserTurn ? "text-green-400" : "text-red-400"}>
+                    {isUserTurn ? "Your Team" : "Opponent"}
                   </span>
                 </div>
                 <Badge className={currentAction === 'ban' ? "bg-red-500/20 text-red-400 border-red-500/30" : "bg-green-500/20 text-green-400 border-green-500/30"}>
@@ -250,11 +213,11 @@ const MapVetoDialog = ({
                   className={`border-slate-600 transition-all cursor-pointer ${
                     !available 
                       ? 'bg-slate-700 opacity-50' 
-                      : canMakeAction && available
+                      : isUserTurn && available
                         ? 'bg-slate-800 hover:bg-slate-700 hover:border-slate-500'
                         : 'bg-slate-800'
                   }`}
-                  onClick={() => available && canMakeAction && handleMapAction(map.id)}
+                  onClick={() => available && isUserTurn && handleMapAction(map.id)}
                 >
                   <CardContent className="p-4">
                     <div className="space-y-3">
@@ -282,17 +245,9 @@ const MapVetoDialog = ({
                           <Badge className={status.action === 'ban' ? "bg-red-500/20 text-red-400 border-red-500/30" : "bg-green-500/20 text-green-400 border-green-500/30"}>
                             {status.action.toUpperCase()} by {status.team}
                           </Badge>
-                        ) : available && canMakeAction ? (
+                        ) : available && isUserTurn ? (
                           <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
                             Click to {currentAction.toUpperCase()}
-                          </Badge>
-                        ) : available && isCaptain && !isUserTurn ? (
-                          <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30">
-                            Wait for your turn
-                          </Badge>
-                        ) : available && !isCaptain ? (
-                          <Badge className="bg-gray-500/20 text-gray-400 border-gray-500/30">
-                            Captain only
                           </Badge>
                         ) : (
                           <Badge className="bg-slate-500/20 text-slate-400 border-slate-500/30">
@@ -311,7 +266,6 @@ const MapVetoDialog = ({
           <Card className="bg-slate-800 border-slate-700">
             <CardContent className="p-4">
               <div className="text-sm text-slate-400 space-y-1">
-                <p>• <strong className="text-yellow-400">Only team captains</strong> can perform map veto actions</p>
                 <p>• Teams alternate between banning and picking maps</p>
                 <p>• Banned maps cannot be played in this match</p>
                 <p>• Picked maps will be played in the order they were selected</p>

@@ -127,16 +127,14 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
 
       if (teamError) throw teamError;
 
-      // Add team member (player is automatically captain of their own team in 1v1)
+      // Add team member (player is automatically captain of their own team)
       await supabase
         .from('team_members')
         .insert({
           team_id: newTeam.id,
           user_id: player.user_id,
-          is_captain: true // In 1v1, every player is captain of their own team
+          is_captain: true
         });
-
-      console.log(`Created 1v1 team: ${teamName} with captain ${player.users?.discord_username}`);
 
       // Send notification to player
       try {
@@ -193,13 +191,6 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
         return sum + weight;
       }, 0);
 
-      // Sort team members by weight_rating to determine captain (highest first)
-      const sortedTeamMembers = teams[i].sort((a, b) => {
-        const aWeight = a.users?.weight_rating || getRankPoints(a.users?.current_rank || 'Unranked');
-        const bWeight = b.users?.weight_rating || getRankPoints(b.users?.current_rank || 'Unranked');
-        return bWeight - aWeight;
-      });
-
       // Create team
       const { data: newTeam, error: teamError } = await supabase
         .from('teams')
@@ -214,9 +205,9 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
 
       if (teamError) throw teamError;
 
-      // Add team members with proper captain assignment
-      for (let j = 0; j < sortedTeamMembers.length; j++) {
-        const player = sortedTeamMembers[j];
+      // Add team members
+      for (let j = 0; j < teams[i].length; j++) {
+        const player = teams[i][j];
         const isCaptain = j === 0; // First player (highest weight) is captain
 
         await supabase
@@ -227,10 +218,6 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
             is_captain: isCaptain
           });
       }
-
-      const captainName = sortedTeamMembers[0]?.users?.discord_username || 'Unknown';
-      const captainWeight = sortedTeamMembers[0]?.users?.weight_rating || 0;
-      console.log(`Created team: ${teamName} with captain ${captainName} (weight: ${captainWeight})`);
 
       // Send notifications to team members
       const teamUserIds = teams[i].map(player => player.user_id);
