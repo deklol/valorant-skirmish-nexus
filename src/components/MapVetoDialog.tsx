@@ -35,6 +35,8 @@ interface VetoAction {
   map_id: string;
   team_id: string;
   order_number: number;
+  performed_by?: string | null; // <-- add this line
+  performed_at?: string | null; // <-- add this line
   map?: MapData;
   users?: {
     discord_username?: string;
@@ -145,13 +147,17 @@ const MapVetoDialog = ({
 
     setLoading(true);
     try {
+      // Fix: await the getUser call and get the user id correctly
+      const { data: authUser } = await supabase.auth.getUser();
+      const performedById = authUser?.user?.id ?? null;
+
       const { error } = await supabase.from('map_veto_actions').insert({
         veto_session_id: vetoSessionId,
         team_id: userTeamId,
         map_id: mapId,
         action: currentAction,
         order_number: vetoActions.length + 1,
-        performed_by: supabase.auth.getUser().data.user?.id ?? null
+        performed_by: performedById
       });
 
       if (error) throw error;
