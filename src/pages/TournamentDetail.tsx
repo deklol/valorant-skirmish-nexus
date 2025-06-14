@@ -68,6 +68,7 @@ type Match = {
 const TournamentDetail = () => {
   const { id } = useParams<{ id: string }>();
   const [tournament, setTournament] = useState<Tournament | null>(null);
+  const [parsedMapVetoRounds, setParsedMapVetoRounds] = useState<number[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [signups, setSignups] = useState<any[]>([]);
@@ -145,10 +146,11 @@ const TournamentDetail = () => {
 
       console.log('Tournament data fetched:', tournamentData);
       
+      const vetoRoundsParsed = parseMapVetoRounds(tournamentData.map_veto_required_rounds);
+
       const parsedTournament: Tournament = {
         ...tournamentData,
         enable_map_veto: tournamentData.enable_map_veto || false,
-        map_veto_required_rounds: parseMapVetoRounds(tournamentData.map_veto_required_rounds),
         check_in_required: tournamentData.check_in_required ?? true,
         registration_opens_at: tournamentData.registration_opens_at || tournamentData.start_time,
         registration_closes_at: tournamentData.registration_closes_at || tournamentData.start_time,
@@ -157,6 +159,7 @@ const TournamentDetail = () => {
       };
       
       setTournament(parsedTournament);
+      setParsedMapVetoRounds(vetoRoundsParsed);
       setTeams(tournamentData.teams || []);
       setMatches(tournamentData.matches || []);
 
@@ -370,7 +373,7 @@ const TournamentDetail = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <div className="text-sm text-slate-400">Format</div>
-                      <div className="text-white">{tournament.bracket_type.replace('_', ' ')}</div>
+                      <div className="text-white">{tournament.bracket_type?.replace('_', ' ')}</div>
                     </div>
                     <div>
                       <div className="text-sm text-slate-400">Team Size</div>
@@ -390,9 +393,9 @@ const TournamentDetail = () => {
                     <div>
                       <div className="text-sm text-slate-400">Map Veto</div>
                       <div className="text-white">Enabled</div>
-                      {tournament.map_veto_required_rounds.length > 0 && (
+                      {parsedMapVetoRounds.length > 0 && (
                         <div className="text-sm text-slate-500">
-                          Required rounds: {tournament.map_veto_required_rounds.join(', ')}
+                          Required rounds: {parsedMapVetoRounds.join(', ')}
                         </div>
                       )}
                     </div>
