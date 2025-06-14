@@ -86,6 +86,7 @@ const MapVetoManager = ({
     }
   };
 
+  // Defensive: always define this function
   const checkVetoSession = async () => {
     try {
       const { data: session, error } = await supabase
@@ -100,6 +101,18 @@ const MapVetoManager = ({
       setVetoSession(null);
     }
   };
+
+  // Always call useMapVetoSessionRealtime to obey React Rules of Hooks
+  // This call is unconditional and will be a no-op if `vetoSession?.id` is null/undefined
+  useMapVetoSessionRealtime(
+    vetoSession?.id ? vetoSession.id : null,
+    (payload) => {
+      // Defensive: checkVetoSession should always exist
+      if (vetoSession?.id) {
+        checkVetoSession();
+      }
+    }
+  );
 
   const isMapVetoAvailable = () => {
     // Defensive: ensure settings are loaded
@@ -316,12 +329,6 @@ const MapVetoManager = ({
       </Card>
     );
   }
-
-  // --- Add session realtime sync ---
-  useMapVetoSessionRealtime(vetoSession?.id, () => {
-    // Refetch session when updated
-    if (vetoSession?.id) checkVetoSession();
-  });
 
   // Add a final catch-all return null as absolute fallback to never return undefined
   // (this should never be hit, but just in case)
