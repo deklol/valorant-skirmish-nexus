@@ -292,9 +292,17 @@ const MapVetoManager = ({
 
       if (sessionErr) throw sessionErr;
 
+      // 3. Also set the match itself back to pending so veto can be re-initialized
+      const { error: matchErr } = await supabase
+        .from('matches')
+        .update({ status: 'pending' })
+        .eq('id', matchId);
+
+      if (matchErr) throw matchErr;
+
       toast({
         title: "Veto Session Reset",
-        description: "Map veto has been cleared and reset.",
+        description: "Map veto and match status have been reset. You can now re-initialize the veto.",
       });
 
       // Refetch session to update UI
@@ -303,7 +311,7 @@ const MapVetoManager = ({
       console.error('Error resetting veto session:', error);
       toast({
         title: "Error",
-        description: "Failed to reset map veto session",
+        description: "Failed to reset map veto session or match status.",
         variant: "destructive",
       });
     } finally {
