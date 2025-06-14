@@ -271,13 +271,16 @@ const MapVetoManager = ({
     if (!isAdmin || !vetoSession) return;
     setResettingVeto(true);
     try {
-      // 1. Delete all actions associated with this session
+      // 1. Delete all actions for this session
       const { error: actionsErr } = await supabase
         .from('map_veto_actions')
         .delete()
         .eq('veto_session_id', vetoSession.id);
 
-      if (actionsErr) throw actionsErr;
+      if (actionsErr) {
+        console.error('[ResetVeto] Error deleting actions:', actionsErr);
+        throw new Error('Failed to clear map veto actions');
+      }
 
       // 2. Reset the session status and relevant fields
       const { error: sessionErr } = await supabase
@@ -290,28 +293,54 @@ const MapVetoManager = ({
         })
         .eq('id', vetoSession.id);
 
-      if (sessionErr) throw sessionErr;
+      if (sessionErr) {
+        console.error('[ResetVeto] Error resetting session:', sessionErr);
+        throw new Error('Failed to reset veto session');
+      }
 
       // 3. Also set the match itself back to pending so veto can be re-initialized
-      const { error: matchErr } = await supabase
+      const { error: matchErr, data: matchUpdateData } = await supabase
         .from('matches')
         .update({ status: 'pending' })
-        .eq('id', matchId);
+        .eq('id', matchId)
+        .select();
 
-      if (matchErr) throw matchErr;
+      if (matchErr) {
+        console.error('[ResetVeto] Error setting match to pending:', matchErr);
+        throw new Error('Failed to reset match status. The match is still live.');
+      }
+      if (!matchUpdateData || matchUpdateData.length === 0 || !matchUpdateData[0].status || matchUpdateData[0].status !== 'pending') {
+        // Defensive: query the match to check if status is pending after attempted update
+        const { data: matchCheck, error: matchCheckErr } = await supabase
+          .from('matches')
+          .select('status')
+          .eq('id', matchId)
+          .maybeSingle();
+
+        if (matchCheckErr) {
+          console.error('[ResetVeto] Error checking match status after update:', matchCheckErr);
+          throw new Error('Could not verify match status after update.');
+        }
+        if (!matchCheck || matchCheck.status !== 'pending') {
+          console.error('[ResetVeto] Match status after attempted reset is still not pending! Actual:', matchCheck?.status);
+          throw new Error('Reset failed: Match status is still not pending. Please contact support.');
+        }
+      }
 
       toast({
         title: "Veto Session Reset",
         description: "Map veto and match status have been reset. You can now re-initialize the veto.",
       });
 
-      // Refetch session to update UI
+      // Refetch session and update local UI
       checkVetoSession();
-    } catch (error) {
+      // Optionally, force a reload of match settings/status if available
+      fetchTournamentAndMatchSettings?.();
+    } catch (error: any) {
       console.error('Error resetting veto session:', error);
       toast({
         title: "Error",
-        description: "Failed to reset map veto session or match status.",
+        description: error?.message || "Failed to reset map veto session or match status.",
         variant: "destructive",
       });
     } finally {
