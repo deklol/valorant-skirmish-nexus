@@ -52,6 +52,7 @@ const AppContent = () => {
           <Route path="/profile/:userId" element={<PublicProfile />} />
           <Route path="/tournaments" element={<Tournaments />} />
           <Route path="/tournament/:id" element={<TournamentDetail />} />
+          <Route path="/players" element={<Players />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/brackets" element={<Brackets />} />
           <Route path="/bracket/:id" element={<BracketView />} />

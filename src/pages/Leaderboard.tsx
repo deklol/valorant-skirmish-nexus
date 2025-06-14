@@ -86,7 +86,7 @@ const Leaderboard = () => {
       case 'match_wins':
         return 'Match Winners';
       case 'rank_points':
-        return 'Rank Points Leaders';
+        return 'VAL Rank Leaders';
       default:
         return 'Leaderboard';
     }
@@ -138,7 +138,7 @@ const Leaderboard = () => {
             <SelectContent className="bg-slate-800 border-slate-700">
               <SelectItem value="tournament_wins" className="text-white">Tournament Wins</SelectItem>
               <SelectItem value="match_wins" className="text-white">Match Wins</SelectItem>
-              <SelectItem value="rank_points" className="text-white">Rank Points</SelectItem>
+              <SelectItem value="rank_points" className="text-white">VAL Rank</SelectItem>
             </SelectContent>
           </Select>
         </div>
