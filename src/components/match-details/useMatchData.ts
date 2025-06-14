@@ -39,8 +39,11 @@ export const useMatchData = (matchId: string | undefined, userId: string | undef
   const { toast } = useToast();
 
   const fetchMatch = async () => {
-    if (!matchId) return;
-
+    if (!matchId) {
+      setMatch(null);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -52,18 +55,21 @@ export const useMatchData = (matchId: string | undefined, userId: string | undef
           tournament:tournaments!matches_tournament_id_fkey (id, name)
         `)
         .eq('id', matchId)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
-      
+      if (!data) {
+        setMatch(null);
+        return;
+      }
       const matchWithTournamentId = {
         ...data,
         tournament_id: data.tournament?.id
       };
-      
       setMatch(matchWithTournamentId);
     } catch (error: any) {
       console.error('Error fetching match:', error);
+      setMatch(null);
       toast({
         title: "Error",
         description: "Failed to load match details",
@@ -130,25 +136,32 @@ export const useMatchData = (matchId: string | undefined, userId: string | undef
   // Real-time subscription for match updates
   useEffect(() => {
     if (!matchId) return;
-
-    const channel = supabase
-      .channel(`match-${matchId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'matches',
-          filter: `id=eq.${matchId}`
-        },
-        () => {
-          fetchMatch();
-        }
-      )
-      .subscribe();
-
+    let channel = null;
+    try {
+      channel = supabase
+        .channel(`match-${matchId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'matches',
+            filter: `id=eq.${matchId}`
+          },
+          () => {
+            fetchMatch();
+          }
+        )
+        .subscribe();
+    } catch (err) {
+      console.error("Realtime subscription error in useMatchData for matchId", matchId, err);
+    }
     return () => {
-      supabase.removeChannel(channel);
+      try {
+        if (channel) supabase.removeChannel(channel);
+      } catch (err) {
+        console.error("Error removing Supabase channel", err);
+      }
     };
   }, [matchId]);
 
