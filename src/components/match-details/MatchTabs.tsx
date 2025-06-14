@@ -1,4 +1,3 @@
-
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Settings, Users, User } from "lucide-react";
 import MatchScoreCards from "./MatchScoreCards";
@@ -110,91 +109,99 @@ const MatchTabs = ({
               Teams &amp; Players
             </CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-col md:flex-row gap-8">
-            {/* Team 1 */}
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="font-bold text-lg text-white">{match.team1?.name || "Team 1"}</span>
-                {match.team1_id === match.winner_id && (
-                  <Badge className="bg-green-600 text-white ml-2">Winner</Badge>
-                )}
+          <CardContent>
+            <div className="flex flex-col md:flex-row gap-8">
+              {/* TEAM 1 */}
+              <div className="flex-1 flex flex-col min-w-0">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="font-bold text-xl text-white whitespace-nowrap">
+                    {match.team1?.name || "Team 1"}
+                  </span>
+                  {match.team1_id === match.winner_id && (
+                    <Badge className="bg-green-600 text-white ml-2">Winner</Badge>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  {loadingTeam1 ? (
+                    <div className="text-slate-400">Loading...</div>
+                  ) : team1Players.length === 0 ? (
+                    <div className="text-slate-400">No players</div>
+                  ) : (
+                    team1Players.map(player => (
+                      <div
+                        key={player.user_id}
+                        className="flex items-center gap-x-3 gap-y-1 bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-3 shadow-sm mt-1"
+                      >
+                        <User className="w-4 h-4 text-blue-400 mr-1" />
+                        <ClickableUsername
+                          userId={player.user_id}
+                          username={player.discord_username}
+                          className="text-blue-400 font-medium"
+                        />
+                        {player.is_captain && (
+                          <Badge className="bg-yellow-400/90 text-black ml-2 font-bold">Captain</Badge>
+                        )}
+                        <span className="text-xs text-slate-300 ml-6 whitespace-nowrap">
+                          <span className="font-semibold">Rank:</span>{" "}
+                          <span>{player.current_rank || "Unranked"}</span>
+                        </span>
+                        <span className="text-xs text-purple-300 ml-5 whitespace-nowrap">
+                          <span className="font-semibold">Weight:</span>{" "}
+                          <span>{player.weight_rating ?? "—"}</span>
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
-              <div className="flex flex-col gap-2">
-                {loadingTeam1 ? (
-                  <div className="text-slate-400">Loading...</div>
-                ) : team1Players.length === 0 ? (
-                  <div className="text-slate-400">No players</div>
-                ) : (
-                  team1Players.map(player => (
-                    <div
-                      key={player.user_id}
-                      className="flex flex-wrap items-center gap-x-4 gap-y-1 border border-slate-700 rounded-xl bg-slate-900/70 px-3 py-2 shadow-sm hover:bg-slate-700/50 transition duration-150"
-                    >
-                      <User className="w-4 h-4 text-blue-400 mr-1" />
-                      
-                      <ClickableUsername
-                        userId={player.user_id}
-                        username={player.discord_username}
-                        className="text-blue-400 font-medium"
-                      />
 
-                      {player.is_captain && (
-                        <Badge className="bg-yellow-400/90 text-black ml-2 py-0.5 px-2 text-xs">Captain</Badge>
-                      )}
-
-                      <span className="text-xs text-slate-300 ml-6">
-                        <span className="font-semibold">Rank:</span> <span>{player.current_rank || "Unranked"}</span>
-                      </span>
-
-                      <span className="text-xs text-purple-300 ml-4">
-                        <span className="font-semibold">Weight:</span> <span>{player.weight_rating ?? "—"}</span>
-                      </span>
-                    </div>
-                  ))
-                )}
+              {/* Divider */}
+              <div className="hidden md:flex mx-2">
+                <div className="w-[2px] bg-slate-700 rounded-full h-full"></div>
               </div>
-            </div>
-            {/* Team 2 */}
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="font-bold text-lg text-white">{match.team2?.name || "Team 2"}</span>
-                {match.team2_id === match.winner_id && (
-                  <Badge className="bg-green-600 text-white ml-2">Winner</Badge>
-                )}
-              </div>
-              <div className="flex flex-col gap-2">
-                {loadingTeam2 ? (
-                  <div className="text-slate-400">Loading...</div>
-                ) : team2Players.length === 0 ? (
-                  <div className="text-slate-400">No players</div>
-                ) : (
-                  team2Players.map(player => (
-                    <div
-                      key={player.user_id}
-                      className="flex flex-wrap items-center gap-x-4 gap-y-1 border border-slate-700 rounded-xl bg-slate-900/70 px-3 py-2 shadow-sm hover:bg-slate-700/50 transition duration-150"
-                    >
-                      <User className="w-4 h-4 text-blue-400 mr-1" />
-                      
-                      <ClickableUsername
-                        userId={player.user_id}
-                        username={player.discord_username}
-                        className="text-blue-400 font-medium"
-                      />
 
-                      {player.is_captain && (
-                        <Badge className="bg-yellow-400/90 text-black ml-2 py-0.5 px-2 text-xs">Captain</Badge>
-                      )}
-
-                      <span className="text-xs text-slate-300 ml-6">
-                        <span className="font-semibold">Rank:</span> <span>{player.current_rank || "Unranked"}</span>
-                      </span>
-
-                      <span className="text-xs text-purple-300 ml-4">
-                        <span className="font-semibold">Weight:</span> <span>{player.weight_rating ?? "—"}</span>
-                      </span>
-                    </div>
-                  ))
-                )}
+              {/* TEAM 2 */}
+              <div className="flex-1 flex flex-col min-w-0">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="font-bold text-xl text-white whitespace-nowrap">
+                    {match.team2?.name || "Team 2"}
+                  </span>
+                  {match.team2_id === match.winner_id && (
+                    <Badge className="bg-green-600 text-white ml-2">Winner</Badge>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  {loadingTeam2 ? (
+                    <div className="text-slate-400">Loading...</div>
+                  ) : team2Players.length === 0 ? (
+                    <div className="text-slate-400">No players</div>
+                  ) : (
+                    team2Players.map(player => (
+                      <div
+                        key={player.user_id}
+                        className="flex items-center gap-x-3 gap-y-1 bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-3 shadow-sm mt-1"
+                      >
+                        <User className="w-4 h-4 text-blue-400 mr-1" />
+                        <ClickableUsername
+                          userId={player.user_id}
+                          username={player.discord_username}
+                          className="text-blue-400 font-medium"
+                        />
+                        {player.is_captain && (
+                          <Badge className="bg-yellow-400/90 text-black ml-2 font-bold">Captain</Badge>
+                        )}
+                        <span className="text-xs text-slate-300 ml-6 whitespace-nowrap">
+                          <span className="font-semibold">Rank:</span>{" "}
+                          <span>{player.current_rank || "Unranked"}</span>
+                        </span>
+                        <span className="text-xs text-purple-300 ml-5 whitespace-nowrap">
+                          <span className="font-semibold">Weight:</span>{" "}
+                          <span>{player.weight_rating ?? "—"}</span>
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             </div>
           </CardContent>
