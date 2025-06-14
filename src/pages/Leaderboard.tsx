@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Trophy, Medal, Award, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import Header from '@/components/Header';
+import ClickableUsername from '@/components/ClickableUsername';
 
 interface Player {
   id: string;
@@ -110,7 +111,12 @@ const Leaderboard = () => {
                       </span>
                     </div>
                     <div>
-                      <div className="font-semibold text-white">{player.discord_username || 'Unknown Player'}</div>
+                      <div className="font-semibold text-white">
+                        <ClickableUsername 
+                          userId={player.id}
+                          username={player.discord_username || 'Unknown Player'}
+                        />
+                      </div>
                       <div className="text-sm text-slate-400">{player.current_rank || 'Unranked'}</div>
                     </div>
                   </div>

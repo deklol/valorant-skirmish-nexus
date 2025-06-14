@@ -6,7 +6,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import Header from "./components/Header";
-import RiotIdSetupManager from "./components/RiotIdSetupManager";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Admin from "./pages/Admin";
@@ -32,7 +31,6 @@ const App = () => (
         <BrowserRouter>
           <div className="min-h-screen bg-slate-900">
             <Header />
-            <RiotIdSetupManager />
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />

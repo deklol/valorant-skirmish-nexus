@@ -7,6 +7,7 @@ import { Users, Crown, UserMinus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import ClickableUsername from "./ClickableUsername";
 
 interface Participant {
   id: string;
@@ -143,7 +144,10 @@ const TournamentParticipants = ({ tournamentId, maxPlayers, isAdmin = false }: T
                 <div className="flex items-start justify-between mb-2">
                   <div>
                     <div className="text-white font-medium">
-                      {participant.users?.discord_username || 'Unknown'}
+                      <ClickableUsername 
+                        userId={participant.user_id}
+                        username={participant.users?.discord_username || 'Unknown'}
+                      />
                     </div>
                     <div className="text-slate-400 text-sm">
                       {participant.users?.riot_id || 'No Riot ID'}
@@ -196,7 +200,10 @@ const TournamentParticipants = ({ tournamentId, maxPlayers, isAdmin = false }: T
                   <div className="flex items-start justify-between mb-2">
                     <div>
                       <div className="text-white font-medium">
-                        {substitute.users?.discord_username || 'Unknown'}
+                        <ClickableUsername 
+                          userId={substitute.user_id}
+                          username={substitute.users?.discord_username || 'Unknown'}
+                        />
                       </div>
                       <div className="text-slate-400 text-sm">
                         {substitute.users?.riot_id || 'No Riot ID'}
