@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
-import MapVetoDialog from "@/components/MapVetoDialog";
+import MapVetoManager from "@/components/MapVetoManager";
 
 interface MatchDetail {
   id: string;
@@ -115,6 +114,32 @@ const MatchDetails = () => {
     fetchMatchDetails();
   }, [id, user, toast]);
 
+  // Add real-time subscription for match updates
+  useEffect(() => {
+    if (!id) return;
+
+    const channel = supabase
+      .channel(`match-${id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'matches',
+          filter: `id=eq.${id}`
+        },
+        () => {
+          // Refetch match data when updated
+          fetchMatchDetails();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id]);
+
   const getStatusBadge = (status: string) => {
     const variants: Record<string, string> = {
       pending: "bg-gray-500/20 text-gray-400",
@@ -190,15 +215,6 @@ const MatchDetails = () => {
           </div>
           
           <div className="flex gap-2">
-            {userTeamId && match.status === 'pending' && (
-              <Button 
-                onClick={() => setVetoDialogOpen(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                <Map className="w-4 h-4 mr-2" />
-                Map Veto
-              </Button>
-            )}
             {isAdmin && (
               <Button className="bg-red-600 hover:bg-red-700 text-white">
                 <Settings className="w-4 h-4 mr-2" />
@@ -265,6 +281,22 @@ const MatchDetails = () => {
             </Card>
           )}
         </div>
+
+        {/* Map Veto Manager - Add this before the tabs */}
+        {match.team1 && match.team2 && (
+          <div className="mb-8">
+            <MapVetoManager
+              matchId={match.id}
+              team1Id={match.team1.id}
+              team2Id={match.team2.id}
+              team1Name={match.team1.name}
+              team2Name={match.team2.name}
+              matchStatus={match.status}
+              userTeamId={userTeamId}
+              isAdmin={isAdmin}
+            />
+          </div>
+        )}
 
         {/* Tabs */}
         <Tabs defaultValue="maps" className="space-y-4">
@@ -364,19 +396,6 @@ const MatchDetails = () => {
           </TabsContent>
         </Tabs>
       </div>
-
-      {/* Map Veto Dialog */}
-      {match.team1 && match.team2 && (
-        <MapVetoDialog
-          open={vetoDialogOpen}
-          onOpenChange={setVetoDialogOpen}
-          matchId={match.id}
-          team1Name={match.team1.name}
-          team2Name={match.team2.name}
-          currentTeamTurn={match.team1.id} // This should come from veto session
-          userTeamId={userTeamId}
-        />
-      )}
     </div>
   );
 };

@@ -1,7 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
+import { useNotifications } from "@/hooks/useNotifications";
 
 interface MatchResultsProcessorProps {
   matchId: string;
@@ -19,7 +19,7 @@ export const processMatchResults = async ({
   onComplete 
 }: MatchResultsProcessorProps) => {
   const { toast } = useToast();
-  const { notifyMatchComplete, notifyTournamentWinner, notifyMatchReady } = useEnhancedNotifications();
+  const { notifyMatchComplete, notifyTournamentWinner, notifyMatchReady } = useNotifications();
 
   try {
     // Update match as completed

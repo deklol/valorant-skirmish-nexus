@@ -22,6 +22,7 @@ import ComprehensiveTournamentEditor from "@/components/ComprehensiveTournamentE
 import CheckInEnforcement from "@/components/CheckInEnforcement";
 import MatchManager from "@/components/MatchManager";
 import ForceCheckInManager from "@/components/ForceCheckInManager";
+import TournamentWinnerDisplay from "@/components/TournamentWinnerDisplay";
 
 interface Tournament {
   id: string;
@@ -116,6 +117,43 @@ const TournamentDetail = () => {
 
     checkAdminStatus();
   }, [user]);
+
+  // Add real-time subscription for tournament updates
+  useEffect(() => {
+    if (!id) return;
+
+    const channel = supabase
+      .channel(`tournament-${id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'tournaments',
+          filter: `id=eq.${id}`
+        },
+        () => {
+          fetchTournament();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'matches',
+          filter: `tournament_id=eq.${id}`
+        },
+        () => {
+          fetchMatches();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id]);
 
   const fetchTournament = async () => {
     if (!id) return;
@@ -381,6 +419,16 @@ const TournamentDetail = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Tournament Winner Display - Add this before the stats grid */}
+        {tournament.status === 'completed' && (
+          <div className="mb-8">
+            <TournamentWinnerDisplay 
+              tournamentId={tournament.id}
+              tournamentStatus={tournament.status}
+            />
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card className="bg-slate-800 border-slate-700">
