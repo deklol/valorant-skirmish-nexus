@@ -11,6 +11,7 @@ import AdminLogoutAll from "@/components/AdminLogoutAll";
 import MapManager from "@/components/MapManager";
 import UserManagement from "@/components/UserManagement";
 import VetoMedicManager from "@/components/VetoMedicManager";
+import MatchMedicManager from "@/components/MatchMedicManager";
 
 const Admin = () => {
   const { isAdmin } = useAuth();
@@ -76,6 +77,10 @@ const Admin = () => {
               <ShieldAlert className="w-4 h-4 mr-2" />
               Veto Medic
             </TabsTrigger>
+            <TabsTrigger value="match-medic" className="text-white data-[state=active]:bg-amber-600">
+              <ShieldAlert className="w-4 h-4 mr-2" />
+              Match Medic
+            </TabsTrigger>
             <TabsTrigger value="announcements" className="text-white data-[state=active]:bg-red-600">
               <MessageSquare className="w-4 h-4 mr-2" />
               Announcements
@@ -100,6 +105,10 @@ const Admin = () => {
 
           <TabsContent value="veto-medic">
             <VetoMedicManager />
+          </TabsContent>
+
+          <TabsContent value="match-medic">
+            <MatchMedicManager />
           </TabsContent>
 
           <TabsContent value="announcements">
