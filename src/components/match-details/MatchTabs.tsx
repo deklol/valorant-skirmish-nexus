@@ -3,6 +3,7 @@ import { Settings, Users, User } from "lucide-react";
 import MatchScoreCards from "./MatchScoreCards";
 import MatchInformation from "./MatchInformation";
 import MapVetoManager from "@/components/MapVetoManager";
+import MapVetoResults from "@/components/MapVetoResults";
 import ScoreReporting from "@/components/ScoreReporting";
 import { useTeamPlayers } from "./useTeamPlayers";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -68,6 +69,9 @@ const MatchTabs = ({
           team1Score={match.score_team1}
           team2Score={match.score_team2}
         />
+
+        {/* Show final veto results if veto is completed */}
+        <MapVetoResults matchId={match.id} />
 
         {match.team1_id && match.team2_id && (
           <MapVetoManager

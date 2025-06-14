@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
 import MapVetoDialog from "./MapVetoDialog";
+import { useMapVetoSessionRealtime } from "@/hooks/useMapVetoRealtime";
 
 interface MapVetoManagerProps {
   matchId: string;
@@ -315,6 +316,12 @@ const MapVetoManager = ({
       </Card>
     );
   }
+
+  // --- Add session realtime sync ---
+  useMapVetoSessionRealtime(vetoSession?.id, () => {
+    // Refetch session when updated
+    if (vetoSession?.id) checkVetoSession();
+  });
 
   return (
     <Card className="bg-slate-800 border-slate-700">

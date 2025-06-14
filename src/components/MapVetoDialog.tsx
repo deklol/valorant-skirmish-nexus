@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Map, Ban, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useMapVetoActionsRealtime, useMapVetoSessionRealtime } from "@/hooks/useMapVetoRealtime";
+import ClickableUsername from "@/components/ClickableUsername";
 
 interface MapVetoDialogProps {
   open: boolean;
@@ -34,6 +36,9 @@ interface VetoAction {
   team_id: string;
   order_number: number;
   map?: MapData;
+  users?: {
+    discord_username?: string;
+  };
 }
 
 const MapVetoDialog = ({
@@ -52,14 +57,61 @@ const MapVetoDialog = ({
   const [vetoActions, setVetoActions] = useState<VetoAction[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentAction, setCurrentAction] = useState<'ban' | 'pick'>('ban');
+  const [sessionTurnTeam, setSessionTurnTeam] = useState(currentTeamTurn);
   const { toast } = useToast();
+
+  // --- Realtime subscriptions ---
+  const vetoSessionIdSafe = vetoSessionId || ""; // avoid undefined
+
+  // Keep veto actions in realtime
+  const fetchVetoActions = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('map_veto_actions')
+        .select(`
+          *,
+          maps:map_id (*),
+          users:performed_by (discord_username)
+        `)
+        .eq('veto_session_id', vetoSessionId)
+        .order('order_number');
+      if (error) throw error;
+      setVetoActions(data || []);
+      // Determine currentAction from the order (alternate ban/pick)
+      setCurrentAction((data?.length || 0) % 2 === 0 ? "ban" : "pick");
+    } catch {}
+  }, [vetoSessionId]);
+
+  // Keep session "current turn" in realtime
+  const fetchSession = useCallback(async () => {
+    // Get latest current_turn_team_id
+    if (!vetoSessionId) return;
+    const { data, error } = await supabase
+      .from("map_veto_sessions")
+      .select("*")
+      .eq("id", vetoSessionId)
+      .single();
+    if (data?.current_turn_team_id) {
+      setSessionTurnTeam(data.current_turn_team_id);
+    }
+  }, [vetoSessionId]);
+
+  // Use custom realtime hooks (actions and session)
+  useMapVetoActionsRealtime(vetoSessionId, () => {
+    fetchVetoActions();
+    fetchSession();
+  });
+  useMapVetoSessionRealtime(vetoSessionId, () => {
+    fetchSession();
+  });
 
   useEffect(() => {
     if (open) {
       fetchMaps();
       fetchVetoActions();
+      fetchSession();
     }
-  }, [open, vetoSessionId]);
+  }, [open, vetoSessionId, fetchVetoActions, fetchSession]);
 
   const fetchMaps = async () => {
     try {
@@ -81,26 +133,8 @@ const MapVetoDialog = ({
     }
   };
 
-  const fetchVetoActions = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('map_veto_actions')
-        .select(`
-          *,
-          maps:map_id (*)
-        `)
-        .eq('veto_session_id', vetoSessionId) // Use correct session id
-        .order('order_number');
-
-      if (error) throw error;
-      setVetoActions(data || []);
-    } catch (error: any) {
-      console.error('Error fetching veto actions:', error);
-    }
-  };
-
   const handleMapAction = async (mapId: string) => {
-    if (!userTeamId || userTeamId !== currentTeamTurn) {
+    if (!userTeamId || userTeamId !== sessionTurnTeam) {
       toast({
         title: "Not Your Turn",
         description: "Wait for your turn to make a selection",
@@ -111,15 +145,14 @@ const MapVetoDialog = ({
 
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from('map_veto_actions')
-        .insert({
-          veto_session_id: vetoSessionId,   // <-- USE THE VETO SESSION ID!
-          team_id: userTeamId,
-          map_id: mapId,
-          action: currentAction,
-          order_number: vetoActions.length + 1
-        });
+      const { error } = await supabase.from('map_veto_actions').insert({
+        veto_session_id: vetoSessionId,
+        team_id: userTeamId,
+        map_id: mapId,
+        action: currentAction,
+        order_number: vetoActions.length + 1,
+        performed_by: supabase.auth.getUser().data.user?.id ?? null
+      });
 
       if (error) throw error;
 
@@ -128,11 +161,36 @@ const MapVetoDialog = ({
         description: `Successfully ${currentAction === 'ban' ? 'banned' : 'picked'} the map`,
       });
 
-      fetchVetoActions();
-      
-      // Switch action type after each action
-      setCurrentAction(currentAction === 'ban' ? 'pick' : 'ban');
+      // Calculate if veto is now complete (e.g., only one map left, or pick/ban limit)
+      const mapCount = maps.length;
+      if (vetoActions.length + 1 >= mapCount) {
+        // auto-complete session
+        await supabase
+          .from("map_veto_sessions")
+          .update({
+            status: "completed",
+            completed_at: new Date().toISOString()
+          })
+          .eq("id", vetoSessionId);
 
+        toast({
+          title: "Map Veto Completed",
+          description: "All veto actions are finished. Match is ready.",
+        });
+      } else {
+        // Switch turn team
+        const nextTeamId = userTeamId === team1Name ? team2Name : team1Name; // fallback: alternate
+        // But the actual IDs are used
+        const nextTeam = userTeamId === team1Name ? team2Name : team1Name;
+        await supabase
+          .from("map_veto_sessions")
+          .update({
+            current_turn_team_id: nextTeamId
+          })
+          .eq("id", vetoSessionId);
+      }
+
+      await fetchVetoActions();
     } catch (error: any) {
       console.error('Error performing map action:', error);
       toast({
@@ -164,6 +222,14 @@ const MapVetoDialog = ({
     (teamSize === 1) ||
     (teamSize && teamSize > 1 && isUserCaptain)
   );
+
+  function formatDateTime(dateStr: string) {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    return date.toLocaleString(undefined, {
+      hour: "2-digit", minute: "2-digit", second: "2-digit"
+    });
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -215,6 +281,14 @@ const MapVetoDialog = ({
                             <CheckCircle className="w-4 h-4 text-green-400" />
                           )}
                           <span className="text-white">{action.map?.display_name}</span>
+                          {action.users && action.users.discord_username && (
+                            <span className="text-sm text-blue-300 ml-2">
+                              by <ClickableUsername userId={action.performed_by} username={action.users.discord_username} />
+                            </span>
+                          )}
+                          <span className="ml-2 text-xs text-slate-400">
+                            {formatDateTime(action.performed_at)}
+                          </span>
                         </div>
                       </div>
                       <Badge className={action.action === 'ban' ? "bg-red-500/20 text-red-400 border-red-500/30" : "bg-green-500/20 text-green-400 border-green-500/30"}>
