@@ -111,6 +111,7 @@ const MapVetoManager = ({
 
   // Always call useMapVetoSessionRealtime to obey React Rules of Hooks
   // Pass a stable callback that only triggers session fetch, not state change chain
+  // This is the ONLY real-time session subscription for this veto session!
   useMapVetoSessionRealtime(
     vetoSession?.id ? vetoSession.id : null,
     useCallback((payload) => {
@@ -478,7 +479,7 @@ const MapVetoManager = ({
           vetoSessionId={vetoSession.id}
           team1Name={team1Name}
           team2Name={team2Name}
-          currentTeamTurn={vetoSession.current_turn_team_id || team1Id}
+          currentTeamTurn={vetoSession.current_turn_team_id || team1Id} // Pass down the turn
           userTeamId={userTeamId}
           isUserCaptain={isUserCaptain}
           teamSize={teamSize}

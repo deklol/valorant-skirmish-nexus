@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Map, Ban, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useMapVetoActionsRealtime, useMapVetoSessionRealtime } from "@/hooks/useMapVetoRealtime";
+import { useMapVetoActionsRealtime } from "@/hooks/useMapVetoRealtime";
 import ClickableUsername from "@/components/ClickableUsername";
 
 interface MapVetoDialogProps {
@@ -59,13 +59,12 @@ const MapVetoDialog = ({
   const [vetoActions, setVetoActions] = useState<VetoAction[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentAction, setCurrentAction] = useState<'ban' | 'pick'>('ban');
-  const [sessionTurnTeam, setSessionTurnTeam] = useState(currentTeamTurn);
   const { toast } = useToast();
 
   // --- Realtime subscriptions ---
   const vetoSessionIdSafe = vetoSessionId || ""; // avoid undefined
 
-  // Keep veto actions in realtime
+  // Actions subscription/fetch only! (NO session subscription)
   const fetchVetoActions = useCallback(async () => {
     try {
       const { data, error } = await supabase
@@ -79,41 +78,19 @@ const MapVetoDialog = ({
         .order('order_number');
       if (error) throw error;
       setVetoActions(data || []);
-      // Determine currentAction from the order (alternate ban/pick)
       setCurrentAction((data?.length || 0) % 2 === 0 ? "ban" : "pick");
     } catch {}
   }, [vetoSessionId]);
 
-  // Keep session "current turn" in realtime
-  const fetchSession = useCallback(async () => {
-    // Get latest current_turn_team_id
-    if (!vetoSessionId) return;
-    const { data, error } = await supabase
-      .from("map_veto_sessions")
-      .select("*")
-      .eq("id", vetoSessionId)
-      .single();
-    if (data?.current_turn_team_id) {
-      setSessionTurnTeam(data.current_turn_team_id);
-    }
-  }, [vetoSessionId]);
-
-  // Use custom realtime hooks (actions and session)
-  useMapVetoActionsRealtime(vetoSessionId, () => {
-    fetchVetoActions();
-    fetchSession();
-  });
-  useMapVetoSessionRealtime(vetoSessionId, () => {
-    fetchSession();
-  });
+  // Only listen for actions, not session. Remove all session fetch logic.
+  useMapVetoActionsRealtime(vetoSessionId, fetchVetoActions);
 
   useEffect(() => {
     if (open) {
       fetchMaps();
       fetchVetoActions();
-      fetchSession();
     }
-  }, [open, vetoSessionId, fetchVetoActions, fetchSession]);
+  }, [open, vetoSessionId, fetchVetoActions]);
 
   const fetchMaps = async () => {
     try {
@@ -136,7 +113,7 @@ const MapVetoDialog = ({
   };
 
   const handleMapAction = async (mapId: string) => {
-    if (!userTeamId || userTeamId !== sessionTurnTeam) {
+    if (!userTeamId || userTeamId !== currentTeamTurn) {
       toast({
         title: "Not Your Turn",
         description: "Wait for your turn to make a selection",
@@ -167,10 +144,9 @@ const MapVetoDialog = ({
         description: `Successfully ${currentAction === 'ban' ? 'banned' : 'picked'} the map`,
       });
 
-      // Calculate if veto is now complete (e.g., only one map left, or pick/ban limit)
+      // Session completion handling (if needed) can still happen here
       const mapCount = maps.length;
       if (vetoActions.length + 1 >= mapCount) {
-        // auto-complete session
         await supabase
           .from("map_veto_sessions")
           .update({
@@ -184,16 +160,7 @@ const MapVetoDialog = ({
           description: "All veto actions are finished. Match is ready.",
         });
       } else {
-        // Switch turn team
-        const nextTeamId = userTeamId === team1Name ? team2Name : team1Name; // fallback: alternate
-        // But the actual IDs are used
-        const nextTeam = userTeamId === team1Name ? team2Name : team1Name;
-        await supabase
-          .from("map_veto_sessions")
-          .update({
-            current_turn_team_id: nextTeamId
-          })
-          .eq("id", vetoSessionId);
+        // Session's current_turn_team_id will change via MapVetoManager subscription, not here
       }
 
       await fetchVetoActions();
