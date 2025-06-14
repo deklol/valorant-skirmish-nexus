@@ -41,6 +41,8 @@ const BracketView = () => {
   const [loading, setLoading] = useState(true);
   const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
   const [mapVetoOpen, setMapVetoOpen] = useState(false);
+  const [vetoSessionId, setVetoSessionId] = useState<string | null>(null);
+  const [vetoSessionLoading, setVetoSessionLoading] = useState(false);
   const { user, isAdmin } = useAuth();
 
   useEffect(() => {
@@ -144,10 +146,32 @@ const BracketView = () => {
     });
   };
 
-  const handleMapVeto = (matchId: string) => {
+  const handleMapVeto = async (matchId: string) => {
     setSelectedMatch(matchId);
     setMapVetoOpen(true);
+    setVetoSessionLoading(true);
+    setVetoSessionId(null);
+
+    // Fetch the veto session for this match
+    const { data, error } = await supabase
+      .from('map_veto_sessions')
+      .select('id')
+      .eq('match_id', matchId)
+      .maybeSingle();
+    if (!error && data && data.id) {
+      setVetoSessionId(data.id);
+    } else {
+      setVetoSessionId(null);
+    }
+    setVetoSessionLoading(false);
   };
+
+  useEffect(() => {
+    if (!mapVetoOpen) {
+      setVetoSessionId(null);
+      setVetoSessionLoading(false);
+    }
+  }, [mapVetoOpen]);
 
   if (loading) {
     return (
@@ -343,16 +367,39 @@ const BracketView = () => {
       </div>
 
       {/* Map Veto Dialog */}
-      {selectedMatch && (
-        <MapVetoDialog
-          open={mapVetoOpen}
-          onOpenChange={setMapVetoOpen}
-          matchId={selectedMatch}
-          team1Name={matches.find(m => m.id === selectedMatch)?.team1?.name || "Team 1"}
-          team2Name={matches.find(m => m.id === selectedMatch)?.team2?.name || "Team 2"}
-          currentTeamTurn={matches.find(m => m.id === selectedMatch)?.team1_id || ""}
-          userTeamId={user?.id || null}
-        />
+      {selectedMatch && mapVetoOpen && (
+        // Only render dialog if we have a vetoSessionId (we need it per updated props)
+        vetoSessionLoading ? (
+          <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/70">
+            <div className="bg-slate-800 p-8 rounded-xl text-white text-xl">Loading Map Veto...</div>
+          </div>
+        ) : vetoSessionId ? (
+          <MapVetoDialog
+            open={mapVetoOpen}
+            onOpenChange={setMapVetoOpen}
+            matchId={selectedMatch}
+            vetoSessionId={vetoSessionId}
+            team1Name={matches.find(m => m.id === selectedMatch)?.team1?.name || "Team 1"}
+            team2Name={matches.find(m => m.id === selectedMatch)?.team2?.name || "Team 2"}
+            currentTeamTurn={matches.find(m => m.id === selectedMatch)?.team1_id || ""}
+            userTeamId={user?.id || null}
+          />
+        ) : (
+          // Veto not started for this match yet
+          <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/70">
+            <div className="bg-slate-800 p-8 rounded-xl text-white text-xl">
+              Map veto has not been started for this match yet.<br />
+              <span className="text-base text-slate-400">Contact the tournament admin or your opponent.</span>
+              <br />
+              <button
+                className="mt-4 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded"
+                onClick={() => setMapVetoOpen(false)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )
       )}
     </div>
   );
