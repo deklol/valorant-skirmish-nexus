@@ -1,0 +1,25 @@
+
+export interface MapData {
+  id: string;
+  name: string;
+  display_name: string;
+  thumbnail_url: string | null;
+}
+export interface VetoAction {
+  id: string;
+  action: 'ban' | 'pick';
+  map_id: string;
+  team_id: string;
+  order_number: number;
+  performed_by?: string | null;
+  performed_at?: string | null;
+  map?: MapData;
+  users?: {
+    discord_username?: string;
+  };
+}
+export type MapStatus = {
+  action: "ban" | "pick";
+  team: string;
+} | null;
+export type MapActionType = "ban" | "pick";
