@@ -28,6 +28,21 @@ interface UserData {
   created_at: string;
 }
 
+// Define all available ranks with proper subdivisions
+const AVAILABLE_RANKS = [
+  'Unranked',
+  'Iron 1', 'Iron 2', 'Iron 3',
+  'Bronze 1', 'Bronze 2', 'Bronze 3',
+  'Silver 1', 'Silver 2', 'Silver 3',
+  'Gold 1', 'Gold 2', 'Gold 3',
+  'Platinum 1', 'Platinum 2', 'Platinum 3',
+  'Diamond 1', 'Diamond 2', 'Diamond 3',
+  'Ascendant 1', 'Ascendant 2', 'Ascendant 3',
+  'Immortal 1', 'Immortal 2', 'Immortal 3',
+  'Radiant',
+  'Phantom'
+];
+
 const UserManagement = () => {
   const [users, setUsers] = useState<UserData[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<UserData[]>([]);
@@ -43,6 +58,7 @@ const UserManagement = () => {
   const [editForm, setEditForm] = useState({
     discord_username: '',
     riot_id: '',
+    current_rank: '',
     role: 'player' as 'admin' | 'player' | 'viewer'
   });
   const { toast } = useToast();
@@ -89,6 +105,7 @@ const UserManagement = () => {
     setEditForm({
       discord_username: user.discord_username || '',
       riot_id: user.riot_id || '',
+      current_rank: user.current_rank || '',
       role: user.role
     });
     setEditDialogOpen(true);
@@ -103,6 +120,7 @@ const UserManagement = () => {
         .update({
           discord_username: editForm.discord_username || null,
           riot_id: editForm.riot_id || null,
+          current_rank: editForm.current_rank || null,
           role: editForm.role
         })
         .eq('id', editingUser.id);
@@ -119,6 +137,7 @@ const UserManagement = () => {
           old_values: {
             discord_username: editingUser.discord_username,
             riot_id: editingUser.riot_id,
+            current_rank: editingUser.current_rank,
             role: editingUser.role
           },
           new_values: editForm
@@ -388,6 +407,26 @@ const UserManagement = () => {
                 />
               </div>
               <div className="space-y-2">
+                <Label htmlFor="current_rank" className="text-white">Current Rank</Label>
+                <Select
+                  value={editForm.current_rank}
+                  onValueChange={(value) => 
+                    setEditForm(prev => ({ ...prev, current_rank: value }))
+                  }
+                >
+                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                    <SelectValue placeholder="Select a rank" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-700 border-slate-600">
+                    {AVAILABLE_RANKS.map((rank) => (
+                      <SelectItem key={rank} value={rank} className="text-white hover:bg-slate-600">
+                        {rank}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="role" className="text-white">Role</Label>
                 <Select
                   value={editForm.role}
@@ -398,10 +437,10 @@ const UserManagement = () => {
                   <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="player">Player</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="viewer">Viewer</SelectItem>
+                  <SelectContent className="bg-slate-700 border-slate-600">
+                    <SelectItem value="player" className="text-white hover:bg-slate-600">Player</SelectItem>
+                    <SelectItem value="admin" className="text-white hover:bg-slate-600">Admin</SelectItem>
+                    <SelectItem value="viewer" className="text-white hover:bg-slate-600">Viewer</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
