@@ -1,8 +1,17 @@
+
 import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 // Utility to safely unsubscribe and remove a channel (dedup-aware)
 const globalChannelRegistry = new Map<string, any>();
+
+/**
+ * Use a unique property name for dedup/cleanup registry.
+ * We do NOT use any private property from the Supabase client.
+ */
+type RegistryChannel = {
+  __customRegistryKey?: string;
+};
 
 function cleanupChannel(channelRef: React.MutableRefObject<any>) {
   if (channelRef.current) {
@@ -16,9 +25,10 @@ function cleanupChannel(channelRef: React.MutableRefObject<any>) {
     } catch (e) {
       console.warn('[MapVetoRealtime] Channel remove error (cleanup):', e);
     }
-    // Remove from registry
-    if (channelRef.current._name) {
-      globalChannelRegistry.delete(channelRef.current._name);
+    // Remove from registry using our custom property
+    const regChannel = channelRef.current as RegistryChannel;
+    if (regChannel.__customRegistryKey) {
+      globalChannelRegistry.delete(regChannel.__customRegistryKey);
     }
     channelRef.current = null;
   }
@@ -48,6 +58,9 @@ export function useMapVetoActionsRealtime(
     }
     const channel = supabase.channel(channelName);
 
+    // Attach the custom registry key for deduplication/cleanup
+    (channel as RegistryChannel).__customRegistryKey = channelName;
+
     channel.on(
       "postgres_changes",
       {
@@ -68,7 +81,6 @@ export function useMapVetoActionsRealtime(
     });
 
     channelRef.current = channel;
-    channel._name = channelName; // for registry
     globalChannelRegistry.set(channelName, channel);
 
     // Cleanup on id change/unmount
@@ -101,6 +113,9 @@ export function useMapVetoSessionRealtime(
     }
     const channel = supabase.channel(channelName);
 
+    // Attach the custom registry key for deduplication/cleanup
+    (channel as RegistryChannel).__customRegistryKey = channelName;
+
     channel.on(
       "postgres_changes",
       {
@@ -121,7 +136,6 @@ export function useMapVetoSessionRealtime(
     });
 
     channelRef.current = channel;
-    channel._name = channelName; // for registry
     globalChannelRegistry.set(channelName, channel);
 
     // Cleanup on id change / unmount
@@ -130,3 +144,4 @@ export function useMapVetoSessionRealtime(
     };
   }, [vetoSessionId]);
 }
+
