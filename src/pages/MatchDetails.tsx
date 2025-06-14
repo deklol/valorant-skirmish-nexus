@@ -26,6 +26,7 @@ interface Match {
   scheduled_time: string | null;
   started_at: string | null;
   completed_at: string | null;
+  tournament_id?: string;
   team1?: { 
     id: string;
     name: string; 
@@ -102,7 +103,14 @@ const MatchDetails = () => {
         .single();
 
       if (error) throw error;
-      setMatch(data);
+      
+      // Add tournament_id for consistency
+      const matchWithTournamentId = {
+        ...data,
+        tournament_id: data.tournament?.id
+      };
+      
+      setMatch(matchWithTournamentId);
     } catch (error: any) {
       console.error('Error fetching match:', error);
       toast({
@@ -357,7 +365,7 @@ const MatchDetails = () => {
                   fetchMatch();
                   toast({
                     title: "Score Reported",
-                    description: "Match score has been submitted",
+                    description: "Match score has been submitted and tournament updated",
                   });
                 }}
               />

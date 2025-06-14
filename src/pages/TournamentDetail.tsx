@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,6 +53,7 @@ interface Match {
   score_team2: number | null;
   status: string;
   winner_id: string | null;
+  tournament_id?: string;
   team1?: { name: string } | null;
   team2?: { name: string } | null;
   scheduled_time: string | null;
@@ -196,7 +196,14 @@ const TournamentDetail = () => {
         .order('match_number', { ascending: true });
 
       if (error) throw error;
-      setMatches(data || []);
+      
+      // Add tournament_id to each match for proper processing
+      const matchesWithTournamentId = (data || []).map(match => ({
+        ...match,
+        tournament_id: id
+      }));
+      
+      setMatches(matchesWithTournamentId);
     } catch (error: any) {
       console.error('Error fetching matches:', error);
       toast({
@@ -595,9 +602,10 @@ const TournamentDetail = () => {
                       match={match}
                       onScoreSubmitted={() => {
                         fetchMatches();
+                        fetchTournament();
                         toast({
                           title: "Score Reported",
-                          description: "Match score has been submitted",
+                          description: "Match score has been submitted and tournament updated",
                         });
                       }}
                     />

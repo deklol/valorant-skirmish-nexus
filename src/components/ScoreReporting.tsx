@@ -10,6 +10,7 @@ import { Trophy, Target, CheckCircle, Clock, AlertTriangle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { processMatchResults } from "@/components/EnhancedMatchResultsProcessor";
 
 interface Match {
   id: string;
@@ -21,8 +22,9 @@ interface Match {
   score_team2: number | null;
   status: string;
   winner_id: string | null;
-  teams1?: { name: string };
-  teams2?: { name: string };
+  tournament_id?: string;
+  team1?: { name: string };
+  team2?: { name: string };
 }
 
 interface ScoreReportingProps {
@@ -60,6 +62,7 @@ const ScoreReporting = ({ match, onScoreSubmitted }: ScoreReportingProps) => {
     try {
       // Determine winner
       const winnerId = score1 > score2 ? match.team1_id : match.team2_id;
+      const loserId = score1 > score2 ? match.team2_id : match.team1_id;
 
       // Check if this is an admin directly updating or needs approval
       const { data: userData } = await supabase
@@ -86,9 +89,22 @@ const ScoreReporting = ({ match, onScoreSubmitted }: ScoreReportingProps) => {
 
         if (matchError) throw matchError;
 
+        // Process match results to advance tournament
+        if (winnerId && loserId && match.tournament_id) {
+          await processMatchResults({
+            matchId: match.id,
+            winnerId,
+            loserId,
+            tournamentId: match.tournament_id,
+            onComplete: () => {
+              console.log('Tournament progression completed');
+            }
+          });
+        }
+
         toast({
           title: "Score Updated",
-          description: "Match result has been recorded successfully",
+          description: "Match result has been recorded and tournament progressed",
         });
       } else {
         // Regular users submit for approval
@@ -165,7 +181,7 @@ const ScoreReporting = ({ match, onScoreSubmitted }: ScoreReportingProps) => {
         <div className="flex items-center justify-between">
           <div className="text-center flex-1">
             <div className="text-lg font-semibold text-white">
-              {match.teams1?.name || 'TBA'}
+              {match.team1?.name || 'TBA'}
             </div>
             {match.score_team1 !== null && (
               <div className="text-2xl font-bold text-green-400 mt-2">
@@ -180,7 +196,7 @@ const ScoreReporting = ({ match, onScoreSubmitted }: ScoreReportingProps) => {
           
           <div className="text-center flex-1">
             <div className="text-lg font-semibold text-white">
-              {match.teams2?.name || 'TBA'}
+              {match.team2?.name || 'TBA'}
             </div>
             {match.score_team2 !== null && (
               <div className="text-2xl font-bold text-green-400 mt-2">
@@ -206,7 +222,7 @@ const ScoreReporting = ({ match, onScoreSubmitted }: ScoreReportingProps) => {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="team1Score" className="text-slate-300">
-                      {match.teams1?.name || 'Team 1'} Score
+                      {match.team1?.name || 'Team 1'} Score
                     </Label>
                     <Input
                       id="team1Score"
@@ -219,7 +235,7 @@ const ScoreReporting = ({ match, onScoreSubmitted }: ScoreReportingProps) => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="team2Score" className="text-slate-300">
-                      {match.teams2?.name || 'Team 2'} Score
+                      {match.team2?.name || 'Team 2'} Score
                     </Label>
                     <Input
                       id="team2Score"
