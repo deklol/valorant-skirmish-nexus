@@ -122,11 +122,11 @@ const Players = () => {
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div className="text-center p-2 bg-slate-700/50 rounded">
                       <div className="font-bold text-indigo-400">{player.weight_rating || 150}</div>
-                      <div className="text-slate-400 text-xs">Weight</div>
+                      <div className="text-slate-400 text-xs">Balancing Weight</div>
                     </div>
                     <div className="text-center p-2 bg-slate-700/50 rounded">
                       <div className="font-bold text-purple-400">{player.rank_points || 0}</div>
-                      <div className="text-slate-400 text-xs">RR</div>
+                      <div className="text-slate-400 text-xs">Ranked RR</div>
                     </div>
                     <div className="text-center p-2 bg-slate-700/50 rounded">
                       <div className="font-bold text-green-400">{player.tournaments_won || 0}</div>
