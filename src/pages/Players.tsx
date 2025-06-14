@@ -9,6 +9,7 @@ import ClickableUsername from '@/components/ClickableUsername';
 interface Player {
   id: string;
   discord_username: string;
+  discord_avatar_url: string | null;
   current_rank: string;
   rank_points: number;
   tournaments_won: number;
@@ -29,7 +30,7 @@ const Players = () => {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('id, discord_username, current_rank, rank_points, tournaments_won, mvp_awards, wins, losses')
+        .select('id, discord_username, discord_avatar_url, current_rank, rank_points, tournaments_won, mvp_awards, wins, losses')
         .eq('is_phantom', false)
         .order('discord_username', { ascending: true });
 
@@ -81,10 +82,27 @@ const Players = () => {
               <Card key={player.id} className="bg-slate-800/90 border-slate-700 hover:bg-slate-800 transition-colors">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
-                    <div className="w-12 h-12 bg-slate-600 rounded-full flex items-center justify-center">
-                      <span className="text-lg font-bold text-slate-300">
-                        {player.discord_username?.charAt(0).toUpperCase() || 'U'}
-                      </span>
+                    <div className="w-12 h-12 bg-slate-600 rounded-full flex items-center justify-center overflow-hidden">
+                      {player.discord_avatar_url ? (
+                        <img 
+                          src={player.discord_avatar_url} 
+                          alt={`${player.discord_username}'s avatar`}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            // Fallback to letter avatar if image fails to load
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const parent = target.parentElement;
+                            if (parent) {
+                              parent.innerHTML = `<span class="text-lg font-bold text-slate-300">${player.discord_username?.charAt(0).toUpperCase() || 'U'}</span>`;
+                            }
+                          }}
+                        />
+                      ) : (
+                        <span className="text-lg font-bold text-slate-300">
+                          {player.discord_username?.charAt(0).toUpperCase() || 'U'}
+                        </span>
+                      )}
                     </div>
                     <Badge variant="secondary" className="bg-slate-700 text-slate-300">
                       {player.current_rank || 'Unranked'}

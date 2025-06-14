@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import Header from "@/components/Header";
 import MatchHeader from "@/components/match-details/MatchHeader";
 import MatchTabs from "@/components/match-details/MatchTabs";
 import { useMatchData } from "@/components/match-details/useMatchData";
@@ -36,7 +35,6 @@ const MatchDetails = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        <Header />
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
             <p className="text-white text-lg">Loading match details...</p>
@@ -49,7 +47,6 @@ const MatchDetails = () => {
   if (!match) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        <Header />
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
             <p className="text-white text-lg">Match not found</p>
@@ -65,8 +62,6 @@ const MatchDetails = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      <Header />
-      
       <div className="container mx-auto px-4 py-8">
         <MatchHeader
           team1Name={match.team1?.name || 'TBD'}

@@ -372,7 +372,6 @@ const TournamentDetail = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        <Header />
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
             <p className="text-white text-lg">Loading tournament details...</p>
@@ -385,7 +384,6 @@ const TournamentDetail = () => {
   if (!tournament) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        <Header />
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
             <p className="text-white text-lg">Tournament not found</p>
@@ -400,8 +398,6 @@ const TournamentDetail = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      <Header />
-      
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-6">
