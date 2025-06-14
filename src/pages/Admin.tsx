@@ -16,6 +16,12 @@ const Admin = () => {
   const { isAdmin } = useAuth();
   const [createTournamentOpen, setCreateTournamentOpen] = useState(false);
 
+  const handleTournamentCreated = () => {
+    console.log('Tournament created in admin, dialog should close and refresh tournament list');
+    setCreateTournamentOpen(false);
+    // The TournamentManagement component should handle its own refresh
+  };
+
   if (!isAdmin) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
@@ -42,7 +48,10 @@ const Admin = () => {
           
           <Button 
             className="bg-red-600 hover:bg-red-700 text-white"
-            onClick={() => setCreateTournamentOpen(true)}
+            onClick={() => {
+              console.log('Admin Create Tournament button clicked');
+              setCreateTournamentOpen(true);
+            }}
           >
             <Trophy className="w-4 h-4 mr-2" />
             Create Tournament
@@ -107,7 +116,11 @@ const Admin = () => {
 
       <CreateTournamentDialog
         open={createTournamentOpen}
-        onOpenChange={setCreateTournamentOpen}
+        onOpenChange={(open) => {
+          console.log('Admin dialog open state changed to:', open);
+          setCreateTournamentOpen(open);
+        }}
+        onTournamentCreated={handleTournamentCreated}
       />
     </div>
   );
