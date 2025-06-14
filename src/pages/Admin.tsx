@@ -1,9 +1,8 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Users, Trophy, MessageSquare, Map } from "lucide-react";
+import { Settings, Users, Trophy, MessageSquare, Map, ShieldAlert } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import DiscordWebhookManager from "@/components/DiscordWebhookManager";
 import CreateTournamentDialog from "@/components/CreateTournamentDialog";
@@ -11,6 +10,7 @@ import TournamentManagement from "@/components/TournamentManagement";
 import AdminLogoutAll from "@/components/AdminLogoutAll";
 import MapManager from "@/components/MapManager";
 import UserManagement from "@/components/UserManagement";
+import VetoMedicManager from "@/components/VetoMedicManager";
 
 const Admin = () => {
   const { isAdmin } = useAuth();
@@ -72,6 +72,10 @@ const Admin = () => {
               <Map className="w-4 h-4 mr-2" />
               Maps
             </TabsTrigger>
+            <TabsTrigger value="veto-medic" className="text-white data-[state=active]:bg-yellow-600">
+              <ShieldAlert className="w-4 h-4 mr-2" />
+              Veto Medic
+            </TabsTrigger>
             <TabsTrigger value="announcements" className="text-white data-[state=active]:bg-red-600">
               <MessageSquare className="w-4 h-4 mr-2" />
               Announcements
@@ -92,6 +96,10 @@ const Admin = () => {
 
           <TabsContent value="maps">
             <MapManager />
+          </TabsContent>
+
+          <TabsContent value="veto-medic">
+            <VetoMedicManager />
           </TabsContent>
 
           <TabsContent value="announcements">
