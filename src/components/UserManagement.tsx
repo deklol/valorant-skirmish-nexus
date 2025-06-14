@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Users, Edit, Ban, Shield, ShieldOff, Search, ExternalLink } from "lucide-react";
+import { Users, Edit, Ban, Shield, ShieldOff, Search, ExternalLink, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import ClickableUsername from "./ClickableUsername";
@@ -18,6 +19,7 @@ interface UserData {
   discord_username: string | null;
   riot_id: string | null;
   current_rank: string | null;
+  weight_rating: number;
   role: 'admin' | 'player' | 'viewer';
   is_banned: boolean;
   ban_reason: string | null;
@@ -33,21 +35,6 @@ interface UserData {
   profile_visibility: string | null;
 }
 
-// Define all available ranks with proper subdivisions
-const AVAILABLE_RANKS = [
-  'Unranked',
-  'Iron 1', 'Iron 2', 'Iron 3',
-  'Bronze 1', 'Bronze 2', 'Bronze 3',
-  'Silver 1', 'Silver 2', 'Silver 3',
-  'Gold 1', 'Gold 2', 'Gold 3',
-  'Platinum 1', 'Platinum 2', 'Platinum 3',
-  'Diamond 1', 'Diamond 2', 'Diamond 3',
-  'Ascendant 1', 'Ascendant 2', 'Ascendant 3',
-  'Immortal 1', 'Immortal 2', 'Immortal 3',
-  'Radiant',
-  'Phantom'
-];
-
 const UserManagement = () => {
   const [users, setUsers] = useState<UserData[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<UserData[]>([]);
@@ -56,14 +43,12 @@ const UserManagement = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [banDialogOpen, setBanDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserData | null>(null);
+  const [refreshingRank, setRefreshingRank] = useState<string | null>(null);
   const [banForm, setBanForm] = useState({
     reason: '',
     expires_at: ''
   });
   const [editForm, setEditForm] = useState({
-    discord_username: '',
-    riot_id: '',
-    current_rank: '',
     role: 'player' as 'admin' | 'player' | 'viewer',
     bio: '',
     twitter_handle: '',
@@ -109,12 +94,51 @@ const UserManagement = () => {
     }
   };
 
+  const handleRefreshRank = async (user: UserData) => {
+    if (!user.riot_id) {
+      toast({
+        title: "Error",
+        description: "User doesn't have a Riot ID set",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setRefreshingRank(user.id);
+    try {
+      const { data, error } = await supabase.functions.invoke('scrape-rank', {
+        body: {
+          riot_id: user.riot_id,
+          user_id: user.id
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Rank Updated",
+        description: data.current_rank 
+          ? `Rank updated to ${data.current_rank} (${data.weight_rating} weight)`
+          : "Rank data refreshed",
+      });
+
+      // Refresh the users list to show updated data
+      fetchUsers();
+    } catch (error: any) {
+      console.error('Error refreshing rank:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to refresh rank",
+        variant: "destructive",
+      });
+    } finally {
+      setRefreshingRank(null);
+    }
+  };
+
   const handleEditUser = (user: UserData) => {
     setEditingUser(user);
     setEditForm({
-      discord_username: user.discord_username || '',
-      riot_id: user.riot_id || '',
-      current_rank: user.current_rank || '',
       role: user.role,
       bio: user.bio || '',
       twitter_handle: user.twitter_handle || '',
@@ -131,9 +155,6 @@ const UserManagement = () => {
       const { error } = await supabase
         .from('users')
         .update({
-          discord_username: editForm.discord_username || null,
-          riot_id: editForm.riot_id || null,
-          current_rank: editForm.current_rank || null,
           role: editForm.role,
           bio: editForm.bio || null,
           twitter_handle: editForm.twitter_handle || null,
@@ -152,17 +173,18 @@ const UserManagement = () => {
           table_name: 'users',
           record_id: editingUser.id,
           old_values: {
-            discord_username: editingUser.discord_username,
-            riot_id: editingUser.riot_id,
-            current_rank: editingUser.current_rank,
-            role: editingUser.role
+            role: editingUser.role,
+            bio: editingUser.bio,
+            twitter_handle: editingUser.twitter_handle,
+            twitch_handle: editingUser.twitch_handle,
+            profile_visibility: editingUser.profile_visibility
           },
           new_values: editForm
         });
 
       toast({
         title: "User Updated",
-        description: `${editForm.discord_username || 'User'} has been updated successfully`,
+        description: `${editingUser.discord_username || 'User'} has been updated successfully`,
       });
 
       setEditDialogOpen(false);
@@ -319,7 +341,7 @@ const UserManagement = () => {
               <TableRow>
                 <TableHead className="text-slate-300">Discord Username</TableHead>
                 <TableHead className="text-slate-300">Riot ID</TableHead>
-                <TableHead className="text-slate-300">Rank</TableHead>
+                <TableHead className="text-slate-300">Rank / Weight</TableHead>
                 <TableHead className="text-slate-300">Role</TableHead>
                 <TableHead className="text-slate-300">Stats</TableHead>
                 <TableHead className="text-slate-300">Status</TableHead>
@@ -349,7 +371,10 @@ const UserManagement = () => {
                     {user.riot_id || 'No Riot ID'}
                   </TableCell>
                   <TableCell className="text-white">
-                    {user.current_rank || 'Unranked'}
+                    <div className="flex flex-col gap-1">
+                      <span>{user.current_rank || 'Unranked'}</span>
+                      <span className="text-xs text-slate-400">Weight: {user.weight_rating || 150}</span>
+                    </div>
                   </TableCell>
                   <TableCell>
                     <Badge 
@@ -384,6 +409,17 @@ const UserManagement = () => {
                       >
                         <Edit className="w-4 h-4" />
                       </Button>
+                      {user.riot_id && (
+                        <Button
+                          onClick={() => handleRefreshRank(user)}
+                          size="sm"
+                          variant="outline"
+                          disabled={refreshingRank === user.id}
+                          className="border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-white"
+                        >
+                          <RefreshCw className={`w-4 h-4 ${refreshingRank === user.id ? 'animate-spin' : ''}`} />
+                        </Button>
+                      )}
                       {user.is_banned ? (
                         <Button
                           onClick={() => handleUnbanUser(user)}
@@ -418,66 +454,57 @@ const UserManagement = () => {
               <DialogTitle className="text-white">Edit User</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 max-h-96 overflow-y-auto">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="discord_username" className="text-white">Discord Username</Label>
+              <div className="space-y-2">
+                <Label className="text-white">Discord Username</Label>
+                <Input
+                  value={editingUser?.discord_username || ''}
+                  disabled
+                  className="bg-slate-600 border-slate-500 text-slate-400"
+                  placeholder="Cannot be edited - managed by Discord OAuth"
+                />
+                <p className="text-xs text-slate-400">Discord username is managed automatically and cannot be changed manually.</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-white">Current Rank & Weight</Label>
+                <div className="flex items-center gap-2">
                   <Input
-                    id="discord_username"
-                    value={editForm.discord_username}
-                    onChange={(e) => setEditForm(prev => ({ ...prev, discord_username: e.target.value }))}
-                    className="bg-slate-700 border-slate-600 text-white"
+                    value={`${editingUser?.current_rank || 'Unranked'} (Weight: ${editingUser?.weight_rating || 150})`}
+                    disabled
+                    className="bg-slate-600 border-slate-500 text-slate-400 flex-1"
                   />
+                  {editingUser?.riot_id && (
+                    <Button
+                      onClick={() => editingUser && handleRefreshRank(editingUser)}
+                      size="sm"
+                      disabled={refreshingRank === editingUser?.id}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      <RefreshCw className={`w-4 h-4 mr-1 ${refreshingRank === editingUser?.id ? 'animate-spin' : ''}`} />
+                      Refresh
+                    </Button>
+                  )}
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="riot_id" className="text-white">Riot ID</Label>
-                  <Input
-                    id="riot_id"
-                    value={editForm.riot_id}
-                    onChange={(e) => setEditForm(prev => ({ ...prev, riot_id: e.target.value }))}
-                    className="bg-slate-700 border-slate-600 text-white"
-                  />
-                </div>
+                <p className="text-xs text-slate-400">Rank and weight are updated through the rank scraping system.</p>
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="current_rank" className="text-white">Current Rank</Label>
-                  <Select
-                    value={editForm.current_rank}
-                    onValueChange={(value) => 
-                      setEditForm(prev => ({ ...prev, current_rank: value }))
-                    }
-                  >
-                    <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                      <SelectValue placeholder="Select a rank" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-slate-700 border-slate-600">
-                      {AVAILABLE_RANKS.map((rank) => (
-                        <SelectItem key={rank} value={rank} className="text-white hover:bg-slate-600">
-                          {rank}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="role" className="text-white">Role</Label>
-                  <Select
-                    value={editForm.role}
-                    onValueChange={(value: 'admin' | 'player' | 'viewer') => 
-                      setEditForm(prev => ({ ...prev, role: value }))
-                    }
-                  >
-                    <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-slate-700 border-slate-600">
-                      <SelectItem value="player" className="text-white hover:bg-slate-600">Player</SelectItem>
-                      <SelectItem value="admin" className="text-white hover:bg-slate-600">Admin</SelectItem>
-                      <SelectItem value="viewer" className="text-white hover:bg-slate-600">Viewer</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="role" className="text-white">Role</Label>
+                <Select
+                  value={editForm.role}
+                  onValueChange={(value: 'admin' | 'player' | 'viewer') => 
+                    setEditForm(prev => ({ ...prev, role: value }))
+                  }
+                >
+                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-700 border-slate-600">
+                    <SelectItem value="player" className="text-white hover:bg-slate-600">Player</SelectItem>
+                    <SelectItem value="admin" className="text-white hover:bg-slate-600">Admin</SelectItem>
+                    <SelectItem value="viewer" className="text-white hover:bg-slate-600">Viewer</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
