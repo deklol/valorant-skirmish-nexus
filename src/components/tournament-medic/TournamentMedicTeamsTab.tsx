@@ -211,7 +211,7 @@ export default function TournamentMedicTeamsTab({
         color: 0x00bfff,
         timestamp: new Date().toISOString(),
         footer: {
-          text: "Tournament Team Announcer",
+          text: "TLRHub - Skirmish Manager",
         },
         fields,
       },
