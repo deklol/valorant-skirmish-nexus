@@ -29,12 +29,11 @@ interface MatchInfo {
 
 interface VetoSession {
   id: string;
-  match_id: string | null;
+  match: MatchInfo | null;
   status: string | null;
   current_turn_team_id: string | null;
   started_at: string | null;
   completed_at: string | null;
-  match: MatchInfo | null;
 }
 
 type VetoSessionWithDetails = VetoSession;
@@ -144,12 +143,20 @@ export default function VetoMedicManager() {
         .eq("veto_session_id", sessionId);
       if (actionsErr) throw actionsErr;
 
-      // 2. Reset the session itself
+      // 2. Fetch the session to get the home_team_id
+      const { data: sessionRow, error: sessionFetchErr } = await supabase
+        .from("map_veto_sessions")
+        .select("home_team_id")
+        .eq("id", sessionId)
+        .maybeSingle();
+      if (sessionFetchErr) throw sessionFetchErr;
+
+      // 3. Reset the session itself, setting current_turn_team_id to home_team_id
       const { error: sessionErr } = await supabase
         .from("map_veto_sessions")
         .update({
           status: "pending",
-          current_turn_team_id: null,
+          current_turn_team_id: sessionRow?.home_team_id || null,
           started_at: null,
           completed_at: null,
         })
@@ -159,7 +166,7 @@ export default function VetoMedicManager() {
 
       toast({
         title: "Veto Reset",
-        description: "Veto session has been reset to pending.",
+        description: "Veto session has been reset. Home team is now set for first turn.",
       });
       fetchSessions();
     } catch (err: any) {
