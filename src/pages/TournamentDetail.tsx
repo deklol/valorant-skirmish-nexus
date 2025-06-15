@@ -492,7 +492,7 @@ const TournamentDetail = () => {
               </div>
 
               {/* --- New Tournament Medic Admin Tool --- */}
-              <TournamentMedicManager />
+              {/* REMOVED: TournamentMedicManager - global access only on /admin */}
             </TabsContent>
           )}
 
