@@ -7,13 +7,15 @@ type AppSettingsContextType = {
   refresh: () => Promise<void>;
 };
 
+const DEFAULT_APP_NAME = "Tournament App";
+
 const AppSettingsContext = createContext<AppSettingsContextType>({
-  appName: "ValTourneys", // fallback
+  appName: DEFAULT_APP_NAME, // fallback
   refresh: async () => {},
 });
 
 export function AppSettingsProvider({ children }: { children: React.ReactNode }) {
-  const [appName, setAppName] = useState("ValTourneys");
+  const [appName, setAppName] = useState(DEFAULT_APP_NAME);
 
   // Fetch the current app name from the db
   const fetchAppName = async () => {
@@ -50,7 +52,7 @@ export function AppSettingsProvider({ children }: { children: React.ReactNode })
             (payload?.old && typeof payload.old.app_name === "string"
               ? payload.old.app_name
               : undefined) ||
-            "ValTourneys";
+            DEFAULT_APP_NAME;
           setAppName(nextAppName);
         }
       )
