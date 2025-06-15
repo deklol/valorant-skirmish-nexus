@@ -5,8 +5,9 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 
 export default function AdminHelpTab() {
   return (
-    <div className="w-full px-2 md:px-0 max-w-5xl mx-auto py-10">
-      <Card className="bg-slate-800/90 border border-slate-700 rounded-xl mb-8 shadow-lg">
+    <div className="w-full px-1 md:px-2 pt-8">
+      {/* Header Card */}
+      <Card className="bg-slate-800/95 border border-slate-700 rounded-xl mb-8 shadow-lg">
         <CardHeader className="flex flex-row items-center gap-3 pt-6 pb-2 px-6">
           <BookOpen className="w-7 h-7 text-blue-400" />
           <CardTitle className="text-2xl font-semibold text-white">Admin Help &amp; Documentation</CardTitle>
@@ -16,12 +17,15 @@ export default function AdminHelpTab() {
             Welcome to the Tournament Platform Admin Documentation!
           </p>
           <p className="text-slate-400 leading-snug text-[15px]">
-            This guide walks you through all platform features: tournament setup, user roles, team balancing, emergency tools, and more.
-            Use the Table of Contents to navigate. For best results, review before your first event!
+            This reference fully explains all admin features:
+            <b> tournament setup, bracket management, user roles, team balancing, troubleshooting, Medic tools, and more.</b>
+            Every action and workflow is explained! Use the Table of Contents or search (Ctrl+F) to find topics.
           </p>
         </CardContent>
       </Card>
-      <Card className="bg-slate-800/90 border border-slate-700 rounded-xl mb-8 shadow">
+
+      {/* Table of Contents */}
+      <Card className="bg-slate-800/95 border border-slate-700 rounded-xl mb-8 shadow">
         <CardHeader className="pt-6 pb-2 px-6">
           <CardTitle className="text-blue-300 text-lg font-medium">Table of Contents</CardTitle>
         </CardHeader>
@@ -40,7 +44,9 @@ export default function AdminHelpTab() {
 
       <div className="pt-2" />
 
+      {/* Documentation Sections */}
       <Accordion type="single" collapsible className="w-full space-y-2">
+
         {/* 1. Getting Started */}
         <AccordionItem value="getting-started">
           <AccordionTrigger id="getting-started" className="text-blue-200 text-base font-medium">
@@ -48,21 +54,33 @@ export default function AdminHelpTab() {
           </AccordionTrigger>
           <AccordionContent>
             <div className="space-y-2 text-slate-300">
-              <b>Welcome, Administrator!</b>
-              <ul className="list-disc ml-5 space-y-1 text-slate-400">
+              <b>Admin Dashboard Overview</b>
+              <ul className="list-disc ml-5 space-y-2 text-slate-400">
                 <li>
-                  <b>Dashboard Navigation:</b> Use the tabs at the top for direct access to each system: 
-                  <span className="text-blue-200"> Tournaments</span>, <span className="text-blue-200">Users</span>, <span className="text-blue-200">Maps</span>, and admin tools.
+                  <b>Access Control:</b> Only users assigned the <span className="bg-blue-950 text-blue-300 px-1 rounded">admin</span> role in Supabase <b>user_roles</b> table can access the Admin Dashboard.
                 </li>
                 <li>
-                  <b>User Roles:</b> The admin dashboard is only available to users with <code className="bg-blue-950 text-blue-300 px-1 rounded">admin</code> role.<br />
-                  Promote trusted helpers in the Users tab to share duties.
+                  <b>Interface Layout:</b> The top tabs let you switch quickly between all admin systems:<br/>
+                  <span className="text-blue-200">Tournaments</span>, <span className="text-blue-200">Users</span>, <span className="text-blue-200">Maps</span>, Medic tools, Announcements, Settings, and Help.
                 </li>
                 <li>
-                  <b>Jump-Start:</b> Hit the <span className="font-semibold text-red-400">Create Tournament</span> button to launch a new event. Set required game/format details immediately.
+                  <b>Promotion/Demotion:</b> Use the <span className="font-semibold text-red-400">Users</span> tab to make another user an admin or demote them by updating their role in the user management panel.<br/>
+                  <b>Security note:</b> Only grant admin to trusted users; admins can delete, edit, and override any data!
                 </li>
                 <li>
-                  <b>Security Reminder:</b> Be careful with admin privileges—any admin has full control of tournaments, users, and backend.
+                  <b>Initial Setup Steps:</b>
+                  <ol className="list-decimal ml-8 space-y-1">
+                    <li>Review this documentation and your Supabase project structure.</li>
+                    <li>Set up maps and system settings before running your first tournament (see Maps/System in tabs).</li>
+                    <li>Test the platform end-to-end with a dummy tournament before inviting players.</li>
+                  </ol>
+                </li>
+                <li>
+                  <b>Quick Links:</b>
+                  <ul className="list-disc ml-5">
+                    <li><a href="#tournament-management" className="hover:underline text-blue-400">Create and manage tournaments</a></li>
+                    <li><a href="#user-player-management" className="hover:underline text-blue-400">Manage user roles and bans</a></li>
+                  </ul>
                 </li>
               </ul>
             </div>
@@ -76,37 +94,47 @@ export default function AdminHelpTab() {
           </AccordionTrigger>
           <AccordionContent>
             <div className="space-y-3 text-slate-300">
-              <div>
-                <b>Creating Tournaments:</b>
-                <ul className="list-disc ml-5 space-y-1 text-slate-400">
-                  <li>
-                    <b>Required fields:</b> Give a clear Tournament Name, set registration Open/Close dates, and configure player/team limits.
-                  </li>
-                  <li>
-                    <b>Format Options:</b> Choose bracket style (single/double elimination), match and map rules, and registration policies.
-                  </li>
-                  <li>
-                    <b>Status Phases:</b> Tournaments move through several phases:
-                    <ul className="list-disc ml-5 space-y-0.5">
-                      <li className="pl-1"><b>Draft:</b> Only visible to admins—fine-tune everything here!</li>
-                      <li className="pl-1"><b>Open:</b> Public sign-up window. Players/teams can join.</li>
-                      <li className="pl-1"><b>Balancing:</b> Only checked-in players can be balanced into teams (admins trigger this).</li>
-                      <li className="pl-1"><b>Live:</b> Matches are active and bracket is locked in.</li>
-                      <li className="pl-1"><b>Completed:</b> All matches finished, results finalized.</li>
-                      <li className="pl-1"><b>Archived:</b> Tournament hidden from main lists (store for records).</li>
-                    </ul>
-                  </li>
-                  <li>
-                    <b>Editing Existing Events:</b> Use the tournament’s configuration form (gear icon). Some settings lock after the event goes Live!
-                  </li>
-                  <li>
-                    <b>Bracket Generation:</b> When ready, use <span className="font-semibold text-red-400">Generate Bracket</span> for final structure. Choose seeding & check the results preview before saving.
-                  </li>
-                  <li>
-                    <b>Map Veto (Optional):</b> Enable map veto if you want captains to ban/pick maps before match start.
-                  </li>
-                </ul>
-              </div>
+              <b>Creating, Editing & Deleting Tournaments</b>
+              <ul className="list-disc ml-5 space-y-2 text-slate-400">
+                <li>
+                  <b>To create a new tournament:</b> Click the red <span className="font-semibold text-red-400">Create Tournament</span> button (top right). Fill all required fields. See field explanations below:
+                  <ul className="list-disc ml-5">
+                    <li><b>Name:</b> Public title of the event. Used for all announcements and brackets.</li>
+                    <li><b>Registration window:</b> Controls when players can sign up. <b>Open</b> = registration open; <b>Close</b> = signups locked.</li>
+                    <li><b>Format:</b> Choose Single Elimination, Double Elimination, or custom. This determines bracket style.</li>
+                    <li><b>Player/team limits:</b> Set strict caps to prevent overbooking.</li>
+                    <li><b>Map pool selection:</b> Pick available maps for matches/veto; managed in the <span className="text-blue-200">Maps</span> tab.</li>
+                  </ul>
+                </li>
+                <li>
+                  <b>Edit tournament settings:</b> Use the gear icon to access config forms for each tournament. 
+                  <ul className="list-disc ml-5">
+                    <li>Most settings are locked after the tournament goes <b>Live</b> (for integrity).</li>
+                  </ul>
+                </li>
+                <li>
+                  <b>Phases:</b> Each tournament moves through these states:
+                  <ul className="list-disc ml-5">
+                    <li><b>Draft:</b> Only admins can edit or see. Prep here before launching registration.</li>
+                    <li><b>Open:</b> Players may sign up and change teams. Supervising for abuse/alt accounts is your responsibility.</li>
+                    <li><b>Balancing:</b> When registration closes, team balancing tools unlock.</li>
+                    <li><b>Live:</b> Bracket, teams, and players are locked; matches are played.</li>
+                    <li><b>Completed:</b> All rounds/results entered. This state publishes final stats and disables all edits except via Medic.</li>
+                    <li><b>Archived:</b> Hidden from lists but always visible on request for record-keeping.</li>
+                  </ul>
+                </li>
+                <li>
+                  <b>Bracket Generation:</b> After teams are set, click <span className="font-semibold text-red-400">Generate Bracket</span>. Configure "random" or "seeded" placement. *Always* review results before saving, to avoid unfair matchups!
+                </li>
+                <li>
+                  <b>Deleting/cancelling events:</b> Only perform this if a tournament is a mistake or failed (use Archive for most things). This cannot be undone!
+                </li>
+              </ul>
+              <b>Tips</b>
+              <ul className="list-disc ml-5 space-y-1">
+                <li>Keep at least one test/dummy tournament for training and troubleshooting without risk.</li>
+                <li>Always communicate schedule changes in Announcements & Discord integrations.</li>
+              </ul>
             </div>
           </AccordionContent>
         </AccordionItem>
@@ -118,34 +146,37 @@ export default function AdminHelpTab() {
           </AccordionTrigger>
           <AccordionContent>
             <div className="space-y-3 text-slate-300">
-              <div>
-                <b>Users Tab:</b>
-                <ul className="list-disc ml-5 space-y-1 text-slate-400">
-                  <li>
-                    <b>Roles:</b> Only admins can assign/revoke admin privileges to users. Use with care—admins have platform-wide power.
-                  </li>
-                  <li>
-                    <b>Ban/Unban:</b> Banned users can’t sign up, play, or access most features.
-                  </li>
-                  <li>
-                    <b>Player Lookup:</b> Search by Discord username or Riot ID for fast support.
-                  </li>
-                </ul>
-              </div>
-              <div>
-                <b>Player Details:</b>
-                <ul className="list-disc ml-5 space-y-1 text-slate-400">
-                  <li>
-                    <b>Ranks &amp; Ratings:</b> Each player has a current rank and “weight rating” based on performance. These help balance teams.
-                  </li>
-                  <li>
-                    <b>Riot ID Integration:</b> Required for each participant. If disconnected or outdated, instruct the user to refresh via their profile.
-                  </li>
-                  <li>
-                    <b>Troubleshooting:</b> If a player can’t register, check for duplicate Discord/Riot or expired bans.
-                  </li>
-                </ul>
-              </div>
+              <b>User Roles & Account Actions</b>
+              <ul className="list-disc ml-5 space-y-2 text-slate-400">
+                <li>
+                  <b>Role Management:</b> In the <b>Users</b> tab, use role dropdowns to promote/demote users.
+                  <ul className="list-disc ml-5">
+                    <li><b>Admin:</b> Full access. Only another admin can demote you.</li>
+                    <li><b>User:</b> Standard tournament participant.</li>
+                  </ul>
+                </li>
+                <li>
+                  <b>Ban/Unban Users:</b> Click the "Ban" button to block all platform access. Unban to restore their permissions. <br/>
+                  <b>Reasons for bans:</b> Toxicity, cheating, evasion, alts, abuse, etc.
+                </li>
+                <li>
+                  <b>Player Lookup:</b> Use search to locate users by Discord, Riot ID, or partial. This helps with rapid response to player issues.
+                </li>
+                <li>
+                  <b>Checking Registration Issues:</b> If user cannot register:
+                  <ul className="list-disc ml-5">
+                    <li>Check ban status and role.</li>
+                    <li>Ensure unique Discord + Riot ID.</li>
+                    <li>Look for duplicate or past incomplete signups/unchecked INs.</li>
+                  </ul>
+                </li>
+              </ul>
+              <b>Player Info Panels</b>
+              <ul className="list-disc ml-5 space-y-1">
+                <li><b>Ranks & Performance:</b> Show current rank, historical events, MVP, and rating. High ratings impact balancing seeding and captain assignments.</li>
+                <li><b>Riot ID Integration:</b> All players MUST have a valid Riot ID. If the Riot account isn’t connected, prompt user to re-authorize via profile.</li>
+                <li><b>Notes:</b> Use profile notes to track issues, warnings, and communication history for future reference.</li>
+              </ul>
             </div>
           </AccordionContent>
         </AccordionItem>
@@ -157,22 +188,30 @@ export default function AdminHelpTab() {
           </AccordionTrigger>
           <AccordionContent>
             <div className="space-y-2 text-slate-300">
-              <b>Automatic Team Balancing:</b>
-              <ul className="list-disc ml-5 space-y-1 text-slate-400">
+              <b>Auto Team Balancing (Snake Draft)</b>
+              <ul className="list-disc ml-5 space-y-2 text-slate-400">
                 <li>
-                  Use the <span className="text-blue-200 font-semibold">Auto Balance Teams</span> button to distribute eligible players based on ratings ("snake draft" logic).
+                  <b>Auto Balance Teams:</b> Hit the "Auto Balance Teams" button to instantly distribute checked-in players into teams by rating (highest to lowest, then lowest to highest, so teams are fair).<br/>
+                  No human bias, repeatable, reduces disputes.
                 </li>
                 <li>
-                  <b>Captain Assignment:</b> The highest-rated player in each team is the captain (can be edited after).
+                  <b>Manual Edits:</b> Drag-and-drop players between teams, and change captain assignments. This is often used after auto-balance when captains have preferences or if last-minute changes are needed.
                 </li>
                 <li>
-                  <b>Review Results:</b> After balancing, check teams for fairness, diversity, and captain selection. Edit manually if needed!
+                  <b>Assigning Captains:</b> The highest-rated player is made captain by default (can be changed).
                 </li>
                 <li>
-                  <b>Manual Edit:</b> Admins can always move players between teams or assign custom captains if something looks off.
+                  <b>Rebalancing:</b> If a player drops or is checked-in late, you may re-run balance, but warn participants. Announce any forced team moves.
                 </li>
                 <li>
-                  <b>Tip:</b> Not enough checked-in players? Users might need a reminder or penalty for lateness!
+                  <b>Edge Cases:</b>
+                  <ul className="list-disc ml-5">
+                    <li>Odd player count: Will show a warning and leave teams uneven. You must move a sub manually or update team count.</li>
+                    <li>Not enough checked-in: System blocks balancing and highlights missing users. Confirm check-in on user list!</li>
+                  </ul>
+                </li>
+                <li>
+                  <b>1v1 Brackets:</b> Each user is a single team–no balancing needed. Just proceed.
                 </li>
               </ul>
             </div>
@@ -186,21 +225,29 @@ export default function AdminHelpTab() {
           </AccordionTrigger>
           <AccordionContent>
             <div className="space-y-2 text-slate-300">
-              <ul className="list-disc ml-5 space-y-1 text-slate-400">
+              <b>Running & Managing the Event</b>
+              <ul className="list-disc ml-5 space-y-2 text-slate-400">
                 <li>
-                  <b>Bracket Generation:</b> After teams are set, generate brackets. Double-check the seeding and number of teams.
+                  <b>Check-In Management:</b> Players must check-in before each event. Admins can force/correct check-in if a user has trouble (check their user status).
                 </li>
                 <li>
-                  <b>Check-in Management:</b> For fair play, require check-in before the event. Force/correct check-in status as needed.
+                  <b>Bracket Generation & Control:</b>
+                  <ul className="list-disc ml-5">
+                    <li>Only allowed after teams set. Ensure team count matches bracket structure.</li>
+                    <li>Review bracket preview carefully before finalizing.</li>
+                  </ul>
                 </li>
                 <li>
-                  <b>Match Reporting:</b> Only admins (and sometimes captains) can update results. Watch for disputes—admins can always override scores.
+                  <b>Reporting Scores:</b> Only admins and sometimes captains may enter match results in the system. If two captains submit conflicting results, admins are responsible for making the final call.
                 </li>
                 <li>
-                  <b>Time Management:</b> Keep the event running by updating round timers and enforcing start times.
+                  <b>Edit/Override Results:</b> Use the “Edit” (or “Reset”) buttons in the bracket view to correct errors or resolve disputes. Always keep Discord logs/screenshots for audit trail.
                 </li>
                 <li>
-                  <b>Editing Results:</b> If a match was reported incorrectly, use “Edit” or “Reset” under the bracket view. Record changes for transparency.
+                  <b>Timer Management:</b> Manually update round start/end times if matches are delayed so the bracket reflects live status for spectators.
+                </li>
+                <li>
+                  <b>Announcing Results:</b> Use the Announcements or Discord webhook/announcement panel to push major updates immediately to everyone.
                 </li>
               </ul>
             </div>
@@ -214,18 +261,27 @@ export default function AdminHelpTab() {
           </AccordionTrigger>
           <AccordionContent>
             <div className="space-y-3 text-slate-300">
-              <ul className="list-disc ml-5 space-y-1 text-slate-400">
+              <ul className="list-disc ml-5 space-y-2 text-slate-400">
                 <li>
-                  <b>Map Pool &amp; Manager:</b> Use the Maps tab to add, remove, or update the map pool for all events. These changes apply platform-wide.
+                  <b>Map Pool Manager:</b> Access via Maps tab. Here you add, remove, and change all available maps (works for all tournaments). All edits are logged.<br/>
+                  Double check that all new tournaments use the correct map pool before opening registration.
                 </li>
                 <li>
-                  <b>Discord Integration:</b> In Announcements, set webhook URLs to send automated event updates (signups, match start, winners) to Discord.
+                  <b>Discord Announcement Integration:</b> Set up/update webhook URLs under Announcements. Use for:
+                  <ul className="list-disc ml-5">
+                    <li>Auto announce tournament creation, signup open, round start/end, match result, and winner.</li>
+                    <li>Mute announcement for test events or so you can control spam.</li>
+                  </ul>
                 </li>
                 <li>
-                  <b>Medic Tools:</b> Use Tournament/Match/Veto Medic tabs for emergency situations—fix broken brackets, player/team issues, or map veto problems without restoring backups.
-                </li>
-                <li>
-                  <b>Best Practice:</b> Document every use of Medic features in your admin notes for accountability—most issues are traceable to last-minute changes!
+                  <b>Medic Tools:</b> Use Tournament/Match/Veto Medic for emergencies: broken brackets, buggy team assignments, or stuck registration states.<br/>
+                  Examples:
+                  <ul className="list-disc ml-5">
+                    <li><b>Tournament Medic:</b> Lock/unlock status, force team/participant fixing, or repair corrupted tournament data.</li>
+                    <li><b>Match Medic:</b> Force match result, reset a round, or correct player swap.</li>
+                    <li><b>Veto Medic:</b> Repair draft issues or forcibly unlock veto when teams are out of sync.</li>
+                  </ul>
+                  <b>Always announce any use of Medic tools!</b>
                 </li>
               </ul>
             </div>
@@ -238,27 +294,58 @@ export default function AdminHelpTab() {
             7. Troubleshooting &amp; FAQ
           </AccordionTrigger>
           <AccordionContent>
-            <div className="space-y-2 text-slate-300">
-              <ul className="list-disc ml-5 space-y-1 text-slate-400">
+            <div className="space-y-3 text-slate-300">
+              <b>Common Issues & Solutions</b>
+              <ul className="list-disc ml-5 space-y-2 text-slate-400">
                 <li>
-                  <b>Bracket not generating?</b> Ensure enough checked-in teams/players, and team settings match tournament requirements.
+                  <b>Bracket not generating?</b>
+                  <ul className="list-disc ml-5">
+                    <li>Check that participant/team count matches bracket logic.</li>
+                    <li>Make sure all required check-in is complete.</li>
+                    <li>Try resetting team assignments and re-balancing, then re-run bracket generator.</li>
+                  </ul>
                 </li>
                 <li>
-                  <b>A player is missing?</b> Search for check-in status and confirm correct signup. Late or duplicate registrations are the usual cause.
+                  <b>Player can't register or check-in?</b>
+                  <ul className="list-disc ml-5">
+                    <li>Check for user ban/role.</li>
+                    <li>Duplicate Discord or Riot ID: search for both to confirm unique identity.</li>
+                    <li>If account looks correct, check for registration deadline.</li>
+                  </ul>
                 </li>
                 <li>
-                  <b>Balancing fails?</b> You must have enough checked-in players for your team format. Try forcing a re-check-in or reducing team count.
+                  <b>Team balancing gives errors?</b>
+                  <ul className="list-disc ml-5">
+                    <li>Not enough checked-in players for given team configuration.</li>
+                    <li>Try reducing the number of teams or updating check-in status manually (after confirming with players).</li>
+                  </ul>
                 </li>
                 <li>
-                  <b>Map veto not working?</b> Confirm all teams have a captain and check Discord roles; sometimes reloading the Medic helps.
+                  <b>Medic tool changes not applying?</b>
+                  <ul className="list-disc ml-5">
+                    <li>Reload the page to ensure fresh state from backend.</li>
+                    <li>If still broken, contact tech support with screenshot + what you tried.</li>
+                  </ul>
                 </li>
                 <li>
-                  <b>Other bugs?</b> Use the Medic tabs for manual repair. If unsure, call your tech support or reach out in the platform's Discord server.
+                  <b>Discord notifications not firing?</b>
+                  <ul className="list-disc ml-5">
+                    <li>Ensure that the correct webhook URL is in place and test via the Announcements tab.</li>
+                  </ul>
                 </li>
                 <li>
-                  <b>Still stuck?</b> Screenshot the issue, try refreshing, and share the error details in the admin Discord or get developer help.
+                  <b>Other UI bugs or broken flows?</b>
+                  <ul className="list-disc ml-5">
+                    <li>If 'stuck', manually change status using Medic, then resave tournament config.</li>
+                    <li>Last resort: Archive broken event and start new one (never delete unless a test event).</li>
+                  </ul>
+                </li>
+                <li>
+                  <b>Still stuck?</b><br />
+                  Screenshot the issue, reload, and share with the admin/dev Discord or email your developer for direct support.
                 </li>
               </ul>
+              <b>For more help see:</b> <a href="https://docs.lovable.dev/tips-tricks/troubleshooting" target="_blank" rel="noopener" className="underline text-blue-400">Troubleshooting docs</a>
             </div>
           </AccordionContent>
         </AccordionItem>
