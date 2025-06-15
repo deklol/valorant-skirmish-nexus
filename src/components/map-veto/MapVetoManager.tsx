@@ -483,6 +483,21 @@ const MapVetoManager = ({
     );
   }
 
+  // --- Determine main view mode based on session status ---
+  // Show "Start Map Veto" button when:
+  // - There is NO session, OR
+  // - Session is 'pending' and has NO current_turn_team_id set
+  const showStartVeto = !vetoSession ||
+    (vetoSession.status === 'pending' && !vetoSession.current_turn_team_id);
+
+  // Treat as "veto in progress" (show participate/force complete/etc) when:
+  // - Session is 'in_progress'
+  // - Or session is 'pending' but HAS current_turn_team_id set (reset flow)
+  const showVetoFlow = vetoSession && (
+    vetoSession.status === 'in_progress' ||
+    (vetoSession.status === 'pending' && !!vetoSession.current_turn_team_id)
+  );
+
   // The veto can commence if home/away are set OR if format remains old
   const canVetoStart =
     mapVetoAvailable &&
@@ -616,7 +631,7 @@ const MapVetoManager = ({
             </div>
           )}
 
-        {/* Updated: Map Veto start logic allows session with status 'pending' */}
+        {/* Updated: Map Veto start logic */}
         {!mapVetoAvailable ? (
           <div className="flex items-center gap-2 p-3 bg-gray-500/10 border border-gray-500/20 rounded-lg">
             <AlertCircle className="w-4 h-4 text-gray-500" />
@@ -626,7 +641,7 @@ const MapVetoManager = ({
             </span>
           </div>
         )
-        : ((!vetoSession || vetoSession?.status === 'pending') ? (
+        : showStartVeto ? (
           <div className="text-center space-y-4">
             <p className="text-slate-400">
               Map veto has not been started for this match yet
@@ -643,84 +658,86 @@ const MapVetoManager = ({
             )}
           </div>
         ) : (
-          <div className="space-y-4">
-            {/* Only allow participate if roll completed */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-white font-medium">Veto Status:</span>
-                <Badge
-                  className={
-                    isVetoActive
-                      ? "bg-green-500/20 text-green-400 border-green-500/30"
-                      : isVetoComplete
-                        ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
-                        : "bg-gray-500/20 text-gray-400 border-gray-500/30"
-                  }
-                >
-                  {vetoSession.status === 'in_progress' ? 'In Progress' :
-                    vetoSession.status === 'completed' ? 'Completed' :
-                      'Pending'}
-                </Badge>
+          showVetoFlow && (
+            <div className="space-y-4">
+              {/* Only allow participate if roll completed */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-white font-medium">Veto Status:</span>
+                  <Badge
+                    className={
+                      isVetoActive
+                        ? "bg-green-500/20 text-green-400 border-green-500/30"
+                        : isVetoComplete
+                          ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                          : "bg-gray-500/20 text-gray-400 border-gray-500/30"
+                    }
+                  >
+                    {vetoSession.status === 'in_progress' ? 'In Progress' :
+                      vetoSession.status === 'completed' ? 'Completed' :
+                        'Pending'}
+                  </Badge>
+                </div>
+                {/* Only allow open dialog if dice roll is complete */}
+                {isVetoActive && canParticipate && vetoSession.home_team_id && vetoSession.away_team_id && (
+                  <Button
+                    onClick={() => {
+                      // DEBUG LOG: Log all dialog props
+                      const dialogProps = {
+                        open: true,
+                        matchId,
+                        vetoSessionId: vetoSession.id,
+                        team1Name,
+                        team2Name,
+                        currentTeamTurn: vetoSession.current_turn_team_id || team1Id,
+                        userTeamId,
+                        isUserCaptain,
+                        teamSize,
+                        team1Id,
+                        team2Id,
+                        bestOf: matchSettings?.best_of || 1,
+                        homeTeamId: vetoSession.home_team_id,
+                        awayTeamId: vetoSession.away_team_id
+                      };
+                      console.log("[MapVetoManager] Participating – opening dialog with props:", dialogProps);
+                      setVetoDialogLastProps(dialogProps); // keep if needed for debugging
+                      setVetoDialogOpen(true);
+                    }}
+                    className="bg-green-600 hover:bg-green-700"
+                    disabled={(!isUserCaptain && (teamSize && teamSize > 1))}
+                  >
+                    <Play className="w-4 h-4 mr-2" />
+                    {(!isUserCaptain && (teamSize && teamSize > 1))
+                      ? "Only Captain May Veto"
+                      : "Participate"}
+                  </Button>
+                )}
               </div>
-              {/* Only allow open dialog if dice roll is complete */}
-              {isVetoActive && canParticipate && vetoSession.home_team_id && vetoSession.away_team_id && (
-                <Button
-                  onClick={() => {
-                    // DEBUG LOG: Log all dialog props
-                    const dialogProps = {
-                      open: true,
-                      matchId,
-                      vetoSessionId: vetoSession.id,
-                      team1Name,
-                      team2Name,
-                      currentTeamTurn: vetoSession.current_turn_team_id || team1Id,
-                      userTeamId,
-                      isUserCaptain,
-                      teamSize,
-                      team1Id,
-                      team2Id,
-                      bestOf: matchSettings?.best_of || 1,
-                      homeTeamId: vetoSession.home_team_id,
-                      awayTeamId: vetoSession.away_team_id
-                    };
-                    console.log("[MapVetoManager] Participating – opening dialog with props:", dialogProps);
-                    setVetoDialogLastProps(dialogProps); // keep if needed for debugging
-                    setVetoDialogOpen(true);
-                  }}
-                  className="bg-green-600 hover:bg-green-700"
-                  disabled={(!isUserCaptain && (teamSize && teamSize > 1))}
-                >
-                  <Play className="w-4 h-4 mr-2" />
-                  {(!isUserCaptain && (teamSize && teamSize > 1))
-                    ? "Only Captain May Veto"
-                    : "Participate"}
-                </Button>
+              {/* ... admin controls & completed message ... */}
+              {isAdmin && isVetoActive && (
+                <div className="flex gap-2">
+                  <Button
+                    onClick={forceCompleteVeto}
+                    disabled={loading}
+                    variant="outline"
+                    className="bg-red-600/20 hover:bg-red-600/30 border-red-600/30 text-red-400"
+                  >
+                    <Settings className="w-4 h-4 mr-2" />
+                    Force Complete Veto
+                  </Button>
+                </div>
+              )}
+
+              {isVetoComplete && (
+                <div className="text-center">
+                  <p className="text-green-400 font-medium">
+                    Map veto completed! Match is ready to begin.
+                  </p>
+                </div>
               )}
             </div>
-            {/* ... admin controls & completed message ... */}
-            {isAdmin && isVetoActive && (
-              <div className="flex gap-2">
-                <Button
-                  onClick={forceCompleteVeto}
-                  disabled={loading}
-                  variant="outline"
-                  className="bg-red-600/20 hover:bg-red-600/30 border-red-600/30 text-red-400"
-                >
-                  <Settings className="w-4 h-4 mr-2" />
-                  Force Complete Veto
-                </Button>
-              </div>
-            )}
-
-            {isVetoComplete && (
-              <div className="text-center">
-                <p className="text-green-400 font-medium">
-                  Map veto completed! Match is ready to begin.
-                </p>
-              </div>
-            )}
-          </div>
-        ))}
+          )
+        )}
       </CardContent>
       {/* Only open the dialog if home/away is set */}
       {vetoSession &&
