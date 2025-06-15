@@ -2,48 +2,50 @@
 import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-// Utility to safely unsubscribe and remove a channel, basic version with no registry to avoid recursion
+/**
+ * Cleanly remove and unsubscribe a Supabase channel.
+ */
 function cleanupChannel(channelRef: React.MutableRefObject<any>) {
-  if (!channelRef.current) return;
-  try {
-    channelRef.current.unsubscribe();
-  } catch (e) {
-    // swallow errors
+  if (channelRef.current) {
+    try {
+      channelRef.current.unsubscribe();
+    } catch {}
+    try {
+      supabase.removeChannel(channelRef.current);
+    } catch {}
+    channelRef.current = null;
   }
-  try {
-    supabase.removeChannel(channelRef.current);
-  } catch (e) {
-    // swallow errors
-  }
-  channelRef.current = null;
 }
 
-// Simple subscription logic; do not attempt auto-retries to avoid runaway recursion
-type Callback = (payload: any) => void;
-type ConnectionCallback = (state: "connecting" | "online" | "offline" | "error") => void;
-
+/**
+ * Real-time subscription hook for map_veto_actions.
+ */
 export function useMapVetoActionsRealtime(
   vetoSessionId: string | null,
-  callback: Callback,
-  onConnectionChange?: ConnectionCallback
+  callback: (payload: any) => void,
+  onConnectionChange?: (state: "connecting" | "online" | "offline" | "error") => void
 ) {
   const callbackRef = useRef(callback);
   callbackRef.current = callback;
   const channelRef = useRef<any>(null);
 
   useEffect(() => {
+    // Always cleanup channel before creating new one
     cleanupChannel(channelRef);
     if (!vetoSessionId) return;
-    let isMounted = true;
 
+    let isMounted = true;
     onConnectionChange?.("connecting");
-    const channelName = `map-veto-actions-${vetoSessionId}`;
+
+    // Channel name must be unique per session
+    const channelName = `map-veto-actions-${vetoSessionId}-${Math.random().toString(36).slice(2, 10)}`;
     const channel = supabase.channel(channelName);
 
     const handleChange = (payload: any) => {
       if (callbackRef.current) callbackRef.current(payload);
     };
 
+    // Setup subscription handlers
     channel.on(
       "postgres_changes",
       {
@@ -55,12 +57,18 @@ export function useMapVetoActionsRealtime(
       handleChange
     );
 
+    // Subscribe: only run once!
+    let subscribed = false;
     channel.subscribe((status) => {
       if (!isMounted) return;
-      if (status === "SUBSCRIBED") onConnectionChange?.("online");
+      if (status === "SUBSCRIBED") {
+        onConnectionChange?.("online");
+      }
+      // Failures
       if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
         onConnectionChange?.("error");
       }
+      subscribed = true;
     });
 
     channelRef.current = channel;
@@ -72,10 +80,13 @@ export function useMapVetoActionsRealtime(
   }, [vetoSessionId, onConnectionChange]);
 }
 
+/**
+ * Real-time subscription hook for map_veto_sessions.
+ */
 export function useMapVetoSessionRealtime(
   vetoSessionId: string | null,
-  callback: Callback,
-  onConnectionChange?: ConnectionCallback
+  callback: (payload: any) => void,
+  onConnectionChange?: (state: "connecting" | "online" | "offline" | "error") => void
 ) {
   const callbackRef = useRef(callback);
   callbackRef.current = callback;
@@ -85,9 +96,9 @@ export function useMapVetoSessionRealtime(
     cleanupChannel(channelRef);
     if (!vetoSessionId) return;
     let isMounted = true;
-
     onConnectionChange?.("connecting");
-    const channelName = `map-veto-session-${vetoSessionId}`;
+    // Make channel name unique to avoid cache
+    const channelName = `map-veto-session-${vetoSessionId}-${Math.random().toString(36).slice(2, 10)}`;
     const channel = supabase.channel(channelName);
 
     channel.on(
@@ -112,7 +123,6 @@ export function useMapVetoSessionRealtime(
     });
 
     channelRef.current = channel;
-
     return () => {
       isMounted = false;
       cleanupChannel(channelRef);

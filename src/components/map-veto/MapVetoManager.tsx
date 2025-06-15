@@ -661,7 +661,20 @@ const MapVetoManager = ({
               {/* Only allow open dialog if dice roll is complete */}
               {isVetoActive && canParticipate && vetoSession.home_team_id && vetoSession.away_team_id && (
                 <Button
-                  onClick={() => setVetoDialogOpen(true)}
+                  onClick={() => {
+                    if (!team1Id || !team2Id || !vetoSession.home_team_id || !vetoSession.away_team_id || !vetoSession.id) {
+                      console.error("[MapVetoManager] Missing prerequisites for opening MapVetoDialog", {
+                        team1Id,
+                        team2Id,
+                        home_team_id: vetoSession.home_team_id,
+                        away_team_id: vetoSession.away_team_id,
+                        vetoSessionId: vetoSession.id
+                      });
+                      alert("Cannot open map veto: missing critical data. Check console for details.");
+                      return;
+                    }
+                    setVetoDialogOpen(true);
+                  }}
                   className="bg-green-600 hover:bg-green-700"
                   disabled={(!isUserCaptain && (teamSize && teamSize > 1))}
                 >

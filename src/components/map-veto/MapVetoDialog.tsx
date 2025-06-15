@@ -67,11 +67,29 @@ const MapVetoDialog = ({
   // Defensive fallback for critical crash/loop conditions
   const hasCriticalData = homeTeamId && awayTeamId && team1Id && team2Id && vetoSessionId;
   if (!hasCriticalData) {
+    if (open) {
+      console.error("MapVetoDialog: missing critical data", {
+        homeTeamId,
+        awayTeamId,
+        team1Id,
+        team2Id,
+        vetoSessionId
+      });
+    }
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent>
           <div className="p-6 text-center">
             <div className="text-red-500 font-bold mb-3">Critical Error: Missing session or team data</div>
+            <div>
+              Missing: {[
+                !vetoSessionId && "vetoSessionId",
+                !team1Id && "team1Id",
+                !team2Id && "team2Id",
+                !homeTeamId && "homeTeamId",
+                !awayTeamId && "awayTeamId"
+              ].filter(Boolean).join(", ") || "Unknown"}
+            </div>
             <div>Please contact an administrator.</div>
           </div>
         </DialogContent>
@@ -135,8 +153,14 @@ const MapVetoDialog = ({
   }, [open, vetoSessionId, currentTeamTurn, fetchMaps, fetchVetoActions]);
 
   // Real-time hooks with defensive fallbacks
+  useEffect(() => {
+    if (!vetoSessionId) {
+      console.warn("[MapVetoDialog] vetoSessionId is missing, not subscribing to realtime veto.");
+    }
+  }, [vetoSessionId]);
+
   useMapVetoSessionRealtime(
-    vetoSessionId,
+    hasCriticalData ? vetoSessionId : null,
     payload => {
       if (payload && payload.new && payload.new.current_turn_team_id) {
         setCurrentTurnTeamId(payload.new.current_turn_team_id);
@@ -152,7 +176,7 @@ const MapVetoDialog = ({
     }
   );
   useMapVetoActionsRealtime(
-    vetoSessionId,
+    hasCriticalData ? vetoSessionId : null,
     fetchVetoActions,
     connState => {
       if (connState === "connecting") setSyncing(true);
