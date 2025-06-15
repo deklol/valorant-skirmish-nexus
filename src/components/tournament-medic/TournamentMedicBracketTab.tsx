@@ -13,7 +13,7 @@ type Match = {
   id: string;
   team1: TeamObj | null;
   team2: TeamObj | null;
-  team1_id: string | null; // for compatibility
+  team1_id: string | null;
   team2_id: string | null;
   winner_id: string | null;
   round_number: number;
@@ -28,6 +28,14 @@ type MatchStatus = "completed" | "pending" | "live";
 function parseStatus(s: any): MatchStatus {
   if (s === "completed" || s === "pending" || s === "live") return s;
   return "pending";
+}
+
+// Helper to normalize possible supabase join output
+function parseTeam(obj: any): TeamObj | null {
+  if (obj && typeof obj === "object" && "id" in obj && "name" in obj) {
+    return { id: obj.id, name: obj.name };
+  }
+  return null;
 }
 
 export default function TournamentMedicBracketTab({ tournament, onRefresh }: {
@@ -53,7 +61,23 @@ export default function TournamentMedicBracketTab({ tournament, onRefresh }: {
         .eq("tournament_id", tournament.id)
         .order("round_number", { ascending: true })
         .order("match_number", { ascending: true });
-      setMatches(data || []);
+
+      // Transform results to ensure types are correct and joins are parsed safely
+      const sanitized: Match[] = (data || []).map((m: any) => ({
+        id: m.id,
+        team1: parseTeam(m.team1),
+        team2: parseTeam(m.team2),
+        team1_id: m.team1_id ?? null,
+        team2_id: m.team2_id ?? null,
+        winner_id: m.winner_id ?? null,
+        round_number: m.round_number,
+        match_number: m.match_number,
+        status: m.status ?? null,
+        score_team1: m.score_team1 ?? null,
+        score_team2: m.score_team2 ?? null,
+      }));
+
+      setMatches(sanitized);
       setLoading(false);
     })();
   }, [tournament.id]);
@@ -85,7 +109,23 @@ export default function TournamentMedicBracketTab({ tournament, onRefresh }: {
         .eq("tournament_id", tournament.id)
         .order("round_number", { ascending: true })
         .order("match_number", { ascending: true });
-      setMatches(data || []);
+
+      // Sanitize joined fields for team1/team2
+      const sanitized: Match[] = (data || []).map((m: any) => ({
+        id: m.id,
+        team1: parseTeam(m.team1),
+        team2: parseTeam(m.team2),
+        team1_id: m.team1_id ?? null,
+        team2_id: m.team2_id ?? null,
+        winner_id: m.winner_id ?? null,
+        round_number: m.round_number,
+        match_number: m.match_number,
+        status: m.status ?? null,
+        score_team1: m.score_team1 ?? null,
+        score_team2: m.score_team2 ?? null,
+      }));
+
+      setMatches(sanitized);
     } catch (err: any) {
       toast({
         title: "Error updating match",
@@ -97,8 +137,6 @@ export default function TournamentMedicBracketTab({ tournament, onRefresh }: {
       setEditModal(null);
     }
   }
-
-  // No longer need matchOr helper, delete it
 
   // Helper to give correct modal props
   function getModalMatchObj(editModal: Match | null): any {
