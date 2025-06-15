@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Wrench, RefreshCw, Edit, ShieldAlert, Trophy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import TournamentMedicEditModal from "./TournamentMedicEditModal";
 
 type Tournament = {
   id: string;
@@ -62,7 +62,6 @@ export default function TournamentMedicManager() {
     // eslint-disable-next-line
   }, [refreshKey]);
 
-  // Filtering logic
   const filteredTournaments = tournaments.filter(t => {
     const statusMatch = filterStatus === "all" || t.status === filterStatus;
     const searchMatch =
@@ -72,7 +71,6 @@ export default function TournamentMedicManager() {
     return statusMatch && searchMatch;
   });
 
-  // Utility functions
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "—";
     return new Date(dateString).toLocaleDateString("en-GB", {
@@ -92,7 +90,6 @@ export default function TournamentMedicManager() {
     );
   };
 
-  // Main render
   return (
     <>
       <Card className="bg-slate-800 border-slate-700">
@@ -191,46 +188,5 @@ export default function TournamentMedicManager() {
         />
       )}
     </>
-  );
-}
-
-// Separated modal logic for future feature expansion
-function TournamentMedicEditModal({
-  tournament,
-  onClose,
-}: {
-  tournament: Tournament;
-  onClose: () => void;
-}) {
-  // Everything is scaffolded; will be expanded in future steps.
-  return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
-      <div className="bg-slate-900 rounded-lg shadow-lg border border-yellow-700 w-full max-w-xl p-6 animate-scale-in">
-        <div className="flex items-center gap-2 mb-2">
-          <ShieldAlert className="w-5 h-5 text-yellow-400" />
-          <span className="font-bold text-lg text-white">Tournament Medic Tool</span>
-        </div>
-        <div className="mb-4">
-          <div className="font-semibold text-sm text-yellow-200 mb-1">
-            {tournament.name}
-          </div>
-          <div className="text-xs text-slate-400">
-            ID: <span className="font-mono">{tournament.id}</span>
-          </div>
-          <div className="text-xs text-slate-400 mt-1">
-            Status: <Badge className="bg-yellow-800/60">{tournament.status}</Badge>
-          </div>
-        </div>
-        <div className="py-2 text-slate-300 text-xs">
-          {/* Next: Fill this area with the full admin feature controls as planned */}
-          <div className="italic">Comprehensive emergency tools for tournament management coming soon.</div>
-        </div>
-        <div className="flex gap-2 mt-6 justify-end">
-          <Button size="sm" variant="outline" onClick={onClose}>
-            Close
-          </Button>
-        </div>
-      </div>
-    </div>
   );
 }
