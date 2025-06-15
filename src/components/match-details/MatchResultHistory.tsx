@@ -51,7 +51,17 @@ export default function MatchResultHistory({ matchId, team1Name, team2Name }: Ma
       .eq("match_id", matchId)
       .order("submitted_at", { ascending: true })
       .then(({ data }) => {
-        if (isMounted && data) setSubmissions(data);
+        if (isMounted && data) {
+          // Defensive fix: ensure 'user' is correct shape or null
+          const cleanData = data.map((sub: any) => ({
+            ...sub,
+            user:
+              sub.user && typeof sub.user === "object" && "discord_username" in sub.user
+                ? { discord_username: sub.user.discord_username }
+                : null,
+          }));
+          setSubmissions(cleanData);
+        }
         setLoading(false);
       });
     return () => { isMounted = false; };
