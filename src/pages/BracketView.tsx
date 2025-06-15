@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import Header from "@/components/Header";
 import MapVetoDialog from "@/components/MapVetoDialog";
+import BracketHeader from "@/components/bracket-details/BracketHeader";
 
 interface Match {
   id: string;
@@ -173,10 +174,14 @@ const BracketView = () => {
     }
   }, [mapVetoOpen]);
 
+  const handleManageBracket = () => {
+    console.log("Manage Bracket Clicked");
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        <Header />
+        {/* Global Header is handled at App/root level, no need to render <Header /> here */}
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
             <p className="text-white text-lg">Loading bracket...</p>
@@ -189,7 +194,6 @@ const BracketView = () => {
   if (!tournament) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        <Header />
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
             <p className="text-white text-lg">Tournament not found</p>
@@ -204,33 +208,18 @@ const BracketView = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      <Header />
-      
       <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-white mb-2">{tournament.name} - Bracket</h1>
-            <p className="text-slate-400">Tournament bracket and match results</p>
-            <div className="flex items-center gap-4 mt-2">
-              <Badge variant="outline" className="border-slate-600 text-slate-300">
-                {tournament.bracket_type.replace('_', ' ')}
-              </Badge>
-              <Badge variant="outline" className="border-slate-600 text-slate-300">
-                {tournament.match_format}
-              </Badge>
-              <Badge variant="outline" className="border-slate-600 text-slate-300">
-                {tournament.max_teams} Teams Max
-              </Badge>
-            </div>
-          </div>
-          
-          {isAdmin && (
-            <Button className="bg-red-600 hover:bg-red-700 text-white">
-              <Settings className="w-4 h-4 mr-2" />
-              Manage Bracket
-            </Button>
-          )}
-        </div>
+        {/* Use new BracketHeader */}
+        <BracketHeader
+          name={tournament.name}
+          bracketType={tournament.bracket_type}
+          matchFormat={tournament.match_format}
+          maxTeams={tournament.max_teams}
+          status={tournament.status}
+          onBack={() => window.history.length > 2 ? window.history.back() : window.location.assign("/tournaments")}
+          isAdmin={isAdmin}
+          onManageBracket={handleManageBracket}
+        />
 
         <div className="space-y-8">
           {/* Bracket Grid */}
