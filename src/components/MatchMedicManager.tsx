@@ -58,6 +58,12 @@ function parseTournamentInfo(obj: any): TournamentInfo | null {
     : null;
 }
 
+// Parse match status safely for enum
+function parseStatus(s: any): "completed" | "pending" | "live" {
+  if (s === "completed" || s === "pending" || s === "live") return s;
+  return "pending";
+}
+
 export default function MatchMedicManager() {
   const [matches, setMatches] = useState<MatchInfo[]>([]);
   const [loading, setLoading] = useState(false);
