@@ -356,6 +356,23 @@ export default function VetoMedicManager() {
     }
   }
 
+  // --- Start: Helper for progress steps calculation (B/E alignment, canonical logic) ---
+  function getCanonicalProgressStats(session: VetoSessionWithDetails, allActions: any[], allMaps: any[]) {
+    const team1Id = session.match?.team1?.id || null;
+    const team2Id = session.match?.team2?.id || null;
+    if (!team1Id || !team2Id || allMaps.length < 2) return { completed: 0, total: allMaps.length };
+    const vetoFlow = generateBO1VetoFlow({
+      homeTeamId: session.home_team_id!,
+      awayTeamId: session.away_team_id!,
+      maps: allMaps.map((m: any) => ({ id: m.id, name: m.display_name || m.name })),
+    });
+    // Only count ban/pick steps for step progress
+    const total = vetoFlow.filter(s => s.action === "ban" || s.action === "pick").length;
+    const completed = (allActions || []).filter((a: any) => a.action === "ban" || a.action === "pick").length;
+    return { completed, total };
+  }
+  // --- End: Helper ---
+
   return (
     <>
       <Card className="bg-slate-800 border-slate-700">
@@ -490,7 +507,7 @@ export default function VetoMedicManager() {
                           <span className="text-blue-400">Completed: {new Date(session.completed_at).toLocaleString()}</span>
                         )}
                       </div>
-                      {/* Canonical veto action log (not audit log) */}
+                      {/* Canonical veto action log (history, point C/F) */}
                       <div className="bg-slate-800 border border-slate-700 mt-2 mb-1 rounded-lg p-2 max-w-xl">
                         <div className="font-semibold text-sm text-yellow-200 mb-1">Veto Action History</div>
                         <ol className="space-y-1">
@@ -512,6 +529,7 @@ export default function VetoMedicManager() {
                                   {act.action.toUpperCase()}
                                 </span>
                                 <span className="text-white font-medium">{act.maps?.display_name || "??"}</span>
+                                {/* Show side_choice badge if pick and available */}
                                 {act.action === "pick" && act.side_choice && (
                                   <span className={
                                     act.side_choice === "attack"
