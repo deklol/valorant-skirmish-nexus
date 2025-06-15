@@ -247,14 +247,23 @@ const TournamentDetail = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {sortedTeams.map((team) => (
-                  <div key={team.id} className="bg-slate-900 border border-slate-700 p-4 rounded-xl shadow flex flex-col">
-                    <div className="flex items-center mb-3 gap-2">
+                  <div
+                    key={team.id}
+                    className="bg-slate-900 border border-slate-700 p-4 rounded-xl shadow flex flex-col"
+                  >
+                    <div className="flex items-center mb-2 gap-2">
                       <span className="font-bold text-lg text-white">{team.name}</span>
                       {team.team_members?.some(m => m.is_captain) && (
                         <span title="Captain">
                           <Crown className="w-5 h-5 text-yellow-400" />
                         </span>
                       )}
+                    </div>
+                    {/* --- Show Team Weight --- */}
+                    <div className="flex items-center gap-2 mb-2">
+                      <Badge className="bg-purple-700/30 border-purple-500 text-purple-200 font-semibold text-xs">
+                        Team Weight: {team.total_rank_points ?? 0}
+                      </Badge>
                     </div>
                     <div className="flex flex-col gap-2 mt-1">
                       {team.team_members && team.team_members.length > 0 ? (
@@ -322,7 +331,15 @@ const TournamentDetail = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
       <div className="container mx-auto px-4 py-8 space-y-8">
-        {/* Tournament Header */}
+        {/* === 1. Tournament Winner Display - Move to Top === */}
+        {tournament.status === 'completed' && (
+          <TournamentWinnerDisplay
+            tournamentId={tournament.id}
+            tournamentStatus={tournament.status}
+          />
+        )}
+
+        {/* === 2. Tournament Header === */}
         <Card className="bg-slate-800/90 border-slate-700">
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -359,17 +376,9 @@ const TournamentDetail = () => {
           </CardContent>
         </Card>
 
-        {/* --- New Teams & Players Section here --- */}
+        {/* --- Teams & Participants Section --- */}
         {renderTeamsPanel()}
         {/* --- End new section --- */}
-
-        {/* Tournament Winner Display - Show for completed tournaments */}
-        {tournament.status === 'completed' && (
-          <TournamentWinnerDisplay 
-            tournamentId={tournament.id}
-            tournamentStatus={tournament.status}
-          />
-        )}
 
         {/* Registration Component - Available to all users */}
         {tournament.status === 'open' && (
