@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
-import { processMatchResults } from "@/components/EnhancedMatchResultsProcessor";
+import { processMatchResults } from "@/components/MatchResultsProcessor";
 
 interface Match {
   id: string;
@@ -88,19 +88,25 @@ const ScoreReporting = ({ match, onScoreSubmitted }: ScoreReportingProps) => {
         if (matchError) throw matchError;
 
         if (winnerId && loserId && match.tournament_id) {
-          await processMatchResults({
-            matchId: match.id,
-            winnerId,
-            loserId,
-            tournamentId: match.tournament_id,
-            onComplete: () => {
-              console.log('Tournament progression completed');
+          await processMatchResults(
+            {
+              matchId: match.id,
+              winnerId,
+              loserId,
+              tournamentId: match.tournament_id,
+              scoreTeam1: score1,
+              scoreTeam2: score2,
+              onComplete: () => {
+                console.log('Tournament progression completed');
+              },
             },
-            toast,
-            notifyMatchComplete: notifications.notifyMatchComplete,
-            notifyTournamentWinner: notifications.notifyTournamentWinner,
-            notifyMatchReady: notifications.notifyMatchReady,
-          });
+            {
+              toast,
+              notifyMatchComplete: notifications.notifyMatchComplete,
+              notifyTournamentWinner: notifications.notifyTournamentWinner,
+              notifyMatchReady: notifications.notifyMatchReady,
+            }
+          );
         }
 
         toast({
