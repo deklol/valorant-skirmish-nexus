@@ -22,6 +22,7 @@ export interface Tournament {
   check_in_ends_at: string | null;
   max_teams: number;
   max_players: number;
+  team_size: number; // <-- Added this line
   prize_pool: string | null;
   status: "draft" | "open" | "balancing" | "live" | "completed" | "archived";
   match_format: "BO1" | "BO3" | "BO5" | null;
