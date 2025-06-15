@@ -9,6 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 import MapPickerDialog from "./MapPickerDialog";
 import VetoMedicHistory from "./VetoMedicHistory";
 import { generateBO1VetoFlow } from "./map-veto/vetoFlowBO1";
+import { checkVetoSessionHealth } from "./map-veto/vetoHealthUtils";
+import { AlertCircle, ShieldCheck, RotateCcw } from "lucide-react";
 
 // --- Enhanced interfaces for defensive types ---
 interface TeamInfo {
@@ -58,6 +60,8 @@ export default function VetoMedicManager() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
   const { toast } = useToast();
+  const [healthCheckResults, setHealthCheckResults] = useState<Record<string, any>>({});
+  const [healthLoadingId, setHealthLoadingId] = useState<string | null>(null);
 
   // Fetch ALL veto sessions (not limited to pending/in_progress!)
   const fetchSessions = useCallback(async () => {
@@ -456,6 +460,95 @@ export default function VetoMedicManager() {
                 // Step label: bans+picks (canonical)
                 const vetoProgressLabel = `${progressActions.length}/${vetoFlowSteps.filter(s => s.action !== 'side_pick').length || totalSteps}`;
 
+                // Insert health check handler (per session)
+                const onHealthCheck = async () => {
+                  setHealthLoadingId(session.id);
+                  // Assume actions fetched
+                  const result = await checkVetoSessionHealth({
+                    session,
+                    actions,
+                    maps,
+                  });
+                  setHealthCheckResults(r => ({...r, [session.id]: result}));
+                  setHealthLoadingId(null);
+                  if (result.healthy) {
+                    toast({ title: "Health Check", description: "No problems found!" });
+                  } else {
+                    toast({
+                      title: "Healthcheck Problems",
+                      description: result.warnings.join(" | "),
+                      variant: "destructive",
+                    });
+                  }
+                };
+
+                // Auto-recovery attempt (fix order/gaps)
+                const onAutoRecover = async () => {
+                  setActionSessionId(session.id);
+                  try {
+                    // Try to re-number all order_numbers in actions
+                    let changed = false;
+                    for (let i = 0; i < actions.length; i++) {
+                      if (actions[i].order_number !== i+1) {
+                        await supabase
+                          .from("map_veto_actions")
+                          .update({ order_number: i+1 })
+                          .eq("id", actions[i].id);
+                        changed = true;
+                      }
+                    }
+                    // Remove duplicate map actions (keep earliest)
+                    const seen: Record<string, boolean> = {};
+                    for (let i = 0; i < actions.length; i++) {
+                      const mapId = actions[i].map_id;
+                      if (mapId && seen[mapId]) {
+                        // Remove this action (log which)
+                        await supabase
+                          .from("map_veto_actions")
+                          .delete()
+                          .eq("id", actions[i].id);
+                        changed = true;
+                        console.log("[AUTORECOVER]", `Removed duplicate veto action: ${actions[i].id}`);
+                      } else if (mapId) {
+                        seen[mapId] = true;
+                      }
+                    }
+                    fetchVetoActions(session.id);
+                    toast({ title: "Auto-recovery complete", description: changed ? "One or more fixes applied." : "Nothing to recover." });
+                  } catch (err: any) {
+                    toast({
+                      title: "Recovery Error",
+                      description: err.message || "Failed to auto-recover.",
+                      variant: "destructive"
+                    });
+                  } finally {
+                    setActionSessionId(null);
+                  }
+                };
+
+                // Enhanced rollback with logging
+                const handleRollbackLast = async (sessionId: string) => {
+                  setActionSessionId(sessionId);
+                  try {
+                    const actions = actionsBySession[sessionId] || [];
+                    if (!actions.length) throw new Error("No veto actions to rollback");
+                    const last = actions[actions.length - 1];
+                    await supabase
+                      .from("map_veto_actions")
+                      .delete()
+                      .eq("id", last.id);
+                    toast({ title: "Rolled Back", description: `Action #${last.order_number}: ${last.action} on ${last.maps?.display_name || last.map_id || "?"}` });
+                    console.log("[VETO ROLLBACK]", last);
+                    await fetchVetoActions(sessionId);
+                    fetchSessions();
+                  } catch (err: any) {
+                    toast({ title: "Error", description: err.message, variant: "destructive" });
+                  } finally {
+                    setActionSessionId(null);
+                  }
+                };
+
+                // ... keep code for session row rendering, but ADD new buttons and logs ...
                 return (
                   <div
                     key={session.id}
@@ -550,6 +643,42 @@ export default function VetoMedicManager() {
                       </div>
                     </div>
                     <div className="flex flex-col gap-2 items-end justify-end mt-2 md:mt-0">
+                      {/* HEALTH CHECK BUTTON */}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-cyan-500/40 text-cyan-300"
+                        onClick={onHealthCheck}
+                        disabled={!!actionSessionId || healthLoadingId === session.id}
+                      >
+                        <ShieldCheck className="w-4 h-4 mr-1" />
+                        {healthLoadingId === session.id ? "Checking..." : "Health Check"}
+                      </Button>
+                      {/* AUTO-RECOVERY (only if current health issue is fixable) */}
+                      {healthCheckResults[session.id]?.fixable && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-green-600/40 text-green-400"
+                          onClick={onAutoRecover}
+                          disabled={!!actionSessionId}
+                        >
+                          <RotateCcw className="w-4 h-4 mr-1" />
+                          Attempt Auto-Recover
+                        </Button>
+                      )}
+
+                      {/* ENHANCED ROLLBACK */}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-yellow-500/40 text-yellow-400"
+                        onClick={() => handleRollbackLast(session.id)}
+                        disabled={!!actionSessionId}
+                      >
+                        <AlertCircle className="w-4 h-4 mr-1" />
+                        Rollback Last Action
+                      </Button>
                       <Button
                         size="sm"
                         variant="outline"
@@ -569,6 +698,24 @@ export default function VetoMedicManager() {
                         <CheckCircle2 className="w-4 h-4 mr-1" /> Force Complete
                       </Button>
                     </div>
+                    {/* Show health results */}
+                    {healthCheckResults[session.id] && (
+                      <div className="bg-slate-700/30 text-xs text-cyan-200 p-2 rounded mt-2 max-w-xl">
+                        <b>Session Health:</b> {healthCheckResults[session.id].healthy ? "OK" : "Issues Detected"}
+                        {healthCheckResults[session.id].warnings.length > 0 && (
+                          <ul className="mt-1 list-disc ml-4">
+                            {healthCheckResults[session.id].warnings.map((w: string, i: number) => (
+                              <li key={i}>{w}</li>
+                            ))}
+                          </ul>
+                        )}
+                        {healthCheckResults[session.id].fixable && (
+                          <div className="mt-1 text-green-300">
+                            Auto-recovery is available for this session.
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )
               })}
@@ -587,5 +734,3 @@ export default function VetoMedicManager() {
     </>
   );
 }
-
-// NOTE: This file is now 470+ lines. It is getting too long and should be refactored into smaller components, matching the structure of MatchMedicManager and other admin tools.
