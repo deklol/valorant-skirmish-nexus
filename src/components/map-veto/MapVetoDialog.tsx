@@ -208,17 +208,21 @@ const MapVetoDialog = ({
     },
     checkPermissions: () => {
       const result = explainPermissions();
-      const reason = typeof result === "string" ? result : result.reason ?? "You are not allowed to perform this action";
-      if (reason) console.error("VETO | PERMISSION DENIED", {
-        userTeamId,
-        currentTurnTeamId,
-        isUserCaptain,
-        teamSize,
-        team1Id,
-        team2Id,
-        reason,
-      });
-      return reason;
+      // Only return an error if ok: false
+      if (typeof result === "string") return result;
+      if (result && result.ok === false) {
+        console.error("VETO | PERMISSION DENIED", {
+          userTeamId,
+          currentTurnTeamId,
+          isUserCaptain,
+          teamSize,
+          team1Id,
+          team2Id,
+          reason: result.reason,
+        });
+        return result.reason ?? "You are not allowed to perform this action";
+      }
+      return null; // Permission is OK
     },
     setLoading,
     toast,
