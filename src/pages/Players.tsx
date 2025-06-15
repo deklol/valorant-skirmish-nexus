@@ -129,8 +129,8 @@ const Players = () => {
                       <div className="text-slate-400 text-xs">Ranked RR</div>
                     </div>
                     <div className="text-center p-2 bg-slate-700/50 rounded">
-                      <div className="font-bold text-green-400">{player.tournaments_won || 0}</div>
-                      <div className="text-slate-400 text-xs">Tournaments</div>
+                      <div className="font-bold text-yellow-400">{player.tournaments_won || 0}</div>
+                      <div className="text-yellow-400 text-xs">Tournaments Won</div>
                     </div>
                     <div className="text-center p-2 bg-slate-700/50 rounded">
                       <div className="font-bold text-blue-400">{calculateWinRate(player.wins || 0, player.losses || 0)}%</div>
