@@ -29,11 +29,13 @@ interface MatchInfo {
 
 interface VetoSession {
   id: string;
+  match_id: string | null;  // <-- Add this
   match: MatchInfo | null;
   status: string | null;
   current_turn_team_id: string | null;
   started_at: string | null;
   completed_at: string | null;
+  // ... Add any other session-level fields if needed ...
 }
 
 type VetoSessionWithDetails = VetoSession;
@@ -73,10 +75,10 @@ export default function VetoMedicManager() {
       toast({ title: "Error", description: error.message, variant: "destructive" });
       setSessions([]);
     } else {
-      // Defensive: ensure correct type
       setSessions(
         (data || []).map((session: any) => ({
           ...session,
+          match_id: session.match_id ?? null, // <-- Defensive mapping
           match: session.match
             ? {
                 ...session.match,
