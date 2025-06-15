@@ -75,6 +75,7 @@ export default function TournamentMedicManager() {
             check_in_ends_at: t.check_in_ends_at ?? null,
             max_teams: t.max_teams ?? 0,
             max_players: t.max_players ?? 0,
+            team_size: t.team_size ?? 5, // FIX: Ensure team_size is always defined
             prize_pool: t.prize_pool ?? null,
             status: t.status,
             match_format: t.match_format ?? "BO1",
