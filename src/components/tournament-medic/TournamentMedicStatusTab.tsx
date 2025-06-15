@@ -2,32 +2,14 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShieldAlert, Calendar } from "lucide-react";
-import ComprehensiveTournamentEditor from "@/components/ComprehensiveTournamentEditor";
+import ComprehensiveTournamentEditor, {
+  Tournament as ComprehensiveTournamentType,
+} from "@/components/ComprehensiveTournamentEditor";
 import TournamentStatusManager from "@/components/TournamentStatusManager";
 import MedicTournamentTimeline from "./MedicTournamentTimeline";
 
-// EXTEND Tournament type to match app usage
-type Tournament = {
-  id: string;
-  name: string;
-  description?: string | null;
-  status: string;
-  match_format: string | null;
-  team_size: number | null;
-  max_teams: number | null;
-  max_players: number | null;
-  prize_pool: string | null;
-  start_time: string | null;
-  created_at: string | null;
-  registration_opens_at?: string | null;
-  registration_closes_at?: string | null;
-  check_in_starts_at?: string | null;
-  check_in_ends_at?: string | null;
-  check_in_required?: boolean | null;
-  enable_map_veto?: boolean | null;
-  bracket_type?: string | null; // <-- Add this line
-  // Add any additional keys as needed, safe for partial typing.
-};
+// Use the Tournament type from ComprehensiveTournamentEditor
+type Tournament = ComprehensiveTournamentType;
 
 export default function TournamentMedicStatusTab({
   tournament,
