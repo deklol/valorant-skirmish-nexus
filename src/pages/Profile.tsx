@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +18,7 @@ import RankHistory from "@/components/RankHistory";
 import ProfileMatchHistory from '@/components/profile/ProfileMatchHistory';
 import ProfileTournamentHistory from '@/components/profile/ProfileTournamentHistory';
 import ProfileRankHistory from '@/components/profile/ProfileRankHistory';
+import { getTrackerGGUrl } from "@/utils/getTrackerGGUrl";
 
 interface UserProfile {
   id: string;
@@ -263,28 +263,42 @@ const Profile = () => {
                 </div>
               </div>
             </div>
-            
-            {/* Social Links */}
-            <div className="flex gap-2">
-              {profile.twitter_handle && (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => window.open(`https://twitter.com/${profile.twitter_handle}`, '_blank')}
-                  className="border-slate-600 text-slate-300"
-                >
-                  <Twitter className="w-4 h-4" />
-                </Button>
-              )}
-              {profile.twitch_handle && (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => window.open(`https://twitch.tv/${profile.twitch_handle}`, '_blank')}
-                  className="border-slate-600 text-slate-300"
-                >
-                  <Twitch className="w-4 h-4" />
-                </Button>
+            {/* Profile Links List: Twitter, Twitch, Tracker.gg */}
+            <div>
+              {(profile.twitter_handle || profile.twitch_handle || profile.riot_id) && (
+                <div className="flex flex-col items-end gap-0.5 text-sm">
+                  <span className="text-slate-400 font-semibold mb-1">Links</span>
+                  {profile.twitter_handle && (
+                    <a
+                      href={`https://twitter.com/${profile.twitter_handle.replace(/^@/, '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:underline text-blue-400"
+                    >
+                      Twitter
+                    </a>
+                  )}
+                  {profile.twitch_handle && (
+                    <a
+                      href={`https://twitch.tv/${profile.twitch_handle}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:underline text-purple-400"
+                    >
+                      Twitch
+                    </a>
+                  )}
+                  {profile.riot_id && (
+                    <a
+                      href={getTrackerGGUrl(profile.riot_id) || "#"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:underline text-red-400"
+                    >
+                      Tracker.gg
+                    </a>
+                  )}
+                </div>
               )}
             </div>
           </div>
