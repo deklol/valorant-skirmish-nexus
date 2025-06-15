@@ -4,7 +4,7 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Users, Shuffle, Save, Plus, GripVertical } from "lucide-react";
+import { AlertTriangle, Users, Shuffle, Save, Plus, GripVertical, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { getRankPoints, calculateTeamBalance } from "@/utils/rankingSystem";
@@ -149,6 +149,7 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [creatingTeams, setCreatingTeams] = useState(false);
+  const [autobalancing, setAutobalancing] = useState(false);
   const { toast } = useToast();
   const notifications = useEnhancedNotifications();
   const [tournamentName, setTournamentName] = useState<string>("");
@@ -443,6 +444,80 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
     );
   };
 
+  // 🧠 Autobalance Algorithm (snake draft, fair suggestion)
+  function autobalanceUnassignedPlayers() {
+    setAutobalancing(true);
+    try {
+      // Copy teams and unassigned
+      const teamsCopy = [...teams].map(team => ({ ...team, members: [...team.members] }));
+      let unassignedCopy = [...unassignedPlayers];
+
+      // Sort unassigned players by weight_rating DESC
+      unassignedCopy.sort((a, b) => b.weight_rating - a.weight_rating);
+
+      // Get all teams, sorted by current totalWeight ASC, to balance
+      const sortingKeyTeams = () => teamsCopy
+        .map(team => ({ ...team }))
+        .sort((a, b) => a.totalWeight - b.totalWeight);
+
+      let direction = 1;
+      let teamIndexes = Array.from({ length: teamsCopy.length }, (_, i) => i);
+
+      while (unassignedCopy.length > 0) {
+        const sortedTeams = sortingKeyTeams();
+
+        // If direction is -1, reverse allocation order ("snake" back)
+        if (direction === -1) {
+          sortedTeams.reverse();
+        }
+
+        let assignedInRound = false;
+
+        for (let team of sortedTeams) {
+          if (unassignedCopy.length === 0) break;
+          if (team.members.length >= teamSize) continue;
+
+          // Remove from unassigned and add to team
+          const player = unassignedCopy.shift();
+          if (!player) continue;
+          team.members.push(player);
+          team.totalWeight = (team.totalWeight || 0) + player.weight_rating;
+          assignedInRound = true;
+        }
+
+        // Place modified members back to correct teamsCopy
+        for (let team of sortedTeams) {
+          let idx = teamsCopy.findIndex(t => t.id === team.id);
+          if (idx !== -1) {
+            teamsCopy[idx] = team;
+          }
+        }
+
+        // Reverse direction for snake-draft style
+        direction *= -1;
+
+        // Exit if there were no assignments in a round
+        if (!assignedInRound) break;
+      }
+
+      // Remove autobalanced players from unassigned (show as assigned in UI)
+      setUnassignedPlayers([]);
+      setTeams(teamsCopy);
+
+      toast({
+        title: "Suggestion Complete",
+        description: "Players have been distributed to teams as fairly as possible. Review before saving.",
+      });
+    } catch (e) {
+      toast({
+        title: "Autobalance Error",
+        description: "Something went wrong during autobalance.",
+        variant: "destructive",
+      });
+    }
+    setAutobalancing(false);
+  }
+
   // Helper to generate team name based on captain for use in saveTeamChanges
   function getCaptainBasedTeamName(members: Player[], fallback: string = "Team Unknown") {
     if (members.length === 0) return fallback;
@@ -629,6 +704,18 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
             )}
 
             <div className="flex gap-2">
+              {/* 🟨 Autobalance Button Start */}
+              <Button
+                onClick={autobalanceUnassignedPlayers}
+                disabled={autobalancing || hasPlaceholderTeams || unassignedPlayers.length === 0}
+                variant="secondary"
+                className="bg-yellow-600 hover:bg-yellow-700 text-white"
+              >
+                <Zap className="w-4 h-4 mr-2" />
+                {autobalancing ? "Suggesting..." : "Autobalance"}
+              </Button>
+              {/* 🟨 Autobalance Button End */}
+              
               {hasPlaceholderTeams && (
                 <Button
                   onClick={createEmptyTeams}
