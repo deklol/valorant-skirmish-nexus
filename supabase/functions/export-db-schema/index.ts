@@ -1,10 +1,10 @@
-
 /**
   Export full database schema as SQL (including RLS, types, policies, functions, triggers, etc).
   This edge function returns a SQL dump matching the running schema for reproducible setup.
   Called from the admin SchemaExportButton in the UI.
 */
 
+import { corsHeaders } from "../_shared/cors.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 async function exportFullSchema() {
@@ -133,19 +133,27 @@ async function exportFullSchema() {
 }
 
 serve(async (req: Request) => {
+  // Handle CORS preflight requests
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
   const { mode } = await req.json().catch(() => ({ mode: "basic" }));
   // Only allow full schema dump if mode === "full"
   if (mode !== "full") {
-    return new Response(JSON.stringify({ error: "Unsupported mode" }), { status: 400 });
+    return new Response(JSON.stringify({ error: "Unsupported mode" }), { status: 400, headers: corsHeaders });
   }
 
   try {
     const sql_schema = await exportFullSchema();
     return new Response(JSON.stringify({ sql_schema }), {
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...corsHeaders },
       status: 200,
     });
   } catch (e) {
-    return new Response(JSON.stringify({ error: String(e) }), { status: 500 });
+    return new Response(JSON.stringify({ error: String(e) }), {
+      status: 500,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
   }
 });
