@@ -33,7 +33,6 @@ const VetoMedicHistory: React.FC<VetoMedicHistoryProps> = ({
   };
 
   if (!actions.length && !expanded) {
-    // Don't show the expand link until the history is loaded
     return (
       <button
         className="text-xs text-slate-400 hover:underline mt-1"
@@ -74,7 +73,7 @@ const VetoMedicHistory: React.FC<VetoMedicHistoryProps> = ({
             <TableBody>
               {actions.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-muted-foreground">No actions yet.</TableCell>
+                  <TableCell colSpan={6} className="text-muted-foreground">No actions yet.</TableCell>
                 </TableRow>
               ) : actions.map((action, i) => (
                 <TableRow key={action.id}>
@@ -90,7 +89,11 @@ const VetoMedicHistory: React.FC<VetoMedicHistoryProps> = ({
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <span className="font-mono">{action.map_id?.slice?.(0, 8) || "?"}...</span>
+                    {/* Prefer map_display_name from audit_logs, fallback to map_id */}
+                    {action.map_display_name
+                      ? <span className="font-medium text-white">{action.map_display_name}</span>
+                      : <span className="font-mono">{action.map_id?.slice?.(0, 8) || "?"}...</span>
+                    }
                   </TableCell>
                   <TableCell>
                     <span className="font-mono">{action.team_id?.slice?.(0, 8) || "-"}</span>

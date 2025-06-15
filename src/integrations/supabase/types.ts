@@ -95,6 +95,7 @@ export type Database = {
           created_at: string | null
           id: string
           ip_address: unknown | null
+          map_display_name: string | null
           new_values: Json | null
           old_values: Json | null
           record_id: string | null
@@ -107,6 +108,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           ip_address?: unknown | null
+          map_display_name?: string | null
           new_values?: Json | null
           old_values?: Json | null
           record_id?: string | null
@@ -119,6 +121,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           ip_address?: unknown | null
+          map_display_name?: string | null
           new_values?: Json | null
           old_values?: Json | null
           record_id?: string | null
