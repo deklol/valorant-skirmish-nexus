@@ -1,4 +1,3 @@
-
 // SINGLE authoritatve result processor for matches & bracket progression (atomic & robust)
 // This must be used by all admin overrides, user result submissions, and auto-tournament logic!
 
@@ -211,7 +210,6 @@ async function completeTournament(tournamentId: string, winnerTeamId: string) {
       .from('tournaments')
       .update({
         status: 'completed',
-        end_time: new Date().toISOString(),
       })
       .eq('id', tournamentId);
 

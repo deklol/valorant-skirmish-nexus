@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,8 +55,6 @@ const TournamentStatusManager = ({ tournamentId, currentStatus, onStatusChange }
       // Add timestamps for certain status changes
       if (newStatus === 'live') {
         updateData.start_time = new Date().toISOString();
-      } else if (newStatus === 'completed') {
-        updateData.end_time = new Date().toISOString();
       }
 
       const { error } = await supabase
@@ -146,8 +143,6 @@ const TournamentStatusManager = ({ tournamentId, currentStatus, onStatusChange }
 
       if (status === 'live') {
         updateData.start_time = new Date().toISOString();
-      } else if (status === 'completed') {
-        updateData.end_time = new Date().toISOString();
       }
 
       const { error } = await supabase
