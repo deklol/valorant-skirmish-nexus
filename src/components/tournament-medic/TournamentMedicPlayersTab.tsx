@@ -1,10 +1,10 @@
-
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
+// Use a central Tournament and Player type
 type Player = {
   id: string;
   discord_username: string | null;
@@ -13,7 +13,9 @@ type Player = {
 };
 type Tournament = { id: string };
 
+// -- Logic (same as before) --
 function useTournamentPlayers(tournamentId: string) {
+  // ... keep existing code (useTournamentPlayers) the same ...
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -77,7 +79,7 @@ function UserSearchBox({ onSelect, hideIfSelectedId }: {
         className="max-w-xs"
         onKeyDown={e => { if (e.key === "Enter") handleSearch(); }}
       />
-      <Button size="xs" className="w-fit" onClick={handleSearch} disabled={loading || !query}>
+      <Button size="sm" className="w-fit" onClick={handleSearch} disabled={loading || !query}>
         Search
       </Button>
       <div className="flex flex-col gap-1 mt-1 max-h-32 overflow-y-auto">
@@ -86,7 +88,7 @@ function UserSearchBox({ onSelect, hideIfSelectedId }: {
             <span className="font-mono">{u.discord_username || "No Discord"}</span>
             <span className="opacity-50">{u.riot_id || "No Riot"}</span>
             <Button
-              size="xs"
+              size="sm"
               onClick={() => { onSelect(u); setResults([]); setQuery(""); }}
             >Select</Button>
           </div>

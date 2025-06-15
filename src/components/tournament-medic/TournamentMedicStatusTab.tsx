@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,11 +6,18 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 // Only allow known statuses for newStatus
-type TournamentStatus = "draft" | "open" | "balancing" | "live" | "completed" | "archived";
+type TournamentStatus =
+  | "draft"
+  | "open"
+  | "balancing"
+  | "live"
+  | "completed"
+  | "archived";
+
 type Tournament = {
   id: string;
   name: string;
-  status: TournamentStatus;
+  status: string;
   registration_closes_at?: string | null;
   start_time?: string | null;
 };
@@ -21,7 +27,7 @@ export default function TournamentMedicStatusTab({ tournament, onUpdate, onRefre
   onUpdate: (t: Partial<Tournament>) => void;
   onRefresh: () => void;
 }) {
-  const [newStatus, setNewStatus] = useState<TournamentStatus>(tournament.status);
+  const [newStatus, setNewStatus] = useState<TournamentStatus>(tournament.status as TournamentStatus);
   const [loading, setLoading] = useState(false);
 
   const statusOptions: TournamentStatus[] = [

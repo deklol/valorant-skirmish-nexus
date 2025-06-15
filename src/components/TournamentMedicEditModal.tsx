@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +9,7 @@ import TournamentMedicTeamsTab from "./tournament-medic/TournamentMedicTeamsTab"
 import TournamentMedicBracketTab from "./tournament-medic/TournamentMedicBracketTab";
 import TournamentMedicToolsTab from "./tournament-medic/TournamentMedicToolsTab";
 
+// Change Tournament type to match other files (status: string)
 type Tournament = {
   id: string;
   name: string;
