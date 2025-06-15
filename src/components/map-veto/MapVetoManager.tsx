@@ -9,7 +9,6 @@ import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect, useRef, useCallback } from "react";
 import MapVetoDialog from "./MapVetoDialog";
-import { useMapVetoSessionRealtime } from "@/hooks/useMapVetoRealtime";
 import ErrorBoundary from "../ErrorBoundary";
 import RollDiceButton from "./RollDiceButton";
 
@@ -128,14 +127,6 @@ const MapVetoManager = ({
   // Always call useMapVetoSessionRealtime to obey React Rules of Hooks
   // Pass a stable callback that only triggers session fetch, not state change chain
   // This is the ONLY real-time session subscription for this veto session!
-  useMapVetoSessionRealtime(
-    vetoSession?.id ? vetoSession.id : null,
-    useCallback((payload) => {
-      // Only fetch session data, do NOT directly setVetoSession here
-      console.log("[MapVetoManager] Realtime update for session, refetching...");
-      checkVetoSession(); // this will update session once, no state recursion
-    }, [checkVetoSession])
-  );
 
   const isMapVetoAvailable = () => {
     // Defensive: ensure settings are loaded
