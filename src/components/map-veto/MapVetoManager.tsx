@@ -201,7 +201,7 @@ const MapVetoManager = ({
 
     setLoading(true);
     try {
-      // 1. Check if a 'pending' session already exists for this match
+      // --- Fix: Always use home_team_id for turn (if assigned)
       const { data: existingSession, error: existingSessionErr } = await supabase
         .from('map_veto_sessions')
         .select('*')
@@ -211,15 +211,37 @@ const MapVetoManager = ({
 
       let session = null;
 
-      // Use home_team_id as first turn if present, otherwise team1Id.
+      // Fetch latest (in case of recent dice roll assignment)
+      let rollHomeId = null;
+      if (existingSession && existingSession.home_team_id) {
+        rollHomeId = existingSession.home_team_id;
+      }
+      // (If not, check active dice roll)
+      if (!rollHomeId) {
+        // attempt to get the most current session state for home_team_id
+        const { data: freshSession } = existingSession && !existingSessionErr
+          ? { data: existingSession }
+          : await supabase
+              .from('map_veto_sessions')
+              .select('*')
+              .eq('match_id', matchId)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+        if (freshSession && freshSession.home_team_id) {
+          rollHomeId = freshSession.home_team_id;
+        }
+      }
+      // 1. Resume/pickup existing PENDING session, or create new
       if (existingSession && !existingSessionErr) {
-        // If a dice roll has already happened, set turn to home_team_id
-        const homeId = existingSession.home_team_id || team1Id;
+        const turnTeamId =
+          rollHomeId ||
+          (team1Id ?? null); // fallback if dice not rolled yet
         const { data: updated, error: updateErr } = await supabase
           .from('map_veto_sessions')
           .update({
             status: 'in_progress',
-            current_turn_team_id: homeId,
+            current_turn_team_id: turnTeamId,
             started_at: new Date().toISOString(),
             completed_at: null,
           })
@@ -230,14 +252,12 @@ const MapVetoManager = ({
         if (updateErr) throw updateErr;
         session = updated;
       } else {
-        // Fetch home_team_id by checking if a dice roll record exists for this match's session
-        // There will be no home_team_id yet, so fallback to team1Id for new sessions only
-        const homeId = null; // New sessions never have home_team_id (dice not rolled yet)
+        // Start NEW session – just use team1Id until dice is rolled, will be reassigned after roll
         const { data: inserted, error: insertErr } = await supabase
           .from('map_veto_sessions')
           .insert({
             match_id: matchId,
-            // current_turn_team_id is set to team1Id because there's no home_team_id (dice not yet rolled)
+            // always safe: initially assign to team1Id, replaced by home_team_id after dice roll
             current_turn_team_id: team1Id,
             status: 'in_progress',
             started_at: new Date().toISOString(),
