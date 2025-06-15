@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Settings, Play, Square, Archive, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { completeTournament } from "@/utils/completeTournament";
 
 interface TournamentStatusManagerProps {
   tournamentId: string;
@@ -46,30 +47,69 @@ const TournamentStatusManager = ({ tournamentId, currentStatus, onStatusChange }
 
   const updateTournamentStatus = async () => {
     if (newStatus === currentStatus) return;
-
     setLoading(true);
 
     try {
-      const updateData: any = { status: newStatus };
+      if (newStatus === 'completed') {
+        // ADMIN is manually completing the tournament
+        // Try to auto-detect the winner from the final match
+        const { data: matches, error: fetchMatchesError } = await supabase
+          .from('matches')
+          .select('id, winner_id, round_number, status')
+          .eq('tournament_id', tournamentId)
+          .order('round_number', { ascending: false });
 
-      // Add timestamps for certain status changes
-      if (newStatus === 'live') {
-        updateData.start_time = new Date().toISOString();
+        if (fetchMatchesError || !matches || matches.length === 0) {
+          throw new Error("Cannot fetch matches to determine winner");
+        }
+        // Get the highest round (final) and its winner
+        const highestRound = Math.max(...matches.map(m => m.round_number));
+        const finalMatch = matches.find(m => m.round_number === highestRound && m.status === 'completed');
+        const winnerId = finalMatch?.winner_id;
+
+        if (!winnerId) {
+          toast({
+            title: "Cannot Complete Tournament",
+            description: "No winner detected in the final match. Please finish the final match or mark a winner team.",
+            variant: "destructive"
+          });
+          setLoading(false);
+          return;
+        }
+
+        // Call the full logic
+        const result = await completeTournament(tournamentId, winnerId);
+        if (result) {
+          toast({
+            title: "Tournament Completed!",
+            description: "Tournament has been marked complete and stats have been updated."
+          });
+
+          onStatusChange();
+        } else {
+          throw new Error("Failed to fully complete tournament. Please check console for errors.");
+        }
+
+      } else {
+        // Standard status update (not completed)
+        const updateData: any = { status: newStatus };
+        if (newStatus === 'live') {
+          updateData.start_time = new Date().toISOString();
+        }
+        const { error } = await supabase
+          .from('tournaments')
+          .update(updateData)
+          .eq('id', tournamentId);
+
+        if (error) throw error;
+
+        toast({
+          title: "Status Updated",
+          description: `Tournament status changed to ${newStatus}`,
+        });
+
+        onStatusChange();
       }
-
-      const { error } = await supabase
-        .from('tournaments')
-        .update(updateData)
-        .eq('id', tournamentId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Status Updated",
-        description: `Tournament status changed to ${newStatus}`,
-      });
-
-      onStatusChange();
     } catch (error: any) {
       console.error('Error updating status:', error);
       toast({
