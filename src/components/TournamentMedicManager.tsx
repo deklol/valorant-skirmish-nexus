@@ -1,29 +1,54 @@
+
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Wrench, RefreshCw, Edit, ShieldAlert, Trophy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Wrench } from "lucide-react";
 
 type Tournament = {
   id: string;
   name: string;
   status: string;
+  match_format: string | null;
+  team_size: number | null;
+  max_teams: number | null;
+  max_players: number | null;
+  prize_pool: string | null;
+  start_time: string | null;
+  created_at: string | null;
 };
 
-const TournamentMedicManager = () => {
+const TOURNAMENT_STATUS: { key: string; label: string; color: string }[] = [
+  { key: "all", label: "All", color: "bg-slate-600" },
+  { key: "draft", label: "Draft", color: "bg-gray-500/40" },
+  { key: "open", label: "Open", color: "bg-green-500/30" },
+  { key: "balancing", label: "Balancing", color: "bg-yellow-500/30" },
+  { key: "live", label: "Live", color: "bg-red-500/30" },
+  { key: "completed", label: "Completed", color: "bg-blue-500/30" },
+  { key: "archived", label: "Archived", color: "bg-slate-500/30" },
+];
+
+export default function TournamentMedicManager() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
-  const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [editModal, setEditModal] = useState<Tournament | null>(null);
   const { toast } = useToast();
 
+  // Fetch tournaments (latest 50, for now)
   useEffect(() => {
-    const fetchTournaments = async () => {
+    async function fetchTournaments() {
+      setLoading(true);
       const { data, error } = await supabase
         .from("tournaments")
-        .select("id, name, status")
-        .order("created_at", { ascending: false });
+        .select("id, name, status, match_format, team_size, max_teams, max_players, prize_pool, start_time, created_at")
+        .order("created_at", { ascending: false })
+        .limit(50);
 
       if (error) {
         toast({ title: "Error", description: "Failed to fetch tournaments", variant: "destructive" });
@@ -31,75 +56,181 @@ const TournamentMedicManager = () => {
       } else {
         setTournaments(data || []);
       }
-    };
-    fetchTournaments();
-  }, [toast]);
-
-  const handleForceOpenRegistration = async () => {
-    if (!selectedTournamentId) return;
-    setLoading(true);
-    const { error } = await supabase
-      .from("tournaments")
-      .update({ status: "open" })
-      .eq("id", selectedTournamentId);
-
-    setLoading(false);
-    if (error) {
-      toast({ title: "Failed", description: "Could not force open registration", variant: "destructive" });
-    } else {
-      toast({ title: "Success", description: "Registration forcibly opened!" });
+      setLoading(false);
     }
+    fetchTournaments();
+    // eslint-disable-next-line
+  }, [refreshKey]);
+
+  // Filtering logic
+  const filteredTournaments = tournaments.filter(t => {
+    const statusMatch = filterStatus === "all" || t.status === filterStatus;
+    const searchMatch =
+      !search ||
+      (t.name && t.name.toLowerCase().includes(search.toLowerCase())) ||
+      t.id.toLowerCase().includes(search.toLowerCase());
+    return statusMatch && searchMatch;
+  });
+
+  // Utility functions
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "—";
+    return new Date(dateString).toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+  const getStatusBadge = (status: string) => {
+    const variant = TOURNAMENT_STATUS.find(s => s.key === status);
+    return (
+      <Badge className={variant?.color || "bg-slate-700/50"}>
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </Badge>
+    );
   };
 
-  const selectDisabled = tournaments.length === 0;
-
+  // Main render
   return (
-    <Card className="bg-slate-800 border-slate-700">
-      <CardHeader className="flex flex-row items-center gap-3">
-        <Wrench className="w-5 h-5 text-yellow-500" />
-        <CardTitle className="text-white text-lg">Tournament Medic (Emergency Tools)</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="mb-4">
-          <label className="text-slate-400 block mb-1">Select Tournament</label>
-          <Select
-            value={selectedTournamentId || ""}
-            onValueChange={setSelectedTournamentId}
-            disabled={selectDisabled}
-          >
-            <SelectTrigger className="w-full bg-slate-900 border-slate-700 text-white">
-              <SelectValue placeholder="Choose a tournament..." />
-            </SelectTrigger>
-            <SelectContent>
-              {tournaments.map((t) => (
-                <SelectItem key={t.id} value={t.id}>
-                  {t.name} ({t.status})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {selectDisabled && (
-            <div className="mt-2 text-sm text-slate-400">No tournaments found.</div>
-          )}
-        </div>
-
-        {selectedTournamentId && tournaments.length > 0 && (
-          <div className="space-y-3">
-            <Button
-              className="bg-yellow-600 hover:bg-yellow-700 text-white"
-              disabled={loading}
-              onClick={handleForceOpenRegistration}
-            >
-              Force Open Registration
-            </Button>
-            <div className="text-xs text-slate-400">
-              More emergency tools coming soon.
+    <>
+      <Card className="bg-slate-800 border-slate-700">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-white">
+            <Wrench className="w-5 h-5 text-yellow-500" />
+            Tournament Medic{" "}
+            <span className="text-xs text-yellow-400">(Emergency Tools)</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {/* Search, filter, refresh controls */}
+          <div className="mb-4 flex flex-wrap gap-2 items-center">
+            <Input
+              type="text"
+              placeholder="Search by name or ID"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-52"
+            />
+            <div className="flex gap-1">
+              {TOURNAMENT_STATUS.map(s =>
+                <Button
+                  key={s.key}
+                  variant={filterStatus === s.key ? "default" : "outline"}
+                  className={`${filterStatus === s.key ? s.color + " text-white" : ""} px-2 py-1 text-xs`}
+                  size="sm"
+                  onClick={() => setFilterStatus(s.key)}
+                >
+                  {s.label}
+                </Button>
+              )}
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setRefreshKey(k => k + 1)}
+              className="ml-auto"
+              disabled={loading}
+            >
+              <RefreshCw className="w-4 h-4 mr-1" />
+              Refresh
+            </Button>
           </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-};
 
-export default TournamentMedicManager;
+          {loading ? (
+            <div className="text-center text-slate-300 py-8">Loading tournaments...</div>
+          ) : filteredTournaments.length === 0 ? (
+            <div className="text-center text-slate-400 py-8">No tournaments found.</div>
+          ) : (
+            <div className="space-y-3">
+              {filteredTournaments.map(t => (
+                <div
+                  key={t.id}
+                  className="flex flex-col md:flex-row md:items-start md:justify-between border border-slate-700 bg-slate-900 rounded-lg p-4 shadow"
+                >
+                  <div className="flex flex-col flex-1 gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {getStatusBadge(t.status)}
+                      <span className="text-xs font-bold px-2 rounded bg-yellow-800/30 text-yellow-200">{t.name}</span>
+                      <span className="text-xs text-slate-400 font-mono">ID: {t.id.slice(0, 8)}...</span>
+                    </div>
+                    <div className="flex flex-col text-xs gap-1">
+                      <span className="text-slate-400 flex items-center gap-1">
+                        <Trophy className="inline-block w-4 h-4" />Prize: <span className="text-white">{t.prize_pool || "—"}</span>
+                      </span>
+                      <span className="text-slate-400">Teams: <span className="text-white">{t.max_teams ?? "?"}</span> • Players: <span className="text-white">{t.max_players ?? "—"}</span></span>
+                      <span className="text-slate-500">Format: <span className="text-white">{t.match_format || "?"}</span> • {t.team_size}v{t.team_size}</span>
+                      <span className="text-slate-400 flex items-center gap-1">
+                        Start: <span className="text-white">{formatDate(t.start_time)}</span>
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2 items-end justify-end mt-2 md:mt-0">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-yellow-500/40 text-yellow-300"
+                      onClick={() => setEditModal(t)}
+                    >
+                      <Edit className="w-4 h-4 mr-1" /> Edit Tournament
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Edit Tournament Modal */}
+      {editModal && (
+        <TournamentMedicEditModal
+          tournament={editModal}
+          onClose={() => setEditModal(null)}
+        />
+      )}
+    </>
+  );
+}
+
+// Separated modal logic for future feature expansion
+function TournamentMedicEditModal({
+  tournament,
+  onClose,
+}: {
+  tournament: Tournament;
+  onClose: () => void;
+}) {
+  // Everything is scaffolded; will be expanded in future steps.
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+      <div className="bg-slate-900 rounded-lg shadow-lg border border-yellow-700 w-full max-w-xl p-6 animate-scale-in">
+        <div className="flex items-center gap-2 mb-2">
+          <ShieldAlert className="w-5 h-5 text-yellow-400" />
+          <span className="font-bold text-lg text-white">Tournament Medic Tool</span>
+        </div>
+        <div className="mb-4">
+          <div className="font-semibold text-sm text-yellow-200 mb-1">
+            {tournament.name}
+          </div>
+          <div className="text-xs text-slate-400">
+            ID: <span className="font-mono">{tournament.id}</span>
+          </div>
+          <div className="text-xs text-slate-400 mt-1">
+            Status: <Badge className="bg-yellow-800/60">{tournament.status}</Badge>
+          </div>
+        </div>
+        <div className="py-2 text-slate-300 text-xs">
+          {/* Next: Fill this area with the full admin feature controls as planned */}
+          <div className="italic">Comprehensive emergency tools for tournament management coming soon.</div>
+        </div>
+        <div className="flex gap-2 mt-6 justify-end">
+          <Button size="sm" variant="outline" onClick={onClose}>
+            Close
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
