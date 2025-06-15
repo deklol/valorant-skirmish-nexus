@@ -164,7 +164,6 @@ const NotificationCenter = () => {
               className="h-6 px-2 text-xs"
               title="Mark all as read"
               disabled={unreadCount === 0}
-              style={unreadCount === 0 ? { opacity: 0.5, pointerEvents: "none" } : {}}
             >
               <Check className="w-3 h-3 mr-1" />
               Mark all read
