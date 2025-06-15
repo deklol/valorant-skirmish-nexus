@@ -12,6 +12,7 @@ import MapManager from "@/components/MapManager";
 import UserManagement from "@/components/UserManagement";
 import VetoMedicManager from "@/components/VetoMedicManager";
 import MatchMedicManager from "@/components/MatchMedicManager";
+import SendNotificationTestButton from "@/components/SendNotificationTestButton";
 
 const Admin = () => {
   const { isAdmin } = useAuth();
@@ -118,6 +119,8 @@ const Admin = () => {
           <TabsContent value="settings">
             <div className="space-y-6">
               <AdminLogoutAll />
+              {/* Add test notification button for admin */}
+              <SendNotificationTestButton />
               <Card className="bg-slate-800 border-slate-700">
                 <CardHeader>
                   <CardTitle className="text-white">System Settings</CardTitle>
