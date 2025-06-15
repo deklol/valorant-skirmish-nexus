@@ -9,28 +9,9 @@ import TournamentMedicPlayersTab from "./tournament-medic/TournamentMedicPlayers
 import TournamentMedicTeamsTab from "./tournament-medic/TournamentMedicTeamsTab";
 import TournamentMedicBracketTab from "./tournament-medic/TournamentMedicBracketTab";
 import TournamentMedicToolsTab from "./tournament-medic/TournamentMedicToolsTab";
+import { Tournament } from "@/components/ComprehensiveTournamentEditor";
 
-// EXTEND Tournament type to match app usage
-type Tournament = {
-  id: string;
-  name: string;
-  description?: string | null;
-  status: string;
-  match_format: string | null;
-  team_size: number | null;
-  max_teams: number | null;
-  max_players: number | null;
-  prize_pool: string | null;
-  start_time: string | null;
-  created_at: string | null;
-  registration_opens_at?: string | null;
-  registration_closes_at?: string | null;
-  check_in_starts_at?: string | null;
-  check_in_ends_at?: string | null;
-  check_in_required?: boolean | null;
-  enable_map_veto?: boolean | null;
-  // Add any additional keys as needed, safe for partial typing.
-};
+// Remove local Tournament type -- use the imported one everywhere.
 
 export default function TournamentMedicEditModal({
   tournament: tournamentInit,
@@ -39,14 +20,23 @@ export default function TournamentMedicEditModal({
   tournament: Tournament;
   onClose: () => void;
 }) {
-  const [tournament, setTournament] = useState(tournamentInit);
+  // Ensure we always have a bracket_type, even if null, to avoid missing required prop
+  const normalizedTournament = {
+    ...tournamentInit,
+    bracket_type: tournamentInit.bracket_type ?? null,
+  };
+  const [tournament, setTournament] = useState<Tournament>(normalizedTournament);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   function handleRefresh() {
     setRefreshTrigger(x => x + 1);
   }
   function handleUpdate(update: Partial<Tournament>) {
-    setTournament(prev => ({ ...prev, ...update }));
+    setTournament(prev => ({
+      ...prev,
+      ...update,
+      bracket_type: (update.bracket_type !== undefined ? update.bracket_type : prev.bracket_type) ?? null,
+    }));
   }
 
   return (
