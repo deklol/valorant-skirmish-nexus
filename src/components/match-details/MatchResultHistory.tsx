@@ -52,14 +52,20 @@ export default function MatchResultHistory({ matchId, team1Name, team2Name }: Ma
       .order("submitted_at", { ascending: true })
       .then(({ data }) => {
         if (isMounted && data) {
-          // Defensive fix: ensure 'user' is correct shape or null
-          const cleanData = data.map((sub: any) => ({
-            ...sub,
-            user:
-              sub.user && typeof sub.user === "object" && "discord_username" in sub.user
-                ? { discord_username: sub.user.discord_username }
-                : null,
-          }));
+          // Defensive fix: Only assign valid user objects, else null
+          const cleanData = data.map((sub: any) => {
+            let user = null;
+            if (
+              sub.user &&
+              typeof sub.user === "object" &&
+              !Array.isArray(sub.user) &&
+              Object.prototype.hasOwnProperty.call(sub.user, "discord_username") &&
+              !("error" in sub.user)
+            ) {
+              user = { discord_username: sub.user.discord_username };
+            }
+            return { ...sub, user };
+          });
           setSubmissions(cleanData);
         }
         setLoading(false);
