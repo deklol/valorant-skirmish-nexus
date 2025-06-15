@@ -233,11 +233,10 @@ const MapVetoDialog = ({
     if (!homeTeamId || !awayTeamId || maps.length === 0) return [];
     return getVctVetoFlow({ homeTeamId, awayTeamId, bestOf, maps });
   }, [homeTeamId, awayTeamId, bestOf, maps]);
-
-  const vetoStep = vetoFlow.length > 0 && vetoActions.length < vetoFlow.length
+  // New: Current step index and step info
+  const vetoStep = vetoActions.length < vetoFlow.length
     ? vetoActions.length
     : Math.max(0, vetoFlow.length - 1);
-
   const currentStep = vetoFlow[vetoStep] || null;
 
   // Defensive: vetoComplete, action checks
@@ -279,7 +278,7 @@ const MapVetoDialog = ({
         userTeamId === homeTeamId
       ) {
         setSidePickModal({
-          mapId: lastPick.map_id,
+          mapId: lastPick.mapId,
           onPick: async (side: "attack" | "defend") => {
             if (lastPick.side_choice) return;
             setLoading(true);

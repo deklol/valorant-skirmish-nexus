@@ -1,9 +1,10 @@
-
 /**
  * Given home/away and bestOf, produce a full VCT BO3/BO5 veto flow.
  * For BO1: bans alternate (home starts) until 1 map left, which is auto-picked for final phase.
  * Returns [{ teamId, action: "ban"|"pick"|"side_pick", mapOrder }]
  */
+import { generateBO1VetoFlow } from "./vetoFlowBO1";
+
 export function getVctVetoFlow({
   homeTeamId,
   awayTeamId,
@@ -18,30 +19,8 @@ export function getVctVetoFlow({
   const numMaps = maps.length;
 
   if (bestOf === 1) {
-    // BO1: alternate bans, then auto-pick, then home selects side.
-    let nBans = numMaps - 1;
-    let steps: { teamId: string | null, action: "ban" | "pick" | "side_pick" }[] = [];
-    for (let i = 0; i < nBans; i++) {
-      steps.push({
-        teamId: i % 2 === 0 ? homeTeamId : awayTeamId,
-        action: "ban",
-      });
-    }
-    // Always assign teamId as the previous turn's OPPOSITE team for pick: this avoids null and allows safe access
-    let pickTeamId = nBans % 2 === 0 ? homeTeamId : awayTeamId;
-    steps.push({
-      teamId: pickTeamId, // Instead of "null as any" set to the correct teamId
-      action: "pick",
-    });
-    // Side pick is always Home
-    steps.push({
-      teamId: homeTeamId,
-      action: "side_pick",
-    });
-    return steps.map((s, idx) => ({
-      ...s,
-      mapOrder: idx
-    }));
+    // Use new robust BO1 flow for any map count
+    return generateBO1VetoFlow({ homeTeamId, awayTeamId, maps });
   }
 
   // VCT BO3
@@ -86,5 +65,3 @@ export function getVctVetoFlow({
     steps.push({ teamId: i % 2 === 0 ? homeTeamId : awayTeamId, action: "ban" });
   return steps.map((s, i) => ({ ...s, mapOrder: i }));
 }
-
-// ... no other code
