@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import { getRankPoints } from "@/utils/rankingSystem";
 
 type Player = {
   id: string;
@@ -11,6 +12,7 @@ type Player = {
   current_rank: string;
   rank_points: number;
   discord_avatar_url: string | null;
+  is_phantom?: boolean;
 };
 
 export default function TopPlayersDisplay() {
@@ -22,21 +24,44 @@ export default function TopPlayersDisplay() {
       setLoading(true);
       const { data } = await supabase
         .from("users")
-        .select("id,discord_username,current_rank,rank_points,discord_avatar_url,is_phantom")
-        .order("rank_points", { ascending: false })
-        .lt("is_phantom", true)
-        .limit(5);
+        .select("id,discord_username,current_rank,rank_points,discord_avatar_url,is_phantom");
 
       // Remove phantom users (shouldn't show up)
-      const nonPhantom = (data || []).filter(p => !p.is_phantom);
-      setPlayers(nonPhantom);
+      let nonPhantom = (data || []).filter(p => !p.is_phantom);
+
+      // Sort:
+      // 1. By rank tier (using getRankPoints(current_rank) DESC)
+      // 2. Then by rank_points DESC (within same tier)
+      // 3. Unranked always last
+      nonPhantom.sort((a, b) => {
+        const aRankPoints = getRankPoints(a.current_rank || "Unranked");
+        const bRankPoints = getRankPoints(b.current_rank || "Unranked");
+
+        if (aRankPoints !== bRankPoints) {
+          return bRankPoints - aRankPoints; // Higher tier rank first
+        }
+        // Secondary: break ties by rank_points (higher RR first)
+        const rrA = isNaN(Number(a.rank_points)) ? 0 : a.rank_points;
+        const rrB = isNaN(Number(b.rank_points)) ? 0 : b.rank_points;
+        return rrB - rrA;
+      });
+
+      // Limit to top 5 after sorting
+      setPlayers(nonPhantom.slice(0, 5));
       setLoading(false);
     }
     fetchPlayers();
   }, []);
 
   if (loading) {
-    return <Card className="bg-slate-800 border-slate-700"><CardHeader><CardTitle className="text-white">Top Players</CardTitle></CardHeader><CardContent>Loading...</CardContent></Card>;
+    return (
+      <Card className="bg-slate-800 border-slate-700">
+        <CardHeader>
+          <CardTitle className="text-white">Top Players</CardTitle>
+        </CardHeader>
+        <CardContent>Loading...</CardContent>
+      </Card>
+    );
   }
 
   if (players.length === 0) {
