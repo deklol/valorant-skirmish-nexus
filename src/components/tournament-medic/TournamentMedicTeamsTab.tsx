@@ -151,22 +151,41 @@ export default function TournamentMedicTeamsTab({
 
     // Helper: format members
     function formatMembers(members: TeamWithMembers["members"]) {
-      // Show captain first, then others
-      const captions: string[] = [];
-      for (const m of members) {
-        const uname = m.users?.discord_username ?? "?";
-        const rank = m.users?.current_rank ?? "—";
-        const weight = typeof m.users?.weight_rating === "number" ? ` [${m.users.weight_rating}]` : "";
-        const tag = m.is_captain ? "⭐" : "•";
-        captions.push(`${tag} ${uname}${m.is_captain ? " (c)" : ""} — ${rank}${weight}`);
+      // Show captain first, then others; no emojis, no bullets, captain marked with (c)
+      const lines: string[] = [];
+
+      // Captain first, if any
+      const captainMember = members.find((m) => m.is_captain);
+      if (captainMember) {
+        const uname = captainMember.users?.discord_username ?? "?";
+        const rank = captainMember.users?.current_rank ?? "—";
+        const weight =
+          typeof captainMember.users?.weight_rating === "number"
+            ? ` [${captainMember.users.weight_rating}]`
+            : "";
+        lines.push(`${uname} (c) — ${rank}${weight}`);
       }
-      return captions.join("\n");
+
+      // All other members
+      members
+        .filter((m) => !m.is_captain)
+        .forEach((m) => {
+          const uname = m.users?.discord_username ?? "?";
+          const rank = m.users?.current_rank ?? "—";
+          const weight =
+            typeof m.users?.weight_rating === "number"
+              ? ` [${m.users.weight_rating}]`
+              : "";
+          lines.push(`${uname} — ${rank}${weight}`);
+        });
+
+      return lines.length ? lines.join("\n") : "*No members*";
     }
 
     // Compose embed fields: one field per team
     const fields = sortedTeams.map((team) => ({
-      name: `🏆 ${team.name} (${team.total_rank_points ?? "?"})`,
-      value: formatMembers(team.members) || "*No members*",
+      name: `🏆 ${team.name} (${team.total_rank_points ?? "0"})`,
+      value: formatMembers(team.members),
       inline: true,
     }));
 
