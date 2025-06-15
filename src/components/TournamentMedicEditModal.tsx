@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -105,38 +104,6 @@ export default function TournamentMedicEditModal({
     }
   }
 
-  // Force Ready Up (set to "live" and update Supabase)
-  async function handleForceReadyUp() {
-    setDetailsLoading(true);
-    try {
-      const { error } = await supabase
-        .from('tournaments')
-        .update({
-          status: "live",
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', tournament.id);
-
-      if (error) throw error;
-
-      setTournament(prev => ({ ...prev, status: "live" }));
-      toast({
-        title: "Tournament Forced Live",
-        description: "The tournament is now 'live'.",
-      });
-      setDetailsForm(prev => ({ ...prev, status: "live"}));
-    } catch (error: any) {
-      console.error('Error forcing ready up:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Could not set tournament to live",
-        variant: "destructive",
-      });
-    } finally {
-      setDetailsLoading(false);
-    }
-  }
-
   function handleRefresh() {
     setRefreshTrigger(x => x + 1);
   }
@@ -219,15 +186,6 @@ export default function TournamentMedicEditModal({
                   <div className="flex gap-2 mt-4">
                     <Button size="sm" variant="outline" onClick={() => setEditingDetails(true)}>
                       <Save className="w-4 h-4 mr-1" /> Edit Details
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="bg-green-700 text-white"
-                      disabled={detailsLoading || tournament.status === "live"}
-                      onClick={handleForceReadyUp}
-                    >
-                      <CheckSquare className="w-4 h-4 mr-1" />
-                      {detailsLoading ? "Processing..." : "Force Ready Up"}
                     </Button>
                   </div>
                 </>

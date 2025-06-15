@@ -5,6 +5,8 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useDebouncedValue } from "./useDebouncedValue";
 import ForceCheckInManager from "@/components/ForceCheckInManager";
+import { Badge } from "@/components/ui/badge";
+import { CheckSquare } from "lucide-react";
 
 // Central types
 type Player = {
@@ -13,7 +15,14 @@ type Player = {
   riot_id: string | null;
   is_substitute?: boolean;
 };
-type Tournament = { id: string; check_in_required?: boolean };
+// Tournament type expanded for status, etc
+type Tournament = {
+  id: string;
+  name: string;
+  status: string;
+  check_in_required?: boolean;
+  // ...other fields as needed
+};
 
 // Get all players signed up for this tournament
 function useTournamentPlayers(tournamentId: string) {
@@ -139,6 +148,9 @@ export default function TournamentMedicPlayersTab({
   const [forceUser, setForceUser] = useState<Player | null>(null);
   const [adding, setAdding] = useState(false);
 
+  // Add Force Ready Up loading
+  const [forceReadyLoading, setForceReadyLoading] = useState(false);
+
   // Remove player modularized:
   async function forceRemovePlayer(playerId: string) {
     const { error } = await supabase
@@ -188,6 +200,36 @@ export default function TournamentMedicPlayersTab({
     }
   }
 
+  // Force Ready Up (set to "live" and update Supabase)
+  async function handleForceReadyUp() {
+    setForceReadyLoading(true);
+    try {
+      const { error } = await supabase
+        .from('tournaments')
+        .update({
+          status: "live",
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', tournament.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Tournament Forced Live",
+        description: "The tournament is now 'live'.",
+      });
+      onRefresh();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Could not set tournament to live",
+        variant: "destructive",
+      });
+    } finally {
+      setForceReadyLoading(false);
+    }
+  }
+
   // Track if check-in is required (from tournament)
   const checkInRequired = tournament.check_in_required;
 
@@ -207,8 +249,47 @@ export default function TournamentMedicPlayersTab({
     [players, search]
   );
 
+  // Render status badge utility
+  function getStatusBadge(status: string) {
+    let color = "bg-gray-600";
+    switch (status) {
+      case "live": color = "bg-red-500/30 text-red-200"; break;
+      case "open": color = "bg-green-600/30 text-green-200"; break;
+      case "completed": color = "bg-blue-600/30 text-blue-200"; break;
+      case "draft": color = "bg-gray-700/50 text-gray-100"; break;
+      default: break;
+    }
+    return (
+      <Badge className={color + " ml-2"}>
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </Badge>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-4">
+      {/* NEW: Force Ready Up Section */}
+      <div className="rounded-lg border border-yellow-700 bg-slate-900 p-4 flex flex-col gap-2 mb-3">
+        <div className="flex items-center gap-3">
+          <CheckSquare className="text-yellow-400 w-5 h-5" />
+          <span className="font-semibold text-yellow-300">Force Ready Up (Set tournament live)</span>
+          {getStatusBadge(tournament.status)}
+        </div>
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            className="bg-green-700 text-white"
+            onClick={handleForceReadyUp}
+            disabled={forceReadyLoading || tournament.status === "live"}
+          >
+            <CheckSquare className="w-4 h-4 mr-1" />
+            {forceReadyLoading ? "Processing..." : "Force Ready Up"}
+          </Button>
+          <span className="text-xs text-slate-400">
+            This will transition the tournament to <b>live</b> status immediately. Disabled if already live.
+          </span>
+        </div>
+      </div>
       {/* Check-in summary and tools */}
       {checkInRequired && (
         <div>
@@ -270,4 +351,4 @@ export default function TournamentMedicPlayersTab({
   );
 }
 
-// Note: This file is now nearly 200 lines - please consider refactoring
+// Note: This file is now nearly 300 lines - please consider refactoring
