@@ -1,9 +1,8 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Users, Trophy, MessageSquare, Map, ShieldAlert, Wrench } from "lucide-react";
+import { Settings, Users, Trophy, MessageSquare, Map, ShieldAlert, Wrench, BookOpen } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import DiscordWebhookManager from "@/components/DiscordWebhookManager";
 import CreateTournamentDialog from "@/components/CreateTournamentDialog";
@@ -90,6 +89,10 @@ const Admin = () => {
               <Settings className="w-4 h-4 mr-2" />
               Settings
             </TabsTrigger>
+            <TabsTrigger value="help" className="text-white data-[state=active]:bg-blue-700">
+              <BookOpen className="w-4 h-4 mr-2" />
+              Help
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="tournaments">
@@ -132,6 +135,19 @@ const Admin = () => {
                   <p className="text-slate-400">Additional system settings panel coming soon...</p>
                 </CardContent>
               </Card>
+            </div>
+          </TabsContent>
+          <TabsContent value="help">
+            {/* Admin Help Documentation System */}
+            {/** This is the main help/documentation section for admins */}
+            <div>
+              {/** Loads the newly created AdminHelpTab component */}
+              {/** Will grow with more docs/features! */}
+              {/** Keep adding new content in AdminHelpTab.tsx */}
+              {
+                // Dynamic import could be used in the future for performance if desired
+              }
+              {require("../components/admin/AdminHelpTab").default()}
             </div>
           </TabsContent>
         </Tabs>
