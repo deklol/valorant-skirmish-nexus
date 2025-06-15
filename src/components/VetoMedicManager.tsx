@@ -641,81 +641,87 @@ export default function VetoMedicManager() {
                           ))}
                         </ol>
                       </div>
+
+                      {/* MOVED: Show health results right after action history */}
+                      {healthCheckResults[session.id] && (
+                        <div className="bg-slate-700/30 text-xs text-cyan-200 p-2 rounded mt-2 max-w-xl">
+                          <b>Session Health:</b> {healthCheckResults[session.id].healthy ? "OK" : "Issues Detected"}
+                          {healthCheckResults[session.id].warnings.length > 0 && (
+                            <ul className="mt-1 list-disc ml-4">
+                              {healthCheckResults[session.id].warnings.map((w: string, i: number) => (
+                                <li key={i}>{w}</li>
+                              ))}
+                            </ul>
+                          )}
+                          {healthCheckResults[session.id].fixable && (
+                            <div className="mt-1 text-green-300">
+                              Auto-recovery is available for this session.
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
+                    
+                    {/* Action buttons section */}
                     <div className="flex flex-col gap-2 items-end justify-end mt-2 md:mt-0">
-                      {/* HEALTH CHECK BUTTON */}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="border-cyan-500/40 text-cyan-300"
-                        onClick={onHealthCheck}
-                        disabled={!!actionSessionId || healthLoadingId === session.id}
-                      >
-                        <ShieldCheck className="w-4 h-4 mr-1" />
-                        {healthLoadingId === session.id ? "Checking..." : "Health Check"}
-                      </Button>
-                      {/* AUTO-RECOVERY (only if current health issue is fixable) */}
-                      {healthCheckResults[session.id]?.fixable && (
+                      {/* Diagnostic Tools Group */}
+                      <div className="flex flex-col gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-cyan-500/40 text-cyan-300"
+                          onClick={onHealthCheck}
+                          disabled={!!actionSessionId || healthLoadingId === session.id}
+                        >
+                          <ShieldCheck className="w-4 h-4 mr-1" />
+                          {healthLoadingId === session.id ? "Checking..." : "Health Check"}
+                        </Button>
+                        {healthCheckResults[session.id]?.fixable && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-green-600/40 text-green-400"
+                            onClick={onAutoRecover}
+                            disabled={!!actionSessionId}
+                          >
+                            <RotateCcw className="w-4 h-4 mr-1" />
+                            Auto-Recover
+                          </Button>
+                        )}
+                      </div>
+
+                      {/* Action Tools Group */}
+                      <div className="flex flex-col gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-yellow-500/40 text-yellow-400"
+                          onClick={() => handleRollbackLast(session.id)}
+                          disabled={!!actionSessionId}
+                        >
+                          <AlertCircle className="w-4 h-4 mr-1" />
+                          Rollback Last
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-yellow-500/40 text-yellow-400"
+                          disabled={!!actionSessionId}
+                          onClick={() => resetSession(session.id)}
+                        >
+                          <RefreshCw className="w-4 h-4 mr-1" /> Reset Veto
+                        </Button>
                         <Button
                           size="sm"
                           variant="outline"
                           className="border-green-600/40 text-green-400"
-                          onClick={onAutoRecover}
                           disabled={!!actionSessionId}
+                          onClick={() => openForceDialog(session)}
                         >
-                          <RotateCcw className="w-4 h-4 mr-1" />
-                          Attempt Auto-Recover
+                          <CheckCircle2 className="w-4 h-4 mr-1" /> Force Complete
                         </Button>
-                      )}
-
-                      {/* ENHANCED ROLLBACK */}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="border-yellow-500/40 text-yellow-400"
-                        onClick={() => handleRollbackLast(session.id)}
-                        disabled={!!actionSessionId}
-                      >
-                        <AlertCircle className="w-4 h-4 mr-1" />
-                        Rollback Last Action
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="border-yellow-500/40 text-yellow-400"
-                        disabled={!!actionSessionId}
-                        onClick={() => resetSession(session.id)}
-                      >
-                        <RefreshCw className="w-4 h-4 mr-1" /> Reset Veto
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="border-green-600/40 text-green-400"
-                        disabled={!!actionSessionId}
-                        onClick={() => openForceDialog(session)}
-                      >
-                        <CheckCircle2 className="w-4 h-4 mr-1" /> Force Complete
-                      </Button>
-                    </div>
-                    {/* Show health results */}
-                    {healthCheckResults[session.id] && (
-                      <div className="bg-slate-700/30 text-xs text-cyan-200 p-2 rounded mt-2 max-w-xl">
-                        <b>Session Health:</b> {healthCheckResults[session.id].healthy ? "OK" : "Issues Detected"}
-                        {healthCheckResults[session.id].warnings.length > 0 && (
-                          <ul className="mt-1 list-disc ml-4">
-                            {healthCheckResults[session.id].warnings.map((w: string, i: number) => (
-                              <li key={i}>{w}</li>
-                            ))}
-                          </ul>
-                        )}
-                        {healthCheckResults[session.id].fixable && (
-                          <div className="mt-1 text-green-300">
-                            Auto-recovery is available for this session.
-                          </div>
-                        )}
                       </div>
-                    )}
+                    </div>
                   </div>
                 )
               })}
