@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Trophy, Medal, Award, Target, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import ClickableUsername from '@/components/ClickableUsername';
+import { getRankPoints } from "@/utils/rankingSystem";
 
 interface Player {
   id: string;
@@ -27,34 +28,40 @@ const Leaderboard = () => {
 
   useEffect(() => {
     fetchLeaderboard();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sortBy]);
 
   const fetchLeaderboard = async () => {
+    setLoading(true);
     try {
-      let orderColumn = 'tournaments_won';
-      let orderDirection = { ascending: false };
-
-      switch (sortBy) {
-        case 'tournament_wins':
-          orderColumn = 'tournaments_won';
-          break;
-        case 'match_wins':
-          orderColumn = 'wins';
-          break;
-        case 'rank_points':
-          orderColumn = 'rank_points';
-          break;
-      }
-
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('users')
         .select('id, discord_username, current_rank, rank_points, tournaments_won, tournaments_played, wins, losses')
-        .eq('is_phantom', false)
-        .order(orderColumn, orderDirection)
-        .limit(20);
+        .eq('is_phantom', false);
 
       if (error) throw error;
-      setTopPlayers(data || []);
+      data = data || [];
+
+      // Apply hybrid sorting if sorting by rank_points (VALORANT Rank)
+      if (sortBy === 'rank_points') {
+        data.sort((a, b) => {
+          const aRank = getRankPoints(a.current_rank || "Unranked");
+          const bRank = getRankPoints(b.current_rank || "Unranked");
+          if (aRank !== bRank) {
+            return bRank - aRank;
+          }
+          const aRR = isNaN(Number(a.rank_points)) ? 0 : a.rank_points;
+          const bRR = isNaN(Number(b.rank_points)) ? 0 : b.rank_points;
+          return bRR - aRR;
+        });
+      } else if (sortBy === 'tournament_wins') {
+        data.sort((a, b) => (b.tournaments_won || 0) - (a.tournaments_won || 0));
+      } else if (sortBy === 'match_wins') {
+        data.sort((a, b) => (b.wins || 0) - (a.wins || 0));
+      }
+
+      // Top 20 for leaderboard
+      setTopPlayers(data.slice(0, 20));
     } catch (error) {
       console.error('Error fetching leaderboard:', error);
     } finally {
