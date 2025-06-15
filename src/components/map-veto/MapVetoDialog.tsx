@@ -246,7 +246,7 @@ const MapVetoDialog = ({
   useEffect(() => {
     if (!canVeto || !currentStep) return;
     if (currentStep.action === "side_pick") {
-      // Find prev "pick" action to get mapId
+      // Find the relevant pick step: for BO3/BO5, it's always the most recent completed "pick"
       const prevPick = vetoActions.filter(a => a.action === "pick").pop();
       if (prevPick && currentStep.teamId === userTeamId && isUserCaptain) {
         setSidePickModal({
@@ -254,7 +254,7 @@ const MapVetoDialog = ({
           onPick: async (side: string) => {
             setLoading(true);
             // Update the vetoAction for that map or insert new if not present
-            // (side_pick isn't stored as a separate action; update the last "pick" with side_choice)
+            // For VCT flow, the last "pick" already exists, so just update its side_choice
             const lastPickAction = prevPick.id;
             const { error } = await supabase
               .from("map_veto_actions")
@@ -263,7 +263,7 @@ const MapVetoDialog = ({
             setLoading(false);
             setSidePickModal(null);
             fetchVetoActions();
-            toast({ title: "Side Selected", description: `You picked ${side} side for your opponent.` });
+            toast({ title: "Side Selected", description: `You picked ${side} side.` });
           }
         });
       }
@@ -271,7 +271,7 @@ const MapVetoDialog = ({
       setSidePickModal(null);
     }
     // eslint-disable-next-line
-  }, [canVeto, currentStep, userTeamId, vetoActions]);
+  }, [canVeto, currentStep, userTeamId, isUserCaptain, vetoActions]);
 
   // Derive ban/pick/remainingMaps/complete status
   const bansMade = vetoActions.filter(a => a.action === "ban").length;

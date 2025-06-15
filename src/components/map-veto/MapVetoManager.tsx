@@ -219,13 +219,17 @@ const MapVetoManager = ({
 
       let session = null;
 
+      // FIX: The first ban should be by the home team (not always team1Id!).
+      // Use home_team_id if available. For new sessions, set turn to home_team_id.
+      // Defensive: pull .home_team_id/.away_team_id from rolled session if exists.
       if (existingSession && !existingSessionErr) {
-        // 2. If so, update it to 'in_progress'
+        // If home_team_id already set (from dice roll), use that for turn
+        const homeId = existingSession.home_team_id || team1Id;
         const { data: updated, error: updateErr } = await supabase
           .from('map_veto_sessions')
           .update({
             status: 'in_progress',
-            current_turn_team_id: team1Id, // Team 1 starts
+            current_turn_team_id: homeId,
             started_at: new Date().toISOString(),
             completed_at: null,
           })
@@ -237,6 +241,8 @@ const MapVetoManager = ({
         session = updated;
       } else {
         // 3. Otherwise, insert a new session
+        // For new session, always set turn to home_team_id if available
+        const homeId = null; // There will be no home_team_id until dice roll, so fallback to team1Id safely
         const { data: inserted, error: insertErr } = await supabase
           .from('map_veto_sessions')
           .insert({
