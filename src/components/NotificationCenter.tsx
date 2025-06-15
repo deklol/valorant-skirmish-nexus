@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from 'react';
-import { Bell, X, Check } from 'lucide-react';
+import { Bell, X, Check, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -164,6 +163,7 @@ const NotificationCenter = () => {
                 size="sm"
                 onClick={markAllAsRead}
                 className="h-6 px-2 text-xs"
+                title="Mark all as read"
               >
                 <Check className="w-3 h-3 mr-1" />
                 Mark all read
@@ -178,32 +178,64 @@ const NotificationCenter = () => {
                 </div>
               ) : (
                 <div className="space-y-1">
-                  {notifications.map((notification) => (
-                    <div
-                      key={notification.id}
-                      className={`p-3 border-b border-slate-200 hover:bg-slate-50 cursor-pointer ${
-                        !notification.read ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
-                      }`}
-                      onClick={() => !notification.read && markAsRead(notification.id)}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-slate-900">
+                  {notifications.map((notification) => {
+                    // Determine link target
+                    let link: string | null = null;
+                    if (notification.match_id) {
+                      link = `/match/${notification.match_id}`;
+                    } else if (notification.tournament_id) {
+                      link = `/tournament/${notification.tournament_id}`;
+                    }
+                    // Optionally, handle team: else if (notification.team_id) { link = `/team/${notification.team_id}` }
+
+                    const content = (
+                      <div
+                        className={`p-3 border-b border-slate-200 hover:bg-slate-50 cursor-pointer flex items-center ${
+                          !notification.read ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
+                        }`}
+                        onClick={() => !notification.read && markAsRead(notification.id)}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-slate-900 truncate">
                             {notification.title}
                           </p>
-                          <p className="text-xs text-slate-600 mt-1">
+                          <p className="text-xs text-slate-600 mt-1 truncate">
                             {notification.message}
                           </p>
                           <p className="text-xs text-slate-400 mt-1">
                             {formatTime(notification.created_at)}
                           </p>
                         </div>
+                        {link && (
+                          <ArrowRight className="w-4 h-4 ml-3 flex-shrink-0 text-blue-400" />
+                        )}
                         {!notification.read && (
                           <div className="w-2 h-2 bg-blue-500 rounded-full ml-2 mt-1" />
                         )}
                       </div>
-                    </div>
-                  ))}
+                    );
+
+                    // Wrap in link if target available
+                    return link ? (
+                      <a
+                        href={link}
+                        key={notification.id}
+                        className="block"
+                        tabIndex={0}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // Mark as read if not, and let Link work
+                          if (!notification.read) markAsRead(notification.id);
+                        }}
+                      >
+                        {content}
+                      </a>
+                    ) : (
+                      <div key={notification.id}>
+                        {content}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </ScrollArea>
