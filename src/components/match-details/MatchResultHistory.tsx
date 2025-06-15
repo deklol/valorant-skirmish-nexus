@@ -28,49 +28,90 @@ interface MatchResultHistoryProps {
 const statusBadge = (status: string) => {
   switch (status) {
     case "confirmed":
-      return <Badge className="bg-green-700 text-white"><CheckCircle className="inline w-3 h-3 mr-1" /> Confirmed</Badge>;
+      return (
+        <Badge className="bg-green-700 text-white">
+          <CheckCircle className="inline w-3 h-3 mr-1" /> Confirmed
+        </Badge>
+      );
     case "pending":
-      return <Badge className="bg-yellow-700 text-white"><Clock className="inline w-3 h-3 mr-1" /> Pending</Badge>;
+      return (
+        <Badge className="bg-yellow-700 text-white">
+          <Clock className="inline w-3 h-3 mr-1" /> Pending
+        </Badge>
+      );
     case "rejected":
-      return <Badge className="bg-red-700 text-white"><AlertTriangle className="inline w-3 h-3 mr-1" /> Rejected</Badge>;
+      return (
+        <Badge className="bg-red-700 text-white">
+          <AlertTriangle className="inline w-3 h-3 mr-1" /> Rejected
+        </Badge>
+      );
     default:
       return <Badge variant="outline">{status}</Badge>;
   }
 };
 
-export default function MatchResultHistory({ matchId, team1Name, team2Name }: MatchResultHistoryProps) {
+export default function MatchResultHistory({
+  matchId,
+  team1Name,
+  team2Name,
+}: MatchResultHistoryProps) {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
-  useEffect(() => {
-    let isMounted = true;
+  // Helper function to load history
+  const fetchHistory = async () => {
     setLoading(true);
-    supabase
+    const { data } = await supabase
       .from("match_result_submissions")
       .select("*, user:submitted_by(discord_username)")
       .eq("match_id", matchId)
-      .order("submitted_at", { ascending: true })
-      .then(({ data }) => {
-        if (isMounted && data) {
-          // Defensive fix: Only assign valid user objects, else null
-          const cleanData = data.map((sub: any) => {
-            let user = null;
-            if (
-              sub.user &&
-              typeof sub.user === "object" &&
-              !Array.isArray(sub.user) &&
-              Object.prototype.hasOwnProperty.call(sub.user, "discord_username") &&
-              !("error" in sub.user)
-            ) {
-              user = { discord_username: sub.user.discord_username };
-            }
-            return { ...sub, user };
-          });
-          setSubmissions(cleanData);
+      .order("submitted_at", { ascending: true });
+    if (data) {
+      // Defensive fix: Only assign valid user objects, else null
+      const cleanData = data.map((sub: any) => {
+        let user = null;
+        if (
+          sub.user &&
+          typeof sub.user === "object" &&
+          !Array.isArray(sub.user) &&
+          Object.prototype.hasOwnProperty.call(sub.user, "discord_username") &&
+          !("error" in sub.user)
+        ) {
+          user = { discord_username: sub.user.discord_username };
         }
-        setLoading(false);
+        return { ...sub, user };
       });
-    return () => { isMounted = false; };
+      setSubmissions(cleanData);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+    fetchHistory();
+    // Setup Supabase real-time channel
+    const channel = supabase
+      .channel("match_result_submissions:" + matchId)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "match_result_submissions",
+          filter: `match_id=eq.${matchId}`,
+        },
+        (payload) => {
+          // Reload history any time there's a change
+          if (isMounted) fetchHistory();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      isMounted = false;
+      supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line
   }, [matchId]);
 
   if (loading) return <div>Loading match result history...</div>;
@@ -86,19 +127,36 @@ export default function MatchResultHistory({ matchId, team1Name, team2Name }: Ma
   return (
     <Card className="bg-slate-900 border-slate-700">
       <CardHeader>
-        <CardTitle className="text-white text-base">Score Submission History</CardTitle>
+        <CardTitle className="text-white text-base">
+          Score Submission History
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="flex flex-col gap-2">
-          {submissions.map(sub => (
-            <div key={sub.id} className="rounded-lg p-3 flex flex-col md:flex-row md:items-center md:justify-between bg-slate-800 border border-slate-700">
+          {submissions.map((sub) => (
+            <div
+              key={sub.id}
+              className="rounded-lg p-3 flex flex-col md:flex-row md:items-center md:justify-between bg-slate-800 border border-slate-700"
+            >
               <div>
-                <span className="font-semibold text-white">{sub.user?.discord_username || sub.submitted_by.slice(0, 8) || "Captain"}</span>
-                <span className="ml-2 text-xs text-slate-400">{new Date(sub.submitted_at).toLocaleString()}</span>
+                <span className="font-semibold text-white">
+                  {sub.user?.discord_username ||
+                    sub.submitted_by.slice(0, 8) ||
+                    "Captain"}
+                </span>
+                <span className="ml-2 text-xs text-slate-400">
+                  {new Date(sub.submitted_at).toLocaleString()}
+                </span>
               </div>
               <div className="text-sm text-white mt-1 md:mt-0">
-                <span>{team1Name} <b>{sub.score_team1}</b> - <b>{sub.score_team2}</b> {team2Name}</span>
-                <span className="ml-2 italic text-slate-300">{sub.winner_id ? `Winner: ${sub.winner_id.slice(0,8)}` : ""}</span>
+                <span>
+                  {team1Name} <b>{sub.score_team1}</b> - <b>{sub.score_team2}</b> {team2Name}
+                </span>
+                <span className="ml-2 italic text-slate-300">
+                  {sub.winner_id
+                    ? `Winner: ${sub.winner_id.slice(0, 8)}`
+                    : ""}
+                </span>
               </div>
               <div className="ml-auto">{statusBadge(sub.status)}</div>
             </div>
