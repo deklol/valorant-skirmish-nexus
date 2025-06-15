@@ -19,7 +19,7 @@ const AppSettingsManager: React.FC = () => {
 
   // Settings state
   const [appName, setAppName] = useState("");
-  const [announcementId, setAnnouncementId] = useState<string | null>(null);
+  const [announcementId, setAnnouncementId] = useState<string>("none");
   const [twitchEnabled, setTwitchEnabled] = useState(false);
   const [twitchChannel, setTwitchChannel] = useState("");
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -47,7 +47,7 @@ const AppSettingsManager: React.FC = () => {
         setAppName("Tournament App");
         setTwitchEnabled(false);
         setTwitchChannel("");
-        setAnnouncementId(null);
+        setAnnouncementId("none");
       } else {
         toast({ title: "Error loading settings", description: error.message, variant: "destructive" });
       }
@@ -55,7 +55,7 @@ const AppSettingsManager: React.FC = () => {
       setAppName(data.app_name);
       setTwitchEnabled(data.twitch_embed_enabled);
       setTwitchChannel(data.twitch_channel || "");
-      setAnnouncementId(data.announcement_id ?? null);
+      setAnnouncementId(data.announcement_id ? data.announcement_id : "none");
     }
     setLoading(false);
   };
@@ -79,7 +79,7 @@ const AppSettingsManager: React.FC = () => {
         app_name: appName,
         twitch_embed_enabled: twitchEnabled,
         twitch_channel: twitchEnabled ? twitchChannel : "",
-        announcement_id: announcementId,
+        announcement_id: announcementId === "none" ? null : announcementId,
         last_updated_at: new Date().toISOString(),
       })
       .eq("id", data.id);
@@ -115,12 +115,12 @@ const AppSettingsManager: React.FC = () => {
         {/* Announcement Selector */}
         <div>
           <Label htmlFor="front-announcement" className="text-slate-300">Front Page Announcement</Label>
-          <Select value={announcementId ?? ""} onValueChange={value => setAnnouncementId(value || null)}>
+          <Select value={announcementId} onValueChange={value => setAnnouncementId(value)}>
             <SelectTrigger className="w-64 bg-slate-700 border-slate-600 text-white mt-1">
               <SelectValue placeholder="(None)" />
             </SelectTrigger>
             <SelectContent className="bg-slate-700 border-slate-600">
-              <SelectItem value="">None</SelectItem>
+              <SelectItem value="none">None</SelectItem>
               {announcements.map(a => (
                 <SelectItem key={a.id} value={a.id}>{a.title}</SelectItem>
               ))}
