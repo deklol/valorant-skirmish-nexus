@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -373,7 +372,7 @@ export default function BracketMedicManager() {
                               {match.status !== "completed" && (
                                 <>
                                   <Button
-                                    size="xs"
+                                    size="sm"
                                     variant="outline"
                                     className="text-amber-400 border-amber-500/40 mr-2 mb-1"
                                     disabled={actionInProgress}
@@ -382,7 +381,7 @@ export default function BracketMedicManager() {
                                     Cascade Reset
                                   </Button>
                                   <Button
-                                    size="xs"
+                                    size="sm"
                                     variant="outline"
                                     className="text-cyan-400 border-cyan-500/40 mb-1"
                                     disabled={actionInProgress}
