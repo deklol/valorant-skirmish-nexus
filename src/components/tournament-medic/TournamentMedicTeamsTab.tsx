@@ -1,3 +1,4 @@
+
 import {
   CheckCircle,
   Copy,
@@ -43,57 +44,45 @@ type TeamWithMembers = {
   }[];
 };
 
+// Redesigned team preview: more pleasing, card grid, no discord ids, compact
 function TeamListAnnouncePreview({ teams }: { teams: TeamWithMembers[] }) {
-  // Up to 3 columns display, like your mockup (one row per group of 3 teams)
   if (!teams.length) return null;
-  const rows = [];
-  for (let i = 0; i < teams.length; i += 3) {
-    rows.push(teams.slice(i, i + 3));
-  }
+
+  // Make grid: 3 columns max, gap for cards
   return (
-    <div className="my-6">
-      <div className="space-y-4">
-        {rows.map((row, i) => (
-          <div
-            className="flex flex-col md:flex-row md:gap-5 md:justify-center"
-            key={i}
+    <div className="my-6 w-full">
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+        {teams.map((team) => (
+          <Card
+            key={team.id}
+            className="bg-slate-900 border-slate-700 min-w-[220px] flex flex-col p-4 shadow relative"
           >
-            {row.map((team, j) => (
-              <Card
-                key={team.id || j}
-                className="flex-1 mb-3 md:mb-0 bg-slate-900 border-slate-700 min-w-[220px] max-w-xs mr-4 p-3"
-              >
-                <div className="font-bold text-lg text-yellow-300 flex-shrink-0 leading-tight">
-                  {team.name}{" "}
-                  <span className="text-xs text-yellow-400 font-normal">
-                    ({team.total_rank_points ?? "?"})
+            <div className="font-bold text-base text-yellow-300">
+              {team.name}
+              {" "}
+              <span className="ml-1 text-xs text-yellow-300 font-normal opacity-80">
+                ({team.total_rank_points ?? "?"})
+              </span>
+            </div>
+            <ul className="mt-2 space-y-1">
+              {team.members.map((member, idx) => (
+                <li className="flex items-center justify-between text-xs" key={member.user_id || idx}>
+                  <span className="text-sky-200 font-mono font-medium flex items-center">
+                    {member.users?.discord_username ?? "?"}
+                    {member.is_captain && (
+                      <span className="text-green-300 text-[0.92em] font-normal ml-1">(c)</span>
+                    )}
                   </span>
-                </div>
-                <ul className="mt-1 text-xs font-mono text-slate-200 space-y-1">
-                  {team.members.map((member, k) => (
-                    <li className="flex justify-between gap-2" key={member.user_id || k}>
-                      <span>
-                        {member.users?.discord_username ?? "?"}
-                        {member.is_captain && (
-                          <span className="text-[0.85em] text-green-300 mx-1">(c)</span>
-                        )}
-                      </span>
-                      <span className="text-slate-400">
-                        {member.users?.current_rank || "—"}{" "}
-                        ·{" "}
-                        {typeof member.users?.weight_rating === "number"
-                          ? member.users.weight_rating
-                          : "?"}
-                        {member.users?.discord_id && (
-                          <span className="ml-1 text-slate-500">{member.users.discord_id}</span>
-                        )}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </Card>
-            ))}
-          </div>
+                  <span className="text-slate-400 ml-2">
+                    {member.users?.current_rank || "—"}
+                    {typeof member.users?.weight_rating === "number" && (
+                      <span className="ml-1 text-slate-500">[{member.users?.weight_rating}]</span>
+                    )}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Card>
         ))}
       </div>
     </div>
@@ -110,7 +99,7 @@ export default function TournamentMedicTeamsTab({
   const [activeSection, setActiveSection] =
     useState<'team_builder' | 'quick_actions'>('team_builder');
 
-  // --- NEW: Discord Webhook and team data state ---
+  // Discord Webhook and teams state
   const [discordWebhook, setDiscordWebhook] = useState("");
   const [announceLoading, setAnnounceLoading] = useState(false);
   const [teams, setTeams] = useState<TeamWithMembers[]>([]);
@@ -163,7 +152,7 @@ export default function TournamentMedicTeamsTab({
     for (let i = 0; i < teams.length; i += 3) {
       // Three teams per row (column layout)
       const rowTeams = teams.slice(i, i + 3);
-      // For each team, compute lines: Team Name (weight)\n captain (c) - rank, etc.
+      // For each team, compute lines: Team Name (weight)\n captain (c) - rank
       const longest = Math.max(...rowTeams.map(t => t.members.length));
       let teamBlocks: string[][] = rowTeams.map(team => {
         let block: string[] = [];
@@ -176,7 +165,9 @@ export default function TournamentMedicTeamsTab({
           .filter(mem => mem.is_captain)
           .forEach(mem =>
             block.push(
-              `${mem.users?.discord_username ?? "?"} (c) - ${mem.users?.current_rank ?? "—"} (${mem.users?.weight_rating ?? "?"}) [${mem.users?.discord_id ?? "N/A"}]`
+              `${mem.users?.discord_username ?? "?"} (c) - ${mem.users?.current_rank ?? "—"}${
+                typeof mem.users?.weight_rating === "number" ? ` [${mem.users.weight_rating}]` : ""
+              }`
             )
           );
         // Members: others
@@ -184,7 +175,9 @@ export default function TournamentMedicTeamsTab({
           .filter(mem => !mem.is_captain)
           .forEach(mem =>
             block.push(
-              `${mem.users?.discord_username ?? "?"} - ${mem.users?.current_rank ?? "—"} (${mem.users?.weight_rating ?? "?"}) [${mem.users?.discord_id ?? "N/A"}]`
+              `${mem.users?.discord_username ?? "?"} - ${mem.users?.current_rank ?? "—"}${
+                typeof mem.users?.weight_rating === "number" ? ` [${mem.users.weight_rating}]` : ""
+              }`
             )
           );
         // Pad to equal length
@@ -238,7 +231,6 @@ export default function TournamentMedicTeamsTab({
     setAnnounceLoading(true);
     try {
       const message = generateDiscordMessage(teams);
-      // send webhook payload
       const payload = {
         username: "Tournament Bot",
         embeds: [message.embed],
@@ -266,42 +258,6 @@ export default function TournamentMedicTeamsTab({
 
   return (
     <div>
-      {/* Discord Webhook controls */}
-      <div className="flex flex-col gap-2 mb-6">
-        <div className="flex items-center gap-2">
-          <Input
-            type="text"
-            placeholder="Discord webhook URL…"
-            value={discordWebhook}
-            onChange={e => setDiscordWebhook(e.target.value)}
-            className="w-[360px] bg-slate-700 border-slate-600 text-white"
-            autoComplete="off"
-          />
-          <Button
-            onClick={handleAnnounceTeams}
-            disabled={announceLoading || fetchLoading}
-            className="bg-blue-700 hover:bg-blue-800"
-          >
-            {announceLoading ? "Announcing..." : "Announce Teams"}
-          </Button>
-          <Button
-            onClick={fetchTeams}
-            disabled={fetchLoading}
-            variant="outline"
-            className="border-yellow-500 ml-2"
-          >
-            {fetchLoading ? "Refreshing…" : "Refresh Teams"}
-          </Button>
-        </div>
-        <small className="text-slate-400">
-          Enter your Discord webhook then click "Announce Teams". Teams will appear below. <br />
-          If no teams are visible, use "Refresh Teams" or generate them first.
-        </small>
-      </div>
-
-      {/* Preview of team list in nice columns */}
-      <TeamListAnnouncePreview teams={teams} />
-
       {/* Team builder and quick actions */}
       <div>
         <div className="flex gap-2 mb-4">
@@ -339,6 +295,41 @@ export default function TournamentMedicTeamsTab({
         )}
         {activeSection === 'quick_actions' && (
           <div>
+            {/* Discord webhook controls + team preview */}
+            <div className="mb-6 flex flex-col gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Input
+                  type="text"
+                  placeholder="Discord webhook URL…"
+                  value={discordWebhook}
+                  onChange={e => setDiscordWebhook(e.target.value)}
+                  className="w-[320px] bg-slate-700 border-slate-600 text-white"
+                  autoComplete="off"
+                />
+                <Button
+                  onClick={handleAnnounceTeams}
+                  disabled={announceLoading || fetchLoading}
+                  className="bg-blue-700 hover:bg-blue-800"
+                >
+                  {announceLoading ? "Announcing..." : "Announce Teams"}
+                </Button>
+                <Button
+                  onClick={fetchTeams}
+                  disabled={fetchLoading}
+                  variant="outline"
+                  className="border-yellow-500 ml-2"
+                >
+                  {fetchLoading ? "Refreshing…" : "Refresh Teams"}
+                </Button>
+              </div>
+              <small className="text-slate-400">
+                Enter your Discord webhook then click "Announce Teams". Teams will appear below.{" "}
+                If no teams are visible, use "Refresh Teams" or generate them first.
+              </small>
+              {/* Team preview grid (nicer, horizontal gap, no Discord IDs) */}
+              <TeamListAnnouncePreview teams={teams} />
+            </div>
+
             <div className="grid gap-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Button variant="outline" className="w-full">
@@ -392,3 +383,5 @@ export default function TournamentMedicTeamsTab({
     </div>
   );
 }
+
+// NOTE: This file is now quite long. Consider asking me to refactor it into smaller files/components for better maintainability.
