@@ -147,6 +147,7 @@ export type Database = {
           order_number: number
           performed_at: string | null
           performed_by: string | null
+          side_choice: string | null
           team_id: string | null
           veto_session_id: string | null
         }
@@ -157,6 +158,7 @@ export type Database = {
           order_number: number
           performed_at?: string | null
           performed_by?: string | null
+          side_choice?: string | null
           team_id?: string | null
           veto_session_id?: string | null
         }
@@ -167,6 +169,7 @@ export type Database = {
           order_number?: number
           performed_at?: string | null
           performed_by?: string | null
+          side_choice?: string | null
           team_id?: string | null
           veto_session_id?: string | null
         }

@@ -12,6 +12,8 @@ import { MapData, VetoAction } from "./types";
 import { useVetoPermissions } from "./useVetoPermissions";
 import { useVetoMapAction } from "./useVetoMapAction";
 import { isMapAvailable, getRemainingMaps } from "./mapVetoUtils";
+import { Button } from "@/components/ui/button";
+import { getVctVetoFlow } from "./vetoFlowUtils";
 
 interface MapVetoDialogProps {
   open: boolean;
@@ -61,6 +63,9 @@ const MapVetoDialog = ({
 
   // Forcing RT permission recalculation
   const [permissionUpdateSeq, setPermissionUpdateSeq] = useState<number>(0);
+
+  // ----------- NEW: VCT-style veto flow and side pick steps ----------
+  const [sidePickModal, setSidePickModal] = useState<null | { mapId: string, onPick: (side: string) => void }>(null);
 
   // Helper: Refetch session and force local sync on mismatch
   const forceSessionRefetch = useCallback(async (logReason?: string) => {
@@ -210,6 +215,51 @@ const MapVetoDialog = ({
     toast,
   });
 
+  // Memo: determine flow based on home/away and map set
+  const vetoFlow = React.useMemo(() => {
+    if (!homeTeamId || !awayTeamId || maps.length === 0) return [];
+    return getVctVetoFlow({ homeTeamId, awayTeamId, bestOf, maps });
+  }, [homeTeamId, awayTeamId, bestOf, maps]);
+
+  // Which step are we on, and what's next?
+  const vetoStep = vetoActions.length;
+  const currentStep = vetoFlow[vetoStep];
+
+  // Block if dice not rolled
+  const canVeto = homeTeamId && awayTeamId && vetoFlow.length > 0;
+
+  // If it's a side_pick step, show Side Picker UI instead of map grid
+  // (VCT: after each "pick", next action is side_pick, performed by the other team)
+  useEffect(() => {
+    if (!canVeto || !currentStep) return;
+    if (currentStep.action === "side_pick") {
+      // Find prev "pick" action to get mapId
+      const prevPick = vetoActions.filter(a => a.action === "pick").pop();
+      if (prevPick && currentStep.teamId === userTeamId && isUserCaptain) {
+        setSidePickModal({
+          mapId: prevPick.map_id,
+          onPick: async (side: string) => {
+            setLoading(true);
+            // Update the vetoAction for that map or insert new if not present
+            // (side_pick isn't stored as a separate action; update the last "pick" with side_choice)
+            const lastPickAction = prevPick.id;
+            const { error } = await supabase
+              .from("map_veto_actions")
+              .update({ side_choice: side })
+              .eq("id", lastPickAction);
+            setLoading(false);
+            setSidePickModal(null);
+            fetchVetoActions();
+            toast({ title: "Side Selected", description: `You picked ${side} side for your opponent.` });
+          }
+        });
+      }
+    } else {
+      setSidePickModal(null);
+    }
+    // eslint-disable-next-line
+  }, [canVeto, currentStep, userTeamId, vetoActions]);
+
   // Derive ban/pick/remainingMaps/complete status
   const bansMade = vetoActions.filter(a => a.action === "ban").length;
   const totalBansNeeded = maps.length - 1;
@@ -346,29 +396,39 @@ const MapVetoDialog = ({
           {/* Turn/Phase */}
           <MapVetoTurnStatus
             key={turnVersion}
-            canAct={isUserEligible && !vetoComplete}
+            canAct={isUserEligible && canVeto}
             isUserTurn={isUserTeamTurn}
             teamSize={teamSize}
             isUserCaptain={isUserCaptain!}
-            currentAction={currentAction}
+            currentAction={currentStep?.action === "ban" ? "ban" : "pick"}
           />
 
           {/* Veto History */}
           <MapVetoHistory vetoActions={vetoActions} />
 
           {/* Map Grid */}
-          <MapVetoMapGrid
-            maps={maps}
-            canAct={isUserEligible && !vetoComplete}
-            currentAction={currentAction}
-            bestOf={bestOf}
-            remainingMaps={remainingMaps}
-            vetoActions={vetoActions}
-            onMapAction={handleMapAction}
-            currentTeamTurn={currentTurnTeamId}
-            getMapStatus={getMapStatus}
-            isMapAvailable={(id) => isMapAvailable(id, vetoActions) && !vetoComplete}
-          />
+          {sidePickModal ? (
+            <div className="flex flex-col items-center gap-4 p-6">
+              <div className="text-lg mb-2">Choose Starting Side</div>
+              <div className="flex gap-4">
+                <Button onClick={() => sidePickModal.onPick("attack")} className="bg-red-600 hover:bg-red-700">Attack</Button>
+                <Button onClick={() => sidePickModal.onPick("defend")} className="bg-blue-700 hover:bg-blue-800">Defend</Button>
+              </div>
+            </div>
+          ) : (
+            <MapVetoMapGrid
+              maps={maps}
+              canAct={isUserEligible && canVeto && currentStep && currentStep.action !== "side_pick"}
+              currentAction={currentStep?.action || "ban"}
+              bestOf={bestOf}
+              remainingMaps={getRemainingMaps(maps, vetoActions)}
+              vetoActions={vetoActions}
+              onMapAction={handleMapAction}
+              currentTeamTurn={currentTurnTeamId}
+              getMapStatus={getMapStatus}
+              isMapAvailable={(id) => isMapAvailable(id, vetoActions) && !vetoComplete}
+            />
+          )}
 
           {/* Instructions */}
           <MapVetoInstructions />

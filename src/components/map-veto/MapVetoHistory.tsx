@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Ban, CheckCircle } from "lucide-react";
@@ -40,6 +39,15 @@ const MapVetoHistory = ({ vetoActions }: MapVetoHistoryProps) =>
                     <CheckCircle className="w-4 h-4 text-green-400" />
                   )}
                   <span className="text-white">{action.map?.display_name}</span>
+                  {action.action === "pick" && action.side_choice && (
+                    <span className={`ml-2 text-xs px-2 rounded 
+                      ${action.side_choice === "attack"
+                        ? "bg-red-500/20 text-red-400"
+                        : "bg-blue-600/20 text-blue-300"
+                      }`}>
+                      {action.side_choice?.toUpperCase()} SIDE
+                    </span>
+                  )}
                   {action.users && action.users.discord_username && (
                     <span className="text-sm text-blue-300 ml-2">
                       by <ClickableUsername userId={action.performed_by} username={action.users.discord_username} />

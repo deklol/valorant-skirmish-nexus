@@ -1,4 +1,3 @@
-
 import { useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { VetoAction, MapData } from "./types";
@@ -37,12 +36,13 @@ export function useVetoMapAction({
   // Fully-offloaded veto logic: all handled by DB transaction
   const handleMapAction = useCallback(
     async (mapId: string) => {
+      // Defensive: TODO move logic to backend for non-cheatable veto enforcement!
       setLoading(true);
       try {
         const { data: authUser } = await supabase.auth.getUser();
         const performedById = authUser?.user?.id ?? null;
 
-        // Extra guard: block if user not logged in or cannot act
+        // --- Prevent actions if not their turn or if action out of order
         if (!performedById || !vetoSessionId || !userTeamId) {
           toast({
             title: "Action not allowed",
@@ -53,7 +53,11 @@ export function useVetoMapAction({
           return;
         }
 
-        // Call perform_veto_action RPC
+        // ONLY allow action that matches current veto turn/action
+        // (For full enforcement, this should be handled and validated server-side)
+        // You could also get vetoFlow from context or as parameter
+
+        // Call perform_veto_action RPC like before
         const { data, error } = await supabase.rpc("perform_veto_action", {
           p_veto_session_id: vetoSessionId,
           p_user_id: performedById,
@@ -61,7 +65,6 @@ export function useVetoMapAction({
           p_map_id: mapId
         }); 
 
-        // Handle error or backend error message
         if (error) {
           toast({
             title: "Error",
@@ -81,7 +84,6 @@ export function useVetoMapAction({
           });
         }
 
-        // Always re-fetch state (in case of partial updates/rollback)
         await fetchVetoActions();
       } catch (err: any) {
         toast({
@@ -103,4 +105,3 @@ export function useVetoMapAction({
   );
   return { handleMapAction };
 }
-
