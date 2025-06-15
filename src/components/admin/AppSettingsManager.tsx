@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -131,19 +130,28 @@ const AppSettingsManager: React.FC = () => {
 
         {/* Twitch Stream Embed */}
         <div>
-          <div className="flex items-center space-x-2">
-            <Switch id="twitch-toggle" checked={twitchEnabled} onCheckedChange={setTwitchEnabled} />
-            <Label htmlFor="twitch-toggle" className="text-slate-300">Enable Twitch Embed on Home page</Label>
+          <div className="flex items-center space-x-2 mb-1">
+            <Switch
+              id="twitch-toggle"
+              checked={twitchEnabled}
+              onCheckedChange={setTwitchEnabled}
+            />
+            <Label htmlFor="twitch-toggle" className="text-slate-300">
+              Enable Twitch Stream & Chat Embed on Home page
+            </Label>
           </div>
           <Input
             id="twitch-channel"
             value={twitchChannel}
             onChange={e => setTwitchChannel(e.target.value)}
             disabled={!twitchEnabled}
-            placeholder="Twitch channel (e.g. valesports)"
+            placeholder="Twitch channel (e.g. tlrlive)"
             className="bg-slate-700 border-slate-600 text-white mt-2"
           />
-          <span className="text-xs text-slate-400">Leave empty to disable channel embed. Example: valesports</span>
+          <span className="text-xs text-slate-400">
+            When enabled, the stream and chat of the specified channel will appear on the homepage.<br />
+            Example: tlrlive
+          </span>
         </div>
 
         <Button

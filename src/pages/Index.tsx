@@ -1,6 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Trophy, Users, Calendar, Zap, Target, Shield } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -16,82 +15,43 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {/* Home Page Announcement */}
-      <div className="container mx-auto px-4 py-4">
-        <HomePageAnnouncement />
-      </div>
-
-      {/* Main Grid Section */}
-      <section className="container mx-auto px-4 py-4">
-        {/* Grid: LG 3cols; MD 1col (stacked) */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left col: Tournaments and Top Players */}
-          <div className="flex flex-col gap-4">
-            <TournamentTabs />
-            <TopPlayersDisplay />
-          </div>
-          {/* Center col: Twitch */}
-          <div>
-            <TwitchEmbed />
-          </div>
-          {/* Right col: Recent Winners */}
-          <div>
-            <RecentWinners />
-          </div>
-        </div>
-      </section>
-
-      {/* Hero Section */}
-      <section className="container mx-auto px-4 py-16">
-        <div className="text-center space-y-6">
+      {/* Hero/Main Headline */}
+      <section className="container mx-auto px-4 pt-8 pb-6">
+        <div className="text-center space-y-4">
           <h1 className="text-5xl md:text-7xl font-bold text-white">
             Tournament
             <span className="text-red-500"> Management</span>
           </h1>
           <p className="text-xl text-slate-300 max-w-2xl mx-auto">
-            Organize and compete in professional esports tournaments with seamless bracket management, 
+            Organize and compete in professional esports tournaments with seamless bracket management,
             team balancing, and live match tracking.
           </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
-            {user ? (
-              <>
-                <Link to="/tournaments">
-                  <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white px-8 py-4 text-lg">
-                    <Trophy className="mr-2 h-5 w-5" />
-                    Browse Tournaments
-                  </Button>
-                </Link>
-                <Link to="/profile">
-                  <Button size="lg" variant="outline" className="border-slate-600 text-white hover:bg-slate-700 px-8 py-4 text-lg">
-                    <Users className="mr-2 h-5 w-5" />
-                    View Profile
-                  </Button>
-                </Link>
-              </>
-            ) : (
-              <>
-                <Link to="/login">
-                  <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white px-8 py-4 text-lg">
-                    <Trophy className="mr-2 h-5 w-5" />
-                    Get Started
-                  </Button>
-                </Link>
-                <Link to="/tournaments">
-                  <Button size="lg" variant="outline" className="border-slate-600 text-white hover:bg-slate-700 px-8 py-4 text-lg">
-                    <Users className="mr-2 h-5 w-5" />
-                    View Tournaments
-                  </Button>
-                </Link>
-              </>
-            )}
-          </div>
         </div>
       </section>
 
-      {/* Live Matches Section */}
-      <section className="container mx-auto px-4 py-12">
-        <LiveMatches />
+      {/* Announcement Full Width */}
+      <section className="container mx-auto px-4 pb-4">
+        <HomePageAnnouncement />
+      </section>
+
+      {/* Twitch embed full width (if enabled) */}
+      <section className="container mx-auto px-4 pb-8">
+        <TwitchEmbed />
+      </section>
+
+      {/* Main 3-col grid: L=Top Players | M=Tournaments | R=Recent Winner */}
+      <section className="container mx-auto px-4 pb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div>
+            <TopPlayersDisplay />
+          </div>
+          <div>
+            <TournamentTabs />
+          </div>
+          <div>
+            <RecentWinners />
+          </div>
+        </div>
       </section>
 
       {/* Features Section */}
@@ -241,6 +201,10 @@ const Index = () => {
             </Link>
           )}
         </div>
+      </section>
+      {/* Live Matches Section */}
+      <section className="container mx-auto px-4 py-12">
+        <LiveMatches />
       </section>
     </div>
   );
