@@ -1,10 +1,8 @@
-
 import React, { useState, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Trophy, Target, CheckCircle, Clock, AlertTriangle } from "lucide-react";
+import { Trophy, Target, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -34,9 +32,7 @@ interface ScoreReportingProps {
 }
 
 const ScoreReporting = ({ match, onScoreSubmitted }: ScoreReportingProps) => {
-  const [open, setOpen] = useState(false);
-  const [modalData, setModalData] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
+  // --- General state for both cards ---
   const { user } = useAuth();
   const { toast } = useToast();
   const notifications = useEnhancedNotifications();
@@ -44,6 +40,16 @@ const ScoreReporting = ({ match, onScoreSubmitted }: ScoreReportingProps) => {
   // Only show to captains or admins; combat via SQL in useMatchData or a prop in real life
   const [isCaptain, setIsCaptain] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+
+  // Captain modal state
+  const [openCap, setOpenCap] = useState(false);
+  const [modalDataCap, setModalDataCap] = useState<any>(null);
+  const [loadingCap, setLoadingCap] = useState(false);
+
+  // Admin modal state (not changed, still needs separate handling)
+  const [openAdmin, setOpenAdmin] = useState(false);
+  const [modalDataAdmin, setModalDataAdmin] = useState<any>(null);
+  const [loadingAdmin, setLoadingAdmin] = useState(false);
 
   React.useEffect(() => {
     let ok = true;
@@ -92,24 +98,22 @@ const ScoreReporting = ({ match, onScoreSubmitted }: ScoreReportingProps) => {
     score_team2: typeof match.score_team2 === "number" ? match.score_team2 : 0,
   }), [match, team1Name, team2Name]);
 
-  async function handleModalSave({ status, score_team1, score_team2, winner_id }: any) {
-    setLoading(true);
+  // --- Submission handlers for each role ---
+  async function handleCaptainSave({ status, score_team1, score_team2, winner_id }: any) {
+    setLoadingCap(true);
     try {
-      // Only submit if not tied
       if (score_team1 === score_team2) {
         toast({
           title: "Score tie not allowed",
           description: "Scores cannot be tied.",
           variant: "destructive"
         });
-        setLoading(false); return;
+        setLoadingCap(false); return;
       }
-      // Winner logic
       let winnerId = winner_id;
       if (!winnerId) {
         winnerId = score_team1 > score_team2 ? match.team1_id : match.team2_id;
       }
-      // Insert submission (always, even for admin for transparency)
       await supabase.from('match_result_submissions').insert({
         match_id: match.id,
         score_team1, score_team2,
@@ -117,15 +121,12 @@ const ScoreReporting = ({ match, onScoreSubmitted }: ScoreReportingProps) => {
         submitted_by: user.id,
         status: "pending"
       });
-      // Check for auto-complete logic:
-      // Fetch all captain submissions for this match
       const { data: allSubs } = await supabase
         .from('match_result_submissions')
         .select('*')
         .eq('match_id', match.id)
         .order('submitted_at', { ascending: true });
 
-      // Find two most recent submissions with same score/winner
       const matchingSubs = allSubs?.filter(
         sub => sub.score_team1 === score_team1
           && sub.score_team2 === score_team2
@@ -133,23 +134,19 @@ const ScoreReporting = ({ match, onScoreSubmitted }: ScoreReportingProps) => {
           && sub.status === "pending"
       ) ?? [];
       if (matchingSubs.length >= 2) {
-        // Confirm both; update status to confirmed
         const subIds = matchingSubs.slice(0, 2).map(sub => sub.id);
         await supabase.from('match_result_submissions')
           .update({ status: "confirmed", confirmed_by: user.id, confirmed_at: new Date().toISOString() })
           .in('id', subIds);
-        // Finalize match (will update bracket with processMatchResults)
         if (match.tournament_id) {
-          await processMatchResults(
-            {
-              matchId: match.id,
-              winnerId,
-              loserId: winnerId === match.team1_id ? match.team2_id : match.team1_id,
-              tournamentId: match.tournament_id,
-              scoreTeam1: score_team1,
-              scoreTeam2: score_team2,
-            }
-          );
+          await processMatchResults({
+            matchId: match.id,
+            winnerId,
+            loserId: winnerId === match.team1_id ? match.team2_id : match.team1_id,
+            tournamentId: match.tournament_id,
+            scoreTeam1: score_team1,
+            scoreTeam2: score_team2,
+          });
         }
         toast({
           title: "Score Confirmed and Match Finalized",
@@ -161,8 +158,8 @@ const ScoreReporting = ({ match, onScoreSubmitted }: ScoreReportingProps) => {
           description: "Your result was recorded. Awaiting confirmation by opposing captain.",
         });
       }
-
-      setOpen(false);
+      setOpenCap(false);
+      setModalDataCap(null);
       onScoreSubmitted();
     } catch (err: any) {
       toast({
@@ -171,10 +168,63 @@ const ScoreReporting = ({ match, onScoreSubmitted }: ScoreReportingProps) => {
         variant: "destructive"
       });
     }
-    setLoading(false);
+    setLoadingCap(false);
   }
 
-  // UI: Only captains or admins can submit
+  // Admin force-save handler
+  async function handleAdminSave({ status, score_team1, score_team2, winner_id }: any) {
+    setLoadingAdmin(true);
+    try {
+      if (score_team1 === score_team2) {
+        toast({
+          title: "Score tie not allowed",
+          description: "Scores cannot be tied.",
+          variant: "destructive"
+        });
+        setLoadingAdmin(false); return;
+      }
+      let winnerId = winner_id;
+      if (!winnerId) {
+        winnerId = score_team1 > score_team2 ? match.team1_id : match.team2_id;
+      }
+      // Admin override (status: confirmed, confirmed_by admin)
+      await supabase.from('match_result_submissions').insert({
+        match_id: match.id,
+        score_team1, score_team2,
+        winner_id: winnerId,
+        submitted_by: user.id,
+        status: "confirmed",
+        confirmed_by: user.id,
+        confirmed_at: new Date().toISOString(),
+      });
+      if (match.tournament_id) {
+        await processMatchResults({
+          matchId: match.id,
+          winnerId,
+          loserId: winnerId === match.team1_id ? match.team2_id : match.team1_id,
+          tournamentId: match.tournament_id,
+          scoreTeam1: score_team1,
+          scoreTeam2: score_team2,
+        });
+      }
+      toast({
+        title: "Admin: Match Overridden & Finalized",
+        description: "You forced this match result as admin. Audit record has been stored.",
+      });
+      setOpenAdmin(false);
+      setModalDataAdmin(null);
+      onScoreSubmitted();
+    } catch (err: any) {
+      toast({
+        title: "Error forcing score",
+        description: err.message,
+        variant: "destructive"
+      });
+    }
+    setLoadingAdmin(false);
+  }
+
+  // Show "only captains/admin" warning if not either 
   if (!isCaptain && !isAdmin) {
     return (
       <Card className="bg-slate-800 border-slate-700">
@@ -189,37 +239,83 @@ const ScoreReporting = ({ match, onScoreSubmitted }: ScoreReportingProps) => {
     );
   }
 
+  // ----- Render UI -----
+  // If user is BOTH admin and captain, show both interfaces stacked.
+  // Otherwise, show only their interface.
+
   return (
-    <div className="space-y-4">
-      <Card className="bg-slate-800 border-slate-700">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            <Trophy className="w-5 h-5" />
-            {isAdmin ? "Admin Submit Match Results" : "Submit Match Results"}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Button
-            className="w-full bg-amber-600 hover:bg-amber-700"
-            onClick={() => setOpen(true)}
-          >
-            <Target className="w-4 h-4 mr-2" />
-            {isAdmin ? "Submit Result (Admin)" : "Submit Result"}
-          </Button>
-        </CardContent>
-        <CardContent>
-          <MatchResultHistory matchId={match.id} team1Name={team1Name} team2Name={team2Name} />
-        </CardContent>
-      </Card>
-      {/* Modal for result entry */}
-      <MatchEditModal
-        open={open}
-        match={modalData || matchEditModalData}
-        actionMatchId={loading ? "pending" : null}
-        onChange={data => setModalData(data)}
-        onCancel={() => { setOpen(false); setModalData(null); }}
-        onSave={handleModalSave}
-      />
+    <div className="space-y-6">
+      {isCaptain && (
+        <Card className="bg-slate-800 border-slate-700">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center gap-2">
+              <Trophy className="w-5 h-5" />
+              {isAdmin
+                ? "Captain Submit Match Results (Normal Flow)"
+                : "Submit Match Results"}
+            </CardTitle>
+            <div className="mt-1">
+              <Badge className="bg-blue-800">{isAdmin ? "You are both captain & admin" : "Team Captain"}</Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Button
+              className="w-full bg-amber-600 hover:bg-amber-700"
+              onClick={() => setOpenCap(true)}
+            >
+              <Target className="w-4 h-4 mr-2" />
+              Submit Result (Captain)
+            </Button>
+          </CardContent>
+          <CardContent>
+            <MatchResultHistory matchId={match.id} team1Name={team1Name} team2Name={team2Name} />
+          </CardContent>
+          <MatchEditModal
+            open={openCap}
+            match={modalDataCap || matchEditModalData}
+            actionMatchId={loadingCap ? "pending" : null}
+            onChange={data => setModalDataCap(data)}
+            onCancel={() => { setOpenCap(false); setModalDataCap(null); }}
+            onSave={handleCaptainSave}
+          />
+        </Card>
+      )}
+
+      {isAdmin && (
+        <Card className="bg-slate-800 border-slate-700">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center gap-2">
+              <Trophy className="w-5 h-5" />
+              Admin Submit Match Results
+            </CardTitle>
+            {isCaptain && (
+              <div className="mt-1">
+                <Badge className="bg-green-800">Admin Override</Badge>
+              </div>
+            )}
+          </CardHeader>
+          <CardContent>
+            <Button
+              className="w-full bg-red-700 hover:bg-red-800"
+              onClick={() => setOpenAdmin(true)}
+            >
+              <Target className="w-4 h-4 mr-2" />
+              Submit Result (Admin Override)
+            </Button>
+          </CardContent>
+          <CardContent>
+            <MatchResultHistory matchId={match.id} team1Name={team1Name} team2Name={team2Name} />
+          </CardContent>
+          <MatchEditModal
+            open={openAdmin}
+            match={modalDataAdmin || matchEditModalData}
+            actionMatchId={loadingAdmin ? "pending" : null}
+            onChange={data => setModalDataAdmin(data)}
+            onCancel={() => { setOpenAdmin(false); setModalDataAdmin(null); }}
+            onSave={handleAdminSave}
+          />
+        </Card>
+      )}
     </div>
   );
 };
