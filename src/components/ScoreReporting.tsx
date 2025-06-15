@@ -1,8 +1,7 @@
-import { useState } from 'react';
+
+import React, { useState, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Trophy, Target, CheckCircle, Clock, AlertTriangle } from "lucide-react";
@@ -11,6 +10,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
 import { processMatchResults } from "@/components/MatchResultsProcessor";
+import MatchEditModal, { parseStatus } from "@/components/MatchEditModal";
+import MatchResultHistory from "./match-details/MatchResultHistory";
 
 interface Match {
   id: string;
@@ -23,8 +24,8 @@ interface Match {
   status: string;
   winner_id: string | null;
   tournament_id?: string;
-  team1?: { name: string };
-  team2?: { name: string };
+  team1?: { id: string; name: string };
+  team2?: { id: string; name: string };
 }
 
 interface ScoreReportingProps {
@@ -34,248 +35,192 @@ interface ScoreReportingProps {
 
 const ScoreReporting = ({ match, onScoreSubmitted }: ScoreReportingProps) => {
   const [open, setOpen] = useState(false);
+  const [modalData, setModalData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const [scores, setScores] = useState({
-    team1: match.score_team1?.toString() || '',
-    team2: match.score_team2?.toString() || ''
-  });
   const { user } = useAuth();
   const { toast } = useToast();
   const notifications = useEnhancedNotifications();
 
-  const handleSubmitScore = async () => {
-    if (!user) return;
+  // Only show to captains or admins; combat via SQL in useMatchData or a prop in real life
+  const [isCaptain, setIsCaptain] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
-    const score1 = parseInt(scores.team1) || 0;
-    const score2 = parseInt(scores.team2) || 0;
-
-    if (score1 === score2) {
-      toast({
-        title: "Invalid Score",
-        description: "Matches cannot end in a tie. Please enter a valid score.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const winnerId = score1 > score2 ? match.team1_id : match.team2_id;
-      const loserId = score1 > score2 ? match.team2_id : match.team1_id;
-
-      const { data: userData } = await supabase
+  React.useEffect(() => {
+    let ok = true;
+    (async () => {
+      if (!user || !match.id) return;
+      // Check if captain for either team
+      if (match.team1_id || match.team2_id) {
+        const { data } = await supabase.from('team_members')
+          .select('is_captain')
+          .eq('user_id', user.id)
+          .in('team_id', [match.team1_id, match.team2_id].filter(Boolean))
+          .maybeSingle();
+        setIsCaptain(!!(data && data.is_captain));
+      }
+      // Admin check (users table)
+      const { data: adm } = await supabase
         .from('users')
         .select('role')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
+      setIsAdmin(adm?.role === "admin");
+    })();
+    return () => { ok = false; };
+  }, [user, match.team1_id, match.team2_id, match.id]);
 
-      const isAdmin = userData?.role === 'admin';
+  // Use actual team names
+  const team1Name = match.team1?.name || "Team 1";
+  const team2Name = match.team2?.name || "Team 2";
 
-      if (isAdmin) {
-        const { error: matchError } = await supabase
-          .from('matches')
-          .update({
-            score_team1: score1,
-            score_team2: score2,
-            winner_id: winnerId,
-            status: 'completed',
-            completed_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', match.id);
+  // Build modal "match" object (the minimum required for MatchEditModal)
+  const matchEditModalData = useMemo(() => ({
+    id: match.id,
+    match_number: match.match_number,
+    team1: match.team1 ? { id: match.team1.id, name: team1Name } : null,
+    team2: match.team2 ? { id: match.team2.id, name: team2Name } : null,
+    winner: match.winner_id
+      ? (
+        match.team1?.id === match.winner_id
+          ? { id: match.winner_id, name: team1Name }
+          : match.team2?.id === match.winner_id
+            ? { id: match.winner_id, name: team2Name }
+            : { id: match.winner_id, name: match.winner_id.slice(0, 8) }
+      ) : null,
+    status: parseStatus(match.status),
+    score_team1: typeof match.score_team1 === "number" ? match.score_team1 : 0,
+    score_team2: typeof match.score_team2 === "number" ? match.score_team2 : 0,
+  }), [match, team1Name, team2Name]);
 
-        if (matchError) throw matchError;
+  async function handleModalSave({ status, score_team1, score_team2, winner_id }: any) {
+    setLoading(true);
+    try {
+      // Only submit if not tied
+      if (score_team1 === score_team2) {
+        toast({
+          title: "Score tie not allowed",
+          description: "Scores cannot be tied.",
+          variant: "destructive"
+        });
+        setLoading(false); return;
+      }
+      // Winner logic
+      let winnerId = winner_id;
+      if (!winnerId) {
+        winnerId = score_team1 > score_team2 ? match.team1_id : match.team2_id;
+      }
+      // Insert submission (always, even for admin for transparency)
+      await supabase.from('match_result_submissions').insert({
+        match_id: match.id,
+        score_team1, score_team2,
+        winner_id: winnerId,
+        submitted_by: user.id,
+        status: "pending"
+      });
+      // Check for auto-complete logic:
+      // Fetch all captain submissions for this match
+      const { data: allSubs } = await supabase
+        .from('match_result_submissions')
+        .select('*')
+        .eq('match_id', match.id)
+        .order('submitted_at', { ascending: true });
 
-        if (winnerId && loserId && match.tournament_id) {
+      // Find two most recent submissions with same score/winner
+      const matchingSubs = allSubs?.filter(
+        sub => sub.score_team1 === score_team1
+          && sub.score_team2 === score_team2
+          && sub.winner_id === winnerId
+          && sub.status === "pending"
+      ) ?? [];
+      if (matchingSubs.length >= 2) {
+        // Confirm both; update status to confirmed
+        const subIds = matchingSubs.slice(0, 2).map(sub => sub.id);
+        await supabase.from('match_result_submissions')
+          .update({ status: "confirmed", confirmed_by: user.id, confirmed_at: new Date().toISOString() })
+          .in('id', subIds);
+        // Finalize match (will update bracket with processMatchResults)
+        if (match.tournament_id) {
           await processMatchResults(
             {
               matchId: match.id,
               winnerId,
-              loserId,
+              loserId: winnerId === match.team1_id ? match.team2_id : match.team1_id,
               tournamentId: match.tournament_id,
-              scoreTeam1: score1,
-              scoreTeam2: score2,
-              onComplete: () => {
-                console.log('Tournament progression completed');
-              },
-            },
-            {
-              toast,
-              notifyMatchComplete: notifications.notifyMatchComplete,
-              notifyTournamentWinner: notifications.notifyTournamentWinner,
-              notifyMatchReady: notifications.notifyMatchReady,
+              scoreTeam1: score_team1,
+              scoreTeam2: score_team2,
             }
           );
         }
-
         toast({
-          title: "Score Updated",
-          description: "Match result has been recorded and tournament progressed"
+          title: "Score Confirmed and Match Finalized",
+          description: "Both captains submitted the same result. The match is now complete and bracket advanced."
         });
       } else {
-        const { error: submissionError } = await supabase
-          .from('match_result_submissions')
-          .insert({
-            match_id: match.id,
-            score_team1: score1,
-            score_team2: score2,
-            winner_id: winnerId,
-            submitted_by: user.id,
-            status: 'pending'
-          });
-
-        if (submissionError) throw submissionError;
-
         toast({
           title: "Score Submitted",
-          description: "Your score submission is pending approval from an admin"
+          description: "Your result was recorded. Awaiting confirmation by opposing captain.",
         });
       }
 
       setOpen(false);
       onScoreSubmitted();
-    } catch (error: any) {
-      console.error('Error submitting score:', error);
+    } catch (err: any) {
       toast({
-        title: "Error",
-        description: error.message || "Failed to submit score",
+        title: "Error submitting score",
+        description: err.message,
         variant: "destructive"
       });
-    } finally {
-      setLoading(false);
     }
-  };
+    setLoading(false);
+  }
 
-  const getMatchStatus = () => {
-    if (match.status === 'completed') {
-      return (
-        <Badge className="bg-green-600">
-          <CheckCircle className="w-3 h-3 mr-1" />
-          Completed
-        </Badge>
-      );
-    }
-    if (match.status === 'live') {
-      return (
-        <Badge className="bg-orange-600">
-          <Clock className="w-3 h-3 mr-1" />
-          Live
-        </Badge>
-      );
-    }
+  // UI: Only captains or admins can submit
+  if (!isCaptain && !isAdmin) {
     return (
-      <Badge variant="outline" className="border-slate-600 text-slate-300">
-        <AlertTriangle className="w-3 h-3 mr-1" />
-        Pending
-      </Badge>
+      <Card className="bg-slate-800 border-slate-700">
+        <CardContent className="p-4 text-center">
+          <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-yellow-500" />
+          <p className="text-slate-400">Only team captains or admins can submit match results</p>
+        </CardContent>
+        <CardContent>
+          <MatchResultHistory matchId={match.id} team1Name={team1Name} team2Name={team2Name} />
+        </CardContent>
+      </Card>
     );
-  };
+  }
 
   return (
-    <Card className="bg-slate-800 border-slate-700">
-      <CardHeader>
-        <CardTitle className="text-white flex items-center justify-between">
-          <div className="flex items-center gap-2">
+    <div className="space-y-4">
+      <Card className="bg-slate-800 border-slate-700">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center gap-2">
             <Trophy className="w-5 h-5" />
-            Round {match.round_number} - Match {match.match_number}
-          </div>
-          {getMatchStatus()}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="text-center flex-1">
-            <div className="text-lg font-semibold text-white">
-              {match.team1?.name || 'TBA'}
-            </div>
-            {match.score_team1 !== null && (
-              <div className="text-2xl font-bold text-green-400 mt-2">
-                {match.score_team1}
-              </div>
-            )}
-          </div>
-          
-          <div className="text-slate-400 text-xl font-bold px-4">
-            VS
-          </div>
-          
-          <div className="text-center flex-1">
-            <div className="text-lg font-semibold text-white">
-              {match.team2?.name || 'TBA'}
-            </div>
-            {match.score_team2 !== null && (
-              <div className="text-2xl font-bold text-green-400 mt-2">
-                {match.score_team2}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {match.team1_id && match.team2_id && match.status !== 'completed' && (
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button className="w-full bg-blue-600 hover:bg-blue-700">
-                <Target className="w-4 h-4 mr-2" />
-                Report Score
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="bg-slate-800 border-slate-700">
-              <DialogHeader>
-                <DialogTitle className="text-white">Report Match Score</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="team1Score" className="text-slate-300">
-                      {match.team1?.name || 'Team 1'} Score
-                    </Label>
-                    <Input
-                      id="team1Score"
-                      type="number"
-                      min="0"
-                      value={scores.team1}
-                      onChange={(e) => setScores(prev => ({ ...prev, team1: e.target.value }))}
-                      className="bg-slate-700 border-slate-600 text-white"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="team2Score" className="text-slate-300">
-                      {match.team2?.name || 'Team 2'} Score
-                    </Label>
-                    <Input
-                      id="team2Score"
-                      type="number"
-                      min="0"
-                      value={scores.team2}
-                      onChange={(e) => setScores(prev => ({ ...prev, team2: e.target.value }))}
-                      className="bg-slate-700 border-slate-600 text-white"
-                    />
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    onClick={handleSubmitScore}
-                    disabled={loading || !scores.team1 || !scores.team2}
-                    className="flex-1 bg-green-600 hover:bg-green-700"
-                  >
-                    {loading ? 'Submitting...' : 'Submit Score'}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setOpen(false)}
-                    className="border-slate-600 text-slate-300 hover:bg-slate-700"
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-        )}
-      </CardContent>
-    </Card>
+            {isAdmin ? "Admin Submit Match Results" : "Submit Match Results"}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Button
+            className="w-full bg-amber-600 hover:bg-amber-700"
+            onClick={() => setOpen(true)}
+          >
+            <Target className="w-4 h-4 mr-2" />
+            {isAdmin ? "Submit Result (Admin)" : "Submit Result"}
+          </Button>
+        </CardContent>
+        <CardContent>
+          <MatchResultHistory matchId={match.id} team1Name={team1Name} team2Name={team2Name} />
+        </CardContent>
+      </Card>
+      {/* Modal for result entry */}
+      <MatchEditModal
+        open={open}
+        match={modalData || matchEditModalData}
+        actionMatchId={loading ? "pending" : null}
+        onChange={data => setModalData(data)}
+        onCancel={() => { setOpen(false); setModalData(null); }}
+        onSave={handleModalSave}
+      />
+    </div>
   );
 };
 
