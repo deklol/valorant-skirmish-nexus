@@ -1,8 +1,7 @@
-import React, { useCallback, useEffect, useState, useRef } from "react";
+import React, { useCallback, useEffect, useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useMapVetoActionsRealtime, useMapVetoSessionRealtime } from "@/hooks/useMapVetoRealtime";
 import MapVetoTurnStatus from "./MapVetoTurnStatus";
 import MapVetoMapGrid from "./MapVetoMapGrid";
 import MapVetoHistory from "./MapVetoHistory";
@@ -13,6 +12,7 @@ import { useVetoMapAction } from "./useVetoMapAction";
 import { isMapAvailable, getRemainingMaps } from "./mapVetoUtils";
 import { Button } from "@/components/ui/button";
 import { getVctVetoFlow } from "./vetoFlowUtils";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface MapVetoDialogProps {
   open: boolean;
@@ -32,12 +32,12 @@ interface MapVetoDialogProps {
   awayTeamId?: string | null;
 }
 
+// asMapActionType function remains unchanged
 const asMapActionType = (act: string | undefined | null): "ban" | "pick" =>
   act === "ban" ? "ban" : act === "pick" ? "pick" : "ban";
 
 /**
- * Simplified, real-time-only MapVetoDialog.
- * No polling or redundant syncs, state solely driven by real-time events + initial source of truth on open/reset.
+ * Simplified, polling-based MapVetoDialog (no real-time websocket syncing).
  */
 const MapVetoDialog = ({
   open,
@@ -56,20 +56,14 @@ const MapVetoDialog = ({
   homeTeamId,
   awayTeamId,
 }: any) => {
-  const [maps, setMaps] = useState<MapData[]>([]);
-  const [vetoActions, setVetoActions] = useState<VetoAction[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [syncing, setSyncing] = useState(true);
   const { toast } = useToast();
-  const [currentTurnTeamId, setCurrentTurnTeamId] = useState<string>(currentTeamTurn);
+  const queryClient = useQueryClient();
+
+  // State for controlling team turn, manually set only if we need to force it
   const [sidePickModal, setSidePickModal] = useState<null | { mapId: string, onPick: (side: "attack" | "defend") => void }>(null);
-  const [connectionStatus, setConnectionStatus] = useState<"connecting" | "online" | "offline" | "error" | "timeout" | "closed">("connecting");
-  const [retryNonce, setRetryNonce] = useState<number>(0);
+  const [loading, setLoading] = useState(false);
 
-  // Timeout syncing state after 10s if stuck
-  const syncingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Defensive fallback for critical crash/loop conditions
+  // Compute which state must be loaded, for disable or error
   const hasMinimalData = vetoSessionId && team1Id && team2Id;
   if (!hasMinimalData) {
     return (
@@ -93,44 +87,32 @@ const MapVetoDialog = ({
     );
   }
 
-  // WATCH: Show dialog title & description for accessibility every time
-  // DialogHeader/Title is always present. Map Veto dialog always has a description.
   const dialogTitle = `Map Veto - ${team1Name} vs ${team2Name}`;
 
-  // ----- Realtime Connection / Syncing -----
-  useEffect(() => {
-    setConnectionStatus("connecting");
-    setSyncing(true);
-    syncingTimeoutRef.current && clearTimeout(syncingTimeoutRef.current);
-    syncingTimeoutRef.current = setTimeout(() => {
-      setConnectionStatus("timeout");
-      setSyncing(false);
-    }, 10000); // 10s max to connect
-    return () => {
-      if (syncingTimeoutRef.current) clearTimeout(syncingTimeoutRef.current);
-    };
-  }, [open, vetoSessionId, retryNonce]);
-
-  // Main data loading on open/reset
-  const fetchMaps = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from("maps")
-        .select("*")
-        .eq("is_active", true)
-        .order("name");
+  // ---- Data fetching with React Query ----
+  // Maps
+  const { data: maps = [], isLoading: mapsLoading, refetch: refetchMaps } = useQuery({
+    queryKey: ['map-veto-maps', vetoSessionId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("maps").select("*").eq("is_active", true).order("name");
       if (error) throw error;
-      setMaps(data || []);
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: "Failed to load maps",
-        variant: "destructive",
-      });
-    }
-  }, [toast]);
-  const fetchVetoActions = useCallback(async () => {
-    try {
+      return data ?? [];
+    },
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    enabled: open && !!vetoSessionId,
+    staleTime: 10000,
+  });
+
+  // Veto Actions
+  const {
+    data: vetoActions = [],
+    isLoading: vetoActionsLoading,
+    refetch: refetchVetoActions,
+    isFetching: vetoActionsFetching,
+  } = useQuery({
+    queryKey: ['map-veto-actions', vetoSessionId],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from("map_veto_actions")
         .select(
@@ -139,73 +121,62 @@ const MapVetoDialog = ({
         .eq("veto_session_id", vetoSessionId)
         .order("order_number");
       if (error) throw error;
-      const normalized: VetoAction[] = (data || []).map((a: any) => ({
+      return (data || []).map((a: any) => ({
         ...a,
         side_choice:
           a.side_choice === "attack" || a.side_choice === "defend"
             ? a.side_choice
             : null,
-      }));
-      setVetoActions(normalized);
-    } catch (e) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch map veto actions.",
-        variant: "destructive",
-      });
-    }
-  }, [vetoSessionId, toast]);
-
-  useEffect(() => {
-    if (open) {
-      setMaps([]);
-      setVetoActions([]);
-      setCurrentTurnTeamId(currentTeamTurn);
-      Promise.all([fetchMaps(), fetchVetoActions()]).finally(() => setSyncing(false));
-    }
-  }, [open, vetoSessionId, currentTeamTurn, fetchMaps, fetchVetoActions, retryNonce]);
-
-  // Subscribe to realtime; update status for UI/timeout
-  useMapVetoSessionRealtime(
-    hasMinimalData ? vetoSessionId : null,
-    payload => {
-      if (payload && payload.new && payload.new.current_turn_team_id) {
-        setCurrentTurnTeamId(payload.new.current_turn_team_id);
-      }
+      })) as VetoAction[];
     },
-    { onConnectionChange: (connState) => {
-      setConnectionStatus(connState);
-      if (connState === "connecting") setSyncing(true);
-      if (connState === "online") {
-        setSyncing(false);
-        // kill sync timeout if alive
-        if (syncingTimeoutRef.current) clearTimeout(syncingTimeoutRef.current);
-        syncingTimeoutRef.current = null;
-      }
-      if (connState === "error" || connState === "offline") {
-        setSyncing(true);
-      }
-    }}
-  );
-  useMapVetoActionsRealtime(
-    hasMinimalData ? vetoSessionId : null,
-    fetchVetoActions,
-    { onConnectionChange: (connState) => {
-      // This line intentionally does not set connectionStatus;
-      // Only setSyncing to block UI if offline
-      if (connState === "connecting") setSyncing(true);
-      if (connState === "online") setSyncing(false);
-      if (connState === "error" || connState === "offline") setSyncing(true);
-    } }
-  );
+    refetchInterval: open ? 2000 : false, // poll every 2 seconds while dialog is open
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    enabled: open && !!vetoSessionId,
+    staleTime: 10000,
+  });
 
-  // Manual retry logic for real-time connection
-  const handleRetry = () => {
-    setRetryNonce(n => n + 1);
-    setConnectionStatus("connecting");
-    setSyncing(true);
+  // Session for current turn, home/away, etc.
+  const {
+    data: sessionData,
+    isLoading: sessionLoading,
+    refetch: refetchSession,
+  } = useQuery({
+    queryKey: ['map-veto-session', vetoSessionId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("map_veto_sessions")
+        .select("*")
+        .eq("id", vetoSessionId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    refetchInterval: open ? 2000 : false,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    enabled: open && !!vetoSessionId,
+    staleTime: 10000,
+  });
+
+  // Loading state - if anything is loading
+  const loadingAny = mapsLoading || vetoActionsLoading || sessionLoading || vetoActionsFetching || loading;
+
+  // Manual refresh button handler
+  const handleManualRefresh = async () => {
+    await Promise.all([
+      refetchSession(),
+      refetchMaps(),
+      refetchVetoActions(),
+    ]);
+    toast({ title: "Refreshed", description: "Latest data loaded." });
   };
 
+  // Defensive: Pull current turn from session (DB is source of truth)
+  const currentTurnTeamId = sessionData?.current_turn_team_id
+    ?? currentTeamTurn;
+
+  // ---- Permissions ----
   const {
     isUserOnMatchTeam,
     isUserTeamTurn,
@@ -218,24 +189,8 @@ const MapVetoDialog = ({
     teamSize,
     team1Id,
     team2Id,
-    seq: 0 // always 0, versions dropped in simplified code
+    seq: 0
   });
-
-  // Log permission values clearly to debug (especially for home team/captain voting issues)
-  useEffect(() => {
-    if (open) {
-      console.log("VETO DEBUG | Permission Inputs:", {
-        userTeamId,
-        currentTurnTeamId,
-        isUserCaptain,
-        teamSize,
-        team1Id,
-        team2Id,
-        vetoSessionId,
-        bestOf,
-      });
-    }
-  }, [open, userTeamId, currentTurnTeamId, isUserCaptain, teamSize, team1Id, team2Id, vetoSessionId, bestOf]);
 
   // Map action handler via custom hook
   const { handleMapAction } = useVetoMapAction({
@@ -247,7 +202,10 @@ const MapVetoDialog = ({
     bestOf,
     vetoActions,
     maps,
-    onActionComplete: fetchVetoActions,
+    onActionComplete: () => {
+      refetchVetoActions();
+      refetchSession();
+    },
     checkPermissions: () => {
       const result = explainPermissions();
       const reason = typeof result === "string" ? result : result.reason ?? "You are not allowed to perform this action";
@@ -266,8 +224,8 @@ const MapVetoDialog = ({
     toast,
   });
 
-  // Ensure vetoFlow and all steps have proper data before accessing them
-  const vetoFlow = React.useMemo(() => {
+  // Veto flow and steps
+  const vetoFlow = useMemo(() => {
     if (!homeTeamId || !awayTeamId || maps.length === 0) return [];
     return getVctVetoFlow({ homeTeamId, awayTeamId, bestOf, maps });
   }, [homeTeamId, awayTeamId, bestOf, maps]);
@@ -276,7 +234,6 @@ const MapVetoDialog = ({
     ? vetoActions.length
     : Math.max(0, vetoFlow.length - 1);
 
-  // Defensive: prevent null access if out of bounds or not yet set
   const currentStep = vetoFlow[vetoStep] || null;
 
   // Defensive: vetoComplete, action checks
@@ -291,11 +248,25 @@ const MapVetoDialog = ({
 
   const canVeto = vetoFlow.length > 0;
 
+  // Home/away labels; stays same
+  const [homeLabel, setHomeLabel] = useState<string>("Home");
+  const [awayLabel, setAwayLabel] = useState<string>("Away");
+  useEffect(() => {
+    if (team1Id && homeTeamId === team1Id) {
+      setHomeLabel(team1Name);
+      setAwayLabel(team2Name);
+    } else if (team2Id && homeTeamId === team2Id) {
+      setHomeLabel(team2Name);
+      setAwayLabel(team1Name);
+    }
+  }, [homeTeamId, awayTeamId, team1Id, team2Id, team1Name, team2Name]);
+
+  // Side pick modal logic for side selection, kept the same.
   useEffect(() => {
     if (
       bestOf === 1 &&
       maps.length > 0 &&
-      bansMade === totalBansNeeded // all bans done
+      bansMade === totalBansNeeded
     ) {
       const lastPick = vetoActions.filter(a => a.action === "pick").pop();
       if (
@@ -315,7 +286,7 @@ const MapVetoDialog = ({
               .is("side_choice", null);
             setLoading(false);
             setSidePickModal(null);
-            fetchVetoActions();
+            await refetchVetoActions();
             toast({ title: "Side Selected", description: `You picked ${side} side.` });
           },
         });
@@ -323,20 +294,20 @@ const MapVetoDialog = ({
     } else {
       setSidePickModal(null);
     }
-  }, [bestOf, maps, bansMade, pickMade, sideChosen, vetoActions, currentStep, isUserCaptain, userTeamId, homeTeamId, toast, fetchVetoActions]);
+    // eslint-disable-next-line
+  }, [bestOf, maps, bansMade, pickMade, sideChosen, vetoActions, currentStep, isUserCaptain, userTeamId, homeTeamId, toast]);
+  // only toast and refetchVetoActions dependencies change across renders
 
-  // Defensive: only pass allowed action/props, do not crash if currentStep/teamId is missing!
   const safeCurrentAction: "ban" | "pick" =
     currentStep && (currentStep.action === "ban" || currentStep.action === "pick")
       ? currentStep.action
       : "ban";
 
-  // FINAL summary for veto result
   const finalPickAction = vetoActions.find(a => a.action === 'pick');
   const pickedMap = maps.find(m => m.id === finalPickAction?.map_id);
   const pickedSide = finalPickAction?.side_choice;
 
-  // Defensive gets for map status
+  // getMapStatus and rest of logic remains as is
   const getMapStatus = (mapId: string) => {
     const action = vetoActions.find((action) => action.map_id === mapId);
     if (!action) return null;
@@ -346,20 +317,7 @@ const MapVetoDialog = ({
     };
   };
 
-  // Defensive home/away labels
-  const [homeLabel, setHomeLabel] = useState<string>("Home");
-  const [awayLabel, setAwayLabel] = useState<string>("Away");
-  useEffect(() => {
-    if (team1Id && homeTeamId === team1Id) {
-      setHomeLabel(team1Name);
-      setAwayLabel(team2Name);
-    } else if (team2Id && homeTeamId === team2Id) {
-      setHomeLabel(team2Name);
-      setAwayLabel(team1Name);
-    }
-  }, [homeTeamId, awayTeamId, team1Id, team2Id, team1Name, team2Name]);
-
-  // Defensive: fallback UI if syncing or missing data
+  // Defensive: fallback UI if missing data
   if (!open || !vetoFlow || vetoFlow.length === 0) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -375,37 +333,6 @@ const MapVetoDialog = ({
     );
   }
 
-  // UI: Real-time connection state/indicator for users
-  const renderConnectionInfo = () => {
-    switch (connectionStatus) {
-      case "online":
-        return <span className="text-green-400 text-xs">Connected to server</span>;
-      case "offline":
-      case "error":
-      case "closed":
-        return (
-          <div className="flex flex-col items-center gap-2">
-            <span className="text-red-300 text-xs">Connection to server lost.</span>
-            <Button variant="link" className="text-blue-300 underline text-xs p-0 h-auto font-medium hover:text-blue-400" onClick={handleRetry}>
-              Reconnect
-            </Button>
-          </div>
-        );
-      case "timeout":
-        return (
-          <div className="flex flex-col items-center gap-2">
-            <span className="text-yellow-300 text-xs">Unable to reach server. App is in read-only mode. Retry below.</span>
-            <Button variant="link" className="text-blue-300 underline text-xs p-0 h-auto font-medium hover:text-blue-400" onClick={handleRetry}>
-              Reconnect
-            </Button>
-          </div>
-        );
-      case "connecting":
-      default:
-        return <span className="text-yellow-300 text-xs">Syncing with server...</span>;
-    }
-  };
-
   // Dialog Render
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -414,7 +341,16 @@ const MapVetoDialog = ({
           <DialogTitle>{dialogTitle}</DialogTitle>
           <DialogDescription id="map-veto-dialog-description">
             Participate in map bans and picks. All team members see this in real time. <br />
-            <span>{renderConnectionInfo()}</span>
+            <Button
+              variant="link"
+              className="text-blue-300 underline text-xs p-0 h-auto font-medium hover:text-blue-400 ml-2"
+              onClick={handleManualRefresh}
+            >
+              Refresh
+            </Button>
+            {loadingAny && (
+              <span className="ml-2 text-yellow-200 text-xs">Loading latest data...</span>
+            )}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-6">
@@ -439,8 +375,6 @@ const MapVetoDialog = ({
             </div>
           ) : (
             <>
-              {/* Connection status indicator always at the top */}
-              <div className="flex justify-center">{renderConnectionInfo()}</div>
               {/* Show home/away info */}
               <div className="flex gap-8 justify-center pb-2">
                 <div className="bg-slate-900/60 px-3 py-1 rounded text-yellow-100 border border-yellow-700 text-sm">
@@ -454,11 +388,10 @@ const MapVetoDialog = ({
               {/* Turn/Phase */}
               <MapVetoTurnStatus
                 key={currentTurnTeamId}
-                canAct={isUserEligible && canVeto && !syncing}
+                canAct={isUserEligible && canVeto && !loadingAny}
                 isUserTurn={isUserTeamTurn}
                 teamSize={teamSize}
                 isUserCaptain={isUserCaptain!}
-                // Only allow "ban" or "pick" as MapActionType!
                 currentAction={safeCurrentAction}
               />
 
@@ -506,14 +439,14 @@ const MapVetoDialog = ({
                   <div className="text-lg mb-2">Choose Starting Side</div>
                   <div className="flex gap-4">
                     <Button
-                      disabled={loading}
+                      disabled={loadingAny}
                       onClick={() => sidePickModal.onPick("attack")}
                       className="bg-red-600 hover:bg-red-700"
                     >
                       Attack
                     </Button>
                     <Button
-                      disabled={loading}
+                      disabled={loadingAny}
                       onClick={() => sidePickModal.onPick("defend")}
                       className="bg-blue-700 hover:bg-blue-800"
                     >
@@ -527,7 +460,7 @@ const MapVetoDialog = ({
               ) : (
                 <MapVetoMapGrid
                   maps={maps}
-                  canAct={isUserEligible && canVeto && currentStep && currentStep.action !== "side_pick" && !syncing}
+                  canAct={isUserEligible && canVeto && currentStep && currentStep.action !== "side_pick" && !loadingAny}
                   currentAction={safeCurrentAction}
                   bestOf={bestOf}
                   remainingMaps={getRemainingMaps(maps, vetoActions)}
@@ -543,7 +476,7 @@ const MapVetoDialog = ({
               <MapVetoInstructions />
             </>
           )}
-          {!syncing && vetoFlow.length === 0 && (
+          {!loadingAny && vetoFlow.length === 0 && (
             <div className="text-red-400 text-center p-16">
               Unable to start map veto: Session, teams, or map list is not loaded. Please retry later.
             </div>
