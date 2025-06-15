@@ -4,7 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tooltip } from "@radix-ui/react-tooltip";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Wrench, ShieldAlert, AlertCircle, ArrowRightLeft, RefreshCw, Hammer, Redo2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -174,49 +174,69 @@ export default function BracketMedicManager() {
             {/* BRACKET ACTIONS */}
             <div className="flex flex-wrap gap-4 my-6">
               {/* Fix progression */}
-              <Tooltip content="Re-apply correct winners to next rounds (fixes any broken progression)">
-                <Button variant="outline" size="sm" className="border-cyan-600/40 text-cyan-300">
-                  <ArrowRightLeft className="w-4 h-4 mr-1" />
-                  Fix Team Progression
-                </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="sm" className="border-cyan-600/40 text-cyan-300">
+                    <ArrowRightLeft className="w-4 h-4 mr-1" />
+                    Fix Team Progression
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Re-apply correct winners to next rounds (fixes any broken progression)
+                </TooltipContent>
               </Tooltip>
               {/* Reset match */}
-              <Tooltip content="Clear team assignments from selected match only (does not alter completed matches)">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-amber-600/40 text-amber-400"
-                  disabled={!selectedMatchId}
-                  // onClick={handleResetMatch}
-                >
-                  <Redo2 className="w-4 h-4 mr-1" />
-                  Reset Match
-                </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-amber-600/40 text-amber-400"
+                    disabled={!selectedMatchId}
+                    // onClick={handleResetMatch}
+                  >
+                    <Redo2 className="w-4 h-4 mr-1" />
+                    Reset Match
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Clear team assignments from selected match only (does not alter completed matches)
+                </TooltipContent>
               </Tooltip>
               {/* Team Swap */}
-              <Tooltip content="Swap teams in selected match (safe, only allowed if match not completed)">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-blue-600/40 text-blue-400"
-                  disabled={!selectedMatchId}
-                  // onClick={handleSwapTeams}
-                >
-                  <ArrowRightLeft className="w-4 h-4 mr-1" />
-                  Swap Teams
-                </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-blue-600/40 text-blue-400"
+                    disabled={!selectedMatchId}
+                    // onClick={handleSwapTeams}
+                  >
+                    <ArrowRightLeft className="w-4 h-4 mr-1" />
+                    Swap Teams
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Swap teams in selected match (safe, only allowed if match not completed)
+                </TooltipContent>
               </Tooltip>
               {/* Rebuild Bracket */}
-              <Tooltip content="Regenerate the bracket from the current pool of teams (advanced)">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-red-600/40 text-red-400"
-                  // onClick={handleRebuildBracket}
-                >
-                  <Hammer className="w-4 h-4 mr-1" />
-                  Rebuild Bracket
-                </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-red-600/40 text-red-400"
+                    // onClick={handleRebuildBracket}
+                  >
+                    <Hammer className="w-4 h-4 mr-1" />
+                    Rebuild Bracket
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Regenerate the bracket from the current pool of teams (advanced)
+                </TooltipContent>
               </Tooltip>
             </div>
             <div className="text-xs text-slate-500 mt-4">
@@ -229,3 +249,5 @@ export default function BracketMedicManager() {
     </Card>
   );
 }
+
+// Note: This file is getting long. You should consider refactoring it into smaller, focused files after your next round of edits.
