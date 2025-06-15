@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,19 +8,9 @@ import { Wrench, RefreshCw, Edit, ShieldAlert, Trophy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import TournamentMedicEditModal from "./TournamentMedicEditModal";
+import { Tournament } from "@/components/ComprehensiveTournamentEditor";
 
-type Tournament = {
-  id: string;
-  name: string;
-  status: string;
-  match_format: string | null;
-  team_size: number | null;
-  max_teams: number | null;
-  max_players: number | null;
-  prize_pool: string | null;
-  start_time: string | null;
-  created_at: string | null;
-};
+// Remove local Tournament type, use the imported one
 
 const TOURNAMENT_STATUS: { key: string; label: string; color: string }[] = [
   { key: "all", label: "All", color: "bg-slate-600" },
@@ -40,13 +31,30 @@ export default function TournamentMedicManager() {
   const [editModal, setEditModal] = useState<Tournament | null>(null);
   const { toast } = useToast();
 
-  // Fetch tournaments (latest 50, for now)
+  // Fetch tournaments (ensure we select ALL Tournament fields)
   useEffect(() => {
     async function fetchTournaments() {
       setLoading(true);
       const { data, error } = await supabase
         .from("tournaments")
-        .select("id, name, status, match_format, team_size, max_teams, max_players, prize_pool, start_time, created_at")
+        .select(`
+          id,
+          name,
+          description,
+          status,
+          match_format,
+          bracket_type,
+          team_size,
+          max_teams,
+          max_players,
+          prize_pool,
+          start_time,
+          created_at,
+          registration_opens_at,
+          registration_closes_at,
+          check_in_starts_at,
+          check_in_ends_at
+        `)
         .order("created_at", { ascending: false })
         .limit(50);
 
@@ -54,7 +62,25 @@ export default function TournamentMedicManager() {
         toast({ title: "Error", description: "Failed to fetch tournaments", variant: "destructive" });
         setTournaments([]);
       } else {
-        setTournaments(data || []);
+        // Force all objects to fulfill Tournament type (fill possible nulls)
+        setTournaments(
+          (data ?? []).map((t) => ({
+            id: t.id,
+            name: t.name,
+            description: t.description ?? null,
+            start_time: t.start_time ?? null,
+            registration_opens_at: t.registration_opens_at ?? null,
+            registration_closes_at: t.registration_closes_at ?? null,
+            check_in_starts_at: t.check_in_starts_at ?? null,
+            check_in_ends_at: t.check_in_ends_at ?? null,
+            max_teams: t.max_teams ?? 0,
+            max_players: t.max_players ?? 0,
+            prize_pool: t.prize_pool ?? null,
+            status: t.status,
+            match_format: t.match_format ?? "BO1",
+            bracket_type: t.bracket_type ?? "single_elimination",
+          })) as Tournament[]
+        );
       }
       setLoading(false);
     }
