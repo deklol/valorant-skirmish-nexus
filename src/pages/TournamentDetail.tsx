@@ -380,11 +380,11 @@ const TournamentDetail = () => {
           </CardContent>
         </Card>
 
-        {/* --- Teams & Participants Section --- */}
+        {/* --- Teams & Participants Section: ALWAYS SHOWN --- */}
         {renderTeamsPanel()}
-        {/* --- End new section --- */}
+        {/* --- End teams section --- */}
 
-        {/* Registration Component - Available to all users */}
+        {/* Registration Component - still on main page, above tabs, like before */}
         {tournament.status === 'open' && (
           <TournamentRegistration
             tournamentId={tournament.id}
@@ -393,12 +393,34 @@ const TournamentDetail = () => {
           />
         )}
 
-        {/* Main Content Tabs */}
+        {/* ========== TABS ========== */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 bg-slate-800 border-slate-700">
+          <TabsList className={`grid w-full
+            ${
+              // Overview, Bracket (if any), Participants, (plus 3 admin)
+              2 + (matches.length > 0 ? 1 : 0) +  (isAdmin ? 3 : 0) === 5
+                ? "lg:grid-cols-5"
+                : (matches.length > 0 ? "lg:grid-cols-4" : "lg:grid-cols-3")
+            }
+             grid-cols-2 bg-slate-800 border-slate-700`}>
+            {/* Tab: Overview */}
             <TabsTrigger value="overview" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
+              <Settings className="w-4 h-4 mr-2" />
               Overview
             </TabsTrigger>
+            {/* Tab: Bracket (only show if matches) */}
+            {matches.length > 0 && (
+              <TabsTrigger value="bracket" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
+                <Trophy className="w-4 h-4 mr-2" />
+                Bracket
+              </TabsTrigger>
+            )}
+            {/* Tab: Participants (always visible) */}
+            <TabsTrigger value="participants" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
+              <Users className="w-4 h-4 mr-2" />
+              Participants
+            </TabsTrigger>
+            {/* Admin-only tabs */}
             {isAdmin && (
               <>
                 <TabsTrigger value="admin" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
@@ -417,32 +439,8 @@ const TournamentDetail = () => {
             )}
           </TabsList>
 
-          {/* Overview Tab - Available to all users */}
+          {/* ---- Overview Tab (reduced: remove participants and bracket) ---- */}
           <TabsContent value="overview" className="space-y-6">
-            {/* Tournament Participants */}
-            <TournamentParticipants
-              tournamentId={tournament.id}
-              maxPlayers={tournament.max_players}
-              isAdmin={isAdmin}
-            />
-
-            {/* Bracket View */}
-            {matches.length > 0 && (
-              <Card className="bg-slate-800/90 border-slate-700">
-                <CardHeader>
-                  <CardTitle className="text-xl font-bold text-white flex items-center gap-2">
-                    <Trophy className="w-5 h-5" />
-                    Tournament Bracket
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <IntegratedBracketView
-                    tournamentId={tournament.id}
-                  />
-                </CardContent>
-              </Card>
-            )}
-
             {/* Tournament Information */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Tournament Details */}
@@ -469,12 +467,10 @@ const TournamentDetail = () => {
                       <div className="text-white">{tournament.max_players}</div>
                     </div>
                   </div>
-                  
                   {tournament.enable_map_veto && (
                     <div>
                       <div className="text-sm text-slate-400">Map Veto</div>
                       <div className="text-white">Enabled</div>
-                      {/* FIX: Use parsedMapVetoRounds for length/join */}
                       {parsedMapVetoRounds.length > 0 && (
                         <div className="text-sm text-slate-500">
                           Required rounds: {parsedMapVetoRounds.join(', ')}
@@ -537,7 +533,35 @@ const TournamentDetail = () => {
             </div>
           </TabsContent>
 
-          {/* Admin Management Tab */}
+          {/* ---- Bracket Tab ---- */}
+          {matches.length > 0 && (
+            <TabsContent value="bracket" className="space-y-6">
+              <Card className="bg-slate-800/90 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="text-xl font-bold text-white flex items-center gap-2">
+                    <Trophy className="w-5 h-5" />
+                    Tournament Bracket
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <IntegratedBracketView
+                    tournamentId={tournament.id}
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+
+          {/* ---- Participants Tab ---- */}
+          <TabsContent value="participants" className="space-y-6">
+            <TournamentParticipants
+              tournamentId={tournament.id}
+              maxPlayers={tournament.max_players}
+              isAdmin={isAdmin}
+            />
+          </TabsContent>
+
+          {/* ---- Admin Management Tab ---- */}
           {isAdmin && (
             <TabsContent value="admin" className="space-y-6">
               {/* Comprehensive Tournament Editor */}
@@ -548,7 +572,6 @@ const TournamentDetail = () => {
                 }}
                 onTournamentUpdated={handleRefresh}
               />
-
               {/* Tournament Status Manager & Bracket Generator */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <TournamentStatusManager
@@ -556,7 +579,6 @@ const TournamentDetail = () => {
                   currentStatus={tournament.status}
                   onStatusChange={handleRefresh}
                 />
-
                 <BracketGenerator
                   tournamentId={tournament.id}
                   tournament={{
@@ -567,7 +589,7 @@ const TournamentDetail = () => {
                     final_match_format: tournament.final_match_format,
                     semifinal_match_format: tournament.semifinal_match_format,
                     enable_map_veto: tournament.enable_map_veto,
-                    map_veto_required_rounds: parsedMapVetoRounds // <--- key fix
+                    map_veto_required_rounds: parsedMapVetoRounds
                   }}
                   teams={teams}
                   onBracketGenerated={handleRefresh}
@@ -576,16 +598,13 @@ const TournamentDetail = () => {
             </TabsContent>
           )}
 
-          {/* Player Management Tab */}
+          {/* ---- Player Management Tab ---- */}
           {isAdmin && (
             <TabsContent value="players" className="space-y-6">
-              {/* Force Check-In Manager */}
               <ForceCheckInManager
                 tournamentId={tournament.id}
                 onCheckInUpdate={handleRefresh}
               />
-
-              {/* Tournament Participants with Admin Controls */}
               <TournamentParticipants
                 tournamentId={tournament.id}
                 maxPlayers={tournament.max_players}
@@ -594,7 +613,7 @@ const TournamentDetail = () => {
             </TabsContent>
           )}
 
-          {/* Team Balancing Tab */}
+          {/* ---- Team Balancing Tab ---- */}
           {isAdmin && (
             <TabsContent value="balancing" className="space-y-6">
               <TeamBalancingInterface
