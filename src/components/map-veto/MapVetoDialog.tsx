@@ -238,6 +238,80 @@ const MapVetoDialog = ({
   const vetoStep = vetoActions.length;
   const currentStep = vetoFlow[vetoStep];
 
+  // For BO1: after all bans, auto-pick last map (don't let user pick), then side pick by Home
+  useEffect(() => {
+    if (
+      bestOf === 1 &&
+      maps.length > 0 &&
+      vetoActions.length === maps.length - 1 // all bans completed
+    ) {
+      // check if final map pick already exists
+      const remaining = getRemainingMaps(maps, vetoActions);
+      const pickExists = vetoActions.some(a => a.action === "pick");
+      if (!pickExists && remaining.length === 1) {
+        // Auto-insert pick for remaining map (simulate backend, but fallback defensively here for UI)
+        // We'll assign to NULL team as per vetoFlowUtils
+        setVetoActions(acts =>
+          acts.concat([
+            {
+              id: `auto-pick-${remaining[0].id}`,
+              action: "pick",
+              map_id: remaining[0].id,
+              team_id: null as any,
+              order_number: vetoActions.length + 1,
+              performed_by: null,
+              performed_at: new Date().toISOString(),
+              map: remaining[0],
+              users: {},
+              side_choice: null,
+            },
+          ])
+        );
+      }
+    }
+  }, [bestOf, maps, vetoActions]);
+
+  // Side Pick step: BO1, Home picks after auto-pick
+  useEffect(() => {
+    if (
+      bestOf === 1 &&
+      maps.length > 0 &&
+      vetoActions.length === maps.length // after auto-pick
+    ) {
+      // If this is the home team's turn for side pick, and user is home/captain, show modal
+      if (currentStep && currentStep.action === "side_pick" && isUserCaptain && userTeamId === homeTeamId) {
+        // Find the picked map id
+        const lastPick = vetoActions.filter(a => a.action === "pick").pop();
+        if (lastPick) {
+          setSidePickModal({
+            mapId: lastPick.map_id,
+            onPick: async (side: string) => {
+              setLoading(true);
+              // Update the last pick action to include side_choice
+              // (If it's our simulated action, just update local state; in real, call backend)
+              setVetoActions(actions => actions.map(a =>
+                a.id === lastPick.id ? { ...a, side_choice: side } : a
+              ));
+              setLoading(false);
+              setSidePickModal(null);
+              toast({ title: "Side Selected", description: `You picked ${side} side.` });
+            }
+          });
+        }
+      }
+    }
+  }, [bestOf, maps, vetoActions, currentStep, isUserCaptain, userTeamId, homeTeamId, toast]);
+
+  // Defensive: vetoComplete is true after all bans, pick, and side are done
+  const bansMade = vetoActions.filter(a => a.action === "ban").length;
+  const totalBansNeeded = maps.length - 1;
+  const pickMade = vetoActions.some(a => a.action === "pick");
+  const sideChosen = vetoActions.some(a => a.side_choice);
+  const vetoComplete =
+    bestOf === 1
+      ? (bansMade === totalBansNeeded && pickMade && sideChosen)
+      : vetoActions.length >= maps.length;
+
   // Block if dice not rolled
   const canVeto = homeTeamId && awayTeamId && vetoFlow.length > 0;
 
@@ -274,14 +348,7 @@ const MapVetoDialog = ({
   }, [canVeto, currentStep, userTeamId, isUserCaptain, vetoActions]);
 
   // Derive ban/pick/remainingMaps/complete status
-  const bansMade = vetoActions.filter(a => a.action === "ban").length;
-  const totalBansNeeded = maps.length - 1;
-  const remainingMaps = getRemainingMaps(maps, vetoActions);
-  const vetoComplete =
-    bestOf === 1
-      ? bansMade === totalBansNeeded && remainingMaps.length === 1
-      : vetoActions.length >= maps.length;
-  let currentAction: "ban" | "pick" = "ban";
+  const currentAction: "ban" | "pick" = "ban";
   if (bestOf === 1 && vetoComplete) {
     currentAction = "pick";
   } else if (bestOf !== 1) {
