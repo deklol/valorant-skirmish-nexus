@@ -142,59 +142,45 @@ export default function TournamentMedicTeamsTab({
     // eslint-disable-next-line
   }, [tournament.id]);
 
-  // Helper to construct the Discord message with proper code block table layout
+  // Helper to construct the Discord message with embed fields per team
   function generateDiscordMessage(teams: TeamWithMembers[]) {
     if (!teams.length) return { content: "No teams found.", embed: {} };
 
-    // Sort teams by name
+    // Sort teams by name for consistency
     const sortedTeams = [...teams].sort((a, b) => a.name.localeCompare(b.name));
 
-    // Message "table" header
-    const header =
-      "Team               | Captain         | Members                  | Points";
-    const divider =
-      "-------------------|----------------|--------------------------|-------";
-
-    // For each team, capture the table row
-    let rows: string[] = [];
-    for (const team of sortedTeams) {
-      // Pick captain's username if present (mark as ⭐)
-      const captain = team.members.find(m => m.is_captain);
-      const captainName = captain?.users?.discord_username
-        ? `⭐ ${captain.users.discord_username}`
-        : "?";
-      // All non-captain members, comma separated
-      const memberNames = team.members
-        .filter(m => !m.is_captain)
-        .map(m =>
-          m.users?.discord_username
-            ? m.users.discord_username
-            : "?"
-        ).join(", ") || "—";
-      // Pad each column for monospacing
-      const pad = (str: string, len: number) => (str + " ".repeat(len)).slice(0, len);
-      rows.push(
-        `${pad(team.name, 19)}| ${pad(captainName, 15)}| ${pad(memberNames, 25)}| ${String(team.total_rank_points ?? "?").padStart(5)}`
-      );
+    // Helper: format members
+    function formatMembers(members: TeamWithMembers["members"]) {
+      // Show captain first, then others
+      const captions: string[] = [];
+      for (const m of members) {
+        const uname = m.users?.discord_username ?? "?";
+        const rank = m.users?.current_rank ?? "—";
+        const weight = typeof m.users?.weight_rating === "number" ? ` [${m.users.weight_rating}]` : "";
+        const tag = m.is_captain ? "⭐" : "•";
+        captions.push(`${tag} ${uname}${m.is_captain ? " (c)" : ""} — ${rank}${weight}`);
+      }
+      return captions.join("\n");
     }
 
-    // Compose the code block
-    const tableBlock = "```" + "\n"
-      + header + "\n"
-      + divider + "\n"
-      + rows.join("\n") + "\n"
-      + "```";
+    // Compose embed fields: one field per team
+    const fields = sortedTeams.map((team) => ({
+      name: `🏆 ${team.name} (${team.total_rank_points ?? "?"})`,
+      value: formatMembers(team.members) || "*No members*",
+      inline: true,
+    }));
 
     return {
-      content: `**Teams for ${tournament.name}**\n${tableBlock}`,
+      content: `**Teams for ${tournament.name}**`,
       embed: {
         title: `Teams for ${tournament.name}`,
-        description: "Tournament teams have been generated.\nSee the full breakdown above.",
+        description: "Tournament teams have been generated below, separated by team:",
         color: 0x00bfff,
         timestamp: new Date().toISOString(),
         footer: {
           text: "Tournament Team Announcer",
-        }
+        },
+        fields,
       },
     };
   }
