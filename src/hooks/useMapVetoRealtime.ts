@@ -1,5 +1,4 @@
-
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 // Utility to safely unsubscribe and remove a channel (dedup-aware)
@@ -34,114 +33,172 @@ function cleanupChannel(channelRef: React.MutableRefObject<any>) {
   }
 }
 
+// ------- Realtime connection/sync/auto-resubscribe hooks with backoff/connect-state -------
+
+// Exponential backoff utility
+function getBackoffDelay(attempt: number, base: number = 500, max: number = 15000) {
+  return Math.min(base * Math.pow(2, attempt), max);
+}
+
 type Callback = (payload: any) => void;
+type ConnectionCallback = (state: "connecting" | "online" | "offline" | "error") => void;
 
 export function useMapVetoActionsRealtime(
   vetoSessionId: string | null,
-  callback: Callback
+  callback: Callback,
+  onConnectionChange?: ConnectionCallback
 ) {
   const callbackRef = useRef(callback);
   callbackRef.current = callback;
   const channelRef = useRef<any>(null);
+  const [retry, setRetry] = useState(0);
 
   useEffect(() => {
-    // Always cleanup first!
+    // Always cleanup!
     cleanupChannel(channelRef);
-
     if (!vetoSessionId) return;
 
-    const channelName = `map-veto-actions-${vetoSessionId}`;
-    // Deduplication: if already exists, re-use
-    if (globalChannelRegistry.has(channelName)) {
-      channelRef.current = globalChannelRegistry.get(channelName);
-      return () => cleanupChannel(channelRef);
-    }
-    const channel = supabase.channel(channelName);
+    let isMounted = true;
+    let retryCount = 0;
+    function subscribeWithBackoff() {
+      if (!isMounted) return;
+      onConnectionChange?.("connecting");
 
-    // Attach the custom registry key for deduplication/cleanup
-    (channel as RegistryChannel).__customRegistryKey = channelName;
+      const channelName = `map-veto-actions-${vetoSessionId}`;
+      let disconnected = false;
+      // Deduplication remains the same
+      if (globalChannelRegistry.has(channelName)) {
+        channelRef.current = globalChannelRegistry.get(channelName);
+        onConnectionChange?.("online");
+        return;
+      }
+      const channel = supabase.channel(channelName);
+      (channel as RegistryChannel).__customRegistryKey = channelName;
 
-    channel.on(
-      "postgres_changes",
-      {
-        event: "*",
-        schema: "public",
-        table: "map_veto_actions",
-        filter: `veto_session_id=eq.${vetoSessionId}`,
-      },
-      (payload) => {
+      const handleChange = (payload: any) => {
         if (callbackRef.current) callbackRef.current(payload);
-      }
-    );
+      };
 
-    channel.subscribe((status) => {
-      if (status === "SUBSCRIBED") {
-        console.log(`[MapVetoRealtime] Subscribed to ${channelName}`);
-      }
-    });
+      channel.on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "map_veto_actions",
+          filter: `veto_session_id=eq.${vetoSessionId}`,
+        },
+        handleChange
+      );
+      // Reconnection/error handlers
+      channel.subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          retryCount = 0;
+          onConnectionChange?.("online");
+        }
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          onConnectionChange?.("error");
+          // Cleanup, backoff and re-subscribe
+          disconnected = true;
+          cleanupChannel(channelRef);
+          const nextDelay = getBackoffDelay(retryCount++);
+          setTimeout(subscribeWithBackoff, nextDelay);
+        }
+      });
 
-    channelRef.current = channel;
-    globalChannelRegistry.set(channelName, channel);
+      channel.on("close", {}, () => {
+        disconnected = true;
+        onConnectionChange?.("offline");
+        cleanupChannel(channelRef);
+        const nextDelay = getBackoffDelay(retryCount++);
+        setTimeout(subscribeWithBackoff, nextDelay);
+      });
+
+      channelRef.current = channel;
+      globalChannelRegistry.set(channelName, channel);
+    }
+
+    subscribeWithBackoff();
 
     // Cleanup on id change/unmount
     return () => {
+      isMounted = false;
       cleanupChannel(channelRef);
     };
-  }, [vetoSessionId]);
+  }, [vetoSessionId, onConnectionChange]);
 }
 
 
 export function useMapVetoSessionRealtime(
   vetoSessionId: string | null,
-  callback: Callback
+  callback: Callback,
+  onConnectionChange?: ConnectionCallback
 ) {
   const callbackRef = useRef(callback);
   callbackRef.current = callback;
   const channelRef = useRef<any>(null);
 
   useEffect(() => {
-    // Always cleanup existing channel first
     cleanupChannel(channelRef);
-
     if (!vetoSessionId) return;
 
-    const channelName = `map-veto-session-${vetoSessionId}`;
-    // Deduplication: if already exists, re-use
-    if (globalChannelRegistry.has(channelName)) {
-      channelRef.current = globalChannelRegistry.get(channelName);
-      return () => cleanupChannel(channelRef);
+    let isMounted = true;
+    let retryCount = 0;
+    function subscribeWithBackoff() {
+      if (!isMounted) return;
+      onConnectionChange?.("connecting");
+
+      const channelName = `map-veto-session-${vetoSessionId}`;
+      let disconnected = false;
+      if (globalChannelRegistry.has(channelName)) {
+        channelRef.current = globalChannelRegistry.get(channelName);
+        onConnectionChange?.("online");
+        return;
+      }
+      const channel = supabase.channel(channelName);
+      (channel as RegistryChannel).__customRegistryKey = channelName;
+
+      channel.on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "map_veto_sessions",
+          filter: `id=eq.${vetoSessionId}`,
+        },
+        (payload) => {
+          if (callbackRef.current) callbackRef.current(payload);
+        }
+      );
+      channel.subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          retryCount = 0;
+          onConnectionChange?.("online");
+        }
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          onConnectionChange?.("error");
+          disconnected = true;
+          cleanupChannel(channelRef);
+          const nextDelay = getBackoffDelay(retryCount++);
+          setTimeout(subscribeWithBackoff, nextDelay);
+        }
+      });
+      channel.on("close", {}, () => {
+        disconnected = true;
+        onConnectionChange?.("offline");
+        cleanupChannel(channelRef);
+        const nextDelay = getBackoffDelay(retryCount++);
+        setTimeout(subscribeWithBackoff, nextDelay);
+      });
+
+      channelRef.current = channel;
+      globalChannelRegistry.set(channelName, channel);
     }
-    const channel = supabase.channel(channelName);
 
-    // Attach the custom registry key for deduplication/cleanup
-    (channel as RegistryChannel).__customRegistryKey = channelName;
+    subscribeWithBackoff();
 
-    channel.on(
-      "postgres_changes",
-      {
-        event: "*",
-        schema: "public",
-        table: "map_veto_sessions",
-        filter: `id=eq.${vetoSessionId}`,
-      },
-      (payload) => {
-        if (callbackRef.current) callbackRef.current(payload);
-      }
-    );
-
-    channel.subscribe((status) => {
-      if (status === "SUBSCRIBED") {
-        console.log(`[MapVetoRealtime] Subscribed to ${channelName}`);
-      }
-    });
-
-    channelRef.current = channel;
-    globalChannelRegistry.set(channelName, channel);
-
-    // Cleanup on id change / unmount
     return () => {
+      isMounted = false;
       cleanupChannel(channelRef);
     };
-  }, [vetoSessionId]);
+  }, [vetoSessionId, onConnectionChange]);
 }
-

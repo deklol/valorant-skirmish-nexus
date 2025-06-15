@@ -55,6 +55,7 @@ const MapVetoDialog = ({
   const [maps, setMaps] = useState<MapData[]>([]);
   const [vetoActions, setVetoActions] = useState<VetoAction[]>([]);
   const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(true); // <<-- NEW: put dialog into "syncing" mode on mount/reconnect
   const { toast } = useToast();
 
   // Current turn - always trust backend for turn
@@ -96,6 +97,25 @@ const MapVetoDialog = ({
     }
   }, [vetoSessionId, currentTurnTeamId]);
 
+  // ----------- NEW: Connection state tracking and safe refetch --------
+  // On any major session sync or reconnect, we clean local state first
+  const forceFullResync = useCallback(async (reason?: string) => {
+    setSyncing(true);
+    setMaps([]);
+    setVetoActions([]);
+    setCurrentTurnTeamId(currentTeamTurn);
+    setTurnVersion(0);
+    setPermissionUpdateSeq(0);
+    try {
+      await fetchMaps();
+      await fetchVetoActions();
+    } finally {
+      setSyncing(false);
+    }
+    if (reason)
+      toast({ title: "Veto Resynced", description: reason, variant: "default" });
+  }, [currentTeamTurn, toast]);
+
   useMapVetoSessionRealtime(
     vetoSessionId,
     payload => {
@@ -112,6 +132,14 @@ const MapVetoDialog = ({
         }
       } else {
         console.log("[MapVetoDialog][REALTIME] Session RT: no new current_turn_team_id in payload", payload);
+      }
+    },
+    connState => {
+      if (connState === "connecting") setSyncing(true);
+      if (connState === "online") setSyncing(false);
+      if (connState === "error" || connState === "offline") {
+        setSyncing(true);
+        toast({ title: "Lost connection to veto session!", description: "Trying to reconnect...", variant: "destructive" });
       }
     }
   );
@@ -166,15 +194,26 @@ const MapVetoDialog = ({
     }
   }, [vetoSessionId, forceSessionRefetch]);
 
-  useMapVetoActionsRealtime(vetoSessionId, fetchVetoActions);
+  useMapVetoActionsRealtime(
+    vetoSessionId,
+    fetchVetoActions,
+    connState => {
+      if (connState === "connecting") setSyncing(true);
+      if (connState === "online") setSyncing(false);
+      if (connState === "error" || connState === "offline") {
+        setSyncing(true);
+        toast({ title: "Lost connection to veto actions!", description: "Trying to reconnect...", variant: "destructive" });
+      }
+    }
+  );
 
+  // On dialog open or reconnect, trigger FULL resync
   useEffect(() => {
     if (open) {
-      fetchMaps();
-      fetchVetoActions();
+      forceFullResync("Dialog opened or connection restored");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, vetoSessionId, fetchVetoActions]);
+  }, [open, vetoSessionId]);
 
   const fetchMaps = async () => {
     try {
@@ -412,107 +451,117 @@ const MapVetoDialog = ({
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Show home/away info */}
-          <div className="flex gap-8 justify-center pb-2">
-            <div className="bg-slate-900/60 px-3 py-1 rounded text-yellow-100 border border-yellow-700 text-sm">
-              Home: <b>{homeLabel}</b>
+          {syncing && (
+            <div className="w-full flex flex-col items-center justify-center py-16">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500 mb-3"></div>
+              <p className="text-yellow-300 text-lg">Syncing with server...<br /><span className="text-slate-400 text-sm">Please wait, actions are disabled during sync.</span></p>
             </div>
-            <div className="bg-slate-900/60 px-3 py-1 rounded text-blue-100 border border-blue-700 text-sm">
-              Away: <b>{awayLabel}</b>
-            </div>
-          </div>
+          )}
+          {!syncing && (
+            <>
+              {/* Show home/away info */}
+              <div className="flex gap-8 justify-center pb-2">
+                <div className="bg-slate-900/60 px-3 py-1 rounded text-yellow-100 border border-yellow-700 text-sm">
+                  Home: <b>{homeLabel}</b>
+                </div>
+                <div className="bg-slate-900/60 px-3 py-1 rounded text-blue-100 border border-blue-700 text-sm">
+                  Away: <b>{awayLabel}</b>
+                </div>
+              </div>
 
-          {/* Turn/Phase */}
-          <MapVetoTurnStatus
-            key={turnVersion}
-            canAct={isUserEligible && canVeto}
-            isUserTurn={isUserTeamTurn}
-            teamSize={teamSize}
-            isUserCaptain={isUserCaptain!}
-            // Only allow "ban" or "pick" as MapActionType!
-            currentAction={asMapActionType(currentStep?.action)}
-          />
+              {/* Turn/Phase */}
+              <MapVetoTurnStatus
+                key={turnVersion}
+                canAct={isUserEligible && canVeto && !syncing}
+                isUserTurn={isUserTeamTurn}
+                teamSize={teamSize}
+                isUserCaptain={isUserCaptain!}
+                // Only allow "ban" or "pick" as MapActionType!
+                currentAction={asMapActionType(currentStep?.action)}
+              />
 
-          {/* Veto History */}
-          <MapVetoHistory vetoActions={vetoActions} />
+              {/* Veto History */}
+              <MapVetoHistory vetoActions={vetoActions} />
 
-          {/* Display Final Map & Side after veto is complete */}
-          {vetoComplete && finalPickAction && (
-            <div className="flex flex-col items-center gap-4 border border-green-700 rounded-lg bg-green-900/40 p-4 my-2 mx-auto w-fit">
-              <div className="text-xl font-bold text-green-200">Veto Complete!</div>
-              {pickedMap && (
-                <div className="flex flex-col items-center gap-2">
-                  <span className="text-green-100">Selected Map:</span>
-                  <div className="flex items-center gap-3">
-                    {pickedMap.thumbnail_url && (
-                      <img src={pickedMap.thumbnail_url}
-                        alt={pickedMap.display_name}
-                        className="w-20 h-20 rounded shadow border-2 border-green-700 bg-slate-800 object-cover"
-                      />
-                    )}
-                    <span className="font-semibold text-lg">{pickedMap.display_name}</span>
-                  </div>
+              {/* Display Final Map & Side after veto is complete */}
+              {vetoComplete && finalPickAction && (
+                <div className="flex flex-col items-center gap-4 border border-green-700 rounded-lg bg-green-900/40 p-4 my-2 mx-auto w-fit">
+                  <div className="text-xl font-bold text-green-200">Veto Complete!</div>
+                  {pickedMap && (
+                    <div className="flex flex-col items-center gap-2">
+                      <span className="text-green-100">Selected Map:</span>
+                      <div className="flex items-center gap-3">
+                        {pickedMap.thumbnail_url && (
+                          <img src={pickedMap.thumbnail_url}
+                            alt={pickedMap.display_name}
+                            className="w-20 h-20 rounded shadow border-2 border-green-700 bg-slate-800 object-cover"
+                          />
+                        )}
+                        <span className="font-semibold text-lg">{pickedMap.display_name}</span>
+                      </div>
+                    </div>
+                  )}
+                  {finalPickAction.side_choice ? (
+                    <span className="mt-2 text-green-200">
+                      <b>{homeLabel}</b> selected:{" "}
+                      {finalPickAction.side_choice === "attack" ? (
+                        <span className="inline-flex items-center gap-2 px-3 py-1 rounded bg-red-700 text-white font-bold shadow">Attack</span>
+                      ) : (
+                        <span className="inline-flex items-center gap-2 px-3 py-1 rounded bg-blue-700 text-white font-bold shadow">Defend</span>
+                      )}
+                    </span>
+                  ) : (
+                    bestOf === 1 && isUserCaptain && userTeamId === homeTeamId && (
+                      <span className="mt-2 text-yellow-200">You must now choose a starting side!</span>
+                    )
+                  )}
                 </div>
               )}
-              {finalPickAction.side_choice ? (
-                <span className="mt-2 text-green-200">
-                  <b>{homeLabel}</b> selected:{" "}
-                  {finalPickAction.side_choice === "attack" ? (
-                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded bg-red-700 text-white font-bold shadow">Attack</span>
-                  ) : (
-                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded bg-blue-700 text-white font-bold shadow">Defend</span>
+
+              {/* Map Grid or Side Pick Modal */}
+              {sidePickModal && !pickedSide ? (
+                <div className="flex flex-col items-center gap-4 p-6">
+                  <div className="text-lg mb-2">Choose Starting Side</div>
+                  <div className="flex gap-4">
+                    <Button
+                      disabled={loading}
+                      onClick={() => sidePickModal.onPick("attack")}
+                      className="bg-red-600 hover:bg-red-700"
+                    >
+                      Attack
+                    </Button>
+                    <Button
+                      disabled={loading}
+                      onClick={() => sidePickModal.onPick("defend")}
+                      className="bg-blue-700 hover:bg-blue-800"
+                    >
+                      Defend
+                    </Button>
+                  </div>
+                  {/* If for some reason side_choice is set, show a badge */}
+                  {pickedSide && (
+                    <div className="mt-2 text-green-200">Side already selected: <span className="font-bold">{pickedSide}</span></div>
                   )}
-                </span>
+                </div>
               ) : (
-                bestOf === 1 && isUserCaptain && userTeamId === homeTeamId && (
-                  <span className="mt-2 text-yellow-200">You must now choose a starting side!</span>
-                )
+                <MapVetoMapGrid
+                  maps={maps}
+                  canAct={isUserEligible && canVeto && currentStep && currentStep.action !== "side_pick" && !syncing}
+                  currentAction={asMapActionType(currentStep?.action)}
+                  bestOf={bestOf}
+                  remainingMaps={getRemainingMaps(maps, vetoActions)}
+                  vetoActions={vetoActions}
+                  onMapAction={handleMapAction}
+                  currentTeamTurn={currentTurnTeamId}
+                  getMapStatus={getMapStatus}
+                  isMapAvailable={(id) => isMapAvailable(id, vetoActions) && !vetoComplete}
+                />
               )}
-            </div>
-          )}
 
-          {/* Map Grid or Side Pick Modal */}
-          {sidePickModal && !pickedSide ? (
-            <div className="flex flex-col items-center gap-4 p-6">
-              <div className="text-lg mb-2">Choose Starting Side</div>
-              <div className="flex gap-4">
-                <Button
-                  disabled={loading}
-                  onClick={() => sidePickModal.onPick("attack")}
-                  className="bg-red-600 hover:bg-red-700"
-                >
-                  Attack
-                </Button>
-                <Button
-                  disabled={loading}
-                  onClick={() => sidePickModal.onPick("defend")}
-                  className="bg-blue-700 hover:bg-blue-800"
-                >
-                  Defend
-                </Button>
-              </div>
-              {/* If for some reason side_choice is set, show a badge */}
-              {pickedSide && (
-                <div className="mt-2 text-green-200">Side already selected: <span className="font-bold">{pickedSide}</span></div>
-              )}
-            </div>
-          ) : (
-            <MapVetoMapGrid
-              maps={maps}
-              canAct={isUserEligible && canVeto && currentStep && currentStep.action !== "side_pick"}
-              currentAction={asMapActionType(currentStep?.action)}
-              bestOf={bestOf}
-              remainingMaps={getRemainingMaps(maps, vetoActions)}
-              vetoActions={vetoActions}
-              onMapAction={handleMapAction}
-              currentTeamTurn={currentTurnTeamId}
-              getMapStatus={getMapStatus}
-              isMapAvailable={(id) => isMapAvailable(id, vetoActions) && !vetoComplete}
-            />
+              {/* Instructions */}
+              <MapVetoInstructions />
+            </>
           )}
-
-          {/* Instructions */}
-          <MapVetoInstructions />
         </div>
       </DialogContent>
     </Dialog>
