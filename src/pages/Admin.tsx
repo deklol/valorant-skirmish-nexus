@@ -14,6 +14,7 @@ import VetoMedicManager from "@/components/VetoMedicManager";
 import MatchMedicManager from "@/components/MatchMedicManager";
 import TournamentMedicManager from "@/components/TournamentMedicManager";
 import SendNotificationTestButton from "@/components/SendNotificationTestButton";
+import AdminHelpTab from "@/components/admin/AdminHelpTab";
 
 const Admin = () => {
   const { isAdmin } = useAuth();
@@ -139,16 +140,7 @@ const Admin = () => {
           </TabsContent>
           <TabsContent value="help">
             {/* Admin Help Documentation System */}
-            {/** This is the main help/documentation section for admins */}
-            <div>
-              {/** Loads the newly created AdminHelpTab component */}
-              {/** Will grow with more docs/features! */}
-              {/** Keep adding new content in AdminHelpTab.tsx */}
-              {
-                // Dynamic import could be used in the future for performance if desired
-              }
-              {require("../components/admin/AdminHelpTab").default()}
-            </div>
+            <AdminHelpTab />
           </TabsContent>
         </Tabs>
       </div>
