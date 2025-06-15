@@ -22,7 +22,9 @@ export function AppSettingsProvider({ children }: { children: React.ReactNode })
       .select("app_name")
       .limit(1)
       .maybeSingle();
-    if (data?.app_name) {
+
+    // Defensive: ensure data has proper structure
+    if (data && typeof data === "object" && typeof data.app_name === "string") {
       setAppName(data.app_name);
     }
   };
@@ -39,11 +41,15 @@ export function AppSettingsProvider({ children }: { children: React.ReactNode })
           schema: 'public',
           table: 'app_settings'
         },
-        (payload) => {
-          // Whenever app_settings changes, update appName
+        (payload: any) => {
+          // Defensive: ensure new or old has correct type
           const nextAppName =
-            payload?.new?.app_name ??
-            payload?.old?.app_name ??
+            (payload?.new && typeof payload.new.app_name === "string"
+              ? payload.new.app_name
+              : undefined) ||
+            (payload?.old && typeof payload.old.app_name === "string"
+              ? payload.old.app_name
+              : undefined) ||
             "ValTourneys";
           setAppName(nextAppName);
         }
@@ -63,3 +69,4 @@ export function AppSettingsProvider({ children }: { children: React.ReactNode })
 }
 
 export const useAppSettings = () => useContext(AppSettingsContext);
+
