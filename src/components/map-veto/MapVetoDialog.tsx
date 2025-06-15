@@ -65,29 +65,26 @@ const MapVetoDialog = ({
   const [sidePickModal, setSidePickModal] = useState<null | { mapId: string, onPick: (side: "attack" | "defend") => void }>(null);
 
   // Defensive fallback for critical crash/loop conditions
-  const hasCriticalData = homeTeamId && awayTeamId && team1Id && team2Id && vetoSessionId;
-  if (!hasCriticalData) {
+  const hasMinimalData = vetoSessionId && team1Id && team2Id;
+  if (!hasMinimalData) {
     if (open) {
-      console.error("MapVetoDialog: missing critical data", {
-        homeTeamId,
-        awayTeamId,
+      // Log exactly what's missing
+      console.warn("[MapVetoDialog] CRITICAL ERROR: Missing minimal required data", {
+        vetoSessionId,
         team1Id,
-        team2Id,
-        vetoSessionId
+        team2Id
       });
     }
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent>
           <div className="p-6 text-center">
-            <div className="text-red-500 font-bold mb-3">Critical Error: Missing session or team data</div>
+            <div className="text-red-500 font-bold mb-3">Critical Error: Missing required session/team data</div>
             <div>
               Missing: {[
                 !vetoSessionId && "vetoSessionId",
                 !team1Id && "team1Id",
-                !team2Id && "team2Id",
-                !homeTeamId && "homeTeamId",
-                !awayTeamId && "awayTeamId"
+                !team2Id && "team2Id"
               ].filter(Boolean).join(", ") || "Unknown"}
             </div>
             <div>Please contact an administrator.</div>
@@ -160,7 +157,7 @@ const MapVetoDialog = ({
   }, [vetoSessionId]);
 
   useMapVetoSessionRealtime(
-    hasCriticalData ? vetoSessionId : null,
+    hasMinimalData ? vetoSessionId : null,
     payload => {
       if (payload && payload.new && payload.new.current_turn_team_id) {
         setCurrentTurnTeamId(payload.new.current_turn_team_id);
@@ -176,7 +173,7 @@ const MapVetoDialog = ({
     }
   );
   useMapVetoActionsRealtime(
-    hasCriticalData ? vetoSessionId : null,
+    hasMinimalData ? vetoSessionId : null,
     fetchVetoActions,
     connState => {
       if (connState === "connecting") setSyncing(true);
@@ -347,15 +344,32 @@ const MapVetoDialog = ({
             Map Veto - {team1Name} vs {team2Name}
           </DialogTitle>
         </DialogHeader>
-
         <div className="space-y-6">
-          {syncing && (
-            <div className="w-full flex flex-col items-center justify-center py-16">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500 mb-3"></div>
-              <p className="text-yellow-300 text-lg">Syncing with server...<br /><span className="text-slate-400 text-sm">Please wait, actions are disabled during sync.</span></p>
+          {(!homeTeamId || !awayTeamId) ? (
+            // Show this loading/waiting state inside dialog if dice roll not yet done
+            <div className="flex flex-col items-center justify-center py-14">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-yellow-500 mb-2" />
+              <div className="text-yellow-200 text-lg font-semibold">
+                Waiting for dice roll...
+              </div>
+              <div className="text-slate-300 text-base mt-2">
+                Home/Away are not set yet.<br />
+                A captain or admin must roll dice to set Home/Away.
+              </div>
+              <div className="text-xs text-slate-400 mt-2">
+                (If you see this for more than 30 seconds, check for missing team assignments or contact admin.)
+              </div>
+              {/* Debug details */}
+              <pre className="bg-slate-800 mt-4 p-2 rounded text-xs text-slate-400 border border-slate-700 max-w-xl overflow-auto">
+                Missing: {!homeTeamId && "homeTeamId "}
+                {!awayTeamId && "awayTeamId"}
+                {"\n"}vetoSessionId: {vetoSessionId}
+                {"\n"}team1Id: {team1Id}
+                {"\n"}team2Id: {team2Id}
+              </pre>
             </div>
-          )}
-          {!syncing && vetoFlow.length > 0 && currentStep && (
+          )
+          : (
             <>
               {/* Show home/away info */}
               <div className="flex gap-8 justify-center pb-2">

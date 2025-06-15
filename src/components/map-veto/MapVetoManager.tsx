@@ -55,6 +55,7 @@ const MapVetoManager = ({
     away_team_id: null,
     roll_seed: null,
   });
+  const [vetoDialogLastProps, setVetoDialogLastProps] = useState<any>(null);
   const { user } = useAuth();
   const { toast } = useToast();
   const { notifyMapVetoReady } = useEnhancedNotifications();
@@ -662,17 +663,25 @@ const MapVetoManager = ({
               {isVetoActive && canParticipate && vetoSession.home_team_id && vetoSession.away_team_id && (
                 <Button
                   onClick={() => {
-                    if (!team1Id || !team2Id || !vetoSession.home_team_id || !vetoSession.away_team_id || !vetoSession.id) {
-                      console.error("[MapVetoManager] Missing prerequisites for opening MapVetoDialog", {
-                        team1Id,
-                        team2Id,
-                        home_team_id: vetoSession.home_team_id,
-                        away_team_id: vetoSession.away_team_id,
-                        vetoSessionId: vetoSession.id
-                      });
-                      alert("Cannot open map veto: missing critical data. Check console for details.");
-                      return;
-                    }
+                    // DEBUG LOG: Log all dialog props
+                    const dialogProps = {
+                      open: true,
+                      matchId,
+                      vetoSessionId: vetoSession.id,
+                      team1Name,
+                      team2Name,
+                      currentTeamTurn: vetoSession.current_turn_team_id || team1Id,
+                      userTeamId,
+                      isUserCaptain,
+                      teamSize,
+                      team1Id,
+                      team2Id,
+                      bestOf: matchSettings?.best_of || 1,
+                      homeTeamId: vetoSession.home_team_id,
+                      awayTeamId: vetoSession.away_team_id
+                    };
+                    console.log("[MapVetoManager] Participating – opening dialog with props:", dialogProps);
+                    setVetoDialogLastProps(dialogProps); // keep if needed for debugging
                     setVetoDialogOpen(true);
                   }}
                   className="bg-green-600 hover:bg-green-700"
