@@ -17,6 +17,7 @@ import SendNotificationTestButton from "@/components/SendNotificationTestButton"
 import AdminHelpTab from "@/components/admin/AdminHelpTab";
 import AppSettingsManager from "@/components/admin/AppSettingsManager";
 import SchemaExportButton from "@/components/admin/SchemaExportButton";
+import BracketMedicManager from "@/components/BracketMedicManager";
 
 const Admin = () => {
   const { isAdmin } = useAuth();
@@ -95,6 +96,10 @@ const Admin = () => {
             <TabsTrigger value="help" className="text-white data-[state=active]:bg-blue-700">
               <BookOpen className="w-4 h-4 mr-2" />
               Help
+            </TabsTrigger>
+            <TabsTrigger value="bracket-medic" className="text-white data-[state=active]:bg-cyan-600">
+              <ShieldAlert className="w-4 h-4 mr-2" />
+              Bracket Medic
             </TabsTrigger>
           </TabsList>
 
