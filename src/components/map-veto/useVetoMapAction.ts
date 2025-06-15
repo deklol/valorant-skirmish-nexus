@@ -30,6 +30,16 @@ export function useVetoMapAction({
   const handleMapAction = async (mapId: string, action: "ban" | "pick") => {
     // Check permissions first
     const permissionError = checkPermissions();
+
+    // DEBUG: Log all input/permission state
+    console.log("[VETO ACTION DEBUG] Args:", {
+      vetoSessionId,
+      userTeamId,
+      mapId,
+      action,
+    });
+    console.log("[VETO ACTION DEBUG] Permission error?", permissionError);
+
     if (permissionError) {
       toast({
         title: "Permission Denied",
@@ -54,6 +64,14 @@ export function useVetoMapAction({
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) throw new Error("User not authenticated");
 
+      // Log user id being sent to the RPC
+      console.log("[VETO ACTION DEBUG] About to perform RPC with params:", {
+        p_veto_session_id: vetoSessionId,
+        p_user_id: user.user.id,
+        p_team_id: userTeamId,
+        p_map_id: mapId
+      });
+
       // Use the database function for atomic veto operations
       const { data, error } = await supabase.rpc('perform_veto_action', {
         p_veto_session_id: vetoSessionId,
@@ -61,6 +79,13 @@ export function useVetoMapAction({
         p_team_id: userTeamId,
         p_map_id: mapId
       });
+
+      // DEBUG: Log Supabase RPC response
+      if (error) {
+        console.error("[VETO ACTION DEBUG] Supabase RPC error:", error);
+      } else {
+        console.log("[VETO ACTION DEBUG] Supabase RPC response:", data);
+      }
 
       if (error) throw error;
 
@@ -91,3 +116,4 @@ export function useVetoMapAction({
     handleMapAction,
   };
 }
+
