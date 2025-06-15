@@ -6,10 +6,11 @@ import ComprehensiveTournamentEditor from "@/components/ComprehensiveTournamentE
 import TournamentStatusManager from "@/components/TournamentStatusManager";
 import MedicTournamentTimeline from "./MedicTournamentTimeline";
 
-// Change Tournament type to match other files (status: string)
+// EXTEND Tournament type to match app usage
 type Tournament = {
   id: string;
   name: string;
+  description?: string | null;
   status: string;
   match_format: string | null;
   team_size: number | null;
@@ -18,6 +19,13 @@ type Tournament = {
   prize_pool: string | null;
   start_time: string | null;
   created_at: string | null;
+  registration_opens_at?: string | null;
+  registration_closes_at?: string | null;
+  check_in_starts_at?: string | null;
+  check_in_ends_at?: string | null;
+  check_in_required?: boolean | null;
+  enable_map_veto?: boolean | null;
+  // Add any additional keys as needed, safe for partial typing.
 };
 
 export default function TournamentMedicStatusTab({
