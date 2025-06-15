@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Map, Ban, CheckCircle } from "lucide-react";
@@ -38,13 +37,13 @@ const MapVetoMapGrid = ({
   // Calculate the number of bans needed
   const totalBansNeeded = maps.length - (bestOf === 1 ? 1 : bestOf);
 
-  // Helper: return {display, byYourTeam, actorName}
+  // Attribution Helper based on status data ONLY
   const getActionAttribution = (status: MapStatus | null) => {
     if (!status) return { display: "", byYourTeam: false, actorName: "" };
-    const byYourTeam = !!userTeamId && status.team_id && userTeamId === status.team_id;
-    const teamLabel = byYourTeam ? "Your Team" : (teamNames[status.team_id] || status.team_id?.slice?.(0, 8) || "Opponent");
-    let actorName = teamLabel;
-    if (status.user_name) actorName = status.user_name;
+    // status.team is always "Your Team" or "Opponent" as returned by getMapStatus
+    const byYourTeam = status.team === "Your Team";
+    // With no user info, fallback to generic team label
+    const actorName = byYourTeam ? "You" : (teamNames[currentTeamTurn] || "Opponent");
     return {
       display:
         status.action === "ban"
