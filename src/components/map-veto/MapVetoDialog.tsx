@@ -68,7 +68,7 @@ const MapVetoDialog = ({
   const [permissionUpdateSeq, setPermissionUpdateSeq] = useState<number>(0);
 
   // ----------- NEW: VCT-style veto flow and side pick steps ----------
-  const [sidePickModal, setSidePickModal] = useState<null | { mapId: string, onPick: (side: string) => void }>(null);
+  const [sidePickModal, setSidePickModal] = useState<null | { mapId: string, onPick: (side: "attack" | "defend") => void }>(null);
 
   // Helper: Refetch session and force local sync on mismatch
   const forceSessionRefetch = useCallback(async (logReason?: string) => {
@@ -285,13 +285,17 @@ const MapVetoDialog = ({
         if (lastPick) {
           setSidePickModal({
             mapId: lastPick.map_id,
-            onPick: async (side: string) => {
+            onPick: async (side: "attack" | "defend") => {
               setLoading(true);
               // Update the last pick action to include side_choice
-              // (If it's our simulated action, just update local state; in real, call backend)
-              setVetoActions(actions => actions.map(a =>
-                a.id === lastPick.id ? { ...a, side_choice: side } : a
-              ));
+              // If it's a simulated action, just update local state
+              setVetoActions(actions =>
+                actions.map(a =>
+                  a.id === lastPick.id
+                    ? { ...a, side_choice: side as "attack" | "defend" }
+                    : a
+                )
+              );
               setLoading(false);
               setSidePickModal(null);
               toast({ title: "Side Selected", description: `You picked ${side} side.` });
@@ -325,7 +329,7 @@ const MapVetoDialog = ({
       if (prevPick && currentStep.teamId === userTeamId && isUserCaptain) {
         setSidePickModal({
           mapId: prevPick.map_id,
-          onPick: async (side: string) => {
+          onPick: async (side: "attack" | "defend") => {
             setLoading(true);
             // Update the vetoAction for that map or insert new if not present
             // For VCT flow, the last "pick" already exists, so just update its side_choice
@@ -348,7 +352,7 @@ const MapVetoDialog = ({
   }, [canVeto, currentStep, userTeamId, isUserCaptain, vetoActions]);
 
   // Derive ban/pick/remainingMaps/complete status
-  const currentAction: "ban" | "pick" = "ban";
+  let currentAction: "ban" | "pick" = "ban";
   if (bestOf === 1 && vetoComplete) {
     currentAction = "pick";
   } else if (bestOf !== 1) {
