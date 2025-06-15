@@ -73,6 +73,8 @@ const Admin = () => {
               <Map className="w-4 h-4 mr-2" />
               Maps
             </TabsTrigger>
+
+            {/* --- MEDIC TABS GROUP --- */}
             <TabsTrigger value="veto-medic" className="text-white data-[state=active]:bg-yellow-600">
               <ShieldAlert className="w-4 h-4 mr-2" />
               Veto Medic
@@ -85,6 +87,13 @@ const Admin = () => {
               <Wrench className="w-4 h-4 mr-2" />
               Tournament Medic
             </TabsTrigger>
+            {/* Bracket Medic closely follows other medics */}
+            <TabsTrigger value="bracket-medic" className="text-white data-[state=active]:bg-cyan-600">
+              <ShieldAlert className="w-4 h-4 mr-2" />
+              Bracket Medic
+            </TabsTrigger>
+            {/* --- END MEDIC GROUP --- */}
+
             <TabsTrigger value="announcements" className="text-white data-[state=active]:bg-red-600">
               <MessageSquare className="w-4 h-4 mr-2" />
               Announcements
@@ -96,10 +105,6 @@ const Admin = () => {
             <TabsTrigger value="help" className="text-white data-[state=active]:bg-blue-700">
               <BookOpen className="w-4 h-4 mr-2" />
               Help
-            </TabsTrigger>
-            <TabsTrigger value="bracket-medic" className="text-white data-[state=active]:bg-cyan-600">
-              <ShieldAlert className="w-4 h-4 mr-2" />
-              Bracket Medic
             </TabsTrigger>
           </TabsList>
 
@@ -126,6 +131,12 @@ const Admin = () => {
           <TabsContent value="tournament-medic">
             <TournamentMedicManager />
           </TabsContent>
+
+          {/* ADD BRACKET MEDIC TAB CONTENT */}
+          <TabsContent value="bracket-medic">
+            <BracketMedicManager />
+          </TabsContent>
+          {/* END BRACKET MEDIC */}
 
           <TabsContent value="announcements">
             <DiscordWebhookManager />
