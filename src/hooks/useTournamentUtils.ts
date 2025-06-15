@@ -35,7 +35,7 @@ export function formatDate(dateString: string) {
 }
 
 export function getStatusBadge(status: string) {
-  const variants = {
+  const variants: { [key: string]: string } = {
     draft: "bg-gray-500/20 text-gray-400",
     open: "bg-green-500/20 text-green-400",
     balancing: "bg-yellow-500/20 text-yellow-400",
@@ -43,8 +43,10 @@ export function getStatusBadge(status: string) {
     completed: "bg-blue-500/20 text-blue-400",
     archived: "bg-slate-500/20 text-slate-400"
   };
+  const badgeClass =
+    variants[status] !== undefined ? variants[status] : variants["draft"];
   return (
-    <Badge className={variants[status as keyof typeof variants] || variants.draft}>
+    <Badge className={badgeClass}>
       {status.charAt(0).toUpperCase() + status.slice(1)}
     </Badge>
   );
