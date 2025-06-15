@@ -1,4 +1,3 @@
-
 import { useMemo } from "react";
 
 /**
@@ -11,7 +10,7 @@ export function useVetoPermissions({
   teamSize,
   team1Id,
   team2Id,
-  seq // NEW: allow recalculation after RT update
+  seq // New: each time this changes, force recalculation
 }: {
   userTeamId: string | null;
   currentTurnTeamId: string;
@@ -19,23 +18,20 @@ export function useVetoPermissions({
   teamSize?: number | null;
   team1Id?: string | null;
   team2Id?: string | null;
-  seq?: number; // New: each time this changes, force recalculation
+  seq?: number;
 }) {
   // Is user on one of match teams
   const isUserOnMatchTeam = useMemo(
     () => {
       const onMatchTeam = !!userTeamId && (userTeamId === team1Id || userTeamId === team2Id);
-      // Debug
-      console.log("[useVetoPermissions] userTeamId:", userTeamId, "team1Id:", team1Id, "team2Id:", team2Id, "onMatchTeam:", onMatchTeam, "seq:", seq);
       return onMatchTeam;
     },
-    [userTeamId, team1Id, team2Id, seq] // seq => force recalculation
+    [userTeamId, team1Id, team2Id, seq]
   );
   // Is it user's team's turn
   const isUserTeamTurn = useMemo(
     () => {
       const turn = isUserOnMatchTeam && userTeamId === currentTurnTeamId && !!userTeamId;
-      console.log("[useVetoPermissions] userTeamTurn? currentTurnTeamId:", currentTurnTeamId, "turn:", turn, "seq:", seq);
       return turn;
     },
     [isUserOnMatchTeam, userTeamId, currentTurnTeamId, seq]
@@ -71,20 +67,7 @@ export function useVetoPermissions({
     return { ok: true, reason: null };
   }
 
-  // Debug trace at each permissions calculation
-  console.log("[useVetoPermissions::TRACE]", {
-    seq,
-    userTeamId,
-    currentTurnTeamId,
-    isUserCaptain,
-    teamSize,
-    team1Id,
-    team2Id,
-    isUserOnMatchTeam,
-    isUserTeamTurn,
-    isUserEligible,
-  });
-
+  // Remove debug trace, keep clean
   return {
     isUserOnMatchTeam,
     isUserTeamTurn,
@@ -92,4 +75,3 @@ export function useVetoPermissions({
     explainPermissions,
   };
 }
-

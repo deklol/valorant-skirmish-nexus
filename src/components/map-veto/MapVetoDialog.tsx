@@ -55,20 +55,30 @@ const MapVetoDialog = ({
   bestOf = 1,
   homeTeamId,
   awayTeamId,
-}: MapVetoDialogProps) => {
+}: any) => {
   const [maps, setMaps] = useState<MapData[]>([]);
   const [vetoActions, setVetoActions] = useState<VetoAction[]>([]);
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(true);
   const { toast } = useToast();
-
-  // Current turn as single source of truth, updated by session RT only
   const [currentTurnTeamId, setCurrentTurnTeamId] = useState<string>(currentTeamTurn);
-
-  // ----------- NEW: VCT-style veto flow and side pick steps ----------
   const [sidePickModal, setSidePickModal] = useState<null | { mapId: string, onPick: (side: "attack" | "defend") => void }>(null);
 
-  // Initial fetch for maps and actions (fresh start or open/reset)
+  // Defensive fallback for critical crash/loop conditions
+  const hasCriticalData = homeTeamId && awayTeamId && team1Id && team2Id && vetoSessionId;
+  if (!hasCriticalData) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent>
+          <div className="p-6 text-center">
+            <div className="text-red-500 font-bold mb-3">Critical Error: Missing session or team data</div>
+            <div>Please contact an administrator.</div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   const fetchMaps = useCallback(async () => {
     try {
       const { data, error } = await supabase
@@ -114,7 +124,6 @@ const MapVetoDialog = ({
     }
   }, [vetoSessionId, toast]);
 
-  // Connection/reactivation: do a full data refresh ONCE on dialog open
   useEffect(() => {
     if (open) {
       setSyncing(true);
@@ -123,10 +132,9 @@ const MapVetoDialog = ({
       setCurrentTurnTeamId(currentTeamTurn);
       Promise.all([fetchMaps(), fetchVetoActions()]).finally(() => setSyncing(false));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, vetoSessionId, currentTeamTurn]);
+  }, [open, vetoSessionId, currentTeamTurn, fetchMaps, fetchVetoActions]);
 
-  // Session real-time: only update turn when session not null
+  // Real-time hooks with defensive fallbacks
   useMapVetoSessionRealtime(
     vetoSessionId,
     payload => {
@@ -143,8 +151,6 @@ const MapVetoDialog = ({
       }
     }
   );
-
-  // Map veto actions real-time
   useMapVetoActionsRealtime(
     vetoSessionId,
     fetchVetoActions,
@@ -158,7 +164,6 @@ const MapVetoDialog = ({
     }
   );
 
-  // Permissions logic via custom hook (direct state, no version/seq)
   const {
     isUserOnMatchTeam,
     isUserTeamTurn,
@@ -190,16 +195,20 @@ const MapVetoDialog = ({
     toast,
   });
 
-  // Memoized veto flow (always with non-null teamId for each step)
+  // Ensure vetoFlow and all steps have proper data before accessing them
   const vetoFlow = React.useMemo(() => {
     if (!homeTeamId || !awayTeamId || maps.length === 0) return [];
     return getVctVetoFlow({ homeTeamId, awayTeamId, bestOf, maps });
   }, [homeTeamId, awayTeamId, bestOf, maps]);
 
-  const vetoStep = Math.min(vetoActions.length, vetoFlow.length - 1);
-  const currentStep = vetoFlow[vetoStep] || null; // may be null if not ready
+  const vetoStep = vetoFlow.length > 0 && vetoActions.length < vetoFlow.length
+    ? vetoActions.length
+    : Math.max(0, vetoFlow.length - 1);
 
-  // Defensive: vetoComplete is true after all bans, pick, and side are done
+  // Defensive: prevent null access if out of bounds or not yet set
+  const currentStep = vetoFlow[vetoStep] || null;
+
+  // Defensive: vetoComplete, action checks
   const bansMade = vetoActions.filter(a => a.action === "ban").length;
   const totalBansNeeded = maps.length - 1;
   const pickMade = vetoActions.some(a => a.action === "pick");
@@ -209,16 +218,14 @@ const MapVetoDialog = ({
       ? (bansMade === totalBansNeeded && pickMade && sideChosen)
       : vetoActions.length >= maps.length;
 
-  const canVeto = homeTeamId && awayTeamId && vetoFlow.length > 0;
+  const canVeto = vetoFlow.length > 0;
 
-  // If it's a side_pick step, show Side Picker UI instead of map grid
   useEffect(() => {
     if (
       bestOf === 1 &&
       maps.length > 0 &&
       bansMade === totalBansNeeded // all bans done
     ) {
-      // If this is the home team/captain, allow side pick
       const lastPick = vetoActions.filter(a => a.action === "pick").pop();
       if (
         lastPick &&
@@ -245,21 +252,12 @@ const MapVetoDialog = ({
     } else {
       setSidePickModal(null);
     }
-    // eslint-disable-next-line
-  }, [bestOf, maps, bansMade, pickMade, sideChosen, vetoActions, currentStep, isUserCaptain, userTeamId, homeTeamId, toast]);
-
-  // Derive ban/pick/remainingMaps/complete status
-  let currentAction: "ban" | "pick" = "ban";
-  if (bestOf === 1 && vetoComplete) {
-    currentAction = "pick";
-  } else if (bestOf !== 1) {
-    currentAction = vetoActions.length % 2 === 0 ? "ban" : "pick";
-  }
+  }, [bestOf, maps, bansMade, pickMade, sideChosen, vetoActions, currentStep, isUserCaptain, userTeamId, homeTeamId, toast, fetchVetoActions]);
 
   // Defensive: only pass allowed action/props, do not crash if currentStep/teamId is missing!
   const safeCurrentAction: "ban" | "pick" =
     currentStep && (currentStep.action === "ban" || currentStep.action === "pick")
-      ? asMapActionType(currentStep.action)
+      ? currentStep.action
       : "ban";
 
   // FINAL summary for veto result
@@ -267,7 +265,7 @@ const MapVetoDialog = ({
   const pickedMap = maps.find(m => m.id === finalPickAction?.map_id);
   const pickedSide = finalPickAction?.side_choice;
 
-  // Get map status - FIX attribution "Your Team" vs "Opponent"
+  // Defensive gets for map status
   const getMapStatus = (mapId: string) => {
     const action = vetoActions.find((action) => action.map_id === mapId);
     if (!action) return null;
@@ -277,10 +275,9 @@ const MapVetoDialog = ({
     };
   };
 
-  // Home/away labels (unchanged)
+  // Defensive home/away labels
   const [homeLabel, setHomeLabel] = useState<string>("Home");
   const [awayLabel, setAwayLabel] = useState<string>("Away");
-
   useEffect(() => {
     if (team1Id && homeTeamId === team1Id) {
       setHomeLabel(team1Name);
@@ -290,6 +287,32 @@ const MapVetoDialog = ({
       setAwayLabel(team1Name);
     }
   }, [homeTeamId, awayTeamId, team1Id, team2Id, team1Name, team2Name]);
+
+  // Defensive fallback UI if syncing or missing data
+  if (syncing) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent>
+          <div className="flex flex-col items-center justify-center py-10">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500 mb-3"></div>
+            <p className="text-yellow-300 text-lg">Syncing with server...</p>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  if (!open || !vetoFlow || vetoFlow.length === 0) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent>
+          <div className="text-red-400 text-center p-10">
+            Unable to load veto: Missing session, teams, or maps.
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   // --- UI / Output ---
   return (
