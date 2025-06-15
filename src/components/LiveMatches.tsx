@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -116,64 +117,89 @@ const LiveMatches = () => {
       <CardContent>
         <div className="space-y-4">
           {liveMatches.map((match) => (
-            <div key={match.id} className="bg-slate-700 p-4 rounded-lg">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <Badge className="bg-red-500/20 text-red-400">
-                    🔴 LIVE
-                  </Badge>
-                  <span className="text-slate-300 text-sm">
-                    {match.tournament?.name} - Round {match.round_number}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-slate-400" />
-                  <span className="text-slate-400 text-sm">
-                    {formatTime(match.scheduled_time)}
-                  </span>
-                </div>
-              </div>
-              
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex-1">
-                  <div className="flex items-center justify-between bg-slate-600 p-3 rounded">
-                    <span className="text-white font-medium">
-                      {match.team1?.name || 'TBD'}
-                    </span>
-                    <span className="text-white font-bold text-lg">
-                      {match.score_team1}
+            <div
+              key={match.id}
+              role="button"
+              tabIndex={0}
+              aria-label={`Go to match page`}
+              onClick={() => navigate(`/match/${match.id}`)}
+              onKeyDown={e => {
+                if (e.key === "Enter" || e.key === " ") navigate(`/match/${match.id}`);
+              }}
+              className="bg-slate-700 p-4 rounded-lg relative group transition hover:shadow-lg hover:scale-[1.015] cursor-pointer outline-none focus:ring-2 focus:ring-red-500"
+              style={{}}
+            >
+              {/* Overlay fake div so only the card (not the buttons) click navigates */}
+              <div
+                className="absolute inset-0 z-[1] rounded-lg"
+                aria-hidden="true"
+              />
+              {/* Card content */}
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-red-500/20 text-red-400">
+                      🔴 LIVE
+                    </Badge>
+                    <span className="text-slate-300 text-sm">
+                      {match.tournament?.name} - Round {match.round_number}
                     </span>
                   </div>
-                  <div className="text-center text-slate-400 text-sm py-1">VS</div>
-                  <div className="flex items-center justify-between bg-slate-600 p-3 rounded">
-                    <span className="text-white font-medium">
-                      {match.team2?.name || 'TBD'}
-                    </span>
-                    <span className="text-white font-bold text-lg">
-                      {match.score_team2}
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-slate-400" />
+                    <span className="text-slate-400 text-sm">
+                      {formatTime(match.scheduled_time)}
                     </span>
                   </div>
                 </div>
-              </div>
-              
-              <div className="flex justify-between items-center">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate(`/tournament/${match.tournament?.id}`)}
-                  className="border-slate-600 text-slate-300 hover:bg-slate-600"
-                >
-                  <Users className="w-3 h-3 mr-1" />
-                  Tournament
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={() => navigate(`/match/${match.id}`)}
-                  className="bg-red-600 hover:bg-red-700 text-white"
-                >
-                  <ExternalLink className="w-3 h-3 mr-1" />
-                  Watch Live
-                </Button>
+                
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between bg-slate-600 p-3 rounded">
+                      <span className="text-white font-medium">
+                        {match.team1?.name || 'TBD'}
+                      </span>
+                      <span className="text-white font-bold text-lg">
+                        {match.score_team1}
+                      </span>
+                    </div>
+                    <div className="text-center text-slate-400 text-sm py-1">VS</div>
+                    <div className="flex items-center justify-between bg-slate-600 p-3 rounded">
+                      <span className="text-white font-medium">
+                        {match.team2?.name || 'TBD'}
+                      </span>
+                      <span className="text-white font-bold text-lg">
+                        {match.score_team2}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex justify-between items-center mt-2 gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={e => {
+                      e.stopPropagation();
+                      navigate(`/tournament/${match.tournament?.id}`);
+                    }}
+                    className="border-slate-600 text-slate-300 hover:bg-slate-600"
+                  >
+                    <Users className="w-3 h-3 mr-1" />
+                    Tournament
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={e => {
+                      e.stopPropagation();
+                      navigate(`/match/${match.id}`);
+                    }}
+                    className="bg-red-600 hover:bg-red-700 text-white"
+                  >
+                    <ExternalLink className="w-3 h-3 mr-1" />
+                    Watch Live
+                  </Button>
+                </div>
               </div>
             </div>
           ))}

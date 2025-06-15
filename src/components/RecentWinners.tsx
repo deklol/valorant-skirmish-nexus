@@ -4,9 +4,11 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Trophy, Users, Crown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import { useNavigate } from "react-router-dom";
 
 type Winner = {
   tournament: string;
+  tournamentId: string;
   team: string;
   memberList: { id: string; discord_username: string; current_rank: string }[];
 };
@@ -14,6 +16,7 @@ type Winner = {
 export default function RecentWinners() {
   const [winners, setWinners] = useState<Winner[]>([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     async function fetchWinners() {
@@ -58,6 +61,7 @@ export default function RecentWinners() {
 
         result.push({
           tournament: t.name,
+          tournamentId: t.id,
           team: team.name,
           memberList
         });
@@ -89,42 +93,57 @@ export default function RecentWinners() {
   // Only show most recent (first)
   const winner = winners[0];
 
+  // Make the card clickable and accessible
   return (
-    <Card className="bg-gradient-to-r from-yellow-900/20 to-yellow-800/20 border-yellow-600/30 mb-4">
-      <CardHeader className="text-center">
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <Crown className="w-6 h-6 text-yellow-500" />
-          <CardTitle className="text-lg font-bold text-yellow-500">
-            {winner.tournament} Champions
-          </CardTitle>
-          <Crown className="w-6 h-6 text-yellow-500" />
-        </div>
-        <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-base px-4 py-2">
-          <Trophy className="w-4 h-4 mr-2" />
-          {winner.team}
-        </Badge>
-      </CardHeader>
-      <CardContent>
-        <div>
-          <div className="flex items-center justify-center gap-2 text-slate-300 mb-2">
-            <Users className="w-4 h-4" />
-            <span className="font-medium">Team Members</span>
+    <div
+      role="button"
+      tabIndex={0}
+      aria-label={`Go to ${winner.tournament} tournament`}
+      onClick={() => navigate(`/tournament/${winner.tournamentId}`)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') navigate(`/tournament/${winner.tournamentId}`);
+      }}
+      className="outline-none focus:ring-2 ring-yellow-500 rounded-xl transition-shadow cursor-pointer"
+      style={{}}
+    >
+      <Card className="bg-gradient-to-r from-yellow-900/20 to-yellow-800/20 border-yellow-600/30 mb-4 hover:shadow-lg hover:scale-[1.015] transition duration-150">
+        <CardHeader className="text-center">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <Crown className="w-6 h-6 text-yellow-500" />
+            <CardTitle className="text-lg font-bold text-yellow-500">
+              {winner.tournament} Champions
+            </CardTitle>
+            <Crown className="w-6 h-6 text-yellow-500" />
           </div>
-          <ul className="grid grid-cols-1 gap-2">
-            {winner.memberList.map(member => (
-              <li 
-                key={member.id}
-                className="bg-slate-700/50 rounded-lg px-3 py-2 flex items-center justify-between"
-              >
-                <span className="text-white">{member.discord_username}</span>
-                <Badge variant="outline" className="text-slate-300 border-slate-500">
-                  {member.current_rank}
-                </Badge>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </CardContent>
-    </Card>
+          <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-base px-4 py-2">
+            <Trophy className="w-4 h-4 mr-2" />
+            {winner.team}
+          </Badge>
+        </CardHeader>
+        <CardContent>
+          <div>
+            <div className="flex items-center justify-center gap-2 text-slate-300 mb-2">
+              <Users className="w-4 h-4" />
+              <span className="font-medium">Team Members</span>
+            </div>
+            <ul className="grid grid-cols-1 gap-2">
+              {winner.memberList.map(member => (
+                <li 
+                  key={member.id}
+                  className="bg-slate-700/50 rounded-lg px-3 py-2 flex items-center justify-between"
+                >
+                  <span className="text-white">{member.discord_username}</span>
+                  <Badge variant="outline" className="text-slate-300 border-slate-500">
+                    {member.current_rank}
+                  </Badge>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
+
+// ... nothing below
