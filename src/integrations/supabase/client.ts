@@ -5,7 +5,22 @@ import type { Database } from './types';
 const SUPABASE_URL = "https://tmncfnwtqorbmxxyxhle.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRtbmNmbnd0cW9yYm14eHl4aGxlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg5MDU5ODAsImV4cCI6MjA2NDQ4MTk4MH0.0O8GA7FoAmSog7OEVQ82ElotxYN7SnL6jxeV2cfVijQ";
 
-// Import the supabase client like this:
-// import { supabase } from "@/integrations/supabase/client";
-
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+// Add recommended options for reliable realtime/auth
+export const supabase = createClient<Database>(
+  SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY,
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      storage: localStorage,
+      detectSessionInUrl: true,
+    },
+    realtime: {
+      // Change default timeout/retry (optional: you can tune further as needed)
+      params: {
+        eventsPerSecond: 10
+      },
+    },
+  }
+);

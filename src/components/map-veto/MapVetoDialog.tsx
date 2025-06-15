@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import React, { useCallback, useEffect, useState, useRef } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useMapVetoActionsRealtime, useMapVetoSessionRealtime } from "@/hooks/useMapVetoRealtime";
@@ -63,37 +63,55 @@ const MapVetoDialog = ({
   const { toast } = useToast();
   const [currentTurnTeamId, setCurrentTurnTeamId] = useState<string>(currentTeamTurn);
   const [sidePickModal, setSidePickModal] = useState<null | { mapId: string, onPick: (side: "attack" | "defend") => void }>(null);
+  const [connectionStatus, setConnectionStatus] = useState<"connecting" | "online" | "offline" | "error" | "timeout">("connecting");
+  const [retryNonce, setRetryNonce] = useState<number>(0);
+
+  // Timeout syncing state after 10s if stuck
+  const syncingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Defensive fallback for critical crash/loop conditions
   const hasMinimalData = vetoSessionId && team1Id && team2Id;
   if (!hasMinimalData) {
-    if (open) {
-      // Log exactly what's missing
-      console.warn("[MapVetoDialog] CRITICAL ERROR: Missing minimal required data", {
-        vetoSessionId,
-        team1Id,
-        team2Id
-      });
-    }
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent>
-          <div className="p-6 text-center">
-            <div className="text-red-500 font-bold mb-3">Critical Error: Missing required session/team data</div>
-            <div>
-              Missing: {[
-                !vetoSessionId && "vetoSessionId",
-                !team1Id && "team1Id",
-                !team2Id && "team2Id"
-              ].filter(Boolean).join(", ") || "Unknown"}
-            </div>
-            <div>Please contact an administrator.</div>
-          </div>
+          <DialogHeader>
+            <DialogTitle>Critical Error: Missing Map Veto Session Data</DialogTitle>
+            <DialogDescription>
+              Session or teams are missing. Please contact an administrator.<br />
+              <span className="text-xs text-red-400">
+                Missing: {[
+                  !vetoSessionId && "vetoSessionId",
+                  !team1Id && "team1Id",
+                  !team2Id && "team2Id"
+                ].filter(Boolean).join(", ") || "Unknown"}
+              </span>
+            </DialogDescription>
+          </DialogHeader>
         </DialogContent>
       </Dialog>
     );
   }
 
+  // WATCH: Show dialog title & description for accessibility every time
+  // DialogHeader/Title is always present. Map Veto dialog always has a description.
+  const dialogTitle = `Map Veto - ${team1Name} vs ${team2Name}`;
+
+  // ----- Realtime Connection / Syncing -----
+  useEffect(() => {
+    setConnectionStatus("connecting");
+    setSyncing(true);
+    syncingTimeoutRef.current && clearTimeout(syncingTimeoutRef.current);
+    syncingTimeoutRef.current = setTimeout(() => {
+      setConnectionStatus("timeout");
+      setSyncing(false);
+    }, 10000); // 10s max to connect
+    return () => {
+      if (syncingTimeoutRef.current) clearTimeout(syncingTimeoutRef.current);
+    };
+  }, [open, vetoSessionId, retryNonce]);
+
+  // Main data loading on open/reset
   const fetchMaps = useCallback(async () => {
     try {
       const { data, error } = await supabase
@@ -111,7 +129,6 @@ const MapVetoDialog = ({
       });
     }
   }, [toast]);
-
   const fetchVetoActions = useCallback(async () => {
     try {
       const { data, error } = await supabase
@@ -141,21 +158,14 @@ const MapVetoDialog = ({
 
   useEffect(() => {
     if (open) {
-      setSyncing(true);
       setMaps([]);
       setVetoActions([]);
       setCurrentTurnTeamId(currentTeamTurn);
       Promise.all([fetchMaps(), fetchVetoActions()]).finally(() => setSyncing(false));
     }
-  }, [open, vetoSessionId, currentTeamTurn, fetchMaps, fetchVetoActions]);
+  }, [open, vetoSessionId, currentTeamTurn, fetchMaps, fetchVetoActions, retryNonce]);
 
-  // Real-time hooks with defensive fallbacks
-  useEffect(() => {
-    if (!vetoSessionId) {
-      console.warn("[MapVetoDialog] vetoSessionId is missing, not subscribing to realtime veto.");
-    }
-  }, [vetoSessionId]);
-
+  // Subscribe to realtime; update status for UI/timeout
   useMapVetoSessionRealtime(
     hasMinimalData ? vetoSessionId : null,
     payload => {
@@ -164,11 +174,16 @@ const MapVetoDialog = ({
       }
     },
     connState => {
+      setConnectionStatus(connState);
       if (connState === "connecting") setSyncing(true);
-      if (connState === "online") setSyncing(false);
+      if (connState === "online") {
+        setSyncing(false);
+        // kill sync timeout if alive
+        if (syncingTimeoutRef.current) clearTimeout(syncingTimeoutRef.current);
+        syncingTimeoutRef.current = null;
+      }
       if (connState === "error" || connState === "offline") {
         setSyncing(true);
-        toast({ title: "Lost connection to veto session!", description: "Trying to reconnect...", variant: "destructive" });
       }
     }
   );
@@ -176,14 +191,20 @@ const MapVetoDialog = ({
     hasMinimalData ? vetoSessionId : null,
     fetchVetoActions,
     connState => {
+      // This line intentionally does not set connectionStatus;
+      // Only setSyncing to block UI if offline
       if (connState === "connecting") setSyncing(true);
       if (connState === "online") setSyncing(false);
-      if (connState === "error" || connState === "offline") {
-        setSyncing(true);
-        toast({ title: "Lost connection to veto actions!", description: "Trying to reconnect...", variant: "destructive" });
-      }
+      if (connState === "error" || connState === "offline") setSyncing(true);
     }
   );
+
+  // Manual retry logic for real-time connection
+  const handleRetry = () => {
+    setRetryNonce(n => n + 1);
+    setConnectionStatus("connecting");
+    setSyncing(true);
+  };
 
   const {
     isUserOnMatchTeam,
@@ -309,44 +330,62 @@ const MapVetoDialog = ({
     }
   }, [homeTeamId, awayTeamId, team1Id, team2Id, team1Name, team2Name]);
 
-  // Defensive fallback UI if syncing or missing data
-  if (syncing) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent>
-          <div className="flex flex-col items-center justify-center py-10">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500 mb-3"></div>
-            <p className="text-yellow-300 text-lg">Syncing with server...</p>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
+  // Defensive: fallback UI if syncing or missing data
   if (!open || !vetoFlow || vetoFlow.length === 0) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent>
-          <div className="text-red-400 text-center p-10">
-            Unable to load veto: Missing session, teams, or maps.
-          </div>
+          <DialogHeader>
+            <DialogTitle>{dialogTitle}</DialogTitle>
+            <DialogDescription>
+              Unable to load veto: Missing session, teams, or maps.
+            </DialogDescription>
+          </DialogHeader>
         </DialogContent>
       </Dialog>
     );
   }
 
-  // --- UI / Output ---
+  // UI: Real-time connection state/indicator for users
+  const renderConnectionInfo = () => {
+    switch (connectionStatus) {
+      case "online":
+        return <span className="text-green-400 text-xs">Connected to server</span>;
+      case "offline":
+      case "error":
+        return (
+          <div className="flex flex-col items-center gap-2">
+            <span className="text-red-300 text-xs">Connection to server lost.</span>
+            <button onClick={handleRetry} className="text-blue-300 underline text-xs font-medium hover:text-blue-400">Retry Connection</button>
+          </div>
+        );
+      case "timeout":
+        return (
+          <div className="flex flex-col items-center gap-2">
+            <span className="text-yellow-300 text-xs">Unable to reach server. You can continue (read-only), or retry.</span>
+            <button onClick={handleRetry} className="text-blue-300 underline text-xs font-medium hover:text-blue-400">Retry Connection</button>
+          </div>
+        );
+      case "connecting":
+      default:
+        return <span className="text-yellow-300 text-xs">Syncing with server...</span>;
+    }
+  };
+
+  // Dialog Render
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-slate-900 border-slate-700 text-white">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-slate-900 border-slate-700 text-white" aria-describedby="map-veto-dialog-description">
         <DialogHeader>
-          <DialogTitle className="text-white">
-            Map Veto - {team1Name} vs {team2Name}
-          </DialogTitle>
+          <DialogTitle>{dialogTitle}</DialogTitle>
+          <DialogDescription id="map-veto-dialog-description">
+            Participate in map bans and picks. All team members see this in real time. <br />
+            <span>{renderConnectionInfo()}</span>
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-6">
+          {/* If waiting for dice roll */}
           {(!homeTeamId || !awayTeamId) ? (
-            // Show this loading/waiting state inside dialog if dice roll not yet done
             <div className="flex flex-col items-center justify-center py-14">
               <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-yellow-500 mb-2" />
               <div className="text-yellow-200 text-lg font-semibold">
@@ -356,10 +395,6 @@ const MapVetoDialog = ({
                 Home/Away are not set yet.<br />
                 A captain or admin must roll dice to set Home/Away.
               </div>
-              <div className="text-xs text-slate-400 mt-2">
-                (If you see this for more than 30 seconds, check for missing team assignments or contact admin.)
-              </div>
-              {/* Debug details */}
               <pre className="bg-slate-800 mt-4 p-2 rounded text-xs text-slate-400 border border-slate-700 max-w-xl overflow-auto">
                 Missing: {!homeTeamId && "homeTeamId "}
                 {!awayTeamId && "awayTeamId"}
@@ -368,9 +403,10 @@ const MapVetoDialog = ({
                 {"\n"}team2Id: {team2Id}
               </pre>
             </div>
-          )
-          : (
+          ) : (
             <>
+              {/* Connection status indicator always at the top */}
+              <div className="flex justify-center">{renderConnectionInfo()}</div>
               {/* Show home/away info */}
               <div className="flex gap-8 justify-center pb-2">
                 <div className="bg-slate-900/60 px-3 py-1 rounded text-yellow-100 border border-yellow-700 text-sm">
