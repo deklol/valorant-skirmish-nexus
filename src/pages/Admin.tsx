@@ -1,8 +1,9 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Users, Trophy, MessageSquare, Map, ShieldAlert } from "lucide-react";
+import { Settings, Users, Trophy, MessageSquare, Map, ShieldAlert, Wrench } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import DiscordWebhookManager from "@/components/DiscordWebhookManager";
 import CreateTournamentDialog from "@/components/CreateTournamentDialog";
@@ -12,6 +13,7 @@ import MapManager from "@/components/MapManager";
 import UserManagement from "@/components/UserManagement";
 import VetoMedicManager from "@/components/VetoMedicManager";
 import MatchMedicManager from "@/components/MatchMedicManager";
+import TournamentMedicManager from "@/components/TournamentMedicManager";
 import SendNotificationTestButton from "@/components/SendNotificationTestButton";
 
 const Admin = () => {
@@ -19,9 +21,7 @@ const Admin = () => {
   const [createTournamentOpen, setCreateTournamentOpen] = useState(false);
 
   const handleTournamentCreated = () => {
-    console.log('Tournament created in admin, dialog should close and refresh tournament list');
     setCreateTournamentOpen(false);
-    // The TournamentManagement component should handle its own refresh
   };
 
   if (!isAdmin) {
@@ -47,13 +47,9 @@ const Admin = () => {
             <h1 className="text-3xl font-bold text-white mb-2">Admin Dashboard</h1>
             <p className="text-slate-400">Manage tournaments, users, maps, and system settings</p>
           </div>
-          
           <Button 
             className="bg-red-600 hover:bg-red-700 text-white"
-            onClick={() => {
-              console.log('Admin Create Tournament button clicked');
-              setCreateTournamentOpen(true);
-            }}
+            onClick={() => setCreateTournamentOpen(true)}
           >
             <Trophy className="w-4 h-4 mr-2" />
             Create Tournament
@@ -81,6 +77,10 @@ const Admin = () => {
             <TabsTrigger value="match-medic" className="text-white data-[state=active]:bg-amber-600">
               <ShieldAlert className="w-4 h-4 mr-2" />
               Match Medic
+            </TabsTrigger>
+            <TabsTrigger value="tournament-medic" className="text-white data-[state=active]:bg-yellow-700">
+              <Wrench className="w-4 h-4 mr-2" />
+              Tournament Medic
             </TabsTrigger>
             <TabsTrigger value="announcements" className="text-white data-[state=active]:bg-red-600">
               <MessageSquare className="w-4 h-4 mr-2" />
@@ -112,6 +112,10 @@ const Admin = () => {
             <MatchMedicManager />
           </TabsContent>
 
+          <TabsContent value="tournament-medic">
+            <TournamentMedicManager />
+          </TabsContent>
+
           <TabsContent value="announcements">
             <DiscordWebhookManager />
           </TabsContent>
@@ -119,7 +123,6 @@ const Admin = () => {
           <TabsContent value="settings">
             <div className="space-y-6">
               <AdminLogoutAll />
-              {/* Add test notification button for admin */}
               <SendNotificationTestButton />
               <Card className="bg-slate-800 border-slate-700">
                 <CardHeader>
@@ -136,10 +139,7 @@ const Admin = () => {
 
       <CreateTournamentDialog
         open={createTournamentOpen}
-        onOpenChange={(open) => {
-          console.log('Admin dialog open state changed to:', open);
-          setCreateTournamentOpen(open);
-        }}
+        onOpenChange={setCreateTournamentOpen}
         onTournamentCreated={handleTournamentCreated}
       />
     </div>
