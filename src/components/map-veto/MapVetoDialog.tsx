@@ -52,27 +52,33 @@ const MapVetoDialog = ({
   // Always trust backend for turn
   const [currentTurnTeamId, setCurrentTurnTeamId] = useState<string>(currentTeamTurn);
 
+  // Track render version to force real-time remount of status indicator
+  const [turnVersion, setTurnVersion] = useState(0);
+
   // New: Force a counter to trigger hook recalculation after RT update
   const [permissionUpdateSeq, setPermissionUpdateSeq] = useState<number>(0);
 
   useMapVetoSessionRealtime(
     vetoSessionId,
     payload => {
-      // Real-time DB update: turn just changed!
       if (payload && payload.new && payload.new.current_turn_team_id) {
         setCurrentTurnTeamId(payload.new.current_turn_team_id);
         setPermissionUpdateSeq(seq => seq + 1);
-        console.log("[MapVetoDialog][REALTIME] RT session update: turn NOW is", payload.new.current_turn_team_id, "(perms seq)", permissionUpdateSeq + 1);
+        setTurnVersion(v => v + 1);
+        console.log("[MapVetoDialog][REALTIME] RT session update: turn NOW is", payload.new.current_turn_team_id, "(perms seq)", permissionUpdateSeq + 1, "turnVersion", turnVersion + 1);
       }
     }
   );
 
+  // On initial dialog mount/open, reset state to currentTurn props. Bump version triggers.
   useEffect(() => {
     if (currentTeamTurn) {
       setCurrentTurnTeamId(currentTeamTurn);
       setPermissionUpdateSeq(seq => seq + 1);
-      console.log("[MapVetoDialog][Init] Set turnTeam on dialog open/init", currentTeamTurn, "(perms seq)", permissionUpdateSeq + 1);
+      setTurnVersion(v => v + 1);
+      console.log("[MapVetoDialog][Init] Set turnTeam on dialog open/init", currentTeamTurn, "(perms seq)", permissionUpdateSeq + 1, "turnVersion", turnVersion + 1);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentTeamTurn, vetoSessionId]);
 
   const fetchVetoActions = useCallback(async () => {
@@ -96,6 +102,7 @@ const MapVetoDialog = ({
       fetchMaps();
       fetchVetoActions();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, vetoSessionId, fetchVetoActions]);
 
   const fetchMaps = async () => {
@@ -166,16 +173,17 @@ const MapVetoDialog = ({
 
   // Add explicit log when turn or eligibility changes (easy to spot in devtools)
   useEffect(() => {
-    console.log("[DEBUG VETO][PERMSTATE] Turn:", currentTurnTeamId, "| isUserOnTeam:", isUserOnMatchTeam, "| isUserTeamTurn:", isUserTeamTurn, "| isUserEligible:", isUserEligible, "| turnAction:", vetoActions.length, "| updateSeq:", permissionUpdateSeq);
-  }, [currentTurnTeamId, isUserOnMatchTeam, isUserTeamTurn, isUserEligible, vetoActions.length, permissionUpdateSeq]);
+    console.log("[DEBUG VETO][PERMSTATE] Turn:", currentTurnTeamId, "| isUserOnTeam:", isUserOnMatchTeam, "| isUserTeamTurn:", isUserTeamTurn, "| isUserEligible:", isUserEligible, "| turnAction:", vetoActions.length, "| updateSeq:", permissionUpdateSeq, "| turnVersion:", turnVersion);
+  }, [currentTurnTeamId, isUserOnMatchTeam, isUserTeamTurn, isUserEligible, vetoActions.length, permissionUpdateSeq, turnVersion]);
 
   // For debugging (keep code)
   useEffect(() => {
     console.log("[DEBUG VETO][Permissions]", {
       userTeamId, currentTurnTeamId, isUserCaptain, teamSize, vetoActions,
       isUserOnMatchTeam, isUserTeamTurn, isUserEligible,
+      turnVersion,
     });
-  }, [userTeamId, currentTurnTeamId, isUserCaptain, teamSize, vetoActions, isUserOnMatchTeam, isUserTeamTurn, isUserEligible]);
+  }, [userTeamId, currentTurnTeamId, isUserCaptain, teamSize, vetoActions, isUserOnMatchTeam, isUserTeamTurn, isUserEligible, turnVersion]);
 
   // Get map status - unmodified
   const getMapStatus = (mapId: string) => {
@@ -199,6 +207,7 @@ const MapVetoDialog = ({
         <div className="space-y-6">
           {/* Turn/Phase */}
           <MapVetoTurnStatus
+            key={turnVersion}
             canAct={isUserEligible && !vetoComplete}
             isUserTurn={isUserTeamTurn}
             teamSize={teamSize}
