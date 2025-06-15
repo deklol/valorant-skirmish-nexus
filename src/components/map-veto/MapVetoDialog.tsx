@@ -33,6 +33,9 @@ interface MapVetoDialogProps {
   awayTeamId?: string | null;
 }
 
+const asMapActionType = (act: string | undefined | null): "ban" | "pick" =>
+  act === "ban" ? "ban" : act === "pick" ? "pick" : "ban";
+
 const MapVetoDialog = ({
   open,
   onOpenChange,
@@ -411,13 +414,7 @@ const MapVetoDialog = ({
             teamSize={teamSize}
             isUserCaptain={isUserCaptain!}
             // Only allow "ban" or "pick" as MapActionType!
-            currentAction={
-              currentStep?.action === "ban"
-                ? "ban"
-                : currentStep?.action === "pick"
-                ? "pick"
-                : "ban" // fallback if currentStep is side_pick or other
-            }
+            currentAction={asMapActionType(currentStep?.action)}
           />
 
           {/* Veto History */}
@@ -436,7 +433,7 @@ const MapVetoDialog = ({
             <MapVetoMapGrid
               maps={maps}
               canAct={isUserEligible && canVeto && currentStep && currentStep.action !== "side_pick"}
-              currentAction={currentStep?.action || "ban"}
+              currentAction={asMapActionType(currentStep?.action)}
               bestOf={bestOf}
               remainingMaps={getRemainingMaps(maps, vetoActions)}
               vetoActions={vetoActions}
