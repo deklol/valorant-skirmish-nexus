@@ -1,4 +1,3 @@
-// Refactored MapVetoDialog: Composes history, status, maps, instructions!
 import React, { useCallback, useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -238,74 +237,6 @@ const MapVetoDialog = ({
   const vetoStep = vetoActions.length;
   const currentStep = vetoFlow[vetoStep];
 
-  // For BO1: after all bans, auto-pick last map (don't let user pick), then side pick by Home
-  useEffect(() => {
-    if (
-      bestOf === 1 &&
-      maps.length > 0 &&
-      vetoActions.length === maps.length - 1 // all bans completed
-    ) {
-      // check if final map pick already exists
-      const remaining = getRemainingMaps(maps, vetoActions);
-      const pickExists = vetoActions.some(a => a.action === "pick");
-      if (!pickExists && remaining.length === 1) {
-        // Auto-insert pick for remaining map (simulate backend, but fallback defensively here for UI)
-        // We'll assign to NULL team as per vetoFlowUtils
-        setVetoActions(acts =>
-          acts.concat([
-            {
-              id: `auto-pick-${remaining[0].id}`,
-              action: "pick",
-              map_id: remaining[0].id,
-              team_id: null as any,
-              order_number: vetoActions.length + 1,
-              performed_by: null,
-              performed_at: new Date().toISOString(),
-              map: remaining[0],
-              users: {},
-              side_choice: null,
-            },
-          ])
-        );
-      }
-    }
-  }, [bestOf, maps, vetoActions]);
-
-  // Side Pick step: BO1, Home picks after auto-pick
-  useEffect(() => {
-    if (
-      bestOf === 1 &&
-      maps.length > 0 &&
-      vetoActions.length === maps.length // after auto-pick
-    ) {
-      // If this is the home team's turn for side pick, and user is home/captain, show modal
-      if (currentStep && currentStep.action === "side_pick" && isUserCaptain && userTeamId === homeTeamId) {
-        // Find the picked map id
-        const lastPick = vetoActions.filter(a => a.action === "pick").pop();
-        if (lastPick) {
-          setSidePickModal({
-            mapId: lastPick.map_id,
-            onPick: async (side: "attack" | "defend") => {
-              setLoading(true);
-              // Update the last pick action to include side_choice
-              // If it's a simulated action, just update local state
-              setVetoActions(actions =>
-                actions.map(a =>
-                  a.id === lastPick.id
-                    ? { ...a, side_choice: side as "attack" | "defend" }
-                    : a
-                )
-              );
-              setLoading(false);
-              setSidePickModal(null);
-              toast({ title: "Side Selected", description: `You picked ${side} side.` });
-            }
-          });
-        }
-      }
-    }
-  }, [bestOf, maps, vetoActions, currentStep, isUserCaptain, userTeamId, homeTeamId, toast]);
-
   // Defensive: vetoComplete is true after all bans, pick, and side are done
   const bansMade = vetoActions.filter(a => a.action === "ban").length;
   const totalBansNeeded = maps.length - 1;
@@ -322,34 +253,42 @@ const MapVetoDialog = ({
   // If it's a side_pick step, show Side Picker UI instead of map grid
   // (VCT: after each "pick", next action is side_pick, performed by the other team)
   useEffect(() => {
-    if (!canVeto || !currentStep) return;
-    if (currentStep.action === "side_pick") {
-      // Find the relevant pick step: for BO3/BO5, it's always the most recent completed "pick"
-      const prevPick = vetoActions.filter(a => a.action === "pick").pop();
-      if (prevPick && currentStep.teamId === userTeamId && isUserCaptain) {
+    if (
+      bestOf === 1 &&
+      maps.length > 0 &&
+      bansMade === totalBansNeeded && // all bans done
+      pickMade &&                     // pick recorded in db
+      !sideChosen                     // but not side picked yet!
+    ) {
+      // If this is the home team/captain, allow side pick
+      const lastPick = vetoActions.filter(a => a.action === "pick").pop();
+      if (
+        lastPick &&
+        isUserCaptain &&
+        userTeamId === homeTeamId
+      ) {
         setSidePickModal({
-          mapId: prevPick.map_id,
+          mapId: lastPick.map_id,
           onPick: async (side: "attack" | "defend") => {
             setLoading(true);
-            // Update the vetoAction for that map or insert new if not present
-            // For VCT flow, the last "pick" already exists, so just update its side_choice
-            const lastPickAction = prevPick.id;
+            // Persist the choice to Supabase
             const { error } = await supabase
               .from("map_veto_actions")
               .update({ side_choice: side })
-              .eq("id", lastPickAction);
+              .eq("id", lastPick.id);
             setLoading(false);
             setSidePickModal(null);
             fetchVetoActions();
             toast({ title: "Side Selected", description: `You picked ${side} side.` });
-          }
+          },
         });
       }
     } else {
+      // Close modal if not in side-pick state
       setSidePickModal(null);
     }
     // eslint-disable-next-line
-  }, [canVeto, currentStep, userTeamId, isUserCaptain, vetoActions]);
+  }, [bestOf, maps, bansMade, pickMade, sideChosen, vetoActions, currentStep, isUserCaptain, userTeamId, homeTeamId, toast]);
 
   // Derive ban/pick/remainingMaps/complete status
   let currentAction: "ban" | "pick" = "ban";
@@ -524,4 +463,3 @@ const MapVetoDialog = ({
 };
 
 export default MapVetoDialog;
-// End of forced sync, log, and debug upgrade.
