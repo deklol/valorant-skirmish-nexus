@@ -295,13 +295,13 @@ const MapVetoDialog = ({
     });
   }, [userTeamId, currentTurnTeamId, isUserCaptain, teamSize, vetoActions, isUserOnMatchTeam, isUserTeamTurn, isUserEligible, turnVersion]);
 
-  // Get map status - unmodified
+  // Get map status - FIX attribution "Your Team" vs "Opponent"
   const getMapStatus = (mapId: string) => {
     const action = vetoActions.find((action) => action.map_id === mapId);
     if (!action) return null;
     return {
       action: action.action,
-      team: action.team_id === currentTurnTeamId ? "Your Team" : "Opponent",
+      team: action.team_id === userTeamId ? "Your Team" : "Opponent",
     };
   };
 
