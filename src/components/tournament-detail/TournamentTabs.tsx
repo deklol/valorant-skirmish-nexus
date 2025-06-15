@@ -20,20 +20,12 @@ export default function TournamentTabs({
   teams: any[],
   onRefresh: () => void
 }) {
-  // Tab count for layout
-  const tabCount =
-    2
-    + (matches.length > 0 ? 1 : 0)
-    + (isAdmin ? 3 : 0);
-
   return (
     <Tabs defaultValue="overview" className="space-y-6">
-      <TabsList className={
-        `grid w-full ${
-          tabCount === 5 ? "lg:grid-cols-5" :
-          (matches.length > 0 ? "lg:grid-cols-4" : "lg:grid-cols-3")
-        } grid-cols-2 bg-slate-800 border-slate-700`
-      }>
+      <TabsList
+        className={`flex flex-wrap w-full gap-x-2 gap-y-2 bg-slate-800 border-slate-700`}
+        style={{ alignItems: 'stretch' }}
+      >
         <TabsTrigger value="overview" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
           <Settings className="w-4 h-4 mr-2" />
           Overview
