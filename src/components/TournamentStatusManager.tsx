@@ -64,7 +64,8 @@ const TournamentStatusManager = ({ tournamentId, currentStatus, onStatusChange }
       .eq('round_number', 1)
       .not('team1_id', 'is', null)
       .not('team2_id', 'is', null)
-      .in('status', ['pending', 'live']); // Cover only pending/live (idempotent)
+      .in('status', ['pending', 'live']) // Cover only pending/live (idempotent)
+      .select(); // Add this to force data to be an array of records
 
     if (error) {
       toast({
@@ -74,6 +75,7 @@ const TournamentStatusManager = ({ tournamentId, currentStatus, onStatusChange }
       });
       return 0;
     }
+    // data should now be strongly typed as an array (Record<string, any>[] or matches row[]).
     const count = data && Array.isArray(data) ? data.length : 0;
     if (count > 0) {
       toast({
