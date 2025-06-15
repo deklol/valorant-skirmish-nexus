@@ -1,7 +1,8 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ShieldAlert, CheckSquare } from "lucide-react";
+import { ShieldAlert, CheckSquare, X } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import TournamentMedicStatusTab from "./tournament-medic/TournamentMedicStatusTab";
 import TournamentMedicPlayersTab from "./tournament-medic/TournamentMedicPlayersTab";
@@ -118,7 +119,18 @@ export default function TournamentMedicEditModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
-      <div className="bg-slate-900 rounded-lg shadow-lg border border-yellow-700 w-full max-w-4xl p-6 animate-scale-in overflow-y-auto h-[90vh]">
+      <div className="bg-slate-900 rounded-lg shadow-lg border border-yellow-700 w-full max-w-4xl p-6 animate-scale-in overflow-y-auto h-[90vh] relative">
+        {/* Close modal button - Top Right */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute top-4 right-4 z-10 text-slate-400 hover:text-white"
+          aria-label="Close"
+          onClick={onClose}
+        >
+          <X className="w-5 h-5" />
+        </Button>
+
         <div className="flex items-center gap-2 mb-2">
           <ShieldAlert className="w-5 h-5 text-yellow-400" />
           <span className="font-bold text-lg text-white">Tournament Medic Tool</span>
@@ -167,9 +179,7 @@ export default function TournamentMedicEditModal({
             <TournamentMedicToolsTab tournament={tournament} onRefresh={handleRefresh} />
           </TabsContent>
         </Tabs>
-        <div className="flex gap-2 mt-6 justify-end">
-          <Button size="sm" variant="outline" onClick={onClose}>Close</Button>
-        </div>
+        {/* Remove the old bottom "Close" button */}
       </div>
     </div>
   );
