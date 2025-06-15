@@ -1,4 +1,3 @@
-
 import React, { useCallback, useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { RefreshCw, ShieldAlert, Calendar, Edit, Flag, Activity, Trophy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import processMatchResults from "./MatchResultsProcessor";
+import { processMatchResults } from "./MatchResultsProcessor";
 
 interface TeamInfo {
   id: string;
