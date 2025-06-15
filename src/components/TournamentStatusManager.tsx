@@ -54,6 +54,36 @@ const TournamentStatusManager = ({ tournamentId, currentStatus, onStatusChange }
     }
   };
 
+  // Helper to automatically start round 1 matches
+  const startFirstRoundMatches = async () => {
+    // Update all matches in round 1 with both team1_id and team2_id present
+    const { data, error } = await supabase
+      .from('matches')
+      .update({ status: 'live', started_at: new Date().toISOString() })
+      .eq('tournament_id', tournamentId)
+      .eq('round_number', 1)
+      .not('team1_id', 'is', null)
+      .not('team2_id', 'is', null)
+      .in('status', ['pending', 'live']); // Cover only pending/live (idempotent)
+
+    if (error) {
+      toast({
+        title: "Error starting matches",
+        description: error.message || "Could not set first matches live when starting tournament.",
+        variant: "destructive",
+      });
+      return 0;
+    }
+    const count = data?.length || 0;
+    if (count > 0) {
+      toast({
+        title: "First Round Started",
+        description: `${count} match${count > 1 ? 'es' : ''} set to live!`,
+      });
+    }
+    return count;
+  };
+
   // Called after confirmation or if moving forward
   const updateTournamentStatus = async (forcedStatus?: string) => {
     const targetStatus = forcedStatus || newStatus;
@@ -114,6 +144,11 @@ const TournamentStatusManager = ({ tournamentId, currentStatus, onStatusChange }
           title: "Status Updated",
           description: `Tournament status changed to ${targetStatus}`,
         });
+
+        // Auto-start round 1 matches if going live
+        if (targetStatus === "live") {
+          await startFirstRoundMatches();
+        }
 
         onStatusChange();
       }
@@ -209,6 +244,11 @@ const TournamentStatusManager = ({ tournamentId, currentStatus, onStatusChange }
         title: "Status Updated",
         description: `Tournament status changed to ${status}`,
       });
+
+      // If we're starting the tournament, also auto-start round 1 matches
+      if (status === "live") {
+        await startFirstRoundMatches();
+      }
 
       onStatusChange();
     } catch (error: any) {
