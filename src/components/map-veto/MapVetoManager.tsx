@@ -219,11 +219,9 @@ const MapVetoManager = ({
 
       let session = null;
 
-      // FIX: The first ban should be by the home team (not always team1Id!).
-      // Use home_team_id if available. For new sessions, set turn to home_team_id.
-      // Defensive: pull .home_team_id/.away_team_id from rolled session if exists.
+      // Use home_team_id as first turn if present, otherwise team1Id.
       if (existingSession && !existingSessionErr) {
-        // If home_team_id already set (from dice roll), use that for turn
+        // If a dice roll has already happened, set turn to home_team_id
         const homeId = existingSession.home_team_id || team1Id;
         const { data: updated, error: updateErr } = await supabase
           .from('map_veto_sessions')
@@ -240,13 +238,14 @@ const MapVetoManager = ({
         if (updateErr) throw updateErr;
         session = updated;
       } else {
-        // 3. Otherwise, insert a new session
-        // For new session, always set turn to home_team_id if available
-        const homeId = null; // There will be no home_team_id until dice roll, so fallback to team1Id safely
+        // Fetch home_team_id by checking if a dice roll record exists for this match's session
+        // There will be no home_team_id yet, so fallback to team1Id for new sessions only
+        const homeId = null; // New sessions never have home_team_id (dice not rolled yet)
         const { data: inserted, error: insertErr } = await supabase
           .from('map_veto_sessions')
           .insert({
             match_id: matchId,
+            // current_turn_team_id is set to team1Id because there's no home_team_id (dice not yet rolled)
             current_turn_team_id: team1Id,
             status: 'in_progress',
             started_at: new Date().toISOString(),
@@ -268,7 +267,6 @@ const MapVetoManager = ({
         description: "Teams can now participate in map selection",
       });
 
-      // Optionally, refresh settings/match after starting
       fetchTournamentAndMatchSettings?.();
     } catch (error: any) {
       console.error('Error initializing map veto:', error);
