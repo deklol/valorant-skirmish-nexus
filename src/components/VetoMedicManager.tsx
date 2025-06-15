@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useCallback } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -269,14 +268,22 @@ export default function VetoMedicManager() {
 
   // Extra fetch for veto actions for the modal/history
   const fetchVetoActions = useCallback(async (sessionId: string) => {
+    // Fetch all audit log entries related to map_veto_actions for this session
     const { data, error } = await supabase
-      .from("map_veto_actions")
+      .from("audit_logs")
       .select("*")
-      .eq("veto_session_id", sessionId)
-      .order("order_number", { ascending: true });
+      .eq("table_name", "map_veto_actions")
+      .order("created_at", { ascending: true });
+
+    let sessionActions: any[] = [];
+
     if (!error && data) {
-      setHistoryBySession(hist => ({ ...hist, [sessionId]: data }));
+      // Filter actions only for those in the given veto_session
+      sessionActions = (data as any[]).filter((logEntry: any) =>
+        logEntry.new_values?.veto_session_id === sessionId
+      );
     }
+    setHistoryBySession(hist => ({ ...hist, [sessionId]: sessionActions }));
   }, []);
 
   // When viewing session details, fetch history
