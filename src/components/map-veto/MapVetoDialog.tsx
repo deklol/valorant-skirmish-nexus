@@ -35,6 +35,10 @@ interface MapVetoDialogProps {
 const asMapActionType = (act: string | undefined | null): "ban" | "pick" =>
   act === "ban" ? "ban" : act === "pick" ? "pick" : "ban";
 
+/**
+ * Simplified, real-time-only MapVetoDialog.
+ * No polling or redundant syncs, state solely driven by real-time events + initial source of truth on open/reset.
+ */
 const MapVetoDialog = ({
   open,
   onOpenChange,
@@ -55,83 +59,79 @@ const MapVetoDialog = ({
   const [maps, setMaps] = useState<MapData[]>([]);
   const [vetoActions, setVetoActions] = useState<VetoAction[]>([]);
   const [loading, setLoading] = useState(false);
-  const [syncing, setSyncing] = useState(true); // <<-- NEW: put dialog into "syncing" mode on mount/reconnect
+  const [syncing, setSyncing] = useState(true);
   const { toast } = useToast();
 
-  // Current turn - always trust backend for turn
+  // Current turn as single source of truth, updated by session RT only
   const [currentTurnTeamId, setCurrentTurnTeamId] = useState<string>(currentTeamTurn);
-
-  // Track render version for MapVetoTurnStatus
-  const [turnVersion, setTurnVersion] = useState(0);
-
-  // Forcing RT permission recalculation
-  const [permissionUpdateSeq, setPermissionUpdateSeq] = useState<number>(0);
 
   // ----------- NEW: VCT-style veto flow and side pick steps ----------
   const [sidePickModal, setSidePickModal] = useState<null | { mapId: string, onPick: (side: "attack" | "defend") => void }>(null);
 
-  // Helper: Refetch session and force local sync on mismatch
-  const forceSessionRefetch = useCallback(async (logReason?: string) => {
-    if (!vetoSessionId) return;
+  // Initial fetch for maps and actions (fresh start or open/reset)
+  const fetchMaps = useCallback(async () => {
     try {
       const { data, error } = await supabase
-        .from('map_veto_sessions')
-        .select('current_turn_team_id')
-        .eq('id', vetoSessionId)
-        .maybeSingle();
+        .from("maps")
+        .select("*")
+        .eq("is_active", true)
+        .order("name");
       if (error) throw error;
-      if (
-        data &&
-        data.current_turn_team_id &&
-        data.current_turn_team_id !== currentTurnTeamId
-      ) {
-        console.warn("[FORCE REFRESH][forceSessionRefetch]", logReason || "",
-          "Local turn id:", currentTurnTeamId,
-          " != DB:", data.current_turn_team_id, "-> forcing sync");
-        setCurrentTurnTeamId(data.current_turn_team_id);
-        setTurnVersion((v) => v + 1);
-        setPermissionUpdateSeq(seq => seq + 1);
-      }
-    } catch (err) {
-      console.warn("[FORCE REFRESH][forceSessionRefetch] Could not load session:", err);
+      setMaps(data || []);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to load maps",
+        variant: "destructive",
+      });
     }
-  }, [vetoSessionId, currentTurnTeamId]);
+  }, [toast]);
 
-  // ----------- NEW: Connection state tracking and safe refetch --------
-  // On any major session sync or reconnect, we clean local state first
-  const forceFullResync = useCallback(async (reason?: string) => {
-    setSyncing(true);
-    setMaps([]);
-    setVetoActions([]);
-    setCurrentTurnTeamId(currentTeamTurn);
-    setTurnVersion(0);
-    setPermissionUpdateSeq(0);
+  const fetchVetoActions = useCallback(async () => {
     try {
-      await fetchMaps();
-      await fetchVetoActions();
-    } finally {
-      setSyncing(false);
+      const { data, error } = await supabase
+        .from("map_veto_actions")
+        .select(
+          "*,maps:map_id (*),users:performed_by (discord_username)"
+        )
+        .eq("veto_session_id", vetoSessionId)
+        .order("order_number");
+      if (error) throw error;
+      const normalized: VetoAction[] = (data || []).map((a: any) => ({
+        ...a,
+        side_choice:
+          a.side_choice === "attack" || a.side_choice === "defend"
+            ? a.side_choice
+            : null,
+      }));
+      setVetoActions(normalized);
+    } catch (e) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch map veto actions.",
+        variant: "destructive",
+      });
     }
-    if (reason)
-      toast({ title: "Veto Resynced", description: reason, variant: "default" });
-  }, [currentTeamTurn, toast]);
+  }, [vetoSessionId, toast]);
 
+  // Connection/reactivation: do a full data refresh ONCE on dialog open
+  useEffect(() => {
+    if (open) {
+      setSyncing(true);
+      setMaps([]);
+      setVetoActions([]);
+      setCurrentTurnTeamId(currentTeamTurn);
+      Promise.all([fetchMaps(), fetchVetoActions()]).finally(() => setSyncing(false));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, vetoSessionId, currentTeamTurn]);
+
+  // Session real-time: only update turn when session not null
   useMapVetoSessionRealtime(
     vetoSessionId,
     payload => {
       if (payload && payload.new && payload.new.current_turn_team_id) {
-        if (payload.new.current_turn_team_id !== currentTurnTeamId) {
-          setCurrentTurnTeamId(payload.new.current_turn_team_id);
-          setTurnVersion((v) => v + 1);
-          setPermissionUpdateSeq(seq => seq + 1);
-          console.log("[MapVetoDialog][REALTIME]",
-            "RT session update: turn NOW is", payload.new.current_turn_team_id,
-            "(was", currentTurnTeamId, "), turnVersion", turnVersion + 1);
-        } else {
-          console.log("[MapVetoDialog][REALTIME] Session RT: turn unchanged (no-op)", payload.new.current_turn_team_id);
-        }
-      } else {
-        console.log("[MapVetoDialog][REALTIME] Session RT: no new current_turn_team_id in payload", payload);
+        setCurrentTurnTeamId(payload.new.current_turn_team_id);
       }
     },
     connState => {
@@ -144,56 +144,7 @@ const MapVetoDialog = ({
     }
   );
 
-  // Always force local state sync on props change (mount, dialog open, or match switch)
-  useEffect(() => {
-    if (currentTeamTurn && currentTeamTurn !== currentTurnTeamId) {
-      setCurrentTurnTeamId(currentTeamTurn);
-      setTurnVersion(v => v + 1);
-      setPermissionUpdateSeq(seq => seq + 1);
-      console.log("[MapVetoDialog][Init]",
-        "Set turnTeam on dialog open/init",
-        currentTeamTurn, "-> (was", currentTurnTeamId,
-        ") turnVersion", turnVersion + 1);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentTeamTurn, vetoSessionId]);
-
-  // Strong: Always refetch session if veto actions change.
-  useEffect(() => {
-    if (vetoActions.length > 0) {
-      forceSessionRefetch("vetoActions.length changed");
-    }
-  }, [vetoActions.length, forceSessionRefetch]);
-
-  // Always refetch actions; after that, force turn sync
-  const fetchVetoActions = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from("map_veto_actions")
-        .select(
-          "*,maps:map_id (*),users:performed_by (discord_username)"
-        )
-        .eq("veto_session_id", vetoSessionId)
-        .order("order_number");
-      if (error) throw error;
-
-      // FIX: type safety for side_choice!
-      const normalized: VetoAction[] = (data || []).map((a: any) => ({
-        ...a,
-        side_choice:
-          a.side_choice === "attack" || a.side_choice === "defend"
-            ? a.side_choice
-            : null,
-      }));
-
-      setVetoActions(normalized);
-      // Immediately check for turn sync after action update
-      forceSessionRefetch("fetchVetoActions");
-    } catch (e) {
-      console.warn("[MapVetoDialog][fetchVetoActions] Could not fetch veto actions:", e);
-    }
-  }, [vetoSessionId, forceSessionRefetch]);
-
+  // Map veto actions real-time
   useMapVetoActionsRealtime(
     vetoSessionId,
     fetchVetoActions,
@@ -207,34 +158,7 @@ const MapVetoDialog = ({
     }
   );
 
-  // On dialog open or reconnect, trigger FULL resync
-  useEffect(() => {
-    if (open) {
-      forceFullResync("Dialog opened or connection restored");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, vetoSessionId]);
-
-  const fetchMaps = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("maps")
-        .select("*")
-        .eq("is_active", true)
-        .order("name");
-
-      if (error) throw error;
-      setMaps(data || []);
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: "Failed to load maps",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Permissions logic via custom hook (pass seq)
+  // Permissions logic via custom hook (direct state, no version/seq)
   const {
     isUserOnMatchTeam,
     isUserTeamTurn,
@@ -247,7 +171,7 @@ const MapVetoDialog = ({
     teamSize,
     team1Id,
     team2Id,
-    seq: permissionUpdateSeq // pass for forced recalculation
+    seq: 0 // always 0, versions dropped in simplified code
   });
 
   // Map action handler via custom hook
@@ -266,13 +190,12 @@ const MapVetoDialog = ({
     toast,
   });
 
-  // Memo: determine flow based on home/away and map set
+  // Memoized veto flow
   const vetoFlow = React.useMemo(() => {
     if (!homeTeamId || !awayTeamId || maps.length === 0) return [];
     return getVctVetoFlow({ homeTeamId, awayTeamId, bestOf, maps });
   }, [homeTeamId, awayTeamId, bestOf, maps]);
 
-  // Which step are we on, and what's next?
   const vetoStep = vetoActions.length;
   const currentStep = vetoFlow[vetoStep];
 
@@ -286,11 +209,9 @@ const MapVetoDialog = ({
       ? (bansMade === totalBansNeeded && pickMade && sideChosen)
       : vetoActions.length >= maps.length;
 
-  // Block if dice not rolled
   const canVeto = homeTeamId && awayTeamId && vetoFlow.length > 0;
 
   // If it's a side_pick step, show Side Picker UI instead of map grid
-  // (VCT: after each "pick", next action is side_pick, performed by the other team)
   useEffect(() => {
     if (
       bestOf === 1 &&
@@ -307,14 +228,13 @@ const MapVetoDialog = ({
         setSidePickModal({
           mapId: lastPick.map_id,
           onPick: async (side: "attack" | "defend") => {
-            if (lastPick.side_choice) return; // Don't allow picking if already picked
+            if (lastPick.side_choice) return;
             setLoading(true);
-            // Persist the choice to Supabase, only if not already picked
             const { error } = await supabase
               .from("map_veto_actions")
               .update({ side_choice: side })
               .eq("id", lastPick.id)
-              .is("side_choice", null); // Only update if not already set
+              .is("side_choice", null);
             setLoading(false);
             setSidePickModal(null);
             fetchVetoActions();
@@ -323,7 +243,6 @@ const MapVetoDialog = ({
         });
       }
     } else {
-      // Close modal if not in side-pick state or already picked
       setSidePickModal(null);
     }
     // eslint-disable-next-line
@@ -342,80 +261,6 @@ const MapVetoDialog = ({
   const pickedMap = maps.find(m => m.id === finalPickAction?.map_id);
   const pickedSide = finalPickAction?.side_choice;
 
-  // Safety: poll for state mismatch after every veto action or RT event (redundancy for bad clients)
-  useEffect(() => {
-    // Defensive: poll latest backend TURN value, compare to local
-    async function pollAndSyncTurn() {
-      if (!vetoSessionId) return;
-      try {
-        const { data, error } = await supabase
-          .from('map_veto_sessions')
-          .select('current_turn_team_id')
-          .eq('id', vetoSessionId)
-          .maybeSingle();
-        if (error) throw error;
-        if (data?.current_turn_team_id !== currentTurnTeamId) {
-          console.warn("[DEBUG][TURN DESYNC] Local turn", currentTurnTeamId, "!= backend", data?.current_turn_team_id, "- FORCING TURN SYNC");
-          setCurrentTurnTeamId(data?.current_turn_team_id);
-          setTurnVersion(v => v + 1);
-          setPermissionUpdateSeq(seq => seq + 1);
-        } else {
-          // console.log("[DEBUG][TURN SYNC] All good: local", currentTurnTeamId);
-        }
-      } catch (e) {
-        console.warn("Error polling backend for turn sync:", e);
-      }
-    }
-    pollAndSyncTurn();
-  }, [currentTurnTeamId, vetoActions.length, turnVersion, vetoSessionId]);
-
-  // Add extra debugging to catch desync: compare frontend turn to backend after every significant change
-  useEffect(() => {
-    async function debugTurnConsistency() {
-      if (!vetoSessionId) return;
-      try {
-        const { data, error } = await supabase
-          .from('map_veto_sessions')
-          .select('current_turn_team_id')
-          .eq('id', vetoSessionId)
-          .maybeSingle();
-        if (error) throw error;
-        if (data?.current_turn_team_id !== currentTurnTeamId) {
-          console.warn("[DEBUG][TURN DESYNC] Local turnTeamId", currentTurnTeamId, "!= backend", data?.current_turn_team_id, "- syncing...");
-          setCurrentTurnTeamId(data?.current_turn_team_id);
-          setTurnVersion(v => v + 1);
-          setPermissionUpdateSeq(seq => seq + 1);
-        } else {
-          // All good
-          // console.log("[DEBUG][TURN SYNC] Local and backend match:", currentTurnTeamId);
-        }
-      } catch (e) {
-        // silent
-      }
-    }
-    debugTurnConsistency();
-    // Now, always check on change of vetoActions, turnTeamId, or RT version
-  }, [currentTurnTeamId, vetoActions.length, turnVersion, vetoSessionId]);
-
-  // Add explicit log when turn or eligibility changes (easy to spot in devtools)
-  useEffect(() => {
-    console.log("[DEBUG VETO][PERMSTATE] Turn:", currentTurnTeamId, "| isUserOnTeam:", isUserOnMatchTeam, "| isUserTeamTurn:", isUserTeamTurn, "| isUserEligible:", isUserEligible, "| turnAction:", vetoActions.length, "| updateSeq:", permissionUpdateSeq, "| turnVersion:", turnVersion);
-  }, [currentTurnTeamId, isUserOnMatchTeam, isUserTeamTurn, isUserEligible, vetoActions.length, permissionUpdateSeq, turnVersion]);
-
-  // Add log for MapVetoTurnStatus for clarity
-  useEffect(() => {
-    console.log("[DEBUG VETO][TurnStatus Render] Key:", turnVersion, "| isUserTurn", isUserTeamTurn, "| localTurnTeamId:", currentTurnTeamId);
-  }, [isUserTeamTurn, currentTurnTeamId, turnVersion]);
-
-  // For debugging (keep code)
-  useEffect(() => {
-    console.log("[DEBUG VETO][Permissions]", {
-      userTeamId, currentTurnTeamId, isUserCaptain, teamSize, vetoActions,
-      isUserOnMatchTeam, isUserTeamTurn, isUserEligible,
-      turnVersion,
-    });
-  }, [userTeamId, currentTurnTeamId, isUserCaptain, teamSize, vetoActions, isUserOnMatchTeam, isUserTeamTurn, isUserEligible, turnVersion]);
-
   // Get map status - FIX attribution "Your Team" vs "Opponent"
   const getMapStatus = (mapId: string) => {
     const action = vetoActions.find((action) => action.map_id === mapId);
@@ -426,7 +271,7 @@ const MapVetoDialog = ({
     };
   };
 
-  // Add home/away UI context
+  // Home/away labels (unchanged)
   const [homeLabel, setHomeLabel] = useState<string>("Home");
   const [awayLabel, setAwayLabel] = useState<string>("Away");
 
@@ -440,7 +285,7 @@ const MapVetoDialog = ({
     }
   }, [homeTeamId, awayTeamId, team1Id, team2Id, team1Name, team2Name]);
 
-  // UI
+  // --- UI / Output ---
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-slate-900 border-slate-700 text-white">
@@ -471,7 +316,7 @@ const MapVetoDialog = ({
 
               {/* Turn/Phase */}
               <MapVetoTurnStatus
-                key={turnVersion}
+                key={currentTurnTeamId}
                 canAct={isUserEligible && canVeto && !syncing}
                 isUserTurn={isUserTeamTurn}
                 teamSize={teamSize}
@@ -538,7 +383,6 @@ const MapVetoDialog = ({
                       Defend
                     </Button>
                   </div>
-                  {/* If for some reason side_choice is set, show a badge */}
                   {pickedSide && (
                     <div className="mt-2 text-green-200">Side already selected: <span className="font-bold">{pickedSide}</span></div>
                   )}
