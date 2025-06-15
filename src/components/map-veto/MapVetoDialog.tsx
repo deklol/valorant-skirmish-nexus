@@ -63,7 +63,7 @@ const MapVetoDialog = ({
   const { toast } = useToast();
   const [currentTurnTeamId, setCurrentTurnTeamId] = useState<string>(currentTeamTurn);
   const [sidePickModal, setSidePickModal] = useState<null | { mapId: string, onPick: (side: "attack" | "defend") => void }>(null);
-  const [connectionStatus, setConnectionStatus] = useState<"connecting" | "online" | "offline" | "error" | "timeout">("connecting");
+  const [connectionStatus, setConnectionStatus] = useState<"connecting" | "online" | "offline" | "error" | "timeout" | "closed">("connecting");
   const [retryNonce, setRetryNonce] = useState<number>(0);
 
   // Timeout syncing state after 10s if stuck
@@ -221,6 +221,22 @@ const MapVetoDialog = ({
     seq: 0 // always 0, versions dropped in simplified code
   });
 
+  // Log permission values clearly to debug (especially for home team/captain voting issues)
+  useEffect(() => {
+    if (open) {
+      console.log("VETO DEBUG | Permission Inputs:", {
+        userTeamId,
+        currentTurnTeamId,
+        isUserCaptain,
+        teamSize,
+        team1Id,
+        team2Id,
+        vetoSessionId,
+        bestOf,
+      });
+    }
+  }, [open, userTeamId, currentTurnTeamId, isUserCaptain, teamSize, team1Id, team2Id, vetoSessionId, bestOf]);
+
   // Map action handler via custom hook
   const { handleMapAction } = useVetoMapAction({
     vetoSessionId,
@@ -234,7 +250,17 @@ const MapVetoDialog = ({
     onActionComplete: fetchVetoActions,
     checkPermissions: () => {
       const result = explainPermissions();
-      return typeof result === "string" ? result : result.reason ?? "You are not allowed to perform this action";
+      const reason = typeof result === "string" ? result : result.reason ?? "You are not allowed to perform this action";
+      if (reason) console.error("VETO | PERMISSION DENIED", {
+        userTeamId,
+        currentTurnTeamId,
+        isUserCaptain,
+        teamSize,
+        team1Id,
+        team2Id,
+        reason,
+      });
+      return reason;
     },
     setLoading,
     toast,
@@ -356,17 +382,22 @@ const MapVetoDialog = ({
         return <span className="text-green-400 text-xs">Connected to server</span>;
       case "offline":
       case "error":
+      case "closed":
         return (
           <div className="flex flex-col items-center gap-2">
             <span className="text-red-300 text-xs">Connection to server lost.</span>
-            <button onClick={handleRetry} className="text-blue-300 underline text-xs font-medium hover:text-blue-400">Retry Connection</button>
+            <Button variant="link" className="text-blue-300 underline text-xs p-0 h-auto font-medium hover:text-blue-400" onClick={handleRetry}>
+              Reconnect
+            </Button>
           </div>
         );
       case "timeout":
         return (
           <div className="flex flex-col items-center gap-2">
-            <span className="text-yellow-300 text-xs">Unable to reach server. You can continue (read-only), or retry.</span>
-            <button onClick={handleRetry} className="text-blue-300 underline text-xs font-medium hover:text-blue-400">Retry Connection</button>
+            <span className="text-yellow-300 text-xs">Unable to reach server. App is in read-only mode. Retry below.</span>
+            <Button variant="link" className="text-blue-300 underline text-xs p-0 h-auto font-medium hover:text-blue-400" onClick={handleRetry}>
+              Reconnect
+            </Button>
           </div>
         );
       case "connecting":
