@@ -83,6 +83,33 @@ export async function processMatchResults({
       await advanceWinnerToNextRound(match, winnerId, tournamentId);
     }
 
+    // --- Critical Fix: Update team statuses immediately based on match outcome ---
+    // If this is NOT a final, loser is eliminated now
+    if (!isTournamentComplete) {
+      if (loserId) {
+        await supabase
+          .from('teams')
+          .update({ status: 'eliminated' })
+          .eq('id', loserId);
+      }
+      // (Do NOT mark winner as 'winner' unless it's the final! Mark as advancing.)
+    }
+    // If this IS the final, mark the winner as 'winner' and loser as 'eliminated'
+    else {
+      if (winnerId) {
+        await supabase
+          .from('teams')
+          .update({ status: 'winner' })
+          .eq('id', winnerId);
+      }
+      if (loserId) {
+        await supabase
+          .from('teams')
+          .update({ status: 'eliminated' })
+          .eq('id', loserId);
+      }
+    }
+
     // 4. Update player statistics
     await updatePlayerStatistics(winnerId, loserId);
 
