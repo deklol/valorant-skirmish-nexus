@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
 import { processMatchResults } from "./MatchResultsProcessor";
-import MatchEditModal, { parseStatus } from "./MatchEditModal";
+import MatchEditModal from "./MatchEditModal";
 
 interface TeamInfo {
   id: string;
@@ -56,10 +56,6 @@ function parseTournamentInfo(obj: any): TournamentInfo | null {
   return obj && typeof obj === "object" && "id" in obj && "name" in obj
     ? { id: obj.id, name: obj.name }
     : null;
-}
-function parseStatus(s: any): MatchStatus {
-  if (s === "completed" || s === "pending" || s === "live") return s;
-  return "pending";
 }
 
 export default function MatchMedicManager() {

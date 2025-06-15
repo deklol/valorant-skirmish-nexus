@@ -1,10 +1,11 @@
+
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import TournamentMedicBracketTabExtras from "./TournamentMedicBracketTabExtras";
-import MatchEditModal, { parseStatus } from "@/components/MatchEditModal";
+import MatchEditModal from "@/components/MatchEditModal";
 
 type Match = {
   id: string;
@@ -18,6 +19,12 @@ type Match = {
   score_team2: number | null;
 };
 type Tournament = { id: string };
+
+type MatchStatus = "completed" | "pending" | "live";
+function parseStatus(s: any): MatchStatus {
+  if (s === "completed" || s === "pending" || s === "live") return s;
+  return "pending";
+}
 
 export default function TournamentMedicBracketTab({ tournament, onRefresh }: {
   tournament: Tournament;
@@ -42,12 +49,11 @@ export default function TournamentMedicBracketTab({ tournament, onRefresh }: {
     })();
   }, [tournament.id]);
 
-  async function handleEditSubmit({ status, score_team1, score_team2, winner_id }: { status: string, score_team1: number, score_team2: number, winner_id: string | null }) {
+  async function handleEditSubmit({ status, score_team1, score_team2, winner_id }: { status: MatchStatus, score_team1: number, score_team2: number, winner_id: string | null }) {
     if (!editModal) return;
     setActionMatchId(editModal.id);
 
     try {
-      // If marked completed and given winner, use normal update path (admin bracket safe)
       await supabase
         .from("matches")
         .update({
@@ -60,7 +66,6 @@ export default function TournamentMedicBracketTab({ tournament, onRefresh }: {
         .eq("id", editModal.id);
       toast({ title: "Match updated" });
       onRefresh();
-      // Optionally immediately refetch the matches list here:
       const { data, error } = await supabase
         .from("matches")
         .select("*")
@@ -80,11 +85,66 @@ export default function TournamentMedicBracketTab({ tournament, onRefresh }: {
     }
   }
 
+  // Helper to get a label for a team id
+  function matchOr(id: string | null, fallback: string): string {
+    if (!id) return fallback;
+    const match = matches.find(m => m.team1_id === id || m.team2_id === id);
+    if (match) {
+      if (match.team1_id === id && match.team1_id) return "Team 1";
+      if (match.team2_id === id && match.team2_id) return "Team 2";
+    }
+    return id.slice(0, 8);
+  }
+
+  // Helper to give correct modal props
+  function getModalMatchObj(editModal: Match | null): any {
+    if (!editModal) return null;
+    // Names for both teams
+    const team1_name = editModal.team1_id
+      ? matchOr(editModal.team1_id, "Team 1")
+      : "";
+    const team2_name = editModal.team2_id
+      ? matchOr(editModal.team2_id, "Team 2")
+      : "";
+    // Winner
+    let winnerObj = null;
+    if (editModal.winner_id) {
+      if (editModal.team1_id === editModal.winner_id) {
+        winnerObj = {
+          id: editModal.winner_id,
+          name: team1_name,
+        };
+      } else if (editModal.team2_id === editModal.winner_id) {
+        winnerObj = {
+          id: editModal.winner_id,
+          name: team2_name,
+        };
+      } else {
+        winnerObj = {
+          id: editModal.winner_id,
+          name: editModal.winner_id.slice(0, 8),
+        };
+      }
+    }
+    return {
+      id: editModal.id,
+      match_number: editModal.match_number,
+      team1: editModal.team1_id
+        ? { id: editModal.team1_id, name: team1_name }
+        : null,
+      team2: editModal.team2_id
+        ? { id: editModal.team2_id, name: team2_name }
+        : null,
+      winner: winnerObj,
+      status: parseStatus(editModal.status),
+      score_team1: typeof editModal.score_team1 === "number" ? editModal.score_team1 : 0,
+      score_team2: typeof editModal.score_team2 === "number" ? editModal.score_team2 : 0,
+    };
+  }
+
   return (
     <div className="flex flex-col gap-2">
-      {/* Bracket Admin Tools */}
       <TournamentMedicBracketTabExtras tournament={tournament} onRefresh={onRefresh} />
-      {/* Existing match raw listing */}
       {loading ? (
         <span>Loading...</span>
       ) : (
@@ -101,40 +161,27 @@ export default function TournamentMedicBracketTab({ tournament, onRefresh }: {
           </div>
         ))
       )}
-      {/* Shared Match Edit Modal */}
       <MatchEditModal
         open={!!editModal}
-        match={editModal && {
-          ...editModal,
-          match_number: editModal.match_number,
-          team1: editModal.team1_id ? { id: editModal.team1_id, name: matchOr(editModal.team1_id, "Team 1") } : null,
-          team2: editModal.team2_id ? { id: editModal.team2_id, name: matchOr(editModal.team2_id, "Team 2") } : null,
-          winner: editModal.winner_id
-            ? (editModal.team1_id === editModal.winner_id
-                ? { id: editModal.winner_id, name: matchOr(editModal.team1_id, "Team 1") }
-                : { id: editModal.winner_id, name: matchOr(editModal.team2_id, "Team 2") }
-              )
-            : null,
-          status: editModal.status || "pending",
-          score_team1: editModal.score_team1 || 0,
-          score_team2: editModal.score_team2 || 0,
-        }}
+        match={getModalMatchObj(editModal)}
         actionMatchId={actionMatchId}
-        onChange={m => setEditModal(m)}
+        onChange={/* modal returns partial modal props, so patch for next render */ m => setEditModal(o =>
+          o
+            ? {
+                ...o,
+                // patch scores and winner fields. Only override if m has them.
+                status: m.status ?? o.status,
+                score_team1:
+                  typeof m.score_team1 === "number" ? m.score_team1 : o.score_team1,
+                score_team2:
+                  typeof m.score_team2 === "number" ? m.score_team2 : o.score_team2,
+                winner_id: m.winner?.id ?? null,
+              }
+            : o
+        )}
         onCancel={() => setEditModal(null)}
         onSave={handleEditSubmit}
       />
     </div>
   );
-
-  /** Helper to convert team id → shortened label (id or fallback) */
-  function matchOr(id: string, fallback: string): string {
-    if (!id) return fallback;
-    const match = matches.find(m => m.team1_id === id || m.team2_id === id);
-    if (match) {
-      if (match.team1_id === id && match.team1_id) return "Team 1";
-      if (match.team2_id === id && match.team2_id) return "Team 2";
-    }
-    return id.slice(0, 8);
-  }
 }
