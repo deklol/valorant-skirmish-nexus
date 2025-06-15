@@ -142,46 +142,54 @@ export default function TournamentMedicTeamsTab({
     // eslint-disable-next-line
   }, [tournament.id]);
 
-  // Helper to construct the Discord message (MARKDOWN: bold team names, bullet points for players)
+  // Helper to construct the Discord message with proper code block table layout
   function generateDiscordMessage(teams: TeamWithMembers[]) {
     if (!teams.length) return { content: "No teams found.", embed: {} };
 
-    // Sort teams by name for consistency
+    // Sort teams by name
     const sortedTeams = [...teams].sort((a, b) => a.name.localeCompare(b.name));
-    let markdown = "";
 
+    // Message "table" header
+    const header =
+      "Team               | Captain         | Members                  | Points";
+    const divider =
+      "-------------------|----------------|--------------------------|-------";
+
+    // For each team, capture the table row
+    let rows: string[] = [];
     for (const team of sortedTeams) {
-      // Team name bold + total points
-      markdown += `**Team ${team.name} (${team.total_rank_points ?? "?"})**\n`;
-      // List captain first, then others
-      const captainMembers = team.members.filter(m => m.is_captain);
-      const otherMembers = team.members.filter(m => !m.is_captain);
-
-      // Format a player line: - username (c) – rank [weight]
-      function memberLine(mem: TeamWithMembers["members"][number]) {
-        const uname = mem.users?.discord_username ?? "?";
-        const rank = mem.users?.current_rank ?? "—";
-        const weightText = typeof mem.users?.weight_rating === "number" ? ` [${mem.users.weight_rating}]` : "";
-        const isCaptain = mem.is_captain;
-        return `- ${uname}${isCaptain ? " (c)" : ""} – ${rank}${weightText}`;
-      }
-
-      markdown += captainMembers.map(memberLine).join("\n");
-      if (captainMembers.length && otherMembers.length) markdown += "\n"; // spacing
-      if (otherMembers.length > 0) {
-        markdown += otherMembers.map(memberLine).join("\n");
-      }
-      markdown += "\n\n";
+      // Pick captain's username if present (mark as ⭐)
+      const captain = team.members.find(m => m.is_captain);
+      const captainName = captain?.users?.discord_username
+        ? `⭐ ${captain.users.discord_username}`
+        : "?";
+      // All non-captain members, comma separated
+      const memberNames = team.members
+        .filter(m => !m.is_captain)
+        .map(m =>
+          m.users?.discord_username
+            ? m.users.discord_username
+            : "?"
+        ).join(", ") || "—";
+      // Pad each column for monospacing
+      const pad = (str: string, len: number) => (str + " ".repeat(len)).slice(0, len);
+      rows.push(
+        `${pad(team.name, 19)}| ${pad(captainName, 15)}| ${pad(memberNames, 25)}| ${String(team.total_rank_points ?? "?").padStart(5)}`
+      );
     }
 
-    // Remove any trailing newlines
-    markdown = markdown.trim();
+    // Compose the code block
+    const tableBlock = "```" + "\n"
+      + header + "\n"
+      + divider + "\n"
+      + rows.join("\n") + "\n"
+      + "```";
 
     return {
-      content: markdown,
+      content: `**Teams for ${tournament.name}**\n${tableBlock}`,
       embed: {
         title: `Teams for ${tournament.name}`,
-        description: "Tournament teams have been generated.\nSee team breakdowns below.",
+        description: "Tournament teams have been generated.\nSee the full breakdown above.",
         color: 0x00bfff,
         timestamp: new Date().toISOString(),
         footer: {
