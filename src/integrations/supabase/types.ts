@@ -203,31 +203,46 @@ export type Database = {
       }
       map_veto_sessions: {
         Row: {
+          away_team_id: string | null
           completed_at: string | null
           created_at: string | null
           current_turn_team_id: string | null
+          home_team_id: string | null
           id: string
           match_id: string | null
+          roll_initiator_id: string | null
+          roll_seed: string | null
+          roll_timestamp: string | null
           started_at: string | null
           status: Database["public"]["Enums"]["map_veto_status"] | null
           veto_order: Json | null
         }
         Insert: {
+          away_team_id?: string | null
           completed_at?: string | null
           created_at?: string | null
           current_turn_team_id?: string | null
+          home_team_id?: string | null
           id?: string
           match_id?: string | null
+          roll_initiator_id?: string | null
+          roll_seed?: string | null
+          roll_timestamp?: string | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["map_veto_status"] | null
           veto_order?: Json | null
         }
         Update: {
+          away_team_id?: string | null
           completed_at?: string | null
           created_at?: string | null
           current_turn_team_id?: string | null
+          home_team_id?: string | null
           id?: string
           match_id?: string | null
+          roll_initiator_id?: string | null
+          roll_seed?: string | null
+          roll_timestamp?: string | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["map_veto_status"] | null
           veto_order?: Json | null

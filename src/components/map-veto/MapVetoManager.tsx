@@ -1,6 +1,6 @@
 import React from "react";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
-import { Map, Play, Settings, AlertCircle } from "lucide-react";
+import { Map, Play, Settings, AlertCircle, Dice3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
@@ -11,6 +11,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import MapVetoDialog from "./MapVetoDialog";
 import { useMapVetoSessionRealtime } from "@/hooks/useMapVetoRealtime";
 import ErrorBoundary from "../ErrorBoundary";
+import RollDiceButton from "./RollDiceButton";
 
 interface MapVetoManagerProps {
   matchId: string;
@@ -43,6 +44,15 @@ const MapVetoManager = ({
   const [settingsLoading, setSettingsLoading] = useState(true);
   const [teamSize, setTeamSize] = useState<number | null>(null);
   const [resettingVeto, setResettingVeto] = useState(false);
+  const [rollInfo, setRollInfo] = useState<{
+    home_team_id: string | null;
+    away_team_id: string | null;
+    roll_seed: string | null;
+  }>({
+    home_team_id: null,
+    away_team_id: null,
+    roll_seed: null,
+  });
   const { user } = useAuth();
   const { toast } = useToast();
   const { notifyMapVetoReady } = useEnhancedNotifications();
@@ -429,6 +439,16 @@ const MapVetoManager = ({
     checkCaptain();
   }, [userTeamId, teamSize]);
 
+  // Extract roll data from session
+  useEffect(() => {
+    if (!vetoSession) return;
+    setRollInfo({
+      home_team_id: vetoSession.home_team_id || null,
+      away_team_id: vetoSession.away_team_id || null,
+      roll_seed: vetoSession.roll_seed || null,
+    });
+  }, [vetoSession]);
+
   // Defensive: Render nothing if match is completed or settings are still loading
   if (matchStatus === 'completed' || settingsLoading) {
     return null;
@@ -453,9 +473,29 @@ const MapVetoManager = ({
     );
   }
 
-  // Add a final catch-all return null as absolute fallback to never return undefined
-  // (this should never be hit, but just in case)
-  // Main return below covers all valid statuses, see below:
+  // The veto can commence if home/away are set OR if format remains old
+  const canVetoStart =
+    mapVetoAvailable &&
+    !!vetoSession &&
+    vetoSession.status === "in_progress" &&
+    !!vetoSession.home_team_id &&
+    !!vetoSession.away_team_id;
+
+  // Home/away UI labels for dialog/children
+  const homeLabel =
+    (team1Id && rollInfo.home_team_id === team1Id
+      ? team1Name
+      : team2Id && rollInfo.home_team_id === team2Id
+      ? team2Name
+      : undefined) || "Home";
+  const awayLabel =
+    (team1Id && rollInfo.away_team_id === team1Id
+      ? team1Name
+      : team2Id && rollInfo.away_team_id === team2Id
+      ? team2Name
+      : undefined) || "Away";
+
+  // Main return below covers all valid statuses
 
   return (
     <Card className="bg-slate-800 border-slate-700">
@@ -518,6 +558,54 @@ const MapVetoManager = ({
           )}
         </div>
 
+        {/* Dice roll pre-veto */}
+        {vetoSession &&
+          vetoSession.status === "in_progress" &&
+          (!vetoSession.home_team_id || !vetoSession.away_team_id) && (
+            <div className="p-4 mb-3 bg-slate-900/80 border border-blue-700 rounded-lg flex flex-col gap-3 items-center">
+              <div className="text-yellow-300 text-sm flex items-center gap-2">
+                <Dice3 className="w-6 h-6" />
+                <span>
+                  Before map veto, a captain must randomly determine "Home" and "Away" team.
+                  This is <strong>public, fair, and auditable</strong>. Home team gets first ban.
+                </span>
+              </div>
+              {isAdmin || isUserCaptain ? (
+                <RollDiceButton
+                  sessionId={vetoSession.id}
+                  team1Id={team1Id!}
+                  team2Id={team2Id!}
+                  isCaptain={!!isUserCaptain}
+                  onComplete={() => checkVetoSession()} // Refresh session after roll
+                />
+              ) : (
+                <div className="text-slate-400">Waiting for captain to roll...</div>
+              )}
+            </div>
+          )}
+
+        {/* Show dice roll results if set */}
+        {vetoSession &&
+          vetoSession.home_team_id &&
+          vetoSession.away_team_id && (
+            <div className="mb-2 flex gap-8 justify-center">
+              <div className="bg-slate-900/60 px-3 py-1 rounded text-yellow-100 border border-yellow-700 text-sm">
+                <Dice3 className="w-4 h-4 inline mr-1" />
+                <span>
+                  Home: <b>{homeLabel}</b>
+                </span>
+              </div>
+              <div className="bg-slate-900/60 px-3 py-1 rounded text-blue-100 border border-blue-700 text-sm">
+                <span>
+                  Away: <b>{awayLabel}</b>
+                </span>
+              </div>
+              <div className="bg-slate-900/60 px-3 py-1 rounded text-pink-100 border border-pink-700 text-xs">
+                Seed: <span className="font-mono">{rollInfo.roll_seed?.slice(0, 32)}</span>
+              </div>
+            </div>
+          )}
+
         {/* Updated: Map Veto start logic allows session with status 'pending' */}
         {!mapVetoAvailable ? (
           <div className="flex items-center gap-2 p-3 bg-gray-500/10 border border-gray-500/20 rounded-lg">
@@ -546,6 +634,7 @@ const MapVetoManager = ({
           </div>
         ) : (
           <div className="space-y-4">
+            {/* Only allow participate if roll completed */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-white font-medium">Veto Status:</span>
@@ -563,7 +652,8 @@ const MapVetoManager = ({
                       'Pending'}
                 </Badge>
               </div>
-              {isVetoActive && canParticipate && (
+              {/* Only allow open dialog if dice roll is complete */}
+              {isVetoActive && canParticipate && vetoSession.home_team_id && vetoSession.away_team_id && (
                 <Button
                   onClick={() => setVetoDialogOpen(true)}
                   className="bg-green-600 hover:bg-green-700"
@@ -576,7 +666,7 @@ const MapVetoManager = ({
                 </Button>
               )}
             </div>
-
+            {/* ... admin controls & completed message ... */}
             {isAdmin && isVetoActive && (
               <div className="flex gap-2">
                 <Button
@@ -601,26 +691,31 @@ const MapVetoManager = ({
           </div>
         ))}
       </CardContent>
-      {/* Only open the dialog if a "real" ongoing session exists */}
-      {vetoSession && vetoSession.status === "in_progress" && team1Id && team2Id && mapVetoAvailable && (
-        <ErrorBoundary>
-          <MapVetoDialog
-            open={vetoDialogOpen}
-            onOpenChange={setVetoDialogOpen}
-            matchId={matchId}
-            vetoSessionId={vetoSession.id}
-            team1Name={team1Name}
-            team2Name={team2Name}
-            currentTeamTurn={vetoSession.current_turn_team_id || team1Id}
-            userTeamId={userTeamId}
-            isUserCaptain={isUserCaptain}
-            teamSize={teamSize}
-            team1Id={team1Id}
-            team2Id={team2Id}
-            bestOf={matchSettings?.best_of || 1}
-          />
-        </ErrorBoundary>
-      )}
+      {/* Only open the dialog if home/away is set */}
+      {vetoSession &&
+        vetoSession.status === "in_progress" &&
+        team1Id && team2Id && mapVetoAvailable &&
+        vetoSession.home_team_id && vetoSession.away_team_id && (
+          <ErrorBoundary>
+            <MapVetoDialog
+              open={vetoDialogOpen}
+              onOpenChange={setVetoDialogOpen}
+              matchId={matchId}
+              vetoSessionId={vetoSession.id}
+              team1Name={team1Name}
+              team2Name={team2Name}
+              currentTeamTurn={vetoSession.current_turn_team_id || team1Id}
+              userTeamId={userTeamId}
+              isUserCaptain={isUserCaptain}
+              teamSize={teamSize}
+              team1Id={team1Id}
+              team2Id={team2Id}
+              bestOf={matchSettings?.best_of || 1}
+              homeTeamId={vetoSession.home_team_id}
+              awayTeamId={vetoSession.away_team_id}
+            />
+          </ErrorBoundary>
+        )}
     </Card>
   );
 };

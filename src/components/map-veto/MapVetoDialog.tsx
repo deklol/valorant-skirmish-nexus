@@ -27,6 +27,8 @@ interface MapVetoDialogProps {
   team1Id: string | null;
   team2Id: string | null;
   bestOf?: number;
+  homeTeamId?: string | null;
+  awayTeamId?: string | null;
 }
 
 const MapVetoDialog = ({
@@ -43,6 +45,8 @@ const MapVetoDialog = ({
   team1Id,
   team2Id,
   bestOf = 1,
+  homeTeamId,
+  awayTeamId,
 }: MapVetoDialogProps) => {
   const [maps, setMaps] = useState<MapData[]>([]);
   const [vetoActions, setVetoActions] = useState<VetoAction[]>([]);
@@ -305,6 +309,20 @@ const MapVetoDialog = ({
     };
   };
 
+  // Add home/away UI context
+  const [homeLabel, setHomeLabel] = useState<string>("Home");
+  const [awayLabel, setAwayLabel] = useState<string>("Away");
+
+  useEffect(() => {
+    if (team1Id && homeTeamId === team1Id) {
+      setHomeLabel(team1Name);
+      setAwayLabel(team2Name);
+    } else if (team2Id && homeTeamId === team2Id) {
+      setHomeLabel(team2Name);
+      setAwayLabel(team1Name);
+    }
+  }, [homeTeamId, awayTeamId, team1Id, team2Id, team1Name, team2Name]);
+
   // UI
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -315,6 +333,16 @@ const MapVetoDialog = ({
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-6">
+          {/* Show home/away info */}
+          <div className="flex gap-8 justify-center pb-2">
+            <div className="bg-slate-900/60 px-3 py-1 rounded text-yellow-100 border border-yellow-700 text-sm">
+              Home: <b>{homeLabel}</b>
+            </div>
+            <div className="bg-slate-900/60 px-3 py-1 rounded text-blue-100 border border-blue-700 text-sm">
+              Away: <b>{awayLabel}</b>
+            </div>
+          </div>
+
           {/* Turn/Phase */}
           <MapVetoTurnStatus
             key={turnVersion}
