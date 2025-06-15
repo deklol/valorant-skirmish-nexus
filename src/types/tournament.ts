@@ -18,5 +18,6 @@ export interface Tournament {
   status: "draft" | "open" | "balancing" | "live" | "completed" | "archived";
   match_format: "BO1" | "BO3" | "BO5" | null;
   bracket_type: string | null;
+  check_in_required: boolean; // <-- Added this missing property!
   // Add extension of this type in modules if more fields are needed, do not duplicate this type!
 }
