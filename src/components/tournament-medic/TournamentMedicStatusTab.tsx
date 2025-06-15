@@ -1,7 +1,6 @@
 
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ShieldAlert, Calendar } from "lucide-react";
+import { ShieldAlert } from "lucide-react";
 import ComprehensiveTournamentEditor, { Tournament } from "@/components/ComprehensiveTournamentEditor";
 import TournamentStatusManager from "@/components/TournamentStatusManager";
 import MedicTournamentTimeline from "./MedicTournamentTimeline";
@@ -17,7 +16,7 @@ export default function TournamentMedicStatusTab({
   onUpdate: (update: Partial<Tournament>) => void;
   onRefresh: () => void;
 }) {
-  const [showEditor, setShowEditor] = useState(false);
+  // Removed showEditor and advanced editor logic
 
   return (
     <div className="flex flex-col gap-4">
@@ -35,22 +34,6 @@ export default function TournamentMedicStatusTab({
             currentStatus={tournament.status}
             onStatusChange={onRefresh}
           />
-          <button
-            className="mt-4 text-xs underline text-amber-400"
-            onClick={() => setShowEditor(e => !e)}
-          >
-            {showEditor
-              ? "Hide Advanced Tournament Editor"
-              : "Show Advanced Tournament Editor"}
-          </button>
-          {showEditor && (
-            <div className="mt-2 border border-yellow-800/50 rounded p-2 bg-yellow-900/10">
-              <ComprehensiveTournamentEditor
-                tournament={tournament}
-                onTournamentUpdated={onRefresh}
-              />
-            </div>
-          )}
         </CardContent>
       </Card>
       {/* Timeline */}
@@ -58,3 +41,4 @@ export default function TournamentMedicStatusTab({
     </div>
   );
 }
+
