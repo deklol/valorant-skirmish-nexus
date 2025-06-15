@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,7 +53,7 @@ const ScoreReporting = ({ match, onScoreSubmitted }: ScoreReportingProps) => {
       toast({
         title: "Invalid Score",
         description: "Matches cannot end in a tie. Please enter a valid score.",
-        variant: "destructive",
+        variant: "destructive"
       });
       return;
     }
@@ -62,11 +61,9 @@ const ScoreReporting = ({ match, onScoreSubmitted }: ScoreReportingProps) => {
     setLoading(true);
 
     try {
-      // Determine winner
       const winnerId = score1 > score2 ? match.team1_id : match.team2_id;
       const loserId = score1 > score2 ? match.team2_id : match.team1_id;
 
-      // Check if this is an admin directly updating or needs approval
       const { data: userData } = await supabase
         .from('users')
         .select('role')
@@ -76,7 +73,6 @@ const ScoreReporting = ({ match, onScoreSubmitted }: ScoreReportingProps) => {
       const isAdmin = userData?.role === 'admin';
 
       if (isAdmin) {
-        // Admin can directly update match results
         const { error: matchError } = await supabase
           .from('matches')
           .update({
@@ -91,7 +87,6 @@ const ScoreReporting = ({ match, onScoreSubmitted }: ScoreReportingProps) => {
 
         if (matchError) throw matchError;
 
-        // Process match results to advance tournament
         if (winnerId && loserId && match.tournament_id) {
           await processMatchResults({
             matchId: match.id,
@@ -110,10 +105,9 @@ const ScoreReporting = ({ match, onScoreSubmitted }: ScoreReportingProps) => {
 
         toast({
           title: "Score Updated",
-          description: "Match result has been recorded and tournament progressed",
+          description: "Match result has been recorded and tournament progressed"
         });
       } else {
-        // Regular users submit for approval
         const { error: submissionError } = await supabase
           .from('match_result_submissions')
           .insert({
@@ -129,7 +123,7 @@ const ScoreReporting = ({ match, onScoreSubmitted }: ScoreReportingProps) => {
 
         toast({
           title: "Score Submitted",
-          description: "Your score submission is pending approval from an admin",
+          description: "Your score submission is pending approval from an admin"
         });
       }
 
@@ -140,7 +134,7 @@ const ScoreReporting = ({ match, onScoreSubmitted }: ScoreReportingProps) => {
       toast({
         title: "Error",
         description: error.message || "Failed to submit score",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setLoading(false);
