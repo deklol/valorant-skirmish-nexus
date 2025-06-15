@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import ComprehensiveTournamentEditor from "@/components/ComprehensiveTournamentEditor";
 
 // Remove local Tournament type -- use the imported one everywhere.
 
