@@ -7,7 +7,7 @@ type AppSettingsContextType = {
   refresh: () => Promise<void>;
 };
 
-const DEFAULT_APP_NAME = "Tournament App";
+const DEFAULT_APP_NAME = "TLRHub";
 
 const AppSettingsContext = createContext<AppSettingsContextType>({
   appName: DEFAULT_APP_NAME, // fallback
