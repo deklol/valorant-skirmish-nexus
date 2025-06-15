@@ -7,6 +7,7 @@ import { useDebouncedValue } from "./useDebouncedValue";
 import ForceCheckInManager from "@/components/ForceCheckInManager";
 import { Badge } from "@/components/ui/badge";
 import { CheckSquare } from "lucide-react";
+import { Copy } from "lucide-react";
 import { Tournament } from "@/types/tournament";
 
 // Central types
@@ -130,6 +131,32 @@ function UserSearchBox({
   );
 }
 
+// Copy Discord usernames to clipboard as "@username\n" if present and not null
+function CopyDiscordUsernamesButton({ players }: { players: { discord_username: string | null }[] }) {
+  const handleCopy = async () => {
+    const list = players
+      .map(p => p.discord_username ? `@${p.discord_username}` : null)
+      .filter(v => v)
+      .join("\n");
+    if (list.length === 0) {
+      toast({ title: "Copy Failed", description: "No Discord usernames found in the player list.", variant: "destructive" });
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(list);
+      toast({ title: "Copied!", description: "Discord usernames copied to clipboard." });
+    } catch (err) {
+      toast({ title: "Copy Failed", description: "Could not copy to clipboard.", variant: "destructive" });
+    }
+  };
+  return (
+    <Button variant="outline" size="sm" className="mb-2 flex items-center gap-2" onClick={handleCopy}>
+      <Copy className="w-4 h-4" />
+      Copy Discord Usernames
+    </Button>
+  );
+}
+
 export default function TournamentMedicPlayersTab({
   tournament,
   onRefresh,
@@ -138,8 +165,9 @@ export default function TournamentMedicPlayersTab({
   onRefresh: () => void;
 }) {
   const { players, fetchPlayers, loading } = useTournamentPlayers(tournament.id);
-  const [forceUser, setForceUser] = useState<Player | null>(null);
+  const [forceUser, setForceUser] = useState(null);
   const [adding, setAdding] = useState(false);
+  const [forceReadyLoading, setForceReadyLoading] = useState(false);
 
   // Add Force Ready Up loading
   const [forceReadyLoading, setForceReadyLoading] = useState(false);
@@ -261,6 +289,9 @@ export default function TournamentMedicPlayersTab({
 
   return (
     <div className="flex flex-col gap-4">
+      <div>
+        <CopyDiscordUsernamesButton players={players} />
+      </div>
       {/* NEW: Force Ready Up Section */}
       <div className="rounded-lg border border-yellow-700 bg-slate-900 p-4 flex flex-col gap-2 mb-3">
         <div className="flex items-center gap-3">
@@ -344,4 +375,4 @@ export default function TournamentMedicPlayersTab({
   );
 }
 
-// Note: This file is now nearly 300 lines - please consider refactoring
+// Note: This file is now nearly 350 lines - please consider refactoring for maintainability.
