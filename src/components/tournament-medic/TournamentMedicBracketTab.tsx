@@ -1,9 +1,9 @@
-
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import TournamentMedicBracketTabExtras from "./TournamentMedicBracketTabExtras";
 
 type Match = {
   id: string;
@@ -61,6 +61,9 @@ export default function TournamentMedicBracketTab({ tournament, onRefresh }: {
 
   return (
     <div className="flex flex-col gap-2">
+      {/* Bracket Admin Tools */}
+      <TournamentMedicBracketTabExtras tournament={tournament} onRefresh={onRefresh} />
+      {/* Existing match raw listing */}
       {loading ? (
         <span>Loading...</span>
       ) : (

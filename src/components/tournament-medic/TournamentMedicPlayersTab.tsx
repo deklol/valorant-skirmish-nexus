@@ -1,10 +1,10 @@
-
 import { useEffect, useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useDebouncedValue } from "./useDebouncedValue";
+import ForceCheckInManager from "@/components/ForceCheckInManager";
 
 // Central types
 type Player = {
@@ -13,7 +13,7 @@ type Player = {
   riot_id: string | null;
   is_substitute?: boolean;
 };
-type Tournament = { id: string };
+type Tournament = { id: string; check_in_required?: boolean };
 
 // Get all players signed up for this tournament
 function useTournamentPlayers(tournamentId: string) {
@@ -188,6 +188,9 @@ export default function TournamentMedicPlayersTab({
     }
   }
 
+  // Track if check-in is required (from tournament)
+  const checkInRequired = tournament.check_in_required;
+
   // Remove search field for already signed-up players
   // Only show a simple filter by username or riot for the list
   const [search, setSearch] = useState("");
@@ -206,6 +209,15 @@ export default function TournamentMedicPlayersTab({
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Check-in summary and tools */}
+      {checkInRequired && (
+        <div>
+          <ForceCheckInManager
+            tournamentId={tournament.id}
+            onCheckInUpdate={onRefresh}
+          />
+        </div>
+      )}
       {/* Small filter for signed-up list only */}
       <div className="flex gap-2">
         <Input

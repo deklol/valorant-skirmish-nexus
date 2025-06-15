@@ -1,8 +1,9 @@
-
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useState } from "react";
+import { completeTournament } from "@/utils/completeTournament";
+import TournamentWinnerDisplay from "@/components/TournamentWinnerDisplay";
 
 // Returns problems or [] if ok
 async function doHealthCheck(tournamentId: string): Promise<string[]> {
@@ -60,6 +61,7 @@ export default function TournamentMedicToolsTab({ tournament, onRefresh }: {
   onRefresh: () => void;
 }) {
   const [running, setRunning] = useState(false);
+  const [completing, setCompleting] = useState(false);
 
   async function handleHealthCheck() {
     setRunning(true);
@@ -79,6 +81,29 @@ export default function TournamentMedicToolsTab({ tournament, onRefresh }: {
     }
   }
 
+  async function handleCompleteTournament() {
+    setCompleting(true);
+    const teamsRes = await supabase.from("teams").select("id").eq("tournament_id", tournament.id).eq("status", "winner");
+    let winnerId = teamsRes.data?.[0]?.id;
+    if (!winnerId) {
+      toast({
+        title: "No Winner Set",
+        description: "Set a winning team before completing tournament.",
+        variant: "destructive",
+      });
+      setCompleting(false);
+      return;
+    }
+    const success = await completeTournament(tournament.id, winnerId);
+    setCompleting(false);
+    if (success) {
+      toast({ title: "Tournament Marked Complete" });
+      onRefresh();
+    } else {
+      toast({ title: "Error", description: "Could not complete tournament", variant: "destructive" });
+    }
+  }
+
   return (
     <div className="flex flex-col gap-3">
       <div className="text-xs font-semibold mb-2 text-yellow-200">Data Repair & Announcements:</div>
@@ -94,6 +119,18 @@ export default function TournamentMedicToolsTab({ tournament, onRefresh }: {
         title: "Emergency Announcement",
         description: "This will broadcast to all participants. (Not implemented yet.)"
       })}>Send Tournament Announcement</Button>
+      <div className="mt-3 pt-2 border-t border-yellow-900/20 flex flex-col gap-2">
+        <Button
+          size="sm"
+          variant="default"
+          className="bg-blue-700"
+          onClick={handleCompleteTournament}
+          disabled={completing}
+        >
+          {completing ? "Completing..." : "Complete Tournament Now"}
+        </Button>
+        <TournamentWinnerDisplay tournamentId={tournament.id} />
+      </div>
     </div>
   );
 }
