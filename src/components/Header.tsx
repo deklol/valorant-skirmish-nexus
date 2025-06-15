@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -8,11 +7,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import MobileNav from "./MobileNav";
 import RealTimeNotifications from "./RealTimeNotifications";
+import { useAppSettings } from "@/contexts/AppSettingsContext";
 
 const Header = () => {
   const navigate = useNavigate();
   const { user, signOut, isAdmin } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { appName } = useAppSettings();
 
   const handleSignOut = async () => {
     await signOut();
@@ -26,7 +27,7 @@ const Header = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
             <Trophy className="h-8 w-8 text-red-500" />
-            <span className="text-xl font-bold text-white">ValTourneys</span>
+            <span className="text-xl font-bold text-white">{appName}</span>
           </Link>
 
           {/* Desktop Navigation */}

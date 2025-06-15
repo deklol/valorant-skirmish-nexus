@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -22,6 +21,7 @@ import BracketView from "./pages/BracketView";
 import Archive from "./pages/Archive";
 import MatchDetails from "./pages/MatchDetails";
 import NotFound from "./pages/NotFound";
+import { AppSettingsProvider } from "./contexts/AppSettingsContext";
 
 const queryClient = new QueryClient();
 
@@ -71,7 +71,9 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <AppContent />
+        <AppSettingsProvider>
+          <AppContent />
+        </AppSettingsProvider>
       </TooltipProvider>
     </ThemeProvider>
   </QueryClientProvider>
