@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogFooter, AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel } from "@/components/ui/alert-dialog";
 import { Settings, Play, Square, Archive, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,45 +15,54 @@ interface TournamentStatusManagerProps {
   onStatusChange: () => void;
 }
 
+const TOURNAMENT_STATUSES = [
+  { value: 'draft', label: 'Draft', color: 'bg-gray-500/20 text-gray-400', description: 'Tournament being prepared' },
+  { value: 'open', label: 'Open', color: 'bg-green-500/20 text-green-400', description: 'Registration is open' },
+  { value: 'balancing', label: 'Balancing', color: 'bg-yellow-500/20 text-yellow-400', description: 'Teams being balanced' },
+  { value: 'live', label: 'Live', color: 'bg-red-500/20 text-red-400', description: 'Tournament in progress' },
+  { value: 'completed', label: 'Completed', color: 'bg-blue-500/20 text-blue-400', description: 'Tournament finished' },
+  { value: 'archived', label: 'Archived', color: 'bg-slate-500/20 text-slate-400', description: 'Tournament archived' }
+];
+
 const TournamentStatusManager = ({ tournamentId, currentStatus, onStatusChange }: TournamentStatusManagerProps) => {
   const [loading, setLoading] = useState(false);
   const [newStatus, setNewStatus] = useState(currentStatus);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const statusOptions = [
-    { value: 'draft', label: 'Draft', color: 'bg-gray-500/20 text-gray-400', description: 'Tournament being prepared' },
-    { value: 'open', label: 'Open', color: 'bg-green-500/20 text-green-400', description: 'Registration is open' },
-    { value: 'balancing', label: 'Balancing', color: 'bg-yellow-500/20 text-yellow-400', description: 'Teams being balanced' },
-    { value: 'live', label: 'Live', color: 'bg-red-500/20 text-red-400', description: 'Tournament in progress' },
-    { value: 'completed', label: 'Completed', color: 'bg-blue-500/20 text-blue-400', description: 'Tournament finished' },
-    { value: 'archived', label: 'Archived', color: 'bg-slate-500/20 text-slate-400', description: 'Tournament archived' }
-  ];
+  const statusOptions = TOURNAMENT_STATUSES;
+
+  const getStatusIndex = (status: string) => statusOptions.findIndex(option => option.value === status);
 
   const getCurrentStatusInfo = () => {
     return statusOptions.find(option => option.value === currentStatus) || statusOptions[0];
   };
 
-  const getNextValidStatuses = () => {
-    const transitions: Record<string, string[]> = {
-      'draft': ['open'],
-      'open': ['balancing', 'archived'],
-      'balancing': ['live', 'open'],
-      'live': ['completed'],
-      'completed': ['archived'],
-      'archived': []
-    };
-
-    return transitions[currentStatus] || [];
+  // Show all statuses as options except for the current one
+  const getAllManualStatuses = () => {
+    return statusOptions.filter(option => option.value !== currentStatus);
   };
 
-  const updateTournamentStatus = async () => {
-    if (newStatus === currentStatus) return;
+  // When updating, prompt if rolling back (previous stage)
+  const handleManualChange = (selectedStatus: string) => {
+    setNewStatus(selectedStatus);
+    // compare indexes to determine if rollback
+    if (getStatusIndex(selectedStatus) < getStatusIndex(currentStatus)) {
+      setPendingStatus(selectedStatus);
+      setShowConfirm(true);
+    }
+  };
+
+  // Called after confirmation or if moving forward
+  const updateTournamentStatus = async (forcedStatus?: string) => {
+    const targetStatus = forcedStatus || newStatus;
+    if (targetStatus === currentStatus) return;
     setLoading(true);
 
     try {
-      if (newStatus === 'completed') {
-        // ADMIN is manually completing the tournament
-        // Try to auto-detect the winner from the final match
+      if (targetStatus === 'completed') {
+        // Try to auto-detect winner as before
         const { data: matches, error: fetchMatchesError } = await supabase
           .from('matches')
           .select('id, winner_id, round_number, status')
@@ -62,7 +72,6 @@ const TournamentStatusManager = ({ tournamentId, currentStatus, onStatusChange }
         if (fetchMatchesError || !matches || matches.length === 0) {
           throw new Error("Cannot fetch matches to determine winner");
         }
-        // Get the highest round (final) and its winner
         const highestRound = Math.max(...matches.map(m => m.round_number));
         const finalMatch = matches.find(m => m.round_number === highestRound && m.status === 'completed');
         const winnerId = finalMatch?.winner_id;
@@ -76,36 +85,31 @@ const TournamentStatusManager = ({ tournamentId, currentStatus, onStatusChange }
           setLoading(false);
           return;
         }
-
-        // Call the full logic
         const result = await completeTournament(tournamentId, winnerId);
         if (result) {
           toast({
             title: "Tournament Completed!",
             description: "Tournament has been marked complete and stats have been updated."
           });
-
           onStatusChange();
         } else {
           throw new Error("Failed to fully complete tournament. Please check console for errors.");
         }
-
       } else {
-        // Standard status update (not completed)
-        const updateData: any = { status: newStatus };
-        if (newStatus === 'live') {
+        // Allow any status change (admin only); update fields for "live" stage.
+        const updateData: any = { status: targetStatus };
+        if (targetStatus === 'live') {
           updateData.start_time = new Date().toISOString();
         }
         const { error } = await supabase
           .from('tournaments')
           .update(updateData)
           .eq('id', tournamentId);
-
         if (error) throw error;
 
         toast({
           title: "Status Updated",
-          description: `Tournament status changed to ${newStatus}`,
+          description: `Tournament status changed to ${targetStatus}`,
         });
 
         onStatusChange();
@@ -119,6 +123,8 @@ const TournamentStatusManager = ({ tournamentId, currentStatus, onStatusChange }
       });
     } finally {
       setLoading(false);
+      setShowConfirm(false);
+      setPendingStatus(null);
     }
   };
 
@@ -211,7 +217,7 @@ const TournamentStatusManager = ({ tournamentId, currentStatus, onStatusChange }
   };
 
   const currentStatusInfo = getCurrentStatusInfo();
-  const validNextStatuses = getNextValidStatuses();
+  const manualStatuses = getAllManualStatuses();
   const statusActions = getStatusActions();
 
   return (
@@ -257,30 +263,30 @@ const TournamentStatusManager = ({ tournamentId, currentStatus, onStatusChange }
         )}
 
         {/* Manual Status Change */}
-        {validNextStatuses.length > 0 && (
+        {manualStatuses.length > 0 && (
           <div className="space-y-2">
             <div className="text-sm text-slate-400">Manual Status Change</div>
             <div className="flex gap-2">
-              <Select value={newStatus} onValueChange={setNewStatus}>
+              <Select value={newStatus} onValueChange={handleManualChange}>
                 <SelectTrigger className="bg-slate-700 border-slate-600">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={currentStatus}>
-                    {currentStatusInfo.label} (Current)
-                  </SelectItem>
-                  {validNextStatuses.map((status) => {
-                    const statusInfo = statusOptions.find(opt => opt.value === status);
-                    return (
-                      <SelectItem key={status} value={status}>
-                        {statusInfo?.label}
+                  {statusOptions.map(statusOpt => (
+                    statusOpt.value !== currentStatus && (
+                      <SelectItem key={statusOpt.value} value={statusOpt.value}>
+                        {statusOpt.label}
                       </SelectItem>
-                    );
-                  })}
+                    )
+                  ))}
                 </SelectContent>
               </Select>
               <Button
-                onClick={updateTournamentStatus}
+                onClick={() =>
+                  (getStatusIndex(newStatus) < getStatusIndex(currentStatus)
+                    ? setShowConfirm(true)
+                    : updateTournamentStatus())
+                }
                 disabled={loading || newStatus === currentStatus}
                 className="bg-blue-600 hover:bg-blue-700"
               >
@@ -289,6 +295,39 @@ const TournamentStatusManager = ({ tournamentId, currentStatus, onStatusChange }
             </div>
           </div>
         )}
+
+        {/* Admin Confirmation Dialog for Rollback */}
+        <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
+          <AlertDialogTrigger asChild>
+            <span></span>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirm Tournament Status Rollback</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to revert the tournament status from <b>{currentStatusInfo.label}</b> to <b>{statusOptions.find(opt => opt.value === (pendingStatus || newStatus))?.label}</b>?<br />
+                <span className="text-red-500">
+                  This may require participants or admins to re-verify results or matches.
+                </span>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel
+                onClick={() => {
+                  setShowConfirm(false);
+                  setPendingStatus(null);
+                  setNewStatus(currentStatus);
+                }}
+              >Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-blue-600 hover:bg-blue-700"
+                onClick={() => updateTournamentStatus(pendingStatus || newStatus)}
+              >
+                Yes, Revert Status
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {currentStatus === 'archived' && (
           <div className="text-center py-4">
