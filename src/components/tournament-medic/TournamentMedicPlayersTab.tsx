@@ -167,9 +167,8 @@ export default function TournamentMedicPlayersTab({
   const { players, fetchPlayers, loading } = useTournamentPlayers(tournament.id);
   const [forceUser, setForceUser] = useState(null);
   const [adding, setAdding] = useState(false);
-  const [forceReadyLoading, setForceReadyLoading] = useState(false);
 
-  // Add Force Ready Up loading
+  // Only one state declaration for forceReadyLoading! (fixed duplicate bug)
   const [forceReadyLoading, setForceReadyLoading] = useState(false);
 
   // Remove player modularized:
