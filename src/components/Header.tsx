@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -46,31 +45,30 @@ const Header = () => {
               <Users className="w-4 h-4 inline mr-2" />
               Players
             </Link>
-            {/* Discord link for desktop */}
+            {/* Discord link for desktop without icon */}
             <a
               href="https://discord.gg/TLR"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center text-slate-300 hover:text-indigo-400 transition-colors"
+              className="flex items-center text-slate-300 hover:text-indigo-400 transition-colors font-semibold"
               title="Join our Discord"
             >
-              <Youtube className="w-4 h-4 inline mr-2 text-indigo-400" />
               Discord
             </a>
           </nav>
 
           {/* User Menu */}
           <div className="flex items-center space-x-4">
-            {/* Discord button for mobile */}
+            {/* Discord button for mobile, no icon */}
             <a
               href="https://discord.gg/TLR"
               target="_blank"
               rel="noopener noreferrer"
-              className="md:hidden flex items-center text-slate-300 hover:text-indigo-400"
+              className="md:hidden flex items-center text-slate-300 hover:text-indigo-400 font-semibold"
               aria-label="Join our Discord"
               title="Join our Discord"
             >
-              <Youtube className="w-6 h-6 text-indigo-400" />
+              Discord
             </a>
             {user && <NotificationCenter />}
             
