@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,7 +35,6 @@ const TournamentMedicManager = () => {
     fetchTournaments();
   }, [toast]);
 
-  // Example: Basic emergency force action (force open registration)
   const handleForceOpenRegistration = async () => {
     if (!selectedTournamentId) return;
     setLoading(true);
@@ -53,6 +51,8 @@ const TournamentMedicManager = () => {
     }
   };
 
+  const selectDisabled = tournaments.length === 0;
+
   return (
     <Card className="bg-slate-800 border-slate-700">
       <CardHeader className="flex flex-row items-center gap-3">
@@ -65,17 +65,12 @@ const TournamentMedicManager = () => {
           <Select
             value={selectedTournamentId || ""}
             onValueChange={setSelectedTournamentId}
-            defaultValue=""
+            disabled={selectDisabled}
           >
             <SelectTrigger className="w-full bg-slate-900 border-slate-700 text-white">
               <SelectValue placeholder="Choose a tournament..." />
             </SelectTrigger>
             <SelectContent>
-              {tournaments.length === 0 && (
-                <SelectItem value="" disabled>
-                  No tournaments found
-                </SelectItem>
-              )}
               {tournaments.map((t) => (
                 <SelectItem key={t.id} value={t.id}>
                   {t.name} ({t.status})
@@ -83,9 +78,12 @@ const TournamentMedicManager = () => {
               ))}
             </SelectContent>
           </Select>
+          {selectDisabled && (
+            <div className="mt-2 text-sm text-slate-400">No tournaments found.</div>
+          )}
         </div>
 
-        {selectedTournamentId && (
+        {selectedTournamentId && tournaments.length > 0 && (
           <div className="space-y-3">
             <Button
               className="bg-yellow-600 hover:bg-yellow-700 text-white"
@@ -94,7 +92,6 @@ const TournamentMedicManager = () => {
             >
               Force Open Registration
             </Button>
-            {/* Placeholders for more medic actions (force add player, recover state, etc) */}
             <div className="text-xs text-slate-400">
               More emergency tools coming soon.
             </div>
