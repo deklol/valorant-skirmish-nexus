@@ -15,6 +15,8 @@ import MatchMedicManager from "@/components/MatchMedicManager";
 import TournamentMedicManager from "@/components/TournamentMedicManager";
 import SendNotificationTestButton from "@/components/SendNotificationTestButton";
 import AdminHelpTab from "@/components/admin/AdminHelpTab";
+import AppSettingsManager from "@/components/admin/AppSettingsManager";
+import SchemaExportButton from "@/components/admin/SchemaExportButton";
 
 const Admin = () => {
   const { isAdmin } = useAuth();
@@ -128,6 +130,9 @@ const Admin = () => {
             <div className="space-y-6">
               <AdminLogoutAll />
               <SendNotificationTestButton />
+              {/* God Hub: Editable Settings Card */}
+              <AppSettingsManager />
+              <SchemaExportButton />
               <Card className="bg-slate-800 border-slate-700">
                 <CardHeader>
                   <CardTitle className="text-white">System Settings</CardTitle>

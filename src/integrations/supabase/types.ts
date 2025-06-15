@@ -54,6 +54,41 @@ export type Database = {
           },
         ]
       }
+      app_settings: {
+        Row: {
+          announcement_id: string | null
+          app_name: string
+          id: string
+          last_updated_at: string | null
+          twitch_channel: string | null
+          twitch_embed_enabled: boolean
+        }
+        Insert: {
+          announcement_id?: string | null
+          app_name?: string
+          id?: string
+          last_updated_at?: string | null
+          twitch_channel?: string | null
+          twitch_embed_enabled?: boolean
+        }
+        Update: {
+          announcement_id?: string | null
+          app_name?: string
+          id?: string
+          last_updated_at?: string | null
+          twitch_channel?: string | null
+          twitch_embed_enabled?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_announcement"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "announcements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
