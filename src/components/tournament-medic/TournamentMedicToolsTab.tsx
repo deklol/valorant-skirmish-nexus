@@ -57,7 +57,7 @@ async function doHealthCheck(tournamentId: string): Promise<string[]> {
 }
 
 export default function TournamentMedicToolsTab({ tournament, onRefresh }: {
-  tournament: { id: string };
+  tournament: { id: string, status?: string };
   onRefresh: () => void;
 }) {
   const [running, setRunning] = useState(false);
@@ -129,7 +129,10 @@ export default function TournamentMedicToolsTab({ tournament, onRefresh }: {
         >
           {completing ? "Completing..." : "Complete Tournament Now"}
         </Button>
-        <TournamentWinnerDisplay tournamentId={tournament.id} />
+        <TournamentWinnerDisplay
+          tournamentId={tournament.id}
+          tournamentStatus={tournament.status || ""}
+        />
       </div>
     </div>
   );

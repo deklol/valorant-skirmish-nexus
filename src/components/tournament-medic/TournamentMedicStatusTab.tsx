@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShieldAlert, Calendar } from "lucide-react";
@@ -24,8 +25,8 @@ export default function TournamentMedicStatusTab({
   onUpdate,
   onRefresh,
 }: {
-  tournament: any;
-  onUpdate: (update: Partial<any>) => void;
+  tournament: Tournament;
+  onUpdate: (update: Partial<Tournament>) => void;
   onRefresh: () => void;
 }) {
   const [showEditor, setShowEditor] = useState(false);
@@ -41,20 +42,24 @@ export default function TournamentMedicStatusTab({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <TournamentStatusManager tournament={tournament} onUpdate={onUpdate} onRefresh={onRefresh} />
+          <TournamentStatusManager
+            tournamentId={tournament.id}
+            currentStatus={tournament.status}
+            onStatusChange={onRefresh}
+          />
           <button
             className="mt-4 text-xs underline text-amber-400"
             onClick={() => setShowEditor(e => !e)}
           >
-            {showEditor ? "Hide Advanced Tournament Editor" : "Show Advanced Tournament Editor"}
+            {showEditor
+              ? "Hide Advanced Tournament Editor"
+              : "Show Advanced Tournament Editor"}
           </button>
           {showEditor && (
             <div className="mt-2 border border-yellow-800/50 rounded p-2 bg-yellow-900/10">
               <ComprehensiveTournamentEditor
                 tournament={tournament}
-                onChange={onUpdate}
-                onRefresh={onRefresh}
-                compact
+                onTournamentUpdated={onRefresh}
               />
             </div>
           )}
