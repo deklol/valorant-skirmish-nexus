@@ -416,7 +416,7 @@ const MapVetoDialog = ({
                 ? "ban"
                 : currentStep?.action === "pick"
                 ? "pick"
-                : "ban"
+                : "ban" // fallback if currentStep is side_pick or other
             }
           />
 
