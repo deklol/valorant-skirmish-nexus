@@ -270,12 +270,14 @@ const MapVetoDialog = ({
         setSidePickModal({
           mapId: lastPick.map_id,
           onPick: async (side: "attack" | "defend") => {
+            if (lastPick.side_choice) return; // Don't allow picking if already picked
             setLoading(true);
-            // Persist the choice to Supabase
+            // Persist the choice to Supabase, only if not already picked
             const { error } = await supabase
               .from("map_veto_actions")
               .update({ side_choice: side })
-              .eq("id", lastPick.id);
+              .eq("id", lastPick.id)
+              .is("side_choice", null); // Only update if not already set
             setLoading(false);
             setSidePickModal(null);
             fetchVetoActions();
@@ -284,7 +286,7 @@ const MapVetoDialog = ({
         });
       }
     } else {
-      // Close modal if not in side-pick state
+      // Close modal if not in side-pick state or already picked
       setSidePickModal(null);
     }
     // eslint-disable-next-line
@@ -405,6 +407,7 @@ const MapVetoDialog = ({
             Map Veto - {team1Name} vs {team2Name}
           </DialogTitle>
         </DialogHeader>
+
         <div className="space-y-6">
           {/* Show home/away info */}
           <div className="flex gap-8 justify-center pb-2">
@@ -430,14 +433,65 @@ const MapVetoDialog = ({
           {/* Veto History */}
           <MapVetoHistory vetoActions={vetoActions} />
 
-          {/* Map Grid */}
-          {sidePickModal ? (
+          {/* Display Final Map & Side after veto is complete */}
+          {vetoComplete && finalPickAction && (
+            <div className="flex flex-col items-center gap-4 border border-green-700 rounded-lg bg-green-900/40 p-4 my-2 mx-auto w-fit">
+              <div className="text-xl font-bold text-green-200">Veto Complete!</div>
+              {pickedMap && (
+                <div className="flex flex-col items-center gap-2">
+                  <span className="text-green-100">Selected Map:</span>
+                  <div className="flex items-center gap-3">
+                    {pickedMap.thumbnail_url && (
+                      <img src={pickedMap.thumbnail_url}
+                        alt={pickedMap.display_name}
+                        className="w-20 h-20 rounded shadow border-2 border-green-700 bg-slate-800 object-cover"
+                      />
+                    )}
+                    <span className="font-semibold text-lg">{pickedMap.display_name}</span>
+                  </div>
+                </div>
+              )}
+              {finalPickAction.side_choice ? (
+                <span className="mt-2 text-green-200">
+                  <b>{homeLabel}</b> selected:{" "}
+                  {finalPickAction.side_choice === "attack" ? (
+                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded bg-red-700 text-white font-bold shadow">Attack</span>
+                  ) : (
+                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded bg-blue-700 text-white font-bold shadow">Defend</span>
+                  )}
+                </span>
+              ) : (
+                bestOf === 1 && isUserCaptain && userTeamId === homeTeamId && (
+                  <span className="mt-2 text-yellow-200">You must now choose a starting side!</span>
+                )
+              )}
+            </div>
+          )}
+
+          {/* Map Grid or Side Pick Modal */}
+          {sidePickModal && !pickedSide ? (
             <div className="flex flex-col items-center gap-4 p-6">
               <div className="text-lg mb-2">Choose Starting Side</div>
               <div className="flex gap-4">
-                <Button onClick={() => sidePickModal.onPick("attack")} className="bg-red-600 hover:bg-red-700">Attack</Button>
-                <Button onClick={() => sidePickModal.onPick("defend")} className="bg-blue-700 hover:bg-blue-800">Defend</Button>
+                <Button
+                  disabled={loading}
+                  onClick={() => sidePickModal.onPick("attack")}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  Attack
+                </Button>
+                <Button
+                  disabled={loading}
+                  onClick={() => sidePickModal.onPick("defend")}
+                  className="bg-blue-700 hover:bg-blue-800"
+                >
+                  Defend
+                </Button>
               </div>
+              {/* If for some reason side_choice is set, show a badge */}
+              {pickedSide && (
+                <div className="mt-2 text-green-200">Side already selected: <span className="font-bold">{pickedSide}</span></div>
+              )}
             </div>
           ) : (
             <MapVetoMapGrid
