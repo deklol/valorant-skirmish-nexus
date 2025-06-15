@@ -146,7 +146,17 @@ const MapVetoDialog = ({
         .eq("veto_session_id", vetoSessionId)
         .order("order_number");
       if (error) throw error;
-      setVetoActions(data || []);
+
+      // FIX: type safety for side_choice!
+      const normalized: VetoAction[] = (data || []).map((a: any) => ({
+        ...a,
+        side_choice:
+          a.side_choice === "attack" || a.side_choice === "defend"
+            ? a.side_choice
+            : null,
+      }));
+
+      setVetoActions(normalized);
       // Immediately check for turn sync after action update
       forceSessionRefetch("fetchVetoActions");
     } catch (e) {
@@ -400,7 +410,7 @@ const MapVetoDialog = ({
             isUserTurn={isUserTeamTurn}
             teamSize={teamSize}
             isUserCaptain={isUserCaptain!}
-            // Ensure currentAction is MapActionType: "ban" or "pick"
+            // Only allow "ban" or "pick" as MapActionType!
             currentAction={
               currentStep?.action === "ban"
                 ? "ban"
