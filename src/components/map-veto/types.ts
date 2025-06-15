@@ -17,6 +17,7 @@ export interface VetoAction {
   users?: {
     discord_username?: string;
   };
+  side_choice?: "attack" | "defend" | null; // <-- Added this field
 }
 export type MapStatus = {
   action: "ban" | "pick";

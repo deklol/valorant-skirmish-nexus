@@ -400,7 +400,14 @@ const MapVetoDialog = ({
             isUserTurn={isUserTeamTurn}
             teamSize={teamSize}
             isUserCaptain={isUserCaptain!}
-            currentAction={currentStep?.action === "ban" ? "ban" : "pick"}
+            // Ensure currentAction is MapActionType: "ban" or "pick"
+            currentAction={
+              currentStep?.action === "ban"
+                ? "ban"
+                : currentStep?.action === "pick"
+                ? "pick"
+                : "ban"
+            }
           />
 
           {/* Veto History */}
