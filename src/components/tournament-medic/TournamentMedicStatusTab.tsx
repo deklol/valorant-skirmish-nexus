@@ -25,6 +25,7 @@ type Tournament = {
   check_in_ends_at?: string | null;
   check_in_required?: boolean | null;
   enable_map_veto?: boolean | null;
+  bracket_type?: string | null; // <-- Add this line
   // Add any additional keys as needed, safe for partial typing.
 };
 
