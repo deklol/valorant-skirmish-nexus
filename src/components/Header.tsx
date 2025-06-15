@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,7 +7,8 @@ import { Trophy, Users, Calendar, Menu, X, LogOut, User, Settings, Shield } from
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import MobileNav from "./MobileNav";
-import RealTimeNotifications from "./RealTimeNotifications";
+// import RealTimeNotifications from "./RealTimeNotifications";
+import NotificationCenter from "./NotificationCenter";
 import { useAppSettings } from "@/contexts/AppSettingsContext";
 
 const Header = () => {
@@ -48,7 +50,7 @@ const Header = () => {
 
           {/* User Menu */}
           <div className="flex items-center space-x-4">
-            {user && <RealTimeNotifications />}
+            {user && <NotificationCenter />}
             
             {user ? (
               <div className="flex items-center space-x-4">
@@ -116,3 +118,4 @@ const Header = () => {
 };
 
 export default Header;
+
