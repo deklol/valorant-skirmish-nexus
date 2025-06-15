@@ -2,14 +2,11 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShieldAlert, Calendar } from "lucide-react";
-import ComprehensiveTournamentEditor, {
-  Tournament as TournamentType,
-} from "@/components/ComprehensiveTournamentEditor";
+import ComprehensiveTournamentEditor, { Tournament } from "@/components/ComprehensiveTournamentEditor";
 import TournamentStatusManager from "@/components/TournamentStatusManager";
 import MedicTournamentTimeline from "./MedicTournamentTimeline";
 
 // Use the Tournament type exported from ComprehensiveTournamentEditor
-type Tournament = TournamentType;
 
 export default function TournamentMedicStatusTab({
   tournament,
