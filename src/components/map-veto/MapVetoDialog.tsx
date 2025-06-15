@@ -278,7 +278,7 @@ const MapVetoDialog = ({
         userTeamId === homeTeamId
       ) {
         setSidePickModal({
-          mapId: lastPick.mapId,
+          mapId: lastPick.map_id,
           onPick: async (side: "attack" | "defend") => {
             if (lastPick.side_choice) return;
             setLoading(true);
