@@ -238,40 +238,52 @@ const MapVetoDialog = ({
   const vetoStep = vetoActions.length;
   const currentStep = vetoFlow[vetoStep];
 
-  // Block if dice not rolled
+  // Add logic for side-pick (for home after last ban in BO1, and as per flow for BO3/BO5)
   const canVeto = homeTeamId && awayTeamId && vetoFlow.length > 0;
 
-  // If it's a side_pick step, show Side Picker UI instead of map grid
-  // (VCT: after each "pick", next action is side_pick, performed by the other team)
+  // Copy: Only allow ban/pick actions, and for BO1 show side-pick after last ban
   useEffect(() => {
     if (!canVeto || !currentStep) return;
     if (currentStep.action === "side_pick") {
-      // Find prev "pick" action to get mapId
-      const prevPick = vetoActions.filter(a => a.action === "pick").pop();
-      if (prevPick && currentStep.teamId === userTeamId && isUserCaptain) {
+      // For BO1: the last ban is followed by side_pick, performed by first banner (home team)
+      // For BO3/BO5: side_pick is mixed in per flow
+      const lastPickOrBan =
+        bestOf === 1
+          ? vetoActions.filter(a => a.action === "ban").length === maps.length - 1 // just finished all bans
+            ? vetoActions[vetoActions.length - 1] // last ban
+            : null
+          : vetoActions.filter(a => a.action === "pick").pop();
+      if (
+        lastPickOrBan &&
+        currentStep.teamId === userTeamId &&
+        isUserCaptain &&
+        !lastPickOrBan.side_choice
+      ) {
         setSidePickModal({
-          mapId: prevPick.map_id,
+          mapId: lastPickOrBan.map_id, // for BO1, this is the only map left; for others, last picked
           onPick: async (side: string) => {
             setLoading(true);
-            // Update the vetoAction for that map or insert new if not present
-            // (side_pick isn't stored as a separate action; update the last "pick" with side_choice)
-            const lastPickAction = prevPick.id;
+            // Update the vetoAction for that map (if pick), or for last ban's map in BO1, store side_choice
+            const lastActionId = lastPickOrBan.id;
             const { error } = await supabase
               .from("map_veto_actions")
               .update({ side_choice: side })
-              .eq("id", lastPickAction);
+              .eq("id", lastActionId);
             setLoading(false);
             setSidePickModal(null);
             fetchVetoActions();
-            toast({ title: "Side Selected", description: `You picked ${side} side for your opponent.` });
-          }
+            toast({
+              title: "Side Selected",
+              description: `You picked ${side} side to start.`,
+            });
+          },
         });
       }
     } else {
       setSidePickModal(null);
     }
     // eslint-disable-next-line
-  }, [canVeto, currentStep, userTeamId, vetoActions]);
+  }, [canVeto, currentStep, userTeamId, vetoActions, bestOf, isUserCaptain, maps.length]);
 
   // Derive ban/pick/remainingMaps/complete status
   const bansMade = vetoActions.filter(a => a.action === "ban").length;

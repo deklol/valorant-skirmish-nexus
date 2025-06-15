@@ -1,42 +1,16 @@
+import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Users, User } from "lucide-react";
-import MatchScoreCards from "./MatchScoreCards";
-import MatchInformation from "./MatchInformation";
-import MapVetoManager from "@/components/MapVetoManager";
-import MapVetoResults from "@/components/MapVetoResults";
-import ScoreReporting from "@/components/ScoreReporting";
-import { useTeamPlayers } from "./useTeamPlayers";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import MatchOverviewTab from "@/components/match-details/MatchOverviewTab";
+import MatchScoreTab from "@/components/match-details/MatchScoreTab";
+import MatchVetoManager from "@/components/MapVetoManager";
+import MatchPlayersTab from "@/components/match-details/MatchPlayersTab";
+import { Match } from "@/components/match-details/types";
+import MapVetoHistory from "../map-veto/MapVetoHistory";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import ClickableUsername from "@/components/ClickableUsername";
-
-interface Match {
-  id: string;
-  match_number: number;
-  round_number: number;
-  team1_id: string | null;
-  team2_id: string | null;
-  score_team1: number | null;
-  score_team2: number | null;
-  status: string;
-  winner_id: string | null;
-  scheduled_time: string | null;
-  started_at: string | null;
-  completed_at: string | null;
-  tournament_id?: string;
-  team1?: { 
-    id: string;
-    name: string; 
-  } | null;
-  team2?: { 
-    id: string;
-    name: string; 
-  } | null;
-  tournament?: {
-    id: string;
-    name: string;
-  } | null;
-}
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface MatchTabsProps {
   match: Match;
@@ -45,178 +19,153 @@ interface MatchTabsProps {
   onScoreSubmitted: () => void;
 }
 
-const MatchTabs = ({
+// Add a tab to show public veto audit history (bans/picks/side choices)
+function MatchVetoHistoryTab({ matchId }: { matchId: string }) {
+  const [vetoActions, setVetoActions] = useState<any[]>([]);
+  useEffect(() => {
+    async function fetchAudit() {
+      // Fetch audit logs for veto session(s) for this match
+      const { data, error } = await supabase
+        .from("audit_logs")
+        .select("*")
+        .eq("table_name", "map_veto_actions")
+        .order("created_at", { ascending: true });
+      setVetoActions(data || []);
+    }
+    fetchAudit();
+  }, [matchId]);
+  if (!vetoActions.length)
+    return (
+      <Card className="bg-slate-800 border-slate-700 mt-4">
+        <CardContent className="p-5">No veto actions found for this match.</CardContent>
+      </Card>
+    );
+  return (
+    <Card className="bg-slate-800 border-slate-700 mt-4">
+      <CardContent>
+        <h3 className="text-white font-semibold text-lg mb-3">Veto History (Audit Log)</h3>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>#</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Map</TableHead>
+              <TableHead>Team/User</TableHead>
+              <TableHead>Side Choice</TableHead>
+              <TableHead>Date</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {vetoActions.map((a, i) => (
+              <TableRow key={a.id}>
+                <TableCell>{i + 1}</TableCell>
+                <TableCell>
+                  <Badge>
+                    {a?.new_values?.action?.toUpperCase?.() || "?"}
+                  </Badge>
+                </TableCell>
+                <TableCell>{a?.map_display_name || a?.new_values?.map_id?.slice?.(0, 6) || "?"}</TableCell>
+                <TableCell>
+                  {a?.user_id?.slice?.(0, 8) || a?.user_id || "?"}
+                </TableCell>
+                <TableCell>
+                  {a?.new_values?.side_choice ? (
+                    <Badge className={a.new_values.side_choice === "attack"
+                      ? "bg-red-600/30 text-red-300"
+                      : "bg-blue-700/30 text-blue-200"
+                    }>
+                      {a.new_values.side_choice?.toUpperCase()}
+                    </Badge>
+                  ) : (
+                    "-"
+                  )}
+                </TableCell>
+                <TableCell>
+                  {a?.created_at
+                    ? new Date(a.created_at).toLocaleString()
+                    : ""}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+}
+
+const MatchTabs: React.FC<MatchTabsProps> = ({
   match,
   userTeamId,
   isAdmin,
   onScoreSubmitted,
-}: MatchTabsProps) => {
-  const { players: team1Players, loading: loadingTeam1 } = useTeamPlayers(match.team1_id);
-  const { players: team2Players, loading: loadingTeam2 } = useTeamPlayers(match.team2_id);
-
-  // Safe fallback: ensure always returning JSX or null
-  if (!match) {
-    return null;
-  }
+}) => {
+  const TABS = [
+    {
+      label: "Overview",
+      render: (props: any) => <MatchOverviewTab match={props.match} />,
+    },
+    {
+      label: "Score",
+      render: (props: any) => (
+        <MatchScoreTab
+          match={props.match}
+          userTeamId={props.userTeamId}
+          isAdmin={props.isAdmin}
+          onScoreSubmitted={props.onScoreSubmitted}
+        />
+      ),
+    },
+    {
+      label: "Veto",
+      render: (props: any) => (
+        <MatchVetoManager
+          matchId={props.match.id}
+          team1Id={props.match.team1_id}
+          team2Id={props.match.team2_id}
+          team1Name={props.match.team1?.name || "Team 1"}
+          team2Name={props.match.team2?.name || "Team 2"}
+          matchStatus={props.match.status}
+          userTeamId={props.userTeamId}
+          roundNumber={props.match.round_number}
+          isAdmin={props.isAdmin}
+        />
+      ),
+    },
+    {
+      label: "Players",
+      render: (props: any) => (
+        <MatchPlayersTab
+          matchId={props.match.id}
+          team1Id={props.match.team1_id}
+          team2Id={props.match.team2_id}
+        />
+      ),
+    },
+    { label: "Veto History", render: (props: any) => <MatchVetoHistoryTab matchId={props.match.id} /> },
+  ];
 
   return (
-    <Tabs defaultValue="overview" className="space-y-6">
-      <TabsList className="bg-slate-800 border-slate-700">
-        <TabsTrigger value="overview" className="text-slate-300 data-[state=active]:text-white">
-          Overview
-        </TabsTrigger>
+    <Tabs defaultValue="overview" className="w-full mt-4">
+      <TabsList>
+        {TABS.map((tab) => (
+          <TabsTrigger key={tab.label} value={tab.label.toLowerCase()}>
+            {tab.label}
+          </TabsTrigger>
+        ))}
       </TabsList>
-
-      <TabsContent value="overview" className="space-y-6">
-        <MatchScoreCards
-          team1Name={match.team1?.name || 'TBD'}
-          team2Name={match.team2?.name || 'TBD'}
-          team1Score={match.score_team1}
-          team2Score={match.score_team2}
-        />
-
-        {/* Show final veto results if veto is completed */}
-        <MapVetoResults matchId={match.id} />
-
-        {match.team1_id && match.team2_id && (
-          <MapVetoManager
-            matchId={match.id}
-            team1Id={match.team1_id}
-            team2Id={match.team2_id}
-            team1Name={match.team1?.name || 'Team 1'}
-            team2Name={match.team2?.name || 'Team 2'}
-            matchStatus={match.status}
-            userTeamId={userTeamId}
-            isAdmin={isAdmin}
-          />
-        )}
-
-        <MatchInformation
-          scheduledTime={match.scheduled_time}
-          status={match.status}
-          startedAt={match.started_at}
-          completedAt={match.completed_at}
-          winnerId={match.winner_id}
-          team1Id={match.team1_id}
-          team2Id={match.team2_id}
-          team1Name={match.team1?.name || 'Team 1'}
-          team2Name={match.team2?.name || 'Team 2'}
-        />
-
-        {match.status !== 'completed' && (userTeamId || isAdmin) && (
-          <ScoreReporting
-            match={match}
-            onScoreSubmitted={onScoreSubmitted}
-          />
-        )}
-
-        {/* Teams & Players Panel */}
-        <Card className="bg-slate-800 border-slate-700">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              Teams &amp; Players
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col md:flex-row gap-8">
-              {/* TEAM 1 */}
-              <div className="flex-1 flex flex-col min-w-0">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="font-bold text-xl text-white whitespace-nowrap">
-                    {match.team1?.name || "Team 1"}
-                  </span>
-                  {match.team1_id === match.winner_id && (
-                    <Badge className="bg-green-600 text-white ml-2">Winner</Badge>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  {loadingTeam1 ? (
-                    <div className="text-slate-400">Loading...</div>
-                  ) : team1Players.length === 0 ? (
-                    <div className="text-slate-400">No players</div>
-                  ) : (
-                    team1Players.map(player => (
-                      <div
-                        key={player.user_id}
-                        className="flex items-center gap-x-3 gap-y-1 bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-3 shadow-sm mt-1"
-                      >
-                        <User className="w-4 h-4 text-blue-400 mr-1" />
-                        <ClickableUsername
-                          userId={player.user_id}
-                          username={player.discord_username}
-                          className="text-blue-400 font-medium"
-                        />
-                        {player.is_captain && (
-                          <Badge className="bg-yellow-400/90 text-black ml-2 font-bold">Captain</Badge>
-                        )}
-                        <span className="text-xs text-slate-300 ml-6 whitespace-nowrap">
-                          <span className="font-semibold">Rank:</span>{" "}
-                          <span>{player.current_rank || "Unranked"}</span>
-                        </span>
-                        <span className="text-xs text-purple-300 ml-5 whitespace-nowrap">
-                          <span className="font-semibold">Weight:</span>{" "}
-                          <span>{player.weight_rating ?? "—"}</span>
-                        </span>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              {/* Divider */}
-              <div className="hidden md:flex mx-2">
-                <div className="w-[2px] bg-slate-700 rounded-full h-full"></div>
-              </div>
-
-              {/* TEAM 2 */}
-              <div className="flex-1 flex flex-col min-w-0">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="font-bold text-xl text-white whitespace-nowrap">
-                    {match.team2?.name || "Team 2"}
-                  </span>
-                  {match.team2_id === match.winner_id && (
-                    <Badge className="bg-green-600 text-white ml-2">Winner</Badge>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  {loadingTeam2 ? (
-                    <div className="text-slate-400">Loading...</div>
-                  ) : team2Players.length === 0 ? (
-                    <div className="text-slate-400">No players</div>
-                  ) : (
-                    team2Players.map(player => (
-                      <div
-                        key={player.user_id}
-                        className="flex items-center gap-x-3 gap-y-1 bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-3 shadow-sm mt-1"
-                      >
-                        <User className="w-4 h-4 text-blue-400 mr-1" />
-                        <ClickableUsername
-                          userId={player.user_id}
-                          username={player.discord_username}
-                          className="text-blue-400 font-medium"
-                        />
-                        {player.is_captain && (
-                          <Badge className="bg-yellow-400/90 text-black ml-2 font-bold">Captain</Badge>
-                        )}
-                        <span className="text-xs text-slate-300 ml-6 whitespace-nowrap">
-                          <span className="font-semibold">Rank:</span>{" "}
-                          <span>{player.current_rank || "Unranked"}</span>
-                        </span>
-                        <span className="text-xs text-purple-300 ml-5 whitespace-nowrap">
-                          <span className="font-semibold">Weight:</span>{" "}
-                          <span>{player.weight_rating ?? "—"}</span>
-                        </span>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        {/* End Teams & Players Panel */}
-      </TabsContent>
+      {TABS.map((tab) => (
+        <TabsContent key={tab.label} value={tab.label.toLowerCase()}>
+          {
+            tab.render({
+              match: match,
+              userTeamId: userTeamId,
+              isAdmin: isAdmin,
+              onScoreSubmitted: onScoreSubmitted,
+            })
+          }
+        </TabsContent>
+      ))}
     </Tabs>
   );
 };
