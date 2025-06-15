@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Activity } from "lucide-react";
@@ -45,6 +44,9 @@ export default function MatchEditModal({
   onSave,
 }: MatchEditModalProps) {
   if (!open || !match) return null;
+  // Generate team label with fallback
+  const team1Label = match.team1?.name ? `Score (${match.team1.name}):` : "Score (Team 1):";
+  const team2Label = match.team2?.name ? `Score (${match.team2.name}):` : "Score (Team 2):";
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-slate-900 p-6 rounded-lg shadow border border-amber-700 w-full max-w-md">
@@ -69,7 +71,7 @@ export default function MatchEditModal({
           </div>
           <div className="flex gap-2">
             <div className="flex-1">
-              <label className="block text-amber-300 text-xs mb-1">Score (Team 1):</label>
+              <label className="block text-amber-300 text-xs mb-1">{team1Label}</label>
               <input
                 type="number"
                 min={0}
@@ -82,7 +84,7 @@ export default function MatchEditModal({
               />
             </div>
             <div className="flex-1">
-              <label className="block text-amber-300 text-xs mb-1">Score (Team 2):</label>
+              <label className="block text-amber-300 text-xs mb-1">{team2Label}</label>
               <input
                 type="number"
                 min={0}
