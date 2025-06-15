@@ -446,6 +446,7 @@ export default function VetoMedicManager() {
                         loading={!!actionSessionId && actionSessionId === session.id}
                         onExpand={expand => handleExpandHistory(session.id, expand)}
                         onRollback={() => handleRollbackLast(session.id)}
+                        maps={maps}
                       />
                     </div>
                     <div className="flex flex-col gap-2 items-end justify-end mt-2 md:mt-0">

@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { History, XCircle } from "lucide-react";
 
+// Added maps prop for fallback lookups
 interface VetoMedicHistoryProps {
   sessionId: string;
   actions: any[];
@@ -12,6 +13,7 @@ interface VetoMedicHistoryProps {
   loading: boolean;
   onExpand: (expand: boolean) => void;
   onRollback: () => void;
+  maps?: any[]; // new optional prop – array of map objects with at least id, display_name
 }
 
 const VetoMedicHistory: React.FC<VetoMedicHistoryProps> = ({
@@ -20,9 +22,20 @@ const VetoMedicHistory: React.FC<VetoMedicHistoryProps> = ({
   status,
   loading,
   onExpand,
-  onRollback
+  onRollback,
+  maps = [],
 }) => {
   const [expanded, setExpanded] = useState(false);
+
+  // Helper to resolve map display name from either audit_log or fallback maps list
+  const getMapDisplayName = (action: any): string => {
+    if (action.map_display_name) return action.map_display_name;
+    if (action.map_id && maps.length > 0) {
+      const found = maps.find((m) => m.id === action.map_id);
+      if (found) return found.display_name || found.name || action.map_id?.slice?.(0, 8) || "?";
+    }
+    return action.map_id?.slice?.(0, 8) || "?";
+  };
 
   const handleExpandToggle = () => {
     setExpanded(exp => {
@@ -89,11 +102,8 @@ const VetoMedicHistory: React.FC<VetoMedicHistoryProps> = ({
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {/* Prefer map_display_name from audit_logs, fallback to map_id */}
-                    {action.map_display_name
-                      ? <span className="font-medium text-white">{action.map_display_name}</span>
-                      : <span className="font-mono">{action.map_id?.slice?.(0, 8) || "?"}...</span>
-                    }
+                    {/* Map display name with fallback */}
+                    <span className="font-medium text-white">{getMapDisplayName(action)}</span>
                   </TableCell>
                   <TableCell>
                     <span className="font-mono">{action.team_id?.slice?.(0, 8) || "-"}</span>
