@@ -1,7 +1,9 @@
+
 import React, { useEffect, useState, useCallback } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Map, RefreshCw, ShieldAlert, CheckCircle2, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -47,6 +49,8 @@ export default function VetoMedicManager() {
   const [pickableMaps, setPickableMaps] = useState<any[]>([]);
   const [forceSession, setForceSession] = useState<VetoSessionWithDetails | null>(null);
   const [historyBySession, setHistoryBySession] = useState<Record<string, any[]>>({});
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [search, setSearch] = useState<string>("");
   const { toast } = useToast();
 
   // Fetch ALL veto sessions (not limited to pending/in_progress!)
@@ -109,6 +113,26 @@ export default function VetoMedicManager() {
     fetchSessions();
     fetchMaps();
   }, [fetchSessions, fetchMaps]);
+
+  // Filtering, search, and status controls
+  const filteredSessions = sessions.filter(session => {
+    let sessionStatus = filterStatus === "all" || session.status === filterStatus;
+    // Search in tournament, team names, or session id (first 8 chars if user types short)
+    let s = search.trim().toLowerCase();
+    let sessionSearch =
+      !s ||
+      [
+        session.match?.tournament?.name,
+        session.match?.team1?.name,
+        session.match?.team2?.name,
+        session.id,
+        session.id?.slice(0, 8),
+        session.match_id
+      ]
+        .filter(Boolean)
+        .some(field => field!.toLowerCase().includes(s));
+    return sessionStatus && sessionSearch;
+  });
 
   // Reset (clear the session's actions and set to pending)
   const resetSession = async (sessionId: string) => {
@@ -293,13 +317,54 @@ export default function VetoMedicManager() {
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {/* --- Search/Filter controls: uniform with MatchMedic/TournamentMedic --- */}
+          <div className="mb-4 flex flex-wrap gap-2 items-center">
+            <Input
+              type="text"
+              placeholder="Search by tournament, team, or session ID"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-56"
+            />
+            <div className="flex gap-1">
+              {["all", "pending", "in_progress", "completed"].map(s =>
+                <Button
+                  key={s}
+                  variant={filterStatus === s ? "default" : "outline"}
+                  className={filterStatus === s ? "bg-yellow-600 text-white" : ""}
+                  size="sm"
+                  onClick={() => setFilterStatus(s)}
+                >
+                  {s === "all"
+                    ? "All"
+                    : s === "pending"
+                    ? "Pending"
+                    : s === "in_progress"
+                    ? "In Progress"
+                    : s === "completed"
+                    ? "Completed"
+                    : s}
+                </Button>
+              )}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchSessions}
+              className="ml-auto"
+              disabled={loading}
+            >
+              <RefreshCw className="w-4 h-4 mr-1" />
+              Refresh
+            </Button>
+          </div>
           {loading ? (
             <div className="text-center text-slate-300 py-8">Loading veto sessions...</div>
-          ) : sessions.length === 0 ? (
+          ) : filteredSessions.length === 0 ? (
             <div className="text-center text-slate-400 py-8">No veto sessions found.</div>
           ) : (
             <div className="space-y-4">
-              {sessions.map((session) => {
+              {filteredSessions.map((session) => {
                 // Carefully extract match/team info
                 const match = session.match;
                 const team1 = match?.team1;
@@ -414,3 +479,5 @@ export default function VetoMedicManager() {
     </>
   );
 }
+
+// NOTE: This file is now 470+ lines. It is getting too long and should be refactored into smaller components, matching the structure of MatchMedicManager and other admin tools.
