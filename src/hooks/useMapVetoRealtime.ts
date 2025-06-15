@@ -103,14 +103,13 @@ export function useMapVetoActionsRealtime(
           const nextDelay = getBackoffDelay(retryCount++);
           setTimeout(subscribeWithBackoff, nextDelay);
         }
-      });
-
-      channel.on("close", {}, () => {
-        disconnected = true;
-        onConnectionChange?.("offline");
-        cleanupChannel(channelRef);
-        const nextDelay = getBackoffDelay(retryCount++);
-        setTimeout(subscribeWithBackoff, nextDelay);
+        if (status === "CLOSED") {
+          disconnected = true;
+          onConnectionChange?.("offline");
+          cleanupChannel(channelRef);
+          const nextDelay = getBackoffDelay(retryCount++);
+          setTimeout(subscribeWithBackoff, nextDelay);
+        }
       });
 
       channelRef.current = channel;
@@ -181,13 +180,13 @@ export function useMapVetoSessionRealtime(
           const nextDelay = getBackoffDelay(retryCount++);
           setTimeout(subscribeWithBackoff, nextDelay);
         }
-      });
-      channel.on("close", {}, () => {
-        disconnected = true;
-        onConnectionChange?.("offline");
-        cleanupChannel(channelRef);
-        const nextDelay = getBackoffDelay(retryCount++);
-        setTimeout(subscribeWithBackoff, nextDelay);
+        if (status === "CLOSED") {
+          disconnected = true;
+          onConnectionChange?.("offline");
+          cleanupChannel(channelRef);
+          const nextDelay = getBackoffDelay(retryCount++);
+          setTimeout(subscribeWithBackoff, nextDelay);
+        }
       });
 
       channelRef.current = channel;
