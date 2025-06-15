@@ -201,7 +201,7 @@ const MapVetoManager = ({
 
     setLoading(true);
     try {
-      // Fetch the current/latest session, even if pending
+      // Refetch the latest session
       const { data: sessionRaw, error: sessionErr } = await supabase
         .from('map_veto_sessions')
         .select('*')
@@ -211,11 +211,52 @@ const MapVetoManager = ({
         .maybeSingle();
 
       let session = null;
-
       let homeTeamIdFromSession = sessionRaw?.home_team_id || team1Id;
 
-      // If a session exists and is pending, update its turn to home_team_id (defensive)
+      // --- Revised: If session is pending with current_turn_team_id, ONLY ONE may promote it to in_progress
+      if (sessionRaw && sessionRaw.status === 'pending' && !!sessionRaw.current_turn_team_id) {
+        // Try to promote to in_progress *atomically*
+        const { data: promoted, error: promoteErr } = await supabase
+          .from('map_veto_sessions')
+          .update({
+            status: 'in_progress',
+            started_at: new Date().toISOString(),
+            completed_at: null
+          })
+          .eq('id', sessionRaw.id)
+          .eq('status', 'pending')
+          .select()
+          .single();
+        if (promoteErr) {
+          if (promoteErr.code === "PGRST116" || promoteErr.code === "PGRST119") {
+            // Row no longer qualifies: another user updated it. Tell user to refresh.
+            toast({
+              title: "Veto Already Started",
+              description: "Another captain started the veto. Please refresh the page.",
+              variant: "destructive"
+            });
+            setLoading(false);
+            checkVetoSession(); // Refetch to stay in sync
+            return;
+          }
+          throw promoteErr; // Some other error
+        }
+        session = promoted;
+        toast({
+          title: "Map Veto Started",
+          description: "Veto session is now live! Please refresh if you don't see the Participate button."
+        });
+        setVetoSession(session);
+        checkVetoSession();
+        fetchTournamentAndMatchSettings?.();
+        setLoading(false);
+        return;
+      }
+      // -- End atomic promote logic
+
+      // Continue with existing logic for new/in_progress
       if (sessionRaw && sessionRaw.status === 'pending') {
+        // If current_turn_team_id is not set yet, set up as before
         const { data: updated, error: updateErr } = await supabase
           .from('map_veto_sessions')
           .update({
@@ -231,7 +272,6 @@ const MapVetoManager = ({
         if (updateErr) throw updateErr;
         session = updated;
       } else if (sessionRaw && sessionRaw.status === 'in_progress') {
-        // Defensive: ensure turn is valid
         session = sessionRaw;
         if (!sessionRaw.current_turn_team_id) {
           const { data: patched, error: patchErr } = await supabase
@@ -244,7 +284,6 @@ const MapVetoManager = ({
           session = patched;
         }
       } else {
-        // Otherwise, create new session with turn set to home_team_id
         const { data: inserted, error: insertErr } = await supabase
           .from('map_veto_sessions')
           .insert({
@@ -262,13 +301,12 @@ const MapVetoManager = ({
       }
 
       setVetoSession(session);
-
       // Notify teams that veto is ready
       await notifyMapVetoReady(matchId, team1Id, team2Id);
 
       toast({
         title: "Map Veto Started",
-        description: "Teams can now participate in map selection",
+        description: "Teams can now participate in map selection"
       });
 
       fetchTournamentAndMatchSettings?.();
@@ -277,7 +315,7 @@ const MapVetoManager = ({
       toast({
         title: "Error",
         description: error?.message || "Failed to start map veto",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setLoading(false);
