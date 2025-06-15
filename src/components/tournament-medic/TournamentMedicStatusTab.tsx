@@ -6,10 +6,12 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
+// Only allow known statuses for newStatus
+type TournamentStatus = "draft" | "open" | "balancing" | "live" | "completed" | "archived";
 type Tournament = {
   id: string;
   name: string;
-  status: string;
+  status: TournamentStatus;
   registration_closes_at?: string | null;
   start_time?: string | null;
 };
@@ -19,10 +21,10 @@ export default function TournamentMedicStatusTab({ tournament, onUpdate, onRefre
   onUpdate: (t: Partial<Tournament>) => void;
   onRefresh: () => void;
 }) {
-  const [newStatus, setNewStatus] = useState(tournament.status);
+  const [newStatus, setNewStatus] = useState<TournamentStatus>(tournament.status);
   const [loading, setLoading] = useState(false);
 
-  const statusOptions = [
+  const statusOptions: TournamentStatus[] = [
     "draft", "open", "balancing", "live", "completed", "archived"
   ];
 
@@ -51,7 +53,7 @@ export default function TournamentMedicStatusTab({ tournament, onUpdate, onRefre
       <div className="flex flex-col md:flex-row gap-2 items-center">
         <select
           value={newStatus}
-          onChange={e => setNewStatus(e.target.value)}
+          onChange={e => setNewStatus(e.target.value as TournamentStatus)}
           className="rounded border p-2 bg-slate-800 text-white"
           disabled={loading}
         >
