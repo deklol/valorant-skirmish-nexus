@@ -28,14 +28,17 @@ interface MatchInfo {
   team2: TeamInfo | null;
 }
 
+// -- Update: Add home_team_id and away_team_id for correct type
 interface VetoSession {
   id: string;
-  match_id: string | null;  // <-- Add this
+  match_id: string | null;
   match: MatchInfo | null;
   status: string | null;
   current_turn_team_id: string | null;
   started_at: string | null;
   completed_at: string | null;
+  home_team_id: string | null;    // <-- ADDED
+  away_team_id: string | null;    // <-- ADDED
   // ... Add any other session-level fields if needed ...
 }
 
@@ -71,6 +74,7 @@ export default function VetoMedicManager() {
           team2:team2_id ( id, name )
         )
       `)
+      // ^^^ By using `*`, home_team_id and away_team_id ARE selected!
       .order("started_at", { ascending: false })
       .limit(40); // for admin, fetch the latest 40
 
@@ -81,7 +85,9 @@ export default function VetoMedicManager() {
       setSessions(
         (data || []).map((session: any) => ({
           ...session,
-          match_id: session.match_id ?? null, // <-- Defensive mapping
+          match_id: session.match_id ?? null,
+          home_team_id: session.home_team_id ?? null,    // <-- Defensive mapping
+          away_team_id: session.away_team_id ?? null,    // <-- Defensive mapping
           match: session.match
             ? {
                 ...session.match,
