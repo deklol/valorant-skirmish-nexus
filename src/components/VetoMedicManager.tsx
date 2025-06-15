@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import MapPickerDialog from "./MapPickerDialog";
 import VetoMedicHistory from "./VetoMedicHistory";
+import { generateBO1VetoFlow } from "./map-veto/vetoFlowBO1";
 
 // --- Enhanced interfaces for defensive types ---
 interface TeamInfo {
@@ -50,6 +51,7 @@ export default function VetoMedicManager() {
   const [forceSession, setForceSession] = useState<VetoSessionWithDetails | null>(null);
   // -- REPLACE veto action history from audit_logs with veto actions --
   const [actionsBySession, setActionsBySession] = useState<Record<string, any[]>>({});
+  const [actionsLoadingBySession, setActionsLoadingBySession] = useState<Record<string, boolean>>({});
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
   const { toast } = useToast();
@@ -135,12 +137,41 @@ export default function VetoMedicManager() {
     return sessionStatus && sessionSearch;
   });
 
-  // -- New: Fetch VETO ACTIONS for each session (canonical, not just logs) --
-  // This fetch gives us full canonical action log, map/user joined for display
+  // Hook for canonical veto actions for a session
+  function useVetoActions(sessionId: string) {
+    const [actions, setActions] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+
+    const fetch = useCallback(async () => {
+      setLoading(true);
+      // Join maps and users
+      const { data, error } = await supabase
+        .from("map_veto_actions")
+        .select(`
+          *,
+          maps:map_id ( display_name ),
+          users:performed_by ( discord_username )
+        `)
+        .eq("veto_session_id", sessionId)
+        .order("order_number", { ascending: true });
+      setActions(error ? [] : (data || []));
+      setLoading(false);
+    }, [sessionId]);
+
+    useEffect(() => {
+      if (sessionId) fetch();
+    }, [sessionId, fetch]);
+
+    return { actions, loading, reload: fetch };
+  }
+
+  // When viewing session details, fetch actions (not audit log)
   const fetchVetoActions = useCallback(async (sessionId: string) => {
+    setActionsLoadingBySession((m) => ({ ...m, [sessionId]: true }));
+    // Join maps and user for canonical actions (no audit log)
     const { data, error } = await supabase
       .from("map_veto_actions")
-      .select(`*, maps:map_id ( display_name ), users:performed_by ( discord_username )`)
+      .select("*, maps:map_id(display_name), users:performed_by(discord_username)")
       .eq("veto_session_id", sessionId)
       .order("order_number", { ascending: true });
 
@@ -148,9 +179,9 @@ export default function VetoMedicManager() {
       ...a,
       [sessionId]: error ? [] : (data || []),
     }));
+    setActionsLoadingBySession((m) => ({ ...m, [sessionId]: false }));
   }, []);
 
-  // When viewing session details, fetch actions (not audit log)
   const handleExpandHistory = (sessionId: string, expand: boolean) => {
     if (expand && !actionsBySession[sessionId]) fetchVetoActions(sessionId);
   };
@@ -383,16 +414,24 @@ export default function VetoMedicManager() {
                 const team2 = match?.team2;
                 const tournament = match?.tournament;
 
-                // ---- Use veto actions for progress/history and show step X/Y ----
+                // Always use canonical map_veto_actions:
                 const actions = actionsBySession[session.id] || [];
 
-                // Progress: count bans+picks only, not side_pick
-                const banPickActions = actions.filter(a => a.action === 'ban' || a.action === 'pick');
-                // Y: Compute expected steps for the current flow given map count
-                const mapCount = maps.length || 1;
-                // Compute BO1 flow length: total bans (mapCount-1) + pick + side_pick (ban+pick; don't show side_pick in step count)
-                const totalSteps = mapCount >= 2 ? mapCount : 1;
-                const vetoProgressLabel = `${banPickActions.length}/${totalSteps}`;
+                // Calculate expected steps for the current flow given map count
+                const mapCount = maps.length;
+                let totalSteps = mapCount; // for BO1 competitive
+                // Use the canonical BO1 sequence for BO1 (to match backend)
+                const vetoFlowSteps = (team1 && team2 && mapCount > 1)
+                  ? generateBO1VetoFlow({
+                      homeTeamId: session.home_team_id,
+                      awayTeamId: session.away_team_id,
+                      maps: maps.map(m => ({ id: m.id, name: m.display_name || m.name }))
+                    })
+                  : [];
+                // Count only ban/pick actions, not side_pick
+                const progressActions = actions.filter(a => a.action === 'ban' || a.action === 'pick');
+                // Step label: bans+picks (canonical)
+                const vetoProgressLabel = `${progressActions.length}/${vetoFlowSteps.filter(s => s.action !== 'side_pick').length || totalSteps}`;
 
                 return (
                   <div
@@ -415,21 +454,16 @@ export default function VetoMedicManager() {
                             ? "Completed"
                             : "Pending"}
                         </Badge>
-
-                        {/* Tournament Name */}
                         {tournament && (
                           <span className="text-xs font-bold px-2 rounded bg-blue-900/60 text-sky-300">
                             {tournament.name}
                           </span>
                         )}
-
-                        {/* Match summary */}
                         {(team1 || team2) && (
                           <span className="text-xs px-2 text-blue-200 font-mono">
                             {team1?.name || "?"} <span className="text-slate-500">vs</span> {team2?.name || "?"}
                           </span>
                         )}
-
                         <span className="text-sm text-slate-200 font-mono">Session ID: {session.id.slice(0, 8)}...</span>
                       </div>
                       <div className="flex flex-col gap-0.5 text-xs mt-1">
@@ -450,44 +484,46 @@ export default function VetoMedicManager() {
                           <span className="text-blue-400">Completed: {new Date(session.completed_at).toLocaleString()}</span>
                         )}
                       </div>
-                      {/* --- Canonical veto action log (not audit) --- */}
-                      {actions.length > 0 && (
-                        <div className="bg-slate-800 border border-slate-700 mt-2 mb-1 rounded-lg p-2 max-w-xl">
-                          <div className="font-semibold text-sm text-yellow-200 mb-1">Veto Action History</div>
-                          <ol className="space-y-1">
-                            {actions.map((act, idx) => (
-                              <li key={act.id} className="flex items-center justify-between text-xs bg-slate-700/40 p-1 rounded">
-                                <span className="flex items-center gap-3">
-                                  <span className="text-slate-400 font-mono">#{idx + 1}</span>
-                                  <span className={
-                                    act.action === "ban"
-                                      ? "bg-red-700/40 text-red-300 px-2 py-0.5 rounded font-bold"
-                                      : act.action === "pick"
-                                        ? "bg-green-700/30 text-green-200 px-2 py-0.5 rounded font-bold"
-                                        : "bg-blue-600/30 text-blue-100 px-2 py-0.5 rounded font-bold"
-                                  }>
-                                    {act.action.toUpperCase()}
-                                  </span>
-                                  <span className="text-white font-medium">{act.maps?.display_name || "??"}</span>
-                                  {act.action === "pick" && act.side_choice && (
-                                    <span className={
-                                      act.side_choice === "attack"
-                                        ? "bg-red-700/30 text-red-200 px-2 py-0.5 rounded font-bold"
-                                        : "bg-blue-700/30 text-blue-200 px-2 py-0.5 rounded font-bold"
-                                    }>
-                                      {act.side_choice.toUpperCase()} SIDE
-                                    </span>
-                                  )}
-                                  {act.users?.discord_username && (
-                                    <span className="ml-2 text-blue-200">by {act.users.discord_username}</span>
-                                  )}
+                      {/* Canonical veto action log (not audit log) */}
+                      <div className="bg-slate-800 border border-slate-700 mt-2 mb-1 rounded-lg p-2 max-w-xl">
+                        <div className="font-semibold text-sm text-yellow-200 mb-1">Veto Action History</div>
+                        <ol className="space-y-1">
+                          {/* Defensive: display only if actions present */}
+                          {actions.length === 0 && (
+                            <li className="text-slate-500 text-xs py-1">No actions yet.</li>
+                          )}
+                          {actions.map((act, idx) => (
+                            <li key={act.id} className="flex items-center justify-between text-xs bg-slate-700/40 p-1 rounded">
+                              <span className="flex items-center gap-3">
+                                <span className="text-slate-400 font-mono">#{idx + 1}</span>
+                                <span className={
+                                  act.action === "ban"
+                                    ? "bg-red-700/40 text-red-300 px-2 py-0.5 rounded font-bold"
+                                    : act.action === "pick"
+                                      ? "bg-green-700/30 text-green-200 px-2 py-0.5 rounded font-bold"
+                                      : "bg-blue-600/30 text-blue-100 px-2 py-0.5 rounded font-bold"
+                                }>
+                                  {act.action.toUpperCase()}
                                 </span>
-                                <span className="text-slate-400">{act.performed_at ? new Date(act.performed_at).toLocaleTimeString() : ""}</span>
-                              </li>
-                            ))}
-                          </ol>
-                        </div>
-                      )}
+                                <span className="text-white font-medium">{act.maps?.display_name || "??"}</span>
+                                {act.action === "pick" && act.side_choice && (
+                                  <span className={
+                                    act.side_choice === "attack"
+                                      ? "bg-red-700/30 text-red-200 px-2 py-0.5 rounded font-bold"
+                                      : "bg-blue-700/30 text-blue-200 px-2 py-0.5 rounded font-bold"
+                                  }>
+                                    {act.side_choice.toUpperCase()} SIDE
+                                  </span>
+                                )}
+                                {act.users?.discord_username && (
+                                  <span className="ml-2 text-blue-200">by {act.users.discord_username}</span>
+                                )}
+                              </span>
+                              <span className="text-slate-400">{act.performed_at ? new Date(act.performed_at).toLocaleTimeString() : ""}</span>
+                            </li>
+                          ))}
+                        </ol>
+                      </div>
                     </div>
                     <div className="flex flex-col gap-2 items-end justify-end mt-2 md:mt-0">
                       <Button
