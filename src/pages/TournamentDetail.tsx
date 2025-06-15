@@ -6,7 +6,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar, Users, Map, Trophy, Clock, Settings, UserCheck, Scale } from "lucide-react";
+import { Calendar, Users, Map, Trophy, Clock, Settings, UserCheck, Scale, Crown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import BracketGenerator from "@/components/BracketGenerator";
@@ -18,6 +18,7 @@ import TournamentWinnerDisplay from "@/components/TournamentWinnerDisplay";
 import ComprehensiveTournamentEditor from "@/components/ComprehensiveTournamentEditor";
 import ForceCheckInManager from "@/components/ForceCheckInManager";
 import TeamBalancingInterface from "@/components/TeamBalancingInterface";
+import ClickableUsername from "@/components/ClickableUsername";
 
 import type { Database } from "@/integrations/supabase/types";
 
@@ -228,6 +229,72 @@ const TournamentDetail = () => {
     );
   };
 
+  const renderTeamsPanel = () => {
+    // sorted alphabetically
+    const sortedTeams = [...teams].sort((a, b) => a.name.localeCompare(b.name));
+    return (
+      <div className="space-y-6">
+        <Card className="bg-slate-800/90 border-slate-700">
+          <CardHeader>
+            <CardTitle className="text-xl font-bold text-white flex gap-2 items-center">
+              <Users className="w-5 h-5" />
+              Teams &amp; Participants
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {sortedTeams.length === 0 ? (
+              <div className="text-slate-400">No teams have been formed yet.</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {sortedTeams.map((team) => (
+                  <div key={team.id} className="bg-slate-900 border border-slate-700 p-4 rounded-xl shadow flex flex-col">
+                    <div className="flex items-center mb-3 gap-2">
+                      <span className="font-bold text-lg text-white">{team.name}</span>
+                      {team.team_members?.some(m => m.is_captain) && (
+                        <span title="Captain">
+                          <Crown className="w-5 h-5 text-yellow-400" />
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-2 mt-1">
+                      {team.team_members && team.team_members.length > 0 ? (
+                        team.team_members.map(member => (
+                          <div
+                            key={member.user_id}
+                            className={`flex items-center gap-2 px-3 py-2 rounded ${
+                              member.is_captain ? "bg-yellow-700/10" : "bg-slate-800"
+                            }`}
+                          >
+                            <Users className="w-4 h-4 text-blue-300" />
+                            <ClickableUsername
+                              userId={member.user_id}
+                              username={member.users?.discord_username || ""}
+                              className="text-blue-300"
+                            />
+                            {member.is_captain && (
+                              <span title="Captain">
+                                <Crown className="w-4 h-4 text-yellow-400 ml-1" />
+                              </span>
+                            )}
+                            <span className="ml-auto text-xs text-slate-400">
+                              {member.users?.current_rank || "Unranked"}
+                            </span>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-slate-400 italic">No participants</div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
@@ -291,6 +358,10 @@ const TournamentDetail = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* --- New Teams & Players Section here --- */}
+        {renderTeamsPanel()}
+        {/* --- End new section --- */}
 
         {/* Tournament Winner Display - Show for completed tournaments */}
         {tournament.status === 'completed' && (
