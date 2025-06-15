@@ -157,18 +157,18 @@ const NotificationCenter = () => {
         <Card className="border-0 shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Notifications</CardTitle>
-            {unreadCount > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={markAllAsRead}
-                className="h-6 px-2 text-xs"
-                title="Mark all as read"
-              >
-                <Check className="w-3 h-3 mr-1" />
-                Mark all read
-              </Button>
-            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={markAllAsRead}
+              className="h-6 px-2 text-xs"
+              title="Mark all as read"
+              disabled={unreadCount === 0}
+              style={unreadCount === 0 ? { opacity: 0.5, pointerEvents: "none" } : {}}
+            >
+              <Check className="w-3 h-3 mr-1" />
+              Mark all read
+            </Button>
           </CardHeader>
           <CardContent className="p-0">
             <ScrollArea className="h-[400px]">
