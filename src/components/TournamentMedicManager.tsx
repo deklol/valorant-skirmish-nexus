@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -56,14 +55,17 @@ export default function TournamentMedicManager() {
   useEffect(() => {
     if (!selectedId) return;
     setParticipantLoading(true);
-    supabase
-      .from("tournament_signups")
-      .select("id, user_id, is_substitute, users(id, discord_username, riot_id, is_phantom)")
-      .eq("tournament_id", selectedId)
-      .then(({ data }) => {
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("tournament_signups")
+          .select("id, user_id, is_substitute, users(id, discord_username, riot_id, is_phantom)")
+          .eq("tournament_id", selectedId);
         setParticipants(data || []);
-      })
-      .finally(() => setParticipantLoading(false));
+      } finally {
+        setParticipantLoading(false);
+      }
+    })();
   }, [selectedId, loading]);
 
   // Load all users for force-adding
@@ -215,4 +217,3 @@ export default function TournamentMedicManager() {
     </Card>
   );
 }
-
