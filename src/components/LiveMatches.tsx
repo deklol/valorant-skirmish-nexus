@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -99,8 +98,8 @@ const LiveMatches = () => {
             Live Matches
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <p className="text-slate-400 text-center py-4">No live matches at the moment</p>
+        <CardContent className="py-2">
+          <p className="text-slate-400 text-center">No live matches at the moment</p>
         </CardContent>
       </Card>
     );
