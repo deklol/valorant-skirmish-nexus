@@ -1,10 +1,10 @@
-
 import { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { getRankPoints } from "@/utils/rankingSystem";
+import ClickableUsername from './ClickableUsername';
 
 type Player = {
   id: string;
@@ -89,7 +89,11 @@ export default function TopPlayersDisplay() {
               ) : (
                 <Users className="w-8 h-8 text-slate-400" />
               )}
-              <span className="font-medium text-white">{player.discord_username}</span>
+              <ClickableUsername
+                userId={player.id}
+                username={player.discord_username}
+                className="font-medium text-white"
+              />
               <Badge variant="outline" className="ml-auto">{player.current_rank || "Unranked"}</Badge>
               <span className="text-slate-400 text-xs ml-2">{player.rank_points ?? 0} pts</span>
             </li>

@@ -28,3 +28,4 @@ const ClickableUsername = ({ userId, username, className = '', variant = 'link' 
 };
 
 export default ClickableUsername;
+
