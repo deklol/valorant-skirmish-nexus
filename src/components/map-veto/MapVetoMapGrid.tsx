@@ -5,6 +5,7 @@ import { Map, Ban, CheckCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { MapData, MapStatus, MapActionType } from "./types";
 
+// Added userTeamId and teamNames for context-aware attribution
 interface MapVetoMapGridProps {
   maps: MapData[];
   canAct: boolean;
@@ -16,6 +17,8 @@ interface MapVetoMapGridProps {
   currentTeamTurn: string;
   getMapStatus: (mapId: string) => MapStatus | null;
   isMapAvailable: (mapId: string) => boolean;
+  userTeamId?: string | null; // new optional, for context
+  teamNames?: Record<string, string>; // { [teamId]: teamName }
 }
 
 const MapVetoMapGrid = ({
@@ -29,9 +32,28 @@ const MapVetoMapGrid = ({
   currentTeamTurn,
   getMapStatus,
   isMapAvailable,
+  userTeamId,
+  teamNames = {},
 }: MapVetoMapGridProps) => {
   // Calculate the number of bans needed
   const totalBansNeeded = maps.length - (bestOf === 1 ? 1 : bestOf);
+
+  // Helper: return {display, byYourTeam, actorName}
+  const getActionAttribution = (status: MapStatus | null) => {
+    if (!status) return { display: "", byYourTeam: false, actorName: "" };
+    const byYourTeam = !!userTeamId && status.team_id && userTeamId === status.team_id;
+    const teamLabel = byYourTeam ? "Your Team" : (teamNames[status.team_id] || status.team_id?.slice?.(0, 8) || "Opponent");
+    let actorName = teamLabel;
+    if (status.user_name) actorName = status.user_name;
+    return {
+      display:
+        status.action === "ban"
+          ? `${byYourTeam ? "You" : actorName} banned`
+          : `${byYourTeam ? "You" : actorName} picked`,
+      byYourTeam,
+      actorName,
+    };
+  };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -46,6 +68,8 @@ const MapVetoMapGrid = ({
             bestOf !== 1 ||
             remainingMaps.length === 1 ||
             totalBansNeeded > 0);
+
+        const attribution = getActionAttribution(status);
 
         return (
           <Card
@@ -85,7 +109,7 @@ const MapVetoMapGrid = ({
                         : "bg-green-500/20 text-green-400 border-green-500/30"
                       }
                     >
-                      {status.action.toUpperCase()} by {status.team}
+                      {attribution.display} {map.display_name}
                     </Badge>
                   ) : canClick && bestOf === 1 && remainingMaps.length === 1 ? (
                     <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
