@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -143,7 +144,7 @@ export default function TournamentMedicEditModal({
             Status: <Badge className="bg-yellow-800/60">{tournament.status}</Badge>
           </span>
         </div>
-        <Tabs defaultValue="teams" className="mt-3 w-full">
+        <Tabs defaultValue="status" className="mt-3 w-full">
           <TabsList className="bg-slate-800 border-slate-700 mb-4 w-full flex">
             <TabsTrigger value="status" className="flex-1">Status</TabsTrigger>
             <TabsTrigger value="details" className="flex-1">Details</TabsTrigger>
