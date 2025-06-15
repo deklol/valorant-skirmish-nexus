@@ -1,9 +1,10 @@
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import TeamBalancingInterface from "@/components/TeamBalancingInterface";
 
 type Team = {
   id: string;
@@ -13,17 +14,30 @@ type Team = {
   players: { id: string; discord_username: string | null }[];
 };
 
-type Tournament = { id: string };
+type Tournament = {
+  id: string;
+  max_teams?: number | null;
+  team_size?: number | null;
+};
 
-export default function TournamentMedicTeamsTab({ tournament, onRefresh }: {
+export default function TournamentMedicTeamsTab({
+  tournament,
+  onRefresh,
+}: {
   tournament: Tournament;
   onRefresh: () => void;
 }) {
+  // View toggler: "quick" = old UI; "builder" = drag-and-drop tool
+  const [viewMode, setViewMode] = useState<"quick" | "builder">("quick");
+
+  // Teams state is only used in quick view.
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
 
+  // Only fetch teams for quick view
   useEffect(() => {
+    if (viewMode !== "quick") return;
     (async () => {
       setLoading(true);
       const { data, error } = await supabase
@@ -40,92 +54,166 @@ export default function TournamentMedicTeamsTab({ tournament, onRefresh }: {
       );
       setLoading(false);
     })();
-  }, [tournament.id]);
+  }, [tournament.id, viewMode]);
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex gap-2">
-        <Input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search by team or player"
-          className="max-w-xs"
-        />
+      {/* Toggle button group */}
+      <div className="flex gap-2 mb-2">
+        <Button
+          size="sm"
+          variant={viewMode === "quick" ? "default" : "outline"}
+          onClick={() => setViewMode("quick")}
+        >
+          Quick Actions
+        </Button>
+        <Button
+          size="sm"
+          variant={viewMode === "builder" ? "default" : "outline"}
+          onClick={() => setViewMode("builder")}
+        >
+          Full Team Builder
+        </Button>
       </div>
-      <div className="flex flex-col gap-2 max-h-52 overflow-y-auto scrollbar-thin text-xs">
-        {loading ? (
-          <div>Loading...</div>
-        ) : (
-          teams.filter(t =>
-            !search ||
-            (t.name && t.name.toLowerCase().includes(search.toLowerCase())) ||
-            t.players.some(
-              p => p.discord_username && p.discord_username.toLowerCase().includes(search.toLowerCase())
-            )
-          ).map(team => (
-            <div
-              key={team.id}
-              className="bg-slate-800 rounded p-2 flex flex-col md:flex-row md:items-center gap-2"
-            >
-              <div className="flex-1 flex flex-col">
-                <span className="font-mono font-bold text-yellow-200">{team.name || "Untitled"}</span>
-                <div className="flex flex-wrap gap-2 mt-1">
-                  {team.players.map(p => (
-                    <span key={p.id} className="bg-slate-900 px-2 py-1 rounded text-xs">{p.discord_username}</span>
-                  ))}
-                </div>
-              </div>
-              <div className="flex flex-col gap-1 min-w-[110px]">
-                <Button size="sm" variant="outline" onClick={async () => {
-                  // Eliminate team
-                  setLoading(true);
-                  const { error } = await supabase
-                    .from("teams")
-                    .update({ status: "eliminated" })
-                    .eq("id", team.id);
-                  setLoading(false);
-                  if (error) {
-                    toast({ title: "Eliminate Error", description: error.message, variant: "destructive" });
-                  } else {
-                    toast({ title: "Eliminated" });
-                    onRefresh();
-                  }
-                }}>Eliminate</Button>
-                <Button size="sm" variant="outline" onClick={async () => {
-                  // Declare winner
-                  setLoading(true);
-                  const { error } = await supabase
-                    .from("teams")
-                    .update({ status: "winner" })
-                    .eq("id", team.id);
-                  setLoading(false);
-                  if (error) {
-                    toast({ title: "Error", description: error.message, variant: "destructive" });
-                  } else {
-                    toast({ title: "Set Winner" });
-                    onRefresh();
-                  }
-                }}>Winner</Button>
-                <Button size="sm" variant="outline" onClick={async () => {
-                  // Reset status to pending
-                  setLoading(true);
-                  const { error } = await supabase
-                    .from("teams")
-                    .update({ status: "pending" })
-                    .eq("id", team.id);
-                  setLoading(false);
-                  if (error) {
-                    toast({ title: "Error", description: error.message, variant: "destructive" });
-                  } else {
-                    toast({ title: "Reset" });
-                    onRefresh();
-                  }
-                }}>Reset</Button>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
+
+      {viewMode === "quick" ? (
+        <>
+          <div className="flex gap-2">
+            <Input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search by team or player"
+              className="max-w-xs"
+            />
+          </div>
+          <div className="flex flex-col gap-2 max-h-52 overflow-y-auto scrollbar-thin text-xs">
+            {loading ? (
+              <div>Loading...</div>
+            ) : (
+              teams
+                .filter(
+                  t =>
+                    !search ||
+                    (t.name && t.name.toLowerCase().includes(search.toLowerCase())) ||
+                    t.players.some(
+                      p =>
+                        p.discord_username &&
+                        p.discord_username.toLowerCase().includes(search.toLowerCase())
+                    )
+                )
+                .map(team => (
+                  <div
+                    key={team.id}
+                    className="bg-slate-800 rounded p-2 flex flex-col md:flex-row md:items-center gap-2"
+                  >
+                    <div className="flex-1 flex flex-col">
+                      <span className="font-mono font-bold text-yellow-200">
+                        {team.name || "Untitled"}
+                      </span>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {team.players.map(p => (
+                          <span
+                            key={p.id}
+                            className="bg-slate-900 px-2 py-1 rounded text-xs"
+                          >
+                            {p.discord_username}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-1 min-w-[110px]">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={async () => {
+                          // Eliminate team
+                          setLoading(true);
+                          const { error } = await supabase
+                            .from("teams")
+                            .update({ status: "eliminated" })
+                            .eq("id", team.id);
+                          setLoading(false);
+                          if (error) {
+                            toast({
+                              title: "Eliminate Error",
+                              description: error.message,
+                              variant: "destructive",
+                            });
+                          } else {
+                            toast({ title: "Eliminated" });
+                            onRefresh();
+                          }
+                        }}
+                      >
+                        Eliminate
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={async () => {
+                          // Declare winner
+                          setLoading(true);
+                          const { error } = await supabase
+                            .from("teams")
+                            .update({ status: "winner" })
+                            .eq("id", team.id);
+                          setLoading(false);
+                          if (error) {
+                            toast({
+                              title: "Error",
+                              description: error.message,
+                              variant: "destructive",
+                            });
+                          } else {
+                            toast({ title: "Set Winner" });
+                            onRefresh();
+                          }
+                        }}
+                      >
+                        Winner
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={async () => {
+                          // Reset status to pending
+                          setLoading(true);
+                          const { error } = await supabase
+                            .from("teams")
+                            .update({ status: "pending" })
+                            .eq("id", team.id);
+                          setLoading(false);
+                          if (error) {
+                            toast({
+                              title: "Error",
+                              description: error.message,
+                              variant: "destructive",
+                            });
+                          } else {
+                            toast({ title: "Reset" });
+                            onRefresh();
+                          }
+                        }}
+                      >
+                        Reset
+                      </Button>
+                    </div>
+                  </div>
+                ))
+            )}
+          </div>
+        </>
+      ) : (
+        // Team builder view
+        <div>
+          <TeamBalancingInterface
+            tournamentId={tournament.id}
+            maxTeams={tournament.max_teams || 4}
+            teamSize={tournament.team_size || 5}
+            onTeamsUpdated={onRefresh}
+          />
+        </div>
+      )}
     </div>
   );
 }
