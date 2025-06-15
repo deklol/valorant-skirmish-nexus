@@ -256,9 +256,7 @@ const MapVetoDialog = ({
     if (
       bestOf === 1 &&
       maps.length > 0 &&
-      bansMade === totalBansNeeded && // all bans done
-      pickMade &&                     // pick recorded in db
-      !sideChosen                     // but not side picked yet!
+      bansMade === totalBansNeeded // all bans done
     ) {
       // If this is the home team/captain, allow side pick
       const lastPick = vetoActions.filter(a => a.action === "pick").pop();
@@ -299,6 +297,11 @@ const MapVetoDialog = ({
   } else if (bestOf !== 1) {
     currentAction = vetoActions.length % 2 === 0 ? "ban" : "pick";
   }
+
+  // FINAL summary for veto result
+  const finalPickAction = vetoActions.find(a => a.action === 'pick');
+  const pickedMap = maps.find(m => m.id === finalPickAction?.map_id);
+  const pickedSide = finalPickAction?.side_choice;
 
   // Safety: poll for state mismatch after every veto action or RT event (redundancy for bad clients)
   useEffect(() => {
