@@ -18,6 +18,7 @@ import TournamentWinnerDisplay from "@/components/TournamentWinnerDisplay";
 import ComprehensiveTournamentEditor from "@/components/ComprehensiveTournamentEditor";
 import ForceCheckInManager from "@/components/ForceCheckInManager";
 import TeamBalancingInterface from "@/components/TeamBalancingInterface";
+import TournamentMedicManager from "@/components/TournamentMedicManager";
 
 import type { Database } from "@/integrations/supabase/types";
 
@@ -489,6 +490,9 @@ const TournamentDetail = () => {
                   onBracketGenerated={handleRefresh}
                 />
               </div>
+
+              {/* --- New Tournament Medic Admin Tool --- */}
+              <TournamentMedicManager />
             </TabsContent>
           )}
 
