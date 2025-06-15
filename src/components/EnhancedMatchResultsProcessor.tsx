@@ -1,6 +1,4 @@
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
 
 interface MatchResultsProcessorProps {
   matchId: string;
@@ -8,23 +6,28 @@ interface MatchResultsProcessorProps {
   loserId: string;
   tournamentId: string;
   onComplete: () => void;
+  toast: (opts: { title: string; description: string; variant?: string }) => void;
+  notifyMatchComplete: (matchId: string, winnerId: string, loserId: string) => Promise<void>;
+  notifyTournamentWinner: (tournamentId: string, winnerId: string) => Promise<void>;
+  notifyMatchReady: (matchId: string, team1Id: string, team2Id: string) => Promise<void>;
 }
 
-export const processMatchResults = async ({ 
-  matchId, 
-  winnerId, 
-  loserId, 
+export const processMatchResults = async ({
+  matchId,
+  winnerId,
+  loserId,
   tournamentId,
-  onComplete 
+  onComplete,
+  toast,
+  notifyMatchComplete,
+  notifyTournamentWinner,
+  notifyMatchReady
 }: MatchResultsProcessorProps) => {
-  const { toast } = useToast();
-  const { notifyMatchComplete, notifyTournamentWinner, notifyMatchReady } = useEnhancedNotifications();
-
   try {
     // Update match as completed
     await supabase
       .from('matches')
-      .update({ 
+      .update({
         winner_id: winnerId,
         status: 'completed',
         completed_at: new Date().toISOString()
@@ -77,10 +80,10 @@ export const processMatchResults = async ({
     if (isTournamentComplete) {
       await completeTournament(tournamentId, winnerId);
       await notifyTournamentWinner(tournamentId, winnerId);
-      
+
       toast({
         title: "Tournament Complete!",
-        description: "Congratulations to the tournament winner!",
+        description: "Congratulations to the tournament winner!"
       });
     } else {
       // Check for newly ready matches
@@ -103,12 +106,11 @@ export const processMatchResults = async ({
     }
 
     onComplete();
-    
+
     toast({
       title: "Match Results Processed",
-      description: "Statistics and tournament progress updated",
+      description: "Statistics and tournament progress updated"
     });
-
   } catch (error) {
     console.error('Error processing match results:', error);
     toast({

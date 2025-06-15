@@ -10,6 +10,7 @@ import { Trophy, Target, CheckCircle, Clock, AlertTriangle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
 import { processMatchResults } from "@/components/EnhancedMatchResultsProcessor";
 
 interface Match {
@@ -41,6 +42,7 @@ const ScoreReporting = ({ match, onScoreSubmitted }: ScoreReportingProps) => {
   });
   const { user } = useAuth();
   const { toast } = useToast();
+  const notifications = useEnhancedNotifications();
 
   const handleSubmitScore = async () => {
     if (!user) return;
@@ -98,7 +100,11 @@ const ScoreReporting = ({ match, onScoreSubmitted }: ScoreReportingProps) => {
             tournamentId: match.tournament_id,
             onComplete: () => {
               console.log('Tournament progression completed');
-            }
+            },
+            toast,
+            notifyMatchComplete: notifications.notifyMatchComplete,
+            notifyTournamentWinner: notifications.notifyTournamentWinner,
+            notifyMatchReady: notifications.notifyMatchReady,
           });
         }
 
