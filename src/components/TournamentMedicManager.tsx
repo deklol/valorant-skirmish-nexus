@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +7,7 @@ import { Wrench, RefreshCw, Edit, ShieldAlert, Trophy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import TournamentMedicEditModal from "./TournamentMedicEditModal";
-import { Tournament } from "@/components/ComprehensiveTournamentEditor";
+import { Tournament } from "@/types/tournament";
 
 // Remove local Tournament type, use the imported one
 

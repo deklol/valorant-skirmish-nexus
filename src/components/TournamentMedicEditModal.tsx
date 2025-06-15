@@ -8,7 +8,7 @@ import TournamentMedicPlayersTab from "./tournament-medic/TournamentMedicPlayers
 import TournamentMedicTeamsTab from "./tournament-medic/TournamentMedicTeamsTab";
 import TournamentMedicBracketTab from "./tournament-medic/TournamentMedicBracketTab";
 import TournamentMedicToolsTab from "./tournament-medic/TournamentMedicToolsTab";
-import { Tournament } from "@/components/ComprehensiveTournamentEditor";
+import { Tournament } from "@/types/tournament";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";

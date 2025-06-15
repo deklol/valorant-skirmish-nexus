@@ -7,6 +7,7 @@ import { useDebouncedValue } from "./useDebouncedValue";
 import ForceCheckInManager from "@/components/ForceCheckInManager";
 import { Badge } from "@/components/ui/badge";
 import { CheckSquare } from "lucide-react";
+import { Tournament } from "@/types/tournament";
 
 // Central types
 type Player = {
@@ -14,14 +15,6 @@ type Player = {
   discord_username: string | null;
   riot_id: string | null;
   is_substitute?: boolean;
-};
-// Tournament type expanded for status, etc
-type Tournament = {
-  id: string;
-  name: string;
-  status: string;
-  check_in_required?: boolean;
-  // ...other fields as needed
 };
 
 // Get all players signed up for this tournament

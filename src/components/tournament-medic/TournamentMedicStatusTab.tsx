@@ -1,7 +1,7 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShieldAlert } from "lucide-react";
-import ComprehensiveTournamentEditor, { Tournament } from "@/components/ComprehensiveTournamentEditor";
+import ComprehensiveTournamentEditor from "@/components/ComprehensiveTournamentEditor";
+import { Tournament } from "@/types/tournament";
 import TournamentStatusManager from "@/components/TournamentStatusManager";
 import MedicTournamentTimeline from "./MedicTournamentTimeline";
 
@@ -41,4 +41,3 @@ export default function TournamentMedicStatusTab({
     </div>
   );
 }
-

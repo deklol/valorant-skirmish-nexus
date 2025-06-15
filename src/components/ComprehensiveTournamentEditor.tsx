@@ -9,25 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Edit, Save, Calendar, Users, Trophy, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-
-// --- Export Tournament interface ---
-export interface Tournament {
-  id: string;
-  name: string;
-  description: string | null;
-  start_time: string | null;
-  registration_opens_at: string | null;
-  registration_closes_at: string | null;
-  check_in_starts_at: string | null;
-  check_in_ends_at: string | null;
-  max_teams: number;
-  max_players: number;
-  team_size: number; // <-- Added this line
-  prize_pool: string | null;
-  status: "draft" | "open" | "balancing" | "live" | "completed" | "archived";
-  match_format: "BO1" | "BO3" | "BO5" | null;
-  bracket_type: string | null;
-}
+import { Tournament } from "@/types/tournament";
 
 interface ComprehensiveTournamentEditorProps {
   tournament: Tournament;
