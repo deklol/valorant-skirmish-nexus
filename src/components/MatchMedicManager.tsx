@@ -152,7 +152,10 @@ export default function MatchMedicManager() {
             onComplete: () => {},
           },
           {
-            toast,
+            toast: (args) => toast({
+              ...args,
+              variant: (args.variant ?? "default") as "default" | "destructive",
+            }),
             notifyMatchComplete,
             notifyTournamentWinner,
             notifyMatchReady,

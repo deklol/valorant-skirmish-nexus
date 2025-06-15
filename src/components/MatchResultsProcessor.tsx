@@ -16,7 +16,7 @@ export type MatchResultsProcessorInput = {
 };
 
 export type NotificationFunctions = {
-  toast?: (args: { title: string; description?: string; variant?: string }) => void;
+  toast?: (args: { title: string; description?: string; variant?: "default" | "destructive" }) => void;
   notifyMatchComplete?: (matchId: string, winnerId: string, loserId: string) => Promise<void>;
   notifyTournamentWinner?: (tournamentId: string, winnerTeamId: string) => Promise<void>;
   notifyMatchReady?: (matchId: string, team1Id: string, team2Id: string) => Promise<void>;
