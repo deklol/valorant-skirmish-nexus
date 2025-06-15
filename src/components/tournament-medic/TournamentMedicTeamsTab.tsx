@@ -142,11 +142,10 @@ export default function TournamentMedicTeamsTab({
     // eslint-disable-next-line
   }, [tournament.id]);
 
-  // Helper to construct the Discord message with embed fields per team
+  // Helper to construct the Discord message with embed fields per team, improved with tournament info & link
   function generateDiscordMessage(teams: TeamWithMembers[]) {
     if (!teams.length) return { content: "No teams found.", embed: {} };
 
-    // Sort teams by name for consistency
     const sortedTeams = [...teams].sort((a, b) => a.name.localeCompare(b.name));
 
     // Helper: format members
@@ -174,13 +173,27 @@ export default function TournamentMedicTeamsTab({
           const rank = m.users?.current_rank ?? "—";
           const weight =
             typeof m.users?.weight_rating === "number"
-              ? ` [${m.users.weight_rating}]`
+              ? ` [${m.users?.weight_rating}]`
               : "";
           lines.push(`${uname} — ${rank}${weight}`);
         });
 
       return lines.length ? lines.join("\n") : "*No members*";
     }
+
+    // Construct key info
+    const tournamentUrl = `${window.location.origin}/tournaments/${tournament.id}`;
+    const embedTitle = `[${tournament.name}](${tournamentUrl})`;
+    const embedDescLines = [];
+    if (tournament.description) embedDescLines.push(`*${tournament.description}*`);
+    if (tournament.start_time) {
+      const localDate = new Date(tournament.start_time).toLocaleString(undefined, { dateStyle: "full", timeStyle: "short"});
+      embedDescLines.push(`**Start:** ${localDate}`);
+    }
+    embedDescLines.push(`**Status:** ${tournament.status}`);
+    embedDescLines.push(`**Format:** ${tournament.match_format || "?"} / ${tournament.bracket_type || "?"}`);
+    if (tournament.prize_pool) embedDescLines.push(`**Prize:** ${tournament.prize_pool}`);
+    embedDescLines.push(`**Team Size:** ${tournament.team_size}, Max Teams: ${tournament.max_teams}`);
 
     // Compose embed fields: one field per team
     const fields = sortedTeams.map((team) => ({
@@ -190,10 +203,11 @@ export default function TournamentMedicTeamsTab({
     }));
 
     return {
-      content: `**Teams for ${tournament.name}**`,
+      content: `**Teams for [${tournament.name}](${tournamentUrl})**`,
       embed: {
-        title: `Teams for ${tournament.name}`,
-        description: "Tournament teams have been generated below, separated by team:",
+        title: tournament.name,
+        url: tournamentUrl,
+        description: embedDescLines.join("\n"),
         color: 0x00bfff,
         timestamp: new Date().toISOString(),
         footer: {
