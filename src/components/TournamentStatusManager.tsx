@@ -193,6 +193,10 @@ const TournamentStatusManager = ({ tournamentId, currentStatus, onStatusChange }
       if (status === 'live') {
         updateData.start_time = new Date().toISOString();
       }
+      // If opening registration, force the open time to now
+      if (status === 'open') {
+        updateData.registration_opens_at = new Date().toISOString();
+      }
 
       const { error } = await supabase
         .from('tournaments')
