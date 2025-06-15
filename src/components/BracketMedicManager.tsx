@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import BracketOverview from "./BracketOverview";
 import { analyzeBracketState } from "@/utils/analyzeBracketState";
+import BracketMedicTournamentList from "./BracketMedicTournamentList";
 
 // Minimal team & match info
 type TournamentInfo = { id: string; name: string };
@@ -273,52 +274,21 @@ export default function BracketMedicManager() {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="mb-3 flex gap-2 items-center">
-          <Input
-            className="w-64"
-            type="text"
-            placeholder="Search tournament by name"
-            disabled={loading}
-            onChange={e => {
-              const query = e.target.value.trim().toLowerCase();
-              setTournaments(prev =>
-                prev.slice().sort((a, b) => {
-                  if (!query) return 0;
-                  const aMatch = a.name?.toLowerCase().includes(query) ? -1 : 0;
-                  const bMatch = b.name?.toLowerCase().includes(query) ? -1 : 0;
-                  return aMatch - bMatch;
-                })
-              );
-            }}
-          />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => selectedTournament && loadBracket(selectedTournament.id)}
-            disabled={loading}
-          >
-            <RefreshCw className="w-4 h-4 mr-1" /> Refresh Bracket
-          </Button>
-        </div>
-        {/* Tournament selector */}
-        <div className="flex flex-wrap gap-2 mb-6">
-          {tournaments.map(t =>
-            <Button
-              key={t.id}
-              size="sm"
-              className={selectedTournament?.id === t.id ? "bg-cyan-600 text-white" : ""}
-              variant={selectedTournament?.id === t.id ? "default" : "outline"}
-              onClick={() => handleSelectTournament(t.id)}
-            >
-              {t.name}
-            </Button>
-          )}
-        </div>
-
+        {/* Tournament selection UI */}
         {!selectedTournament && (
-          <div className="text-slate-300 text-center py-8">Select a tournament to use Bracket Medic.</div>
+          <div>
+            <BracketMedicTournamentList
+              tournaments={tournaments}
+              loading={loading}
+              onSelect={handleSelectTournament}
+            />
+            <div className="text-slate-300 text-center py-8">
+              Select a tournament to use Bracket Medic.
+            </div>
+          </div>
         )}
 
+        {/* (Unchanged) Bracket analysis, tools, and actions */}
         {selectedTournament && (
           <>
             {/* Bracket Health Status */}
