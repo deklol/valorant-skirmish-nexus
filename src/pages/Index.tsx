@@ -40,7 +40,7 @@ const Index = () => {
       </section>
 
       {/* Live Matches Section (moved here, right after Twitch) */}
-      <section className="container mx-auto px-4 py-12">
+      <section className="container mx-auto px-4 pt-4 pb-8">
         <LiveMatches />
       </section>
 
