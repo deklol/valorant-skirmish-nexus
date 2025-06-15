@@ -444,69 +444,71 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
     );
   };
 
-  // 🧠 Autobalance Algorithm (snake draft, fair suggestion)
+  // 🧠 Autobalance Algorithm (greedy minimal weight difference)
   function autobalanceUnassignedPlayers() {
     setAutobalancing(true);
     try {
-      // Copy teams and unassigned
-      const teamsCopy = [...teams].map(team => ({ ...team, members: [...team.members] }));
-      let unassignedCopy = [...unassignedPlayers];
+      // Copy current teams and unassigned lists (deep enough for logic)
+      const teamsCopy: Team[] = teams.map(team => ({ ...team, members: [...team.members] }));
+      let unassignedCopy: Player[] = [...unassignedPlayers];
 
-      // Sort unassigned players by weight_rating DESC
+      // Sort unassigned players by weight_rating DESC (highest first)
       unassignedCopy.sort((a, b) => b.weight_rating - a.weight_rating);
 
-      // Get all teams, sorted by current totalWeight ASC, to balance
-      const sortingKeyTeams = () => teamsCopy
-        .map(team => ({ ...team }))
-        .sort((a, b) => a.totalWeight - b.totalWeight);
-
-      let direction = 1;
-      let teamIndexes = Array.from({ length: teamsCopy.length }, (_, i) => i);
-
       while (unassignedCopy.length > 0) {
-        const sortedTeams = sortingKeyTeams();
+        // Pick the next strongest player
+        const player = unassignedCopy.shift();
+        if (!player) break;
 
-        // If direction is -1, reverse allocation order ("snake" back)
-        if (direction === -1) {
-          sortedTeams.reverse();
-        }
+        let bestTeamIndex = -1;
+        let bestDelta = Infinity; // Track lowest possible team delta after placement
 
-        let assignedInRound = false;
+        // Try this player on every team that has open slot
+        for (let i = 0; i < teamsCopy.length; i++) {
+          if (teamsCopy[i].members.length >= teamSize) continue;
 
-        for (let team of sortedTeams) {
-          if (unassignedCopy.length === 0) break;
-          if (team.members.length >= teamSize) continue;
+          // Simulate adding to this team
+          const simulatedTeams = teamsCopy.map((t, idx) =>
+            idx === i
+              ? { ...t, members: [...t.members, player], totalWeight: t.totalWeight + player.weight_rating }
+              : t
+          );
 
-          // Remove from unassigned and add to team
-          const player = unassignedCopy.shift();
-          if (!player) continue;
-          team.members.push(player);
-          team.totalWeight = (team.totalWeight || 0) + player.weight_rating;
-          assignedInRound = true;
-        }
+          // Only consider teams that will have >0 members after this operation (skip empty if phantom)
+          const teamWeights = simulatedTeams
+            .filter(t => t.members.length > 0)
+            .map(t => t.members.reduce((sum, m) => sum + m.weight_rating, 0));
 
-        // Place modified members back to correct teamsCopy
-        for (let team of sortedTeams) {
-          let idx = teamsCopy.findIndex(t => t.id === team.id);
-          if (idx !== -1) {
-            teamsCopy[idx] = team;
+          const maxW = Math.max(...teamWeights, 0);
+          const minW = Math.min(...teamWeights, 0);
+          const delta = maxW - minW;
+
+          if (delta < bestDelta) {
+            bestDelta = delta;
+            bestTeamIndex = i;
           }
         }
 
-        // Reverse direction for snake-draft style
-        direction *= -1;
+        // Fallback: if all teams are full, break
+        if (bestTeamIndex === -1) break;
 
-        // Exit if there were no assignments in a round
-        if (!assignedInRound) break;
+        // Assign the player to the best team found
+        teamsCopy[bestTeamIndex].members.push(player);
+        teamsCopy[bestTeamIndex].totalWeight =
+          (teamsCopy[bestTeamIndex].totalWeight || 0) + player.weight_rating;
       }
 
-      // Remove autobalanced players from unassigned (show as assigned in UI)
       setUnassignedPlayers([]);
-      setTeams(teamsCopy);
+      setTeams(
+        teamsCopy.map(team => ({
+          ...team,
+          totalWeight: team.members.reduce((sum, m) => sum + m.weight_rating, 0),
+        }))
+      );
 
       toast({
         title: "Suggestion Complete",
-        description: "Players have been distributed to teams as fairly as possible. Review before saving.",
+        description: "Players distributed to teams for best possible balance. Review before saving.",
       });
     } catch (e) {
       toast({
