@@ -251,34 +251,38 @@ const TournamentDetail = () => {
                     key={team.id}
                     className="bg-slate-900 border border-slate-700 p-4 rounded-xl shadow flex flex-col"
                   >
-                    <div className="flex items-center mb-2 gap-2">
-                      <span className="font-bold text-lg text-white">{team.name}</span>
-                      {team.team_members?.some(m => m.is_captain) && (
-                        <span title="Captain">
-                          <Crown className="w-5 h-5 text-yellow-400" />
-                        </span>
-                      )}
-                    </div>
-                    {/* --- Show Team Weight --- */}
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge className="bg-purple-700/30 border-purple-500 text-purple-200 font-semibold text-xs">
+                    {/* --- Team heading row --- */}
+                    <div className="flex flex-row items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-lg text-white">Team {team.name}</span>
+                        {team.team_members?.some(m => m.is_captain) && (
+                          <span title="Captain">
+                            <Crown className="w-5 h-5 text-yellow-400" />
+                          </span>
+                        )}
+                      </div>
+                      <Badge className="bg-purple-700/30 border border-purple-500 text-purple-200 font-semibold text-xs px-4 py-1 rounded-full">
                         Team Weight: {team.total_rank_points ?? 0}
                       </Badge>
                     </div>
-                    <div className="flex flex-col gap-2 mt-1">
+                    <div className="flex flex-col gap-2">
                       {team.team_members && team.team_members.length > 0 ? (
                         team.team_members.map(member => (
                           <div
                             key={member.user_id}
                             className={`flex items-center gap-2 px-3 py-2 rounded ${
-                              member.is_captain ? "bg-yellow-700/10" : "bg-slate-800"
+                              member.is_captain
+                                ? "bg-slate-800 text-white font-semibold"
+                                : "bg-slate-800/80 text-blue-200"
                             }`}
                           >
                             <Users className="w-4 h-4 text-blue-300" />
                             <ClickableUsername
                               userId={member.user_id}
                               username={member.users?.discord_username || ""}
-                              className="text-blue-300"
+                              className={`${
+                                member.is_captain ? "text-white" : "text-blue-300"
+                              }`}
                             />
                             {member.is_captain && (
                               <span title="Captain">
