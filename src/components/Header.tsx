@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Users, Calendar, Menu, X, LogOut, User, Settings, Shield, discord as DiscordIcon } from "lucide-react";
+import { Trophy, Users, Calendar, Menu, X, LogOut, User, Settings, Shield, Youtube } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import MobileNav from "./MobileNav";
@@ -54,7 +54,7 @@ const Header = () => {
               className="flex items-center text-slate-300 hover:text-indigo-400 transition-colors"
               title="Join our Discord"
             >
-              <DiscordIcon className="w-4 h-4 inline mr-2" />
+              <Youtube className="w-4 h-4 inline mr-2 text-indigo-400" />
               Discord
             </a>
           </nav>
@@ -70,7 +70,7 @@ const Header = () => {
               aria-label="Join our Discord"
               title="Join our Discord"
             >
-              <DiscordIcon className="w-6 h-6" />
+              <Youtube className="w-6 h-6 text-indigo-400" />
             </a>
             {user && <NotificationCenter />}
             
@@ -140,4 +140,3 @@ const Header = () => {
 };
 
 export default Header;
-
