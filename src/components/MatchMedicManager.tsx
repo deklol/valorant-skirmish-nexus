@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
 import { processMatchResults } from "./MatchResultsProcessor";
+import MatchEditModal, { parseStatus } from "./MatchEditModal";
 
 interface TeamInfo {
   id: string;
@@ -299,111 +300,14 @@ export default function MatchMedicManager() {
       </Card>
 
       {/* Edit Modal (basic HTML, refactor to shadcn Dialog if needed) */}
-      {editModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-slate-900 p-6 rounded-lg shadow border border-amber-700 w-full max-w-md">
-            <h3 className="text-lg font-bold mb-2 text-white flex items-center gap-2">
-              <Activity className="w-5 h-5 text-amber-400" /> Edit Match #{editModal.match_number}
-            </h3>
-            <div className="space-y-2">
-              <div>
-                <label className="block text-amber-300 text-xs mb-1">Status:</label>
-                <select
-                  className="w-full bg-slate-800 text-white border border-slate-700 rounded px-3 py-2"
-                  value={editModal.status}
-                  disabled={!!actionMatchId}
-                  onChange={e =>
-                    setEditModal({ ...editModal, status: parseStatus(e.target.value) })
-                  }
-                >
-                  <option value="pending">Pending</option>
-                  <option value="live">Live</option>
-                  <option value="completed">Completed</option>
-                </select>
-              </div>
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <label className="block text-amber-300 text-xs mb-1">Score (Team 1):</label>
-                  <input
-                    type="number"
-                    min={0}
-                    value={editModal.score_team1}
-                    className="w-full bg-slate-800 text-white border border-slate-700 rounded px-2 py-1"
-                    disabled={!!actionMatchId}
-                    onChange={e =>
-                      setEditModal({ ...editModal, score_team1: Number(e.target.value) })
-                    }
-                  />
-                </div>
-                <div className="flex-1">
-                  <label className="block text-amber-300 text-xs mb-1">Score (Team 2):</label>
-                  <input
-                    type="number"
-                    min={0}
-                    value={editModal.score_team2}
-                    className="w-full bg-slate-800 text-white border border-slate-700 rounded px-2 py-1"
-                    disabled={!!actionMatchId}
-                    onChange={e =>
-                      setEditModal({ ...editModal, score_team2: Number(e.target.value) })
-                    }
-                  />
-                </div>
-              </div>
-              {(editModal.team1 || editModal.team2) && (
-                <div>
-                  <label className="block text-amber-300 text-xs mb-1">Winner:</label>
-                  <select
-                    className="w-full bg-slate-800 text-white border border-slate-700 rounded px-3 py-2"
-                    disabled={!!actionMatchId}
-                    value={editModal.winner?.id || ""}
-                    onChange={e => {
-                      let winnerObj = null;
-                      if (e.target.value === editModal.team1?.id) {
-                        winnerObj = editModal.team1;
-                      } else if (e.target.value === editModal.team2?.id) {
-                        winnerObj = editModal.team2;
-                      }
-                      setEditModal({
-                        ...editModal,
-                        winner: winnerObj as WinnerInfo | null,
-                      });
-                    }}
-                  >
-                    <option value="">No winner</option>
-                    {editModal.team1 && <option value={editModal.team1.id}>{editModal.team1.name}</option>}
-                    {editModal.team2 && <option value={editModal.team2.id}>{editModal.team2.name}</option>}
-                  </select>
-                </div>
-              )}
-            </div>
-            <div className="flex gap-2 mt-4 justify-end">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => { setEditModal(null); }}
-                disabled={!!actionMatchId}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={() =>
-                  handleEditSubmit({
-                    status: editModal.status,
-                    score_team1: editModal.score_team1,
-                    score_team2: editModal.score_team2,
-                    winner_id: editModal.winner?.id ?? null,
-                  })
-                }
-                className="bg-amber-600 text-white"
-                size="sm"
-                disabled={!!actionMatchId}
-              >
-                {actionMatchId ? "Saving..." : "Save"}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <MatchEditModal
+        open={!!editModal}
+        match={editModal}
+        actionMatchId={actionMatchId}
+        onChange={setEditModal}
+        onCancel={() => setEditModal(null)}
+        onSave={handleEditSubmit}
+      />
     </>
   );
 }
