@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Bell, X, Check, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -153,15 +154,15 @@ const NotificationCenter = () => {
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80 p-0">
-        <Card className="border-0 shadow-lg">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Notifications</CardTitle>
+      <DropdownMenuContent align="end" className="w-80 p-0 bg-slate-900 border border-slate-700 shadow-lg">
+        <Card className="border-0 shadow-lg bg-slate-900">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-slate-900">
+            <CardTitle className="text-sm font-medium text-white">Notifications</CardTitle>
             <Button
               variant="ghost"
               size="sm"
               onClick={markAllAsRead}
-              className="h-6 px-2 text-xs"
+              className="h-6 px-2 text-xs text-red-400 hover:text-white"
               title="Mark all as read"
               disabled={unreadCount === 0}
             >
@@ -189,27 +190,29 @@ const NotificationCenter = () => {
 
                     const content = (
                       <div
-                        className={`p-3 border-b border-slate-200 hover:bg-slate-50 cursor-pointer flex items-center ${
-                          !notification.read ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
+                        className={`p-3 border-b border-slate-700 hover:bg-slate-700 cursor-pointer flex items-center transition-colors duration-100 ${
+                          !notification.read
+                            ? 'bg-red-900/20 border-l-4 border-l-red-500'
+                            : ''
                         }`}
                         onClick={() => !notification.read && markAsRead(notification.id)}
                       >
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-slate-900 truncate">
+                          <p className="text-sm font-medium text-white truncate">
                             {notification.title}
                           </p>
-                          <p className="text-xs text-slate-600 mt-1 truncate">
+                          <p className="text-xs text-slate-400 mt-1 truncate">
                             {notification.message}
                           </p>
-                          <p className="text-xs text-slate-400 mt-1">
+                          <p className="text-xs text-slate-500 mt-1">
                             {formatTime(notification.created_at)}
                           </p>
                         </div>
                         {link && (
-                          <ArrowRight className="w-4 h-4 ml-3 flex-shrink-0 text-blue-400" />
+                          <ArrowRight className="w-4 h-4 ml-3 flex-shrink-0 text-red-400" />
                         )}
                         {!notification.read && (
-                          <div className="w-2 h-2 bg-blue-500 rounded-full ml-2 mt-1" />
+                          <div className="w-2 h-2 bg-red-500 rounded-full ml-2 mt-1" />
                         )}
                       </div>
                     );
@@ -246,3 +249,4 @@ const NotificationCenter = () => {
 };
 
 export default NotificationCenter;
+
