@@ -15,8 +15,8 @@ export function useMapVetoSideSelection({ vetoSessionId, onSideSelected }: SideS
   const selectSide = async (side: "attack" | "defend") => {
     setLoading(true);
     try {
-      // -- Accept any string for RPC name, don't restrict
-      const { data, error } = await supabase.rpc('set_side_choice' as any, {
+      // The backend function now exists: "set_side_choice"
+      const { data, error } = await supabase.rpc('set_side_choice', {
         p_veto_session_id: vetoSessionId,
         p_user_id: (await supabase.auth.getUser()).data.user?.id,
         p_side_choice: side
@@ -24,17 +24,17 @@ export function useMapVetoSideSelection({ vetoSessionId, onSideSelected }: SideS
 
       if (error) throw error;
 
-      // Defensive: treat only string "OK" as OK, otherwise throw/handle errors
+      // Backend returns "OK" string if side was set, otherwise an error message
       if (typeof data === "string" && data === 'OK') {
         toast({
           title: "Side Selected",
           description: `You selected ${side} side for the map.`,
         });
         onSideSelected?.();
-      } else if (typeof data === "string") {
+      } else if (typeof data === "string" && data !== "OK") {
         throw new Error(data);
       } else {
-        throw new Error("Failed to select side (no message)");
+        throw new Error("Failed to select side (unexpected response)");
       }
     } catch (error: any) {
       toast({

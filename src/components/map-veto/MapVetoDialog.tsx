@@ -264,7 +264,7 @@ const MapVetoDialog = ({
     }
   }, [homeTeamId, awayTeamId, team1Id, team2Id, team1Name, team2Name]);
 
-  // Side pick modal logic for side selection, kept the same.
+  // Side pick modal logic for side selection, kept aligned to new backend
   useEffect(() => {
     if (
       bestOf === 1 &&
@@ -282,15 +282,29 @@ const MapVetoDialog = ({
           onPick: async (side: "attack" | "defend") => {
             if (lastPick.side_choice) return;
             setLoading(true);
-            const { error } = await supabase
-              .from("map_veto_actions")
-              .update({ side_choice: side })
-              .eq("id", lastPick.id)
-              .is("side_choice", null);
-            setLoading(false);
-            setSidePickModal(null);
-            await refetchVetoActions();
-            toast({ title: "Side Selected", description: `You picked ${side} side.` });
+            // Use robust hook which now calls the new set_side_choice RPC
+            try {
+              const { data, error } = await supabase.rpc('set_side_choice', {
+                p_veto_session_id: vetoSessionId,
+                p_user_id: (await supabase.auth.getUser()).data.user?.id,
+                p_side_choice: side,
+              });
+              setSidePickModal(null);
+              await refetchVetoActions();
+              if (error) {
+                toast({ title: "Error", description: error.message, variant: "destructive" });
+              } else if (data === "OK") {
+                toast({ title: "Side Selected", description: `You picked ${side} side.` });
+              } else if (typeof data === "string") {
+                toast({ title: "Error", description: data, variant: "destructive" });
+              } else {
+                toast({ title: "Error", description: "Unexpected response from side selection." });
+              }
+            } catch (error: any) {
+              toast({ title: "Error", description: error.message, variant: "destructive" });
+            } finally {
+              setLoading(false);
+            }
           },
         });
       }

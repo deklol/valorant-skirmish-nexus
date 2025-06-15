@@ -1155,6 +1155,14 @@ export type Database = {
         }
         Returns: string
       }
+      set_side_choice: {
+        Args: {
+          p_veto_session_id: string
+          p_user_id: string
+          p_side_choice: string
+        }
+        Returns: string
+      }
       user_has_notification_enabled: {
         Args: { p_user_id: string; p_notification_type: string }
         Returns: boolean
