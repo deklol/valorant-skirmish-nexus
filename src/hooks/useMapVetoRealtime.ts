@@ -1,51 +1,59 @@
-
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Cleanly remove and unsubscribe a Supabase channel.
+ * Improved real-time hook that prevents syncing issues and duplicate subscriptions
  */
-function cleanupChannel(channelRef: React.MutableRefObject<any>) {
-  if (channelRef.current) {
-    try {
-      channelRef.current.unsubscribe();
-    } catch {}
-    try {
-      supabase.removeChannel(channelRef.current);
-    } catch {}
-    channelRef.current = null;
-  }
+
+type ConnectionState = "connecting" | "online" | "offline" | "error";
+
+interface RealtimeHookOptions {
+  enabled?: boolean;
+  onConnectionChange?: (state: ConnectionState) => void;
 }
 
 /**
- * Real-time subscription hook for map_veto_actions.
+ * Clean and robust real-time subscription for map veto actions
  */
 export function useMapVetoActionsRealtime(
   vetoSessionId: string | null,
-  callback: (payload: any) => void,
-  onConnectionChange?: (state: "connecting" | "online" | "offline" | "error") => void
+  onUpdate: (payload: any) => void,
+  options: RealtimeHookOptions = {}
 ) {
-  const callbackRef = useRef(callback);
-  callbackRef.current = callback;
+  const { enabled = true, onConnectionChange } = options;
   const channelRef = useRef<any>(null);
+  const onUpdateRef = useRef(onUpdate);
+  const onConnectionRef = useRef(onConnectionChange);
+  
+  // Keep refs updated
+  onUpdateRef.current = onUpdate;
+  onConnectionRef.current = onConnectionChange;
+
+  const cleanup = useCallback(() => {
+    if (channelRef.current) {
+      try {
+        channelRef.current.unsubscribe();
+        supabase.removeChannel(channelRef.current);
+      } catch (error) {
+        console.warn('Error cleaning up channel:', error);
+      }
+      channelRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
-    // Always cleanup channel before creating new one
-    cleanupChannel(channelRef);
-    if (!vetoSessionId) return;
+    if (!enabled || !vetoSessionId) {
+      cleanup();
+      return;
+    }
 
-    let isMounted = true;
-    onConnectionChange?.("connecting");
+    onConnectionRef.current?.("connecting");
 
-    // Channel name must be unique per session
-    const channelName = `map-veto-actions-${vetoSessionId}-${Math.random().toString(36).slice(2, 10)}`;
+    // Create unique channel name to prevent conflicts
+    const channelName = `veto-actions-${vetoSessionId}-${Date.now()}`;
     const channel = supabase.channel(channelName);
 
-    const handleChange = (payload: any) => {
-      if (callbackRef.current) callbackRef.current(payload);
-    };
-
-    // Setup subscription handlers
+    // Set up postgres changes listener
     channel.on(
       "postgres_changes",
       {
@@ -54,53 +62,77 @@ export function useMapVetoActionsRealtime(
         table: "map_veto_actions",
         filter: `veto_session_id=eq.${vetoSessionId}`,
       },
-      handleChange
+      (payload) => {
+        console.log('Veto action real-time update:', payload);
+        onUpdateRef.current?.(payload);
+      }
     );
 
-    // Subscribe: only run once!
-    let subscribed = false;
+    // Subscribe and handle connection status
     channel.subscribe((status) => {
-      if (!isMounted) return;
-      if (status === "SUBSCRIBED") {
-        onConnectionChange?.("online");
+      console.log('Veto actions subscription status:', status);
+      switch (status) {
+        case "SUBSCRIBED":
+          onConnectionRef.current?.("online");
+          break;
+        case "CHANNEL_ERROR":
+        case "TIMED_OUT":
+        case "CLOSED":
+          onConnectionRef.current?.("error");
+          break;
       }
-      // Failures
-      if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
-        onConnectionChange?.("error");
-      }
-      subscribed = true;
     });
 
     channelRef.current = channel;
 
-    return () => {
-      isMounted = false;
-      cleanupChannel(channelRef);
-    };
-  }, [vetoSessionId, onConnectionChange]);
+    return cleanup;
+  }, [vetoSessionId, enabled, cleanup]);
+
+  return cleanup;
 }
 
 /**
- * Real-time subscription hook for map_veto_sessions.
+ * Clean and robust real-time subscription for map veto sessions
  */
 export function useMapVetoSessionRealtime(
   vetoSessionId: string | null,
-  callback: (payload: any) => void,
-  onConnectionChange?: (state: "connecting" | "online" | "offline" | "error") => void
+  onUpdate: (payload: any) => void,
+  options: RealtimeHookOptions = {}
 ) {
-  const callbackRef = useRef(callback);
-  callbackRef.current = callback;
+  const { enabled = true, onConnectionChange } = options;
   const channelRef = useRef<any>(null);
+  const onUpdateRef = useRef(onUpdate);
+  const onConnectionRef = useRef(onConnectionChange);
+  
+  // Keep refs updated
+  onUpdateRef.current = onUpdate;
+  onConnectionRef.current = onConnectionChange;
+
+  const cleanup = useCallback(() => {
+    if (channelRef.current) {
+      try {
+        channelRef.current.unsubscribe();
+        supabase.removeChannel(channelRef.current);
+      } catch (error) {
+        console.warn('Error cleaning up channel:', error);
+      }
+      channelRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
-    cleanupChannel(channelRef);
-    if (!vetoSessionId) return;
-    let isMounted = true;
-    onConnectionChange?.("connecting");
-    // Make channel name unique to avoid cache
-    const channelName = `map-veto-session-${vetoSessionId}-${Math.random().toString(36).slice(2, 10)}`;
+    if (!enabled || !vetoSessionId) {
+      cleanup();
+      return;
+    }
+
+    onConnectionRef.current?.("connecting");
+
+    // Create unique channel name to prevent conflicts
+    const channelName = `veto-session-${vetoSessionId}-${Date.now()}`;
     const channel = supabase.channel(channelName);
 
+    // Set up postgres changes listener
     channel.on(
       "postgres_changes",
       {
@@ -110,22 +142,30 @@ export function useMapVetoSessionRealtime(
         filter: `id=eq.${vetoSessionId}`,
       },
       (payload) => {
-        if (callbackRef.current) callbackRef.current(payload);
+        console.log('Veto session real-time update:', payload);
+        onUpdateRef.current?.(payload);
       }
     );
 
+    // Subscribe and handle connection status
     channel.subscribe((status) => {
-      if (!isMounted) return;
-      if (status === "SUBSCRIBED") onConnectionChange?.("online");
-      if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
-        onConnectionChange?.("error");
+      console.log('Veto session subscription status:', status);
+      switch (status) {
+        case "SUBSCRIBED":
+          onConnectionRef.current?.("online");
+          break;
+        case "CHANNEL_ERROR":
+        case "TIMED_OUT":
+        case "CLOSED":
+          onConnectionRef.current?.("error");
+          break;
       }
     });
 
     channelRef.current = channel;
-    return () => {
-      isMounted = false;
-      cleanupChannel(channelRef);
-    };
-  }, [vetoSessionId, onConnectionChange]);
+
+    return cleanup;
+  }, [vetoSessionId, enabled, cleanup]);
+
+  return cleanup;
 }
