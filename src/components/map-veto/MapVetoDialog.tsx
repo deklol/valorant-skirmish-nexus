@@ -173,7 +173,7 @@ const MapVetoDialog = ({
         setCurrentTurnTeamId(payload.new.current_turn_team_id);
       }
     },
-    connState => {
+    { onConnectionChange: (connState) => {
       setConnectionStatus(connState);
       if (connState === "connecting") setSyncing(true);
       if (connState === "online") {
@@ -185,18 +185,18 @@ const MapVetoDialog = ({
       if (connState === "error" || connState === "offline") {
         setSyncing(true);
       }
-    }
+    }}
   );
   useMapVetoActionsRealtime(
     hasMinimalData ? vetoSessionId : null,
     fetchVetoActions,
-    connState => {
+    { onConnectionChange: (connState) => {
       // This line intentionally does not set connectionStatus;
       // Only setSyncing to block UI if offline
       if (connState === "connecting") setSyncing(true);
       if (connState === "online") setSyncing(false);
       if (connState === "error" || connState === "offline") setSyncing(true);
-    }
+    } }
   );
 
   // Manual retry logic for real-time connection
@@ -232,7 +232,11 @@ const MapVetoDialog = ({
     vetoActions,
     maps,
     fetchVetoActions,
-    checkPermissions: explainPermissions,
+    // -- Fix: pass a string error message (not an object)
+    checkPermissions: () => {
+      const result = explainPermissions();
+      return typeof result === "string" ? result : result.reason ?? "You are not allowed to perform this action";
+    },
     setLoading,
     toast,
   });
@@ -498,7 +502,7 @@ const MapVetoDialog = ({
                   bestOf={bestOf}
                   remainingMaps={getRemainingMaps(maps, vetoActions)}
                   vetoActions={vetoActions}
-                  onMapAction={handleMapAction}
+                  onMapAction={(mapId: string) => handleMapAction(mapId, safeCurrentAction)}
                   currentTeamTurn={currentTurnTeamId}
                   getMapStatus={getMapStatus}
                   isMapAvailable={(id) => isMapAvailable(id, vetoActions) && !vetoComplete}

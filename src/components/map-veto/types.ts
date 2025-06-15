@@ -4,6 +4,7 @@ export interface MapData {
   name: string;
   display_name: string;
   thumbnail_url: string | null;
+  is_active: boolean; // <-- Added to fix error for all code
 }
 export interface VetoAction {
   id: string;
