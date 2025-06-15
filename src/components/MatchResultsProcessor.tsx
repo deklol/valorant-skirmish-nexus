@@ -201,7 +201,7 @@ async function advanceWinnerToNextRound(currentMatch: any, winnerId: string, tou
         .update({ [updateField]: winnerId })
         .eq('id', nextMatch.id);
 
-      // If both teams are now assigned, set to pending (ready)
+      // If both teams are now assigned, set to live (not just pending)
       const { data: updated } = await supabase
         .from('matches')
         .select('team1_id, team2_id')
@@ -211,7 +211,7 @@ async function advanceWinnerToNextRound(currentMatch: any, winnerId: string, tou
       if (updated?.team1_id && updated?.team2_id) {
         await supabase
           .from('matches')
-          .update({ status: 'pending' })
+          .update({ status: 'live' }) // now set to live, not pending!
           .eq('id', nextMatch.id);
       }
     }
