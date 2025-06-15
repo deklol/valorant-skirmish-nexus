@@ -3,7 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { RefreshCw, ShieldAlert, Calendar, Edit, Flag, Activity, Trophy, MapPinned } from "lucide-react";
+import { RefreshCw, ShieldAlert, Calendar, Edit, Flag, Activity, Trophy, MapPinned, ShieldCheck, AlertCircle, CheckCircle2, Play, Pause, RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
@@ -320,6 +320,80 @@ export default function MatchMedicManager() {
     }
   }
 
+  // Add match health check function
+  const handleMatchHealthCheck = async (matchId: string) => {
+    setActionMatchId(matchId);
+    try {
+      const match = matches.find(m => m.id === matchId);
+      if (!match) return;
+
+      let issues = [];
+      
+      // Check for missing teams
+      if (!match.team1 || !match.team2) {
+        issues.push("Missing team assignments");
+      }
+      
+      // Check for invalid scores
+      if (match.status === "completed" && (!match.winner || (match.score_team1 === 0 && match.score_team2 === 0))) {
+        issues.push("Completed match missing winner or scores");
+      }
+      
+      // Check for scheduling conflicts
+      if (match.status === "pending" && match.scheduled_time && new Date(match.scheduled_time) < new Date()) {
+        issues.push("Match scheduled in the past");
+      }
+
+      if (issues.length === 0) {
+        toast({ title: "Match Health Check", description: "No issues found!" });
+      } else {
+        toast({
+          title: "Match Issues Detected",
+          description: issues.join(" | "),
+          variant: "destructive"
+        });
+      }
+    } catch (err: any) {
+      toast({
+        title: "Health Check Error",
+        description: err.message,
+        variant: "destructive"
+      });
+    } finally {
+      setActionMatchId(null);
+    }
+  };
+
+  // Quick status change function
+  const handleQuickStatusChange = async (matchId: string, newStatus: "pending" | "live" | "completed") => {
+    setActionMatchId(matchId);
+    try {
+      const updateData: any = { status: newStatus };
+      
+      if (newStatus === "live") {
+        updateData.started_at = new Date().toISOString();
+      } else if (newStatus === "completed") {
+        updateData.completed_at = new Date().toISOString();
+      }
+
+      await supabase
+        .from("matches")
+        .update(updateData)
+        .eq("id", matchId);
+
+      toast({ title: "Status Updated", description: `Match status changed to ${newStatus}` });
+      fetchMatches();
+    } catch (err: any) {
+      toast({
+        title: "Status Update Error",
+        description: err.message,
+        variant: "destructive"
+      });
+    } finally {
+      setActionMatchId(null);
+    }
+  };
+
   // Render
   return (
     <>
@@ -331,6 +405,7 @@ export default function MatchMedicManager() {
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {/* Search and filter controls */}
           <div className="mb-4 flex flex-wrap gap-2 items-center">
             <Input
               type="text"
@@ -363,42 +438,58 @@ export default function MatchMedicManager() {
               Refresh
             </Button>
           </div>
+
           {loading ? (
             <div className="text-center text-slate-300 py-8">Loading matches...</div>
           ) : filteredMatches.length === 0 ? (
             <div className="text-center text-slate-400 py-8">No matches found.</div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {filteredMatches.map(match => (
                 <div
                   key={match.id}
                   className="flex flex-col md:flex-row md:items-start md:justify-between border border-slate-700 bg-slate-900 rounded-lg p-4 shadow"
                 >
-                  <div className="flex flex-col flex-1 gap-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant="outline" className={`border-${match.status === "completed" ? "blue" : match.status === "live" ? "green" : match.status === "pending" ? "yellow" : "slate"}-500/40 bg-${match.status === "completed" ? "blue" : match.status === "live" ? "green" : match.status === "pending" ? "yellow" : "slate"}-500/10 text-${match.status === "completed" ? "blue" : match.status === "live" ? "green" : match.status === "pending" ? "yellow" : "slate"}-400`}>
-                        {match.status.charAt(0).toUpperCase() + match.status.slice(1)}
+                  <div className="flex flex-col gap-1 flex-1">
+                    {/* Status and Tournament Row */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant="outline" className={
+                        match.status === "completed"
+                          ? "bg-blue-500/10 text-blue-400 border-blue-500/40"
+                          : match.status === "live"
+                          ? "bg-green-500/10 text-green-400 border-green-500/40"
+                          : "bg-yellow-500/10 text-yellow-400 border-yellow-500/40"
+                      }>
+                        {match.status === "completed"
+                          ? "Completed"
+                          : match.status === "live"
+                          ? "Live"
+                          : "Pending"}
                       </Badge>
                       {match.tournament && (
                         <span className="text-xs font-bold px-2 rounded bg-amber-900/60 text-amber-300">
                           {match.tournament.name}
                         </span>
                       )}
-                      <span className="text-xs px-2 text-blue-200 font-mono">{match.team1?.name || "?"} <span className="text-slate-500">vs</span> {match.team2?.name || "?"}</span>
+                      <span className="text-xs px-2 text-blue-200 font-mono">
+                        {match.team1?.name || "?"} <span className="text-slate-500">vs</span> {match.team2?.name || "?"}
+                      </span>
                       <span className="text-sm text-slate-200 font-mono">Match ID: {match.id.slice(0, 8)}...</span>
-                      {/* --- New: Home/Away display (if veto session exists) --- */}
+                      {/* Home/Away display (if veto session exists) */}
                       {match.vetoSession && (
                         <span className="ml-2 text-xs px-2 rounded bg-yellow-900/30 text-yellow-200 border border-yellow-800">
                           Home: {match.team1?.id === match.vetoSession.home_team_id ? match.team1?.name : match.team2?.name}
                         </span>
                       )}
-                      {/* --- New: Veto session summary chip --- */}
+                      {/* Veto session summary chip */}
                       <VetoSessionChip session={match.vetoSession} matchId={match.id} />
                     </div>
-                    <div className="flex flex-col text-xs gap-1">
+
+                    {/* Match Details */}
+                    <div className="flex flex-col gap-0.5 text-xs mt-1">
                       <span className="text-slate-400">
-                        <Flag className="inline-block w-4 h-4 mr-1" />
-                        Round {match.round_number}, #{match.match_number}
+                        <Flag className="inline-block w-4 h-4 mr-1 text-slate-400" />
+                        Round {match.round_number}, Match #{match.match_number}
                       </span>
                       {match.scheduled_time && (
                         <span className="text-slate-500">
@@ -413,30 +504,124 @@ export default function MatchMedicManager() {
                         </span>
                       )}
                       <span className="text-slate-500">
+                        <Activity className="inline-block w-4 h-4 mr-1" />
                         Score: <span className="font-mono">{match.score_team1} - {match.score_team2}</span>
                         {match.winner && (
                           <> | <span className="text-green-400">{match.winner.name} won</span></>
                         )}
                       </span>
                     </div>
-                  </div>
-                  <div className="flex flex-col gap-2 items-end justify-end mt-2 md:mt-0">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="border-amber-600/40 text-amber-400"
-                      disabled={!!actionMatchId}
-                      onClick={() => openEditModal(match)}
-                    >
-                      <Edit className="w-4 h-4 mr-1" /> Edit Match
-                    </Button>
-                  </div>
-                  {/* Show veto turn switches if this match has a session */}
-                  {match.vetoSession?.id && (
-                    <div className="w-full col-span-full">
-                      <TurnSwitchLogViewer vetoSessionId={match.vetoSession.id} />
+
+                    {/* Match Status History */}
+                    <div className="bg-slate-800 border border-slate-700 mt-2 mb-1 rounded-lg p-2 max-w-xl">
+                      <div className="font-semibold text-sm text-amber-200 mb-1">Match Status & Timeline</div>
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between text-xs bg-slate-700/40 p-1 rounded">
+                          <span className="flex items-center gap-2">
+                            <span className="text-slate-400 font-mono">Status:</span>
+                            <span className={
+                              match.status === "completed"
+                                ? "bg-blue-700/40 text-blue-300 px-2 py-0.5 rounded font-bold"
+                                : match.status === "live"
+                                ? "bg-green-700/30 text-green-200 px-2 py-0.5 rounded font-bold"
+                                : "bg-yellow-700/30 text-yellow-200 px-2 py-0.5 rounded font-bold"
+                            }>
+                              {match.status.toUpperCase()}
+                            </span>
+                            {match.started_at && (
+                              <span className="text-green-200">Started: {new Date(match.started_at).toLocaleTimeString()}</span>
+                            )}
+                          </span>
+                        </div>
+                        {match.score_team1 > 0 || match.score_team2 > 0 ? (
+                          <div className="flex items-center text-xs bg-slate-700/40 p-1 rounded">
+                            <span className="text-slate-400 font-mono mr-2">Scores:</span>
+                            <span className="text-white font-medium">{match.team1?.name}: {match.score_team1}</span>
+                            <span className="text-slate-500 mx-2">-</span>
+                            <span className="text-white font-medium">{match.team2?.name}: {match.score_team2}</span>
+                          </div>
+                        ) : (
+                          <div className="text-slate-500 text-xs py-1">No scores recorded yet.</div>
+                        )}
+                      </div>
                     </div>
-                  )}
+
+                    {/* Veto turn switches if this match has a session */}
+                    {match.vetoSession?.id && (
+                      <TurnSwitchLogViewer vetoSessionId={match.vetoSession.id} />
+                    )}
+                  </div>
+                  
+                  {/* Action buttons section */}
+                  <div className="flex flex-col gap-2 items-end justify-end mt-2 md:mt-0">
+                    {/* Diagnostic Tools Group */}
+                    <div className="flex flex-col gap-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-cyan-500/40 text-cyan-300"
+                        onClick={() => handleMatchHealthCheck(match.id)}
+                        disabled={!!actionMatchId}
+                      >
+                        <ShieldCheck className="w-4 h-4 mr-1" />
+                        Health Check
+                      </Button>
+                    </div>
+
+                    {/* Quick Status Tools Group */}
+                    <div className="flex flex-col gap-1">
+                      {match.status === "pending" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-green-600/40 text-green-400"
+                          onClick={() => handleQuickStatusChange(match.id, "live")}
+                          disabled={!!actionMatchId}
+                        >
+                          <Play className="w-4 h-4 mr-1" />
+                          Start Match
+                        </Button>
+                      )}
+                      {match.status === "live" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-blue-600/40 text-blue-400"
+                          onClick={() => handleQuickStatusChange(match.id, "completed")}
+                          disabled={!!actionMatchId}
+                        >
+                          <CheckCircle2 className="w-4 h-4 mr-1" />
+                          Complete Match
+                        </Button>
+                      )}
+                      {match.status !== "pending" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-yellow-600/40 text-yellow-400"
+                          onClick={() => handleQuickStatusChange(match.id, "pending")}
+                          disabled={!!actionMatchId}
+                        >
+                          <RotateCcw className="w-4 h-4 mr-1" />
+                          Reset Status
+                        </Button>
+                      )}
+                    </div>
+
+                    {/* Action Tools Group */}
+                    <div className="flex flex-col gap-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-amber-600/40 text-amber-400"
+                        disabled={!!actionMatchId}
+                        onClick={() => openEditModal(match)}
+                      >
+                        <Edit className="w-4 h-4 mr-1" /> 
+                        Edit Match
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
@@ -444,7 +629,7 @@ export default function MatchMedicManager() {
         </CardContent>
       </Card>
 
-      {/* Edit Modal (basic HTML, refactor to shadcn Dialog if needed) */}
+      {/* Edit Modal */}
       <MatchEditModal
         open={!!editModal}
         match={editModal}
