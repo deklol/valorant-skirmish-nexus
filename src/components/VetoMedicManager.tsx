@@ -48,7 +48,8 @@ export default function VetoMedicManager() {
   const [maps, setMaps] = useState<any[]>([]);
   const [pickableMaps, setPickableMaps] = useState<any[]>([]);
   const [forceSession, setForceSession] = useState<VetoSessionWithDetails | null>(null);
-  const [historyBySession, setHistoryBySession] = useState<Record<string, any[]>>({});
+  // -- REPLACE veto action history from audit_logs with veto actions --
+  const [actionsBySession, setActionsBySession] = useState<Record<string, any[]>>({});
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
   const { toast } = useToast();
@@ -133,6 +134,26 @@ export default function VetoMedicManager() {
         .some(field => field!.toLowerCase().includes(s));
     return sessionStatus && sessionSearch;
   });
+
+  // -- New: Fetch VETO ACTIONS for each session (canonical, not just logs) --
+  // This fetch gives us full canonical action log, map/user joined for display
+  const fetchVetoActions = useCallback(async (sessionId: string) => {
+    const { data, error } = await supabase
+      .from("map_veto_actions")
+      .select(`*, maps:map_id ( display_name ), users:performed_by ( discord_username )`)
+      .eq("veto_session_id", sessionId)
+      .order("order_number", { ascending: true });
+
+    setActionsBySession((a) => ({
+      ...a,
+      [sessionId]: error ? [] : (data || []),
+    }));
+  }, []);
+
+  // When viewing session details, fetch actions (not audit log)
+  const handleExpandHistory = (sessionId: string, expand: boolean) => {
+    if (expand && !actionsBySession[sessionId]) fetchVetoActions(sessionId);
+  };
 
   // Reset (clear the session's actions and set to pending)
   const resetSession = async (sessionId: string) => {
@@ -275,36 +296,11 @@ export default function VetoMedicManager() {
     return (data[0].order_number || 0) + 1;
   }
 
-  // Extra fetch for veto actions for the modal/history
-  const fetchVetoActions = useCallback(async (sessionId: string) => {
-    // Fetch all audit log entries related to map_veto_actions for this session
-    const { data, error } = await supabase
-      .from("audit_logs")
-      .select("*")
-      .eq("table_name", "map_veto_actions")
-      .order("created_at", { ascending: true });
-
-    let sessionActions: any[] = [];
-
-    if (!error && data) {
-      // Filter actions only for those in the given veto_session
-      sessionActions = (data as any[]).filter((logEntry: any) =>
-        logEntry.new_values?.veto_session_id === sessionId
-      );
-    }
-    setHistoryBySession(hist => ({ ...hist, [sessionId]: sessionActions }));
-  }, []);
-
-  // When viewing session details, fetch history
-  const handleExpandHistory = (sessionId: string, expand: boolean) => {
-    if (expand && !historyBySession[sessionId]) fetchVetoActions(sessionId);
-  };
-
   const handleRollbackLast = async (sessionId: string) => {
     setActionSessionId(sessionId);
     try {
       // 1. Get last action
-      const actions = historyBySession[sessionId] || [];
+      const actions = actionsBySession[sessionId] || [];
       if (!actions.length) throw new Error("No veto actions to rollback");
       const last = actions[actions.length - 1];
       // 2. Delete last action only (by id)
@@ -333,7 +329,7 @@ export default function VetoMedicManager() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {/* --- Search/Filter controls: uniform with MatchMedic/TournamentMedic --- */}
+          {/* --- Search/filter controls, unchanged --- */}
           <div className="mb-4 flex flex-wrap gap-2 items-center">
             <Input
               type="text"
@@ -386,16 +382,23 @@ export default function VetoMedicManager() {
                 const team1 = match?.team1;
                 const team2 = match?.team2;
                 const tournament = match?.tournament;
-                // Progress: use veto history if loaded
-                const turns = historyBySession[session.id] || [];
-                const totalMaps = maps.length || 1;
-                const bans = turns.filter(act => act.action === "ban").length;
-                const picks = turns.filter(act => act.action === "pick").length;
-                const progress = `${turns.length}/${totalMaps}`;
+
+                // ---- Use veto actions for progress/history and show step X/Y ----
+                const actions = actionsBySession[session.id] || [];
+
+                // Progress: count bans+picks only, not side_pick
+                const banPickActions = actions.filter(a => a.action === 'ban' || a.action === 'pick');
+                // Y: Compute expected steps for the current flow given map count
+                const mapCount = maps.length || 1;
+                // Compute BO1 flow length: total bans (mapCount-1) + pick + side_pick (ban+pick; don't show side_pick in step count)
+                const totalSteps = mapCount >= 2 ? mapCount : 1;
+                const vetoProgressLabel = `${banPickActions.length}/${totalSteps}`;
+
                 return (
                   <div
                     key={session.id}
                     className="flex flex-col md:flex-row md:items-start md:justify-between border border-slate-700 bg-slate-900 rounded-lg p-4 shadow"
+                    id={`vetomedic-session-${session.id}`}
                   >
                     <div className="flex flex-col gap-1 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -435,9 +438,9 @@ export default function VetoMedicManager() {
                           Match ID: <span className="font-mono">{session.match_id || "?"}</span>
                         </span>
                         <span className="text-slate-500">
-                          Progress: <span className="font-mono">{progress} actions</span> 
+                          Progress: <span className="font-mono">{vetoProgressLabel} actions</span>
                           {session.status === "in_progress" && (
-                            <span> &middot; <span className="text-green-400">{bans} bans</span>, <span className="text-blue-400">{picks} picks</span></span>
+                            <span> &middot; <span className="text-green-400">{actions.filter(a => a.action === "ban").length} bans</span>, <span className="text-blue-400">{actions.filter(a => a.action === "pick").length} picks</span></span>
                           )}
                         </span>
                         {session.started_at && (
@@ -447,16 +450,44 @@ export default function VetoMedicManager() {
                           <span className="text-blue-400">Completed: {new Date(session.completed_at).toLocaleString()}</span>
                         )}
                       </div>
-                      {/* Expandable veto history */}
-                      <VetoMedicHistory
-                        sessionId={session.id}
-                        actions={historyBySession[session.id] || []}
-                        status={session.status}
-                        loading={!!actionSessionId && actionSessionId === session.id}
-                        onExpand={expand => handleExpandHistory(session.id, expand)}
-                        onRollback={() => handleRollbackLast(session.id)}
-                        maps={maps}
-                      />
+                      {/* --- Canonical veto action log (not audit) --- */}
+                      {actions.length > 0 && (
+                        <div className="bg-slate-800 border border-slate-700 mt-2 mb-1 rounded-lg p-2 max-w-xl">
+                          <div className="font-semibold text-sm text-yellow-200 mb-1">Veto Action History</div>
+                          <ol className="space-y-1">
+                            {actions.map((act, idx) => (
+                              <li key={act.id} className="flex items-center justify-between text-xs bg-slate-700/40 p-1 rounded">
+                                <span className="flex items-center gap-3">
+                                  <span className="text-slate-400 font-mono">#{idx + 1}</span>
+                                  <span className={
+                                    act.action === "ban"
+                                      ? "bg-red-700/40 text-red-300 px-2 py-0.5 rounded font-bold"
+                                      : act.action === "pick"
+                                        ? "bg-green-700/30 text-green-200 px-2 py-0.5 rounded font-bold"
+                                        : "bg-blue-600/30 text-blue-100 px-2 py-0.5 rounded font-bold"
+                                  }>
+                                    {act.action.toUpperCase()}
+                                  </span>
+                                  <span className="text-white font-medium">{act.maps?.display_name || "??"}</span>
+                                  {act.action === "pick" && act.side_choice && (
+                                    <span className={
+                                      act.side_choice === "attack"
+                                        ? "bg-red-700/30 text-red-200 px-2 py-0.5 rounded font-bold"
+                                        : "bg-blue-700/30 text-blue-200 px-2 py-0.5 rounded font-bold"
+                                    }>
+                                      {act.side_choice.toUpperCase()} SIDE
+                                    </span>
+                                  )}
+                                  {act.users?.discord_username && (
+                                    <span className="ml-2 text-blue-200">by {act.users.discord_username}</span>
+                                  )}
+                                </span>
+                                <span className="text-slate-400">{act.performed_at ? new Date(act.performed_at).toLocaleTimeString() : ""}</span>
+                              </li>
+                            ))}
+                          </ol>
+                        </div>
+                      )}
                     </div>
                     <div className="flex flex-col gap-2 items-end justify-end mt-2 md:mt-0">
                       <Button
