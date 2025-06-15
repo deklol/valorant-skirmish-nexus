@@ -231,8 +231,7 @@ const MapVetoDialog = ({
     bestOf,
     vetoActions,
     maps,
-    fetchVetoActions,
-    // -- Fix: pass a string error message (not an object)
+    onActionComplete: fetchVetoActions,
     checkPermissions: () => {
       const result = explainPermissions();
       return typeof result === "string" ? result : result.reason ?? "You are not allowed to perform this action";
