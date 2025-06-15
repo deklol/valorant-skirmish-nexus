@@ -1,4 +1,3 @@
-
 import React, { useCallback, useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -107,6 +106,79 @@ function VetoSessionChip({ session, matchId }: { session: VetoSessionSummary | n
         }}
       >Manage</a>
     </span>
+  );
+}
+
+// Add an AuditLogTurn type
+type AuditLogTurn = {
+  id: string;
+  record_id: string;
+  action: string;
+  created_at: string;
+  new_values: any;
+  old_values: any;
+};
+
+function TurnSwitchLogViewer({ vetoSessionId }: { vetoSessionId: string }) {
+  const [logs, setLogs] = useState<AuditLogTurn[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    if (!vetoSessionId) return;
+    setLoading(true);
+    supabase
+      .from("audit_logs")
+      .select("*")
+      .eq("table_name", "map_veto_sessions")
+      .eq("action", "TURN_SWITCH")
+      .eq("record_id", vetoSessionId)
+      .order("created_at")
+      .then(({ data, error }) => {
+        setLogs(data || []);
+        setLoading(false);
+      });
+  }, [vetoSessionId]);
+
+  if (!vetoSessionId) return null;
+  if (loading) return <div className="text-xs text-yellow-400 p-2">Loading turn switch logs...</div>;
+  if (!logs.length) return null;
+
+  return (
+    <div className="mt-1 mb-2">
+      <button
+        className="text-xs text-blue-400 underline hover:text-blue-200 mb-0.5"
+        onClick={() => setExpanded(!expanded)}
+      >
+        {expanded ? "Hide" : "Show"} Veto Turn Change History ({logs.length})
+      </button>
+      {expanded && (
+        <div className="bg-slate-900 border border-blue-800 p-2 rounded text-xs max-h-60 overflow-y-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-blue-700">
+                <th className="text-left pl-0">When</th>
+                <th className="text-left">Previous Turn</th>
+                <th className="text-left">New Turn</th>
+              </tr>
+            </thead>
+            <tbody>
+              {logs.map((log) => (
+                <tr key={log.id}>
+                  <td className="pr-2">{new Date(log.created_at).toLocaleString()}</td>
+                  <td>
+                    {log.old_values?.current_turn_team_id || <span className="text-slate-400 italic">None</span>}
+                  </td>
+                  <td>
+                    {log.new_values?.current_turn_team_id || <span className="text-slate-400 italic">None</span>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -359,6 +431,12 @@ export default function MatchMedicManager() {
                       <Edit className="w-4 h-4 mr-1" /> Edit Match
                     </Button>
                   </div>
+                  {/* Show veto turn switches if this match has a session */}
+                  {match.vetoSession?.id && (
+                    <div className="w-full col-span-full">
+                      <TurnSwitchLogViewer vetoSessionId={match.vetoSession.id} />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -379,5 +457,4 @@ export default function MatchMedicManager() {
   );
 }
 
-// NOTE: This file is now 419+ lines and does a lot; consider refactoring to smaller files after this update.
-
+// NOTE: This file is now 400+ lines and does a lot; consider refactoring to smaller files after this update.
