@@ -422,21 +422,43 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
     );
   };
 
+  // Helper to generate team name based on captain for use in saveTeamChanges
+  function getCaptainBasedTeamName(members: Player[], fallback: string = "Team Unknown") {
+    if (members.length === 0) return fallback;
+    // Captain is highest weight_rating (if equal, first in list wins)
+    let sorted = [...members].sort((a, b) => b.weight_rating - a.weight_rating);
+    let captain = sorted[0];
+    if (!captain || !captain.discord_username) return fallback;
+    return teamSize === 1
+      ? `${captain.discord_username} (Solo)`
+      : `Team ${captain.discord_username}`;
+  }
+
   // Sort team members by highest weight before saving (captain = first player highest rating)
   const saveTeamChanges = async () => {
     setSaving(true);
     try {
-      // Re-sort members in each team by weight_rating descending
+      // Ensure unique team names (important for UI/db)
+      const usedNames = new Set<string>();
       let reorderedTeams = teams.map(team => {
         const sortedMembers = [...team.members].sort((a, b) => b.weight_rating - a.weight_rating);
-        return { ...team, members: sortedMembers };
+        // Generate new proper team name for teams with members
+        let teamName = getCaptainBasedTeamName(sortedMembers, team.name);
+        let uniqueName = teamName;
+        let count = 2;
+        while (usedNames.has(uniqueName)) {
+          uniqueName = `${teamName} (${count})`;
+          count++;
+        }
+        usedNames.add(uniqueName);
+        return { ...team, members: sortedMembers, name: team.members.length ? uniqueName : team.name };
       });
-      // First, create any placeholder teams that have members
+      // Only save actual teams with members
       const teamsWithMembers = reorderedTeams.filter(team => team.members.length > 0);
 
       for (const team of teamsWithMembers) {
         if (team.isPlaceholder) {
-          // Create the team in database
+          // Create new team in db with captain-based name
           const { data: newTeam, error: createError } = await supabase
             .from('teams')
             .insert({
@@ -463,10 +485,13 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
 
           if (membersError) throw membersError;
         } else {
-          // Update existing team
+          // Update existing team *name* in case members/captain changed
           await supabase
             .from('teams')
-            .update({ total_rank_points: team.totalWeight })
+            .update({
+              total_rank_points: team.totalWeight,
+              name: team.name // May have changed!
+            })
             .eq('id', team.id);
 
           // Remove all current members
@@ -492,7 +517,7 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
 
       toast({
         title: "Teams Updated",
-        description: "Team assignments have been saved successfully, with captains auto-assigned.",
+        description: "Team assignments have been saved successfully, captains and names updated.",
       });
 
       // Refresh the data
