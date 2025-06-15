@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { RefreshCw, ShieldAlert, Calendar, Edit, Flag, Activity, Trophy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
 import { processMatchResults } from "./MatchResultsProcessor";
 
 interface TeamInfo {
@@ -68,6 +69,11 @@ export default function MatchMedicManager() {
   const [search, setSearch] = useState<string>("");
   const [editModal, setEditModal] = useState<null | MatchInfo>(null);
   const { toast } = useToast();
+  const {
+    notifyMatchComplete,
+    notifyTournamentWinner,
+    notifyMatchReady,
+  } = useEnhancedNotifications();
 
   // Fetch all matches for all tournaments (latest 50)
   const fetchMatches = useCallback(async () => {
@@ -134,19 +140,24 @@ export default function MatchMedicManager() {
 
     try {
       if (status === "completed" && winner_id) {
-        // Use bracket processor logic
-        await processMatchResults({
-          matchId: editModal.id,
-          winnerId: winner_id,
-          loserId: winner_id === editModal.team1?.id ? editModal.team2?.id ?? "" : editModal.team1?.id ?? "",
-          tournamentId: editModal.tournament?.id ?? "",
-          onComplete: () => {},
-        });
-        // Also update scores
-        await supabase.from('matches').update({
-          score_team1,
-          score_team2,
-        }).eq('id', editModal.id);
+        // Use bracket processor logic, provide hooks as dependency injection
+        await processMatchResults(
+          {
+            matchId: editModal.id,
+            winnerId: winner_id,
+            loserId: winner_id === editModal.team1?.id ? editModal.team2?.id ?? "" : editModal.team1?.id ?? "",
+            tournamentId: editModal.tournament?.id ?? "",
+            scoreTeam1: score_team1,
+            scoreTeam2: score_team2,
+            onComplete: () => {},
+          },
+          {
+            toast,
+            notifyMatchComplete,
+            notifyTournamentWinner,
+            notifyMatchReady,
+          }
+        );
         toast({ title: "Match and bracket updated" });
       } else {
         await supabase

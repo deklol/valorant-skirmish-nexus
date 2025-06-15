@@ -2,8 +2,6 @@
 // This must be used by all admin overrides, user result submissions, and auto-tournament logic!
 
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
 import { completeTournament } from "@/utils/completeTournament";
 
 // Used for type clarity, these should match DB types but not reference module-level types directly for cross-module safety
@@ -17,27 +15,42 @@ export type MatchResultsProcessorInput = {
   onComplete?: () => void;
 };
 
+export type NotificationFunctions = {
+  toast?: (args: { title: string; description?: string; variant?: string }) => void;
+  notifyMatchComplete?: (matchId: string, winnerId: string, loserId: string) => Promise<void>;
+  notifyTournamentWinner?: (tournamentId: string, winnerTeamId: string) => Promise<void>;
+  notifyMatchReady?: (matchId: string, team1Id: string, team2Id: string) => Promise<void>;
+};
+
 /**
  * Process match results (admin or user): marks match complete, updates winner, advances bracket, updates stats.
- * - This function is fully transaction-safe.
- * - Used everywhere: admin override, user score report, live progression.
+ * Accepts toast/notif functions as dependency injection for strong React compatibility.
  */
-export async function processMatchResults({
-  matchId,
-  winnerId,
-  loserId,
-  tournamentId,
-  scoreTeam1,
-  scoreTeam2,
-  onComplete
-}: MatchResultsProcessorInput) {
-  // Defensive: runtime hooks for useful notifications and error toasts
-  const { toast } = useToast();
-  const { notifyMatchComplete, notifyTournamentWinner, notifyMatchReady } = useEnhancedNotifications();
+export async function processMatchResults(
+  {
+    matchId,
+    winnerId,
+    loserId,
+    tournamentId,
+    scoreTeam1,
+    scoreTeam2,
+    onComplete,
+  }: MatchResultsProcessorInput,
+  {
+    toast,
+    notifyMatchComplete,
+    notifyTournamentWinner,
+    notifyMatchReady,
+  }: NotificationFunctions = {} // all optional for BC
+) {
+  // If nothing passed, provide no-op fallback toasts/notifications (for non-component code)
+  const safeToast = toast ?? (() => {});
+  const safeNotifyMatchComplete = notifyMatchComplete ?? (() => Promise.resolve());
+  const safeNotifyTournamentWinner = notifyTournamentWinner ?? (() => Promise.resolve());
+  const safeNotifyMatchReady = notifyMatchReady ?? (() => Promise.resolve());
 
   try {
-    // Use "batch" operation pattern—simulate a DB transaction in Supabase by checking at each step, rollback on error
-    // 1. Mark match as completed (winner, score, status)
+    // Mark match as completed
     {
       const { error: updateMatchError } = await supabase
         .from('matches')
@@ -51,8 +64,8 @@ export async function processMatchResults({
 
       if (updateMatchError) throw updateMatchError;
     }
-    
-    // 2. Fetch full match & tournament context, and ALL tournament matches for bracket checks
+
+    // Fetch full match & tournament context, and ALL tournament matches for bracket checks
     const { data: match } = await supabase
       .from('matches')
       .select('*')
@@ -78,13 +91,12 @@ export async function processMatchResults({
       finalRoundMatches[0].status === "completed"
     );
 
-    // 3. Bracket Advancement: Move winner forward in the bracket if needed
+    // 3. Bracket Advancement
     if (!isTournamentComplete) {
       await advanceWinnerToNextRound(match, winnerId, tournamentId);
     }
 
-    // --- Critical Fix: Update team statuses immediately based on match outcome ---
-    // If this is NOT a final, loser is eliminated now
+    // --- Update team statuses right away ---
     if (!isTournamentComplete) {
       if (loserId) {
         await supabase
@@ -92,9 +104,7 @@ export async function processMatchResults({
           .update({ status: 'eliminated' })
           .eq('id', loserId);
       }
-      // (Do NOT mark winner as 'winner' unless it's the final! Mark as advancing.)
     }
-    // If this IS the final, mark the winner as 'winner' and loser as 'eliminated'
     else {
       if (winnerId) {
         await supabase
@@ -113,14 +123,14 @@ export async function processMatchResults({
     // 4. Update player statistics
     await updatePlayerStatistics(winnerId, loserId);
 
-    // 5. Notify (all systems go—bracket or match updates)
-    await notifyMatchComplete(matchId, winnerId, loserId);
+    // 5. Notify
+    await safeNotifyMatchComplete(matchId, winnerId, loserId);
 
     // 6. On finals, complete tournament!
     if (isTournamentComplete) {
       await completeTournament(tournamentId, winnerId);
-      await notifyTournamentWinner(tournamentId, winnerId);
-      toast({
+      await safeNotifyTournamentWinner(tournamentId, winnerId);
+      safeToast({
         title: "Tournament Complete!",
         description: "Congratulations to the tournament winner!"
       });
@@ -137,26 +147,24 @@ export async function processMatchResults({
       if (readyMatches) {
         for (const readyMatch of readyMatches) {
           if (readyMatch.team1_id && readyMatch.team2_id) {
-            await notifyMatchReady(readyMatch.id, readyMatch.team1_id, readyMatch.team2_id);
+            await safeNotifyMatchReady(readyMatch.id, readyMatch.team1_id, readyMatch.team2_id);
           }
         }
       }
     }
 
-    toast({
+    safeToast({
       title: "Match Results Processed",
       description: "Statistics and tournament progress updated"
     });
 
     if (onComplete) onComplete();
   } catch (error: any) {
-    toast({
+    safeToast({
       title: "Match Result Processing Error",
       description: error.message || "Failed to record and process results",
       variant: "destructive",
     });
-    // In a true DB transaction, we might rollback here.
-    // For Supabase: manually confirm consistency as soon as an error occurs.
   }
 };
 
