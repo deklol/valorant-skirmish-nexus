@@ -74,7 +74,7 @@ const TournamentStatusManager = ({ tournamentId, currentStatus, onStatusChange }
       });
       return 0;
     }
-    const count = data?.length || 0;
+    const count = data && Array.isArray(data) ? data.length : 0;
     if (count > 0) {
       toast({
         title: "First Round Started",
