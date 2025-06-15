@@ -52,18 +52,27 @@ const MapVetoDialog = ({
   // Always trust backend for turn
   const [currentTurnTeamId, setCurrentTurnTeamId] = useState<string>(currentTeamTurn);
 
+  // New: Force a counter to trigger hook recalculation after RT update
+  const [permissionUpdateSeq, setPermissionUpdateSeq] = useState<number>(0);
+
   useMapVetoSessionRealtime(
     vetoSessionId,
     payload => {
+      // Real-time DB update: turn just changed!
       if (payload && payload.new && payload.new.current_turn_team_id) {
         setCurrentTurnTeamId(payload.new.current_turn_team_id);
-        console.log("[MapVetoDialog] RT: turn switched ->", payload.new.current_turn_team_id);
+        setPermissionUpdateSeq(seq => seq + 1);
+        console.log("[MapVetoDialog][REALTIME] RT session update: turn NOW is", payload.new.current_turn_team_id, "(perms seq)", permissionUpdateSeq + 1);
       }
     }
   );
 
   useEffect(() => {
-    if (currentTeamTurn) setCurrentTurnTeamId(currentTeamTurn);
+    if (currentTeamTurn) {
+      setCurrentTurnTeamId(currentTeamTurn);
+      setPermissionUpdateSeq(seq => seq + 1);
+      console.log("[MapVetoDialog][Init] Set turnTeam on dialog open/init", currentTeamTurn, "(perms seq)", permissionUpdateSeq + 1);
+    }
   }, [currentTeamTurn, vetoSessionId]);
 
   const fetchVetoActions = useCallback(async () => {
@@ -108,7 +117,7 @@ const MapVetoDialog = ({
     }
   };
 
-  // Permissions logic via custom hook
+  // Permissions logic via custom hook (pass seq)
   const {
     isUserOnMatchTeam,
     isUserTeamTurn,
@@ -121,6 +130,7 @@ const MapVetoDialog = ({
     teamSize,
     team1Id,
     team2Id,
+    seq: permissionUpdateSeq // pass for forced recalculation
   });
 
   // Map action handler via custom hook
@@ -153,6 +163,11 @@ const MapVetoDialog = ({
   } else if (bestOf !== 1) {
     currentAction = vetoActions.length % 2 === 0 ? "ban" : "pick";
   }
+
+  // Add explicit log when turn or eligibility changes (easy to spot in devtools)
+  useEffect(() => {
+    console.log("[DEBUG VETO][PERMSTATE] Turn:", currentTurnTeamId, "| isUserOnTeam:", isUserOnMatchTeam, "| isUserTeamTurn:", isUserTeamTurn, "| isUserEligible:", isUserEligible, "| turnAction:", vetoActions.length, "| updateSeq:", permissionUpdateSeq);
+  }, [currentTurnTeamId, isUserOnMatchTeam, isUserTeamTurn, isUserEligible, vetoActions.length, permissionUpdateSeq]);
 
   // For debugging (keep code)
   useEffect(() => {
@@ -217,4 +232,4 @@ const MapVetoDialog = ({
 };
 
 export default MapVetoDialog;
-// End of refactored file
+// End of real-time update-improved file
