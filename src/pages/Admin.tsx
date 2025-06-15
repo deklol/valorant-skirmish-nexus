@@ -1,7 +1,7 @@
+
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,12 +17,11 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/components/ui/tabs"
 import {
   Dialog,
   DialogContent,
@@ -30,7 +29,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -69,7 +67,6 @@ const AdminPage = () => {
           .limit(1000);
 
         if (error) {
-          console.error("Error fetching users:", error);
           toast({
             title: "Error",
             description: "Failed to fetch users.",
@@ -111,7 +108,6 @@ const AdminPage = () => {
         .eq("id", selectedUser.id);
 
       if (error) {
-        console.error("Error updating user:", error);
         toast({
           title: "Error",
           description: "Failed to update user.",
@@ -136,53 +132,73 @@ const AdminPage = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
       <div className="container mx-auto px-4 py-8 space-y-8">
         <h1 className="text-3xl font-bold text-white mb-8">Admin Panel</h1>
+        <Tabs defaultValue="users" className="space-y-6">
+          <TabsList className="mb-4 bg-slate-800 border-slate-700 grid grid-cols-2 max-w-md mx-auto">
+            <TabsTrigger 
+              value="users"
+              className="data-[state=active]:bg-slate-700 data-[state=active]:text-white"
+            >
+              User Management
+            </TabsTrigger>
+            <TabsTrigger
+              value="medic"
+              className="data-[state=active]:bg-slate-700 data-[state=active]:text-white"
+            >
+              Tournament Medic
+            </TabsTrigger>
+          </TabsList>
 
-        {/* User Management Section */}
-        <section className="space-y-4">
-          <h2 className="text-xl text-amber-400 font-semibold mb-2 flex items-center gap-2">
-            User Management <span className="text-xs text-amber-300">(Full Override)</span>
-          </h2>
-          {loading ? (
-            <p className="text-white">Loading users...</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table className="bg-slate-800/90 border-slate-700 rounded-md">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-white">Username</TableHead>
-                    <TableHead className="text-white">Riot ID</TableHead>
-                    <TableHead className="text-white">Phantom</TableHead>
-                    <TableHead className="text-white">Banned</TableHead>
-                    <TableHead className="text-right text-white">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {users.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell className="font-medium text-white">{user.discord_username}</TableCell>
-                      <TableCell className="text-slate-300">{user.riot_id}</TableCell>
-                      <TableCell className="text-slate-300">{user.is_phantom ? "Yes" : "No"}</TableCell>
-                      <TableCell className="text-slate-300">{user.is_banned ? "Yes" : "No"}</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="secondary" size="sm" onClick={() => handleEditUser(user)}>
-                          Edit
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </section>
+          {/* User Management Tab */}
+          <TabsContent value="users" className="space-y-4">
+            <section className="space-y-4">
+              <h2 className="text-xl text-amber-400 font-semibold mb-2 flex items-center gap-2">
+                User Management <span className="text-xs text-amber-300">(Full Override)</span>
+              </h2>
+              {loading ? (
+                <p className="text-white">Loading users...</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table className="bg-slate-800/90 border-slate-700 rounded-md">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-white">Username</TableHead>
+                        <TableHead className="text-white">Riot ID</TableHead>
+                        <TableHead className="text-white">Phantom</TableHead>
+                        <TableHead className="text-white">Banned</TableHead>
+                        <TableHead className="text-right text-white">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {users.map((user) => (
+                        <TableRow key={user.id}>
+                          <TableCell className="font-medium text-white">{user.discord_username}</TableCell>
+                          <TableCell className="text-slate-300">{user.riot_id}</TableCell>
+                          <TableCell className="text-slate-300">{user.is_phantom ? "Yes" : "No"}</TableCell>
+                          <TableCell className="text-slate-300">{user.is_banned ? "Yes" : "No"}</TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="secondary" size="sm" onClick={() => handleEditUser(user)}>
+                              Edit
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </section>
+          </TabsContent>
 
-        {/* Tournament Medic Section */}
-        <section>
-          <h2 className="text-xl text-amber-400 font-semibold mb-4 flex items-center gap-2">
-            Tournament Medic <span className="text-xs text-amber-300">(Admin Emergency Tool)</span>
-          </h2>
-          <TournamentMedicManager />
-        </section>
+          {/* Tournament Medic Tab */}
+          <TabsContent value="medic" className="space-y-4">
+            <section>
+              <h2 className="text-xl text-amber-400 font-semibold mb-4 flex items-center gap-2">
+                Tournament Medic <span className="text-xs text-amber-300">(Admin Emergency Tool)</span>
+              </h2>
+              <TournamentMedicManager />
+            </section>
+          </TabsContent>
+        </Tabs>
 
         {/* Edit User Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
@@ -255,3 +271,4 @@ const AdminPage = () => {
 };
 
 export default AdminPage;
+
