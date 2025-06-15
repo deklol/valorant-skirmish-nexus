@@ -49,37 +49,79 @@ const MapVetoDialog = ({
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  // Always trust backend for turn
+  // Current turn - always trust backend for turn
   const [currentTurnTeamId, setCurrentTurnTeamId] = useState<string>(currentTeamTurn);
 
-  // Track render version to force real-time remount of status indicator
+  // Track render version for MapVetoTurnStatus
   const [turnVersion, setTurnVersion] = useState(0);
 
-  // New: Force a counter to trigger hook recalculation after RT update
+  // Forcing RT permission recalculation
   const [permissionUpdateSeq, setPermissionUpdateSeq] = useState<number>(0);
 
+  // Force session ref whenever actions update or RT comes in
+  const forceSessionRefetch = useCallback(async () => {
+    if (!vetoSessionId) return;
+    try {
+      const { data, error } = await supabase
+        .from('map_veto_sessions')
+        .select('*')
+        .eq('id', vetoSessionId)
+        .maybeSingle();
+      if (error) throw error;
+      if (data && data.current_turn_team_id && data.current_turn_team_id !== currentTurnTeamId) {
+        console.log("[FORCE REFRESH][forceSessionRefetch] Updating local turnTeamId to backend:", data.current_turn_team_id);
+        setCurrentTurnTeamId(data.current_turn_team_id);
+        setTurnVersion((v) => v + 1);
+        setPermissionUpdateSeq(seq => seq + 1);
+      }
+    } catch (err) {
+      console.warn("[FORCE REFRESH][forceSessionRefetch] Could not load session:", err);
+    }
+  }, [vetoSessionId, currentTurnTeamId]);
+
+  useEffect(() => {
+    // For debugging, show every time the RT hook is set up
+    console.log("[MapVetoDialog][Realtime Hook] RE-SUBSCRIBING vetoSessionId:", vetoSessionId);
+  }, [vetoSessionId]);
+
+  // Real-time Supabase subscription for session (turn changes)
   useMapVetoSessionRealtime(
     vetoSessionId,
     payload => {
       if (payload && payload.new && payload.new.current_turn_team_id) {
-        setCurrentTurnTeamId(payload.new.current_turn_team_id);
-        setPermissionUpdateSeq(seq => seq + 1);
-        setTurnVersion(v => v + 1);
-        console.log("[MapVetoDialog][REALTIME] RT session update: turn NOW is", payload.new.current_turn_team_id, "(perms seq)", permissionUpdateSeq + 1, "turnVersion", turnVersion + 1);
+        // Always compare before updating for logging purposes
+        if (payload.new.current_turn_team_id !== currentTurnTeamId) {
+          setCurrentTurnTeamId(payload.new.current_turn_team_id);
+          setTurnVersion((v) => v + 1);
+          setPermissionUpdateSeq(seq => seq + 1);
+          console.log("[MapVetoDialog][REALTIME] Session RT: changed turn from", currentTurnTeamId, "to", payload.new.current_turn_team_id, "turnVersion:", turnVersion + 1);
+        } else {
+          console.log("[MapVetoDialog][REALTIME] Received RT but turn is unchanged (no-op):", payload.new.current_turn_team_id);
+        }
+      } else {
+        console.log("[MapVetoDialog][REALTIME] Session RT: No relevant current_turn_team_id in payload", payload);
       }
     }
   );
 
-  // On initial dialog mount/open, reset state to currentTurn props. Bump version triggers.
+  // On initial open, always refetch main turn props from parent
   useEffect(() => {
     if (currentTeamTurn) {
       setCurrentTurnTeamId(currentTeamTurn);
-      setPermissionUpdateSeq(seq => seq + 1);
       setTurnVersion(v => v + 1);
-      console.log("[MapVetoDialog][Init] Set turnTeam on dialog open/init", currentTeamTurn, "(perms seq)", permissionUpdateSeq + 1, "turnVersion", turnVersion + 1);
+      setPermissionUpdateSeq(seq => seq + 1);
+      console.log("[MapVetoDialog][Init] Set turnTeam on dialog open/init", currentTeamTurn, "turnVersion", turnVersion + 1);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentTeamTurn, vetoSessionId]);
+
+  // Extra: Force refetch session EVERY TIME vetoActions update
+  useEffect(() => {
+    // If any change in vetoActions length, quickly check against backend
+    if (vetoActions.length > 0) {
+      forceSessionRefetch();
+    }
+  }, [vetoActions.length, forceSessionRefetch]);
 
   const fetchVetoActions = useCallback(async () => {
     try {
@@ -92,8 +134,12 @@ const MapVetoDialog = ({
         .order("order_number");
       if (error) throw error;
       setVetoActions(data || []);
-    } catch {}
-  }, [vetoSessionId]);
+      // Defensive: always check fresh turn from backend after we fetch actions
+      forceSessionRefetch();
+    } catch {
+      console.warn("[MapVetoDialog][fetchVetoActions] Could not fetch veto actions");
+    }
+  }, [vetoSessionId, forceSessionRefetch]);
 
   useMapVetoActionsRealtime(vetoSessionId, fetchVetoActions);
 
@@ -171,10 +217,43 @@ const MapVetoDialog = ({
     currentAction = vetoActions.length % 2 === 0 ? "ban" : "pick";
   }
 
+  // Add extra debugging to catch desync: compare frontend turn to backend after every significant change
+  useEffect(() => {
+    async function debugTurnConsistency() {
+      if (!vetoSessionId) return;
+      try {
+        const { data, error } = await supabase
+          .from('map_veto_sessions')
+          .select('current_turn_team_id')
+          .eq('id', vetoSessionId)
+          .maybeSingle();
+        if (error) throw error;
+        if (data?.current_turn_team_id !== currentTurnTeamId) {
+          console.warn("[DEBUG][TURN DESYNC] Local turnTeamId", currentTurnTeamId, "!= backend", data?.current_turn_team_id, "- syncing...");
+          setCurrentTurnTeamId(data?.current_turn_team_id);
+          setTurnVersion(v => v + 1);
+          setPermissionUpdateSeq(seq => seq + 1);
+        } else {
+          // All good
+          // console.log("[DEBUG][TURN SYNC] Local and backend match:", currentTurnTeamId);
+        }
+      } catch (e) {
+        // silent
+      }
+    }
+    debugTurnConsistency();
+    // Now, always check on change of vetoActions, turnTeamId, or RT version
+  }, [currentTurnTeamId, vetoActions.length, turnVersion, vetoSessionId]);
+
   // Add explicit log when turn or eligibility changes (easy to spot in devtools)
   useEffect(() => {
     console.log("[DEBUG VETO][PERMSTATE] Turn:", currentTurnTeamId, "| isUserOnTeam:", isUserOnMatchTeam, "| isUserTeamTurn:", isUserTeamTurn, "| isUserEligible:", isUserEligible, "| turnAction:", vetoActions.length, "| updateSeq:", permissionUpdateSeq, "| turnVersion:", turnVersion);
   }, [currentTurnTeamId, isUserOnMatchTeam, isUserTeamTurn, isUserEligible, vetoActions.length, permissionUpdateSeq, turnVersion]);
+
+  // Add log for MapVetoTurnStatus for clarity
+  useEffect(() => {
+    console.log("[DEBUG VETO][TurnStatus Render] Key:", turnVersion, "| isUserTurn", isUserTeamTurn, "| localTurnTeamId:", currentTurnTeamId);
+  }, [isUserTeamTurn, currentTurnTeamId, turnVersion]);
 
   // For debugging (keep code)
   useEffect(() => {
@@ -241,4 +320,4 @@ const MapVetoDialog = ({
 };
 
 export default MapVetoDialog;
-// End of real-time update-improved file
+// End of real-time/resync fix and debug
