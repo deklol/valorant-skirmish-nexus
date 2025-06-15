@@ -15,8 +15,8 @@ type Submission = {
   score_team2: number;
   winner_id: string | null;
   status: string;
-  // Fetched from join:
-  user: { discord_username: string | null } | null;
+  // Optionally we can later fill in a user object from a separate lookup
+  user?: { discord_username: string | null } | null;
 };
 
 interface MatchResultHistoryProps {
@@ -61,27 +61,14 @@ export default function MatchResultHistory({
   // Helper function to load history
   const fetchHistory = async () => {
     setLoading(true);
+    // Remove the join: fetch only the submission rows
     const { data } = await supabase
       .from("match_result_submissions")
-      .select("*, user:submitted_by(discord_username)")
+      .select("*")
       .eq("match_id", matchId)
       .order("submitted_at", { ascending: true });
     if (data) {
-      // Defensive fix: Only assign valid user objects, else null
-      const cleanData = data.map((sub: any) => {
-        let user = null;
-        if (
-          sub.user &&
-          typeof sub.user === "object" &&
-          !Array.isArray(sub.user) &&
-          Object.prototype.hasOwnProperty.call(sub.user, "discord_username") &&
-          !("error" in sub.user)
-        ) {
-          user = { discord_username: sub.user.discord_username };
-        }
-        return { ...sub, user };
-      });
-      setSubmissions(cleanData);
+      setSubmissions(data);
     }
     setLoading(false);
   };
@@ -101,7 +88,6 @@ export default function MatchResultHistory({
           filter: `match_id=eq.${matchId}`,
         },
         (payload) => {
-          // Reload history any time there's a change
           if (isMounted) fetchHistory();
         }
       )
@@ -140,9 +126,11 @@ export default function MatchResultHistory({
             >
               <div>
                 <span className="font-semibold text-white">
+                  {/* Show submitted_by last 8 if no user info */}
                   {sub.user?.discord_username ||
-                    sub.submitted_by.slice(0, 8) ||
-                    "Captain"}
+                    (sub.submitted_by
+                      ? sub.submitted_by.slice(0, 8)
+                      : "Captain")}
                 </span>
                 <span className="ml-2 text-xs text-slate-400">
                   {new Date(sub.submitted_at).toLocaleString()}
