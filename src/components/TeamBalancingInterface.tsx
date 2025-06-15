@@ -8,6 +8,7 @@ import { AlertTriangle, Users, Shuffle, Save, Plus, GripVertical } from "lucide-
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { getRankPoints, calculateTeamBalance } from "@/utils/rankingSystem";
+import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
 
 interface TeamBalancingInterfaceProps {
   tournamentId: string;
@@ -149,10 +150,30 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
   const [saving, setSaving] = useState(false);
   const [creatingTeams, setCreatingTeams] = useState(false);
   const { toast } = useToast();
+  const notifications = useEnhancedNotifications();
+  const [tournamentName, setTournamentName] = useState<string>("");
 
   useEffect(() => {
     fetchTeamsAndPlayers();
+    fetchTournamentName();
+    // eslint-disable-next-line
   }, [tournamentId]);
+
+  const fetchTournamentName = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('tournaments')
+        .select('name')
+        .eq('id', tournamentId)
+        .single();
+      if (!error && data?.name) {
+        setTournamentName(data.name);
+      }
+    } catch (e) {
+      // Fallback: just blank
+      setTournamentName("");
+    }
+  };
 
   const fetchTeamsAndPlayers = async () => {
     setLoading(true);
@@ -438,11 +459,9 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
   const saveTeamChanges = async () => {
     setSaving(true);
     try {
-      // Ensure unique team names (important for UI/db)
       const usedNames = new Set<string>();
       let reorderedTeams = teams.map(team => {
         const sortedMembers = [...team.members].sort((a, b) => b.weight_rating - a.weight_rating);
-        // Generate new proper team name for teams with members
         let teamName = getCaptainBasedTeamName(sortedMembers, team.name);
         let uniqueName = teamName;
         let count = 2;
@@ -453,12 +472,10 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
         usedNames.add(uniqueName);
         return { ...team, members: sortedMembers, name: team.members.length ? uniqueName : team.name };
       });
-      // Only save actual teams with members
       const teamsWithMembers = reorderedTeams.filter(team => team.members.length > 0);
 
       for (const team of teamsWithMembers) {
         if (team.isPlaceholder) {
-          // Create new team in db with captain-based name
           const { data: newTeam, error: createError } = await supabase
             .from('teams')
             .insert({
@@ -469,49 +486,54 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
             })
             .select()
             .single();
-
           if (createError) throw createError;
-
-          // Add the team members (captain = highest weight)
           const membersToInsert = team.members.map((member, index) => ({
             team_id: newTeam.id,
             user_id: member.id,
-            is_captain: index === 0 // First member is captain!
+            is_captain: index === 0
           }));
-
           const { error: membersError } = await supabase
             .from('team_members')
             .insert(membersToInsert);
-
           if (membersError) throw membersError;
+
+          // --- Notification for new team assignment ---
+          await notifications.notifyTeamAssigned(
+            newTeam.id,
+            team.name,
+            team.members.map(m => m.id),
+            tournamentName
+          );
         } else {
-          // Update existing team *name* in case members/captain changed
           await supabase
             .from('teams')
             .update({
               total_rank_points: team.totalWeight,
-              name: team.name // May have changed!
+              name: team.name
             })
             .eq('id', team.id);
-
-          // Remove all current members
           await supabase
             .from('team_members')
             .delete()
             .eq('team_id', team.id);
-
-          // Add the new members (captain = highest weight)
           if (team.members.length > 0) {
             const membersToInsert = team.members.map((member, index) => ({
               team_id: team.id,
               user_id: member.id,
-              is_captain: index === 0 // First member is captain!
+              is_captain: index === 0
             }));
-
             await supabase
               .from('team_members')
               .insert(membersToInsert);
           }
+
+          // --- Notification for edited team assignment ---
+          await notifications.notifyTeamAssigned(
+            team.id,
+            team.name,
+            team.members.map(m => m.id),
+            tournamentName
+          );
         }
       }
 
