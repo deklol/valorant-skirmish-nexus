@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -6,12 +5,42 @@ import { Trophy, Users, Calendar, Zap, Target, Shield } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import LiveMatches from "@/components/LiveMatches";
+import HomePageAnnouncement from "@/components/HomePageAnnouncement";
+import TournamentTabs from "@/components/TournamentTabs";
+import TopPlayersDisplay from "@/components/TopPlayersDisplay";
+import TwitchEmbed from "@/components/TwitchEmbed";
+import RecentWinners from "@/components/RecentWinners";
 
 const Index = () => {
   const { user } = useAuth();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      {/* Home Page Announcement */}
+      <div className="container mx-auto px-4 py-4">
+        <HomePageAnnouncement />
+      </div>
+
+      {/* Main Grid Section */}
+      <section className="container mx-auto px-4 py-4">
+        {/* Grid: LG 3cols; MD 1col (stacked) */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left col: Tournaments and Top Players */}
+          <div className="flex flex-col gap-4">
+            <TournamentTabs />
+            <TopPlayersDisplay />
+          </div>
+          {/* Center col: Twitch */}
+          <div>
+            <TwitchEmbed />
+          </div>
+          {/* Right col: Recent Winners */}
+          <div>
+            <RecentWinners />
+          </div>
+        </div>
+      </section>
+
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-16">
         <div className="text-center space-y-6">
@@ -198,7 +227,6 @@ const Index = () => {
             Join thousands of tournament organizers who trust our platform 
             for their competitive gaming events.
           </p>
-          
           {user ? (
             <Link to="/tournaments">
               <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white px-8 py-4 text-lg">
