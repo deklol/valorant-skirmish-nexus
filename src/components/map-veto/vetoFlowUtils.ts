@@ -1,3 +1,4 @@
+
 /**
  * Given home/away and bestOf, produce a full VCT BO3/BO5 veto flow.
  * For BO1: bans alternate (home starts) until 1 map left, which is auto-picked for final phase.
@@ -19,17 +20,17 @@ export function getVctVetoFlow({
   if (bestOf === 1) {
     // BO1: alternate bans, then auto-pick, then home selects side.
     let nBans = numMaps - 1;
-    let steps: { teamId: string, action: "ban" | "pick" | "side_pick" }[] = [];
+    let steps: { teamId: string | null, action: "ban" | "pick" | "side_pick" }[] = [];
     for (let i = 0; i < nBans; i++) {
       steps.push({
         teamId: i % 2 === 0 ? homeTeamId : awayTeamId,
         action: "ban",
       });
     }
-    // Auto-pick by away team if odd number of bans (last was home), else home team.
-    // But as per actual VCT: last ban is always Away, so Pick is automatic (no user action)
+    // Always assign teamId as the previous turn's OPPOSITE team for pick: this avoids null and allows safe access
+    let pickTeamId = nBans % 2 === 0 ? homeTeamId : awayTeamId;
     steps.push({
-      teamId: null as any, // no user picks, it's an automatic step
+      teamId: pickTeamId, // Instead of "null as any" set to the correct teamId
       action: "pick",
     });
     // Side pick is always Home
@@ -46,36 +47,36 @@ export function getVctVetoFlow({
   // VCT BO3
   if (bestOf === 3 && homeTeamId && awayTeamId) {
     return [
-      { teamId: homeTeamId, action: "ban", mapOrder: 0 },         // home bans
-      { teamId: awayTeamId, action: "ban", mapOrder: 1 },         // away bans
-      { teamId: homeTeamId, action: "pick", mapOrder: 2 },        // home picks M1
-      { teamId: awayTeamId, action: "side_pick", mapOrder: 3 },   // away picks side M1
-      { teamId: awayTeamId, action: "pick", mapOrder: 4 },        // away picks M2
-      { teamId: homeTeamId, action: "side_pick", mapOrder: 5 },   // home picks side M2
-      { teamId: homeTeamId, action: "ban", mapOrder: 6 },         // home bans
-      { teamId: awayTeamId, action: "ban", mapOrder: 7 },         // away bans
-      { teamId: null as any, action: "pick", mapOrder: 8 },       // remaining is Map3 (auto)
-      { teamId: homeTeamId, action: "side_pick", mapOrder: 9 },   // home picks side M3
+      { teamId: homeTeamId, action: "ban", mapOrder: 0 },
+      { teamId: awayTeamId, action: "ban", mapOrder: 1 },
+      { teamId: homeTeamId, action: "pick", mapOrder: 2 },
+      { teamId: awayTeamId, action: "side_pick", mapOrder: 3 },
+      { teamId: awayTeamId, action: "pick", mapOrder: 4 },
+      { teamId: homeTeamId, action: "side_pick", mapOrder: 5 },
+      { teamId: homeTeamId, action: "ban", mapOrder: 6 },
+      { teamId: awayTeamId, action: "ban", mapOrder: 7 },
+      { teamId: homeTeamId, action: "pick", mapOrder: 8 }, // assign to home or away, must not be null
+      { teamId: homeTeamId, action: "side_pick", mapOrder: 9 },
     ];
   }
 
   // VCT BO5 (Grand Finals style)
   if (bestOf === 5 && homeTeamId && awayTeamId) {
     return [
-      { teamId: homeTeamId, action: "ban", mapOrder: 0 },             // home bans
-      { teamId: awayTeamId, action: "ban", mapOrder: 1 },             // away bans
-      { teamId: homeTeamId, action: "pick", mapOrder: 2 },            // home picks Map1
-      { teamId: awayTeamId, action: "side_pick", mapOrder: 3 },       // away side Map1
-      { teamId: awayTeamId, action: "pick", mapOrder: 4 },            // away picks Map2
-      { teamId: homeTeamId, action: "side_pick", mapOrder: 5 },       // home side Map2
-      { teamId: homeTeamId, action: "pick", mapOrder: 6 },            // home picks Map3
-      { teamId: awayTeamId, action: "side_pick", mapOrder: 7 },       // away side Map3
-      { teamId: awayTeamId, action: "pick", mapOrder: 8 },            // away picks Map4
-      { teamId: homeTeamId, action: "side_pick", mapOrder: 9 },       // home side Map4
-      { teamId: homeTeamId, action: "ban", mapOrder: 10 },            // home bans from 3 left
-      { teamId: awayTeamId, action: "ban", mapOrder: 11 },            // away bans from last 2 left
-      { teamId: null as any, action: "pick", mapOrder: 12 },          // last = Map5 (auto)
-      { teamId: awayTeamId, action: "side_pick", mapOrder: 13 }       // away picks side Map5
+      { teamId: homeTeamId, action: "ban", mapOrder: 0 },
+      { teamId: awayTeamId, action: "ban", mapOrder: 1 },
+      { teamId: homeTeamId, action: "pick", mapOrder: 2 },
+      { teamId: awayTeamId, action: "side_pick", mapOrder: 3 },
+      { teamId: awayTeamId, action: "pick", mapOrder: 4 },
+      { teamId: homeTeamId, action: "side_pick", mapOrder: 5 },
+      { teamId: homeTeamId, action: "pick", mapOrder: 6 },
+      { teamId: awayTeamId, action: "side_pick", mapOrder: 7 },
+      { teamId: awayTeamId, action: "pick", mapOrder: 8 },
+      { teamId: homeTeamId, action: "side_pick", mapOrder: 9 },
+      { teamId: homeTeamId, action: "ban", mapOrder: 10 },
+      { teamId: awayTeamId, action: "ban", mapOrder: 11 },
+      { teamId: homeTeamId, action: "pick", mapOrder: 12 }, // assign to home or away, must not be null
+      { teamId: awayTeamId, action: "side_pick", mapOrder: 13 }
     ];
   }
 
@@ -85,3 +86,5 @@ export function getVctVetoFlow({
     steps.push({ teamId: i % 2 === 0 ? homeTeamId : awayTeamId, action: "ban" });
   return steps.map((s, i) => ({ ...s, mapOrder: i }));
 }
+
+// ... no other code

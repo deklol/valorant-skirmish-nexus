@@ -190,14 +190,14 @@ const MapVetoDialog = ({
     toast,
   });
 
-  // Memoized veto flow
+  // Memoized veto flow (always with non-null teamId for each step)
   const vetoFlow = React.useMemo(() => {
     if (!homeTeamId || !awayTeamId || maps.length === 0) return [];
     return getVctVetoFlow({ homeTeamId, awayTeamId, bestOf, maps });
   }, [homeTeamId, awayTeamId, bestOf, maps]);
 
-  const vetoStep = vetoActions.length;
-  const currentStep = vetoFlow[vetoStep];
+  const vetoStep = Math.min(vetoActions.length, vetoFlow.length - 1);
+  const currentStep = vetoFlow[vetoStep] || null; // may be null if not ready
 
   // Defensive: vetoComplete is true after all bans, pick, and side are done
   const bansMade = vetoActions.filter(a => a.action === "ban").length;
@@ -256,6 +256,12 @@ const MapVetoDialog = ({
     currentAction = vetoActions.length % 2 === 0 ? "ban" : "pick";
   }
 
+  // Defensive: only pass allowed action/props, do not crash if currentStep/teamId is missing!
+  const safeCurrentAction: "ban" | "pick" =
+    currentStep && (currentStep.action === "ban" || currentStep.action === "pick")
+      ? asMapActionType(currentStep.action)
+      : "ban";
+
   // FINAL summary for veto result
   const finalPickAction = vetoActions.find(a => a.action === 'pick');
   const pickedMap = maps.find(m => m.id === finalPickAction?.map_id);
@@ -302,7 +308,7 @@ const MapVetoDialog = ({
               <p className="text-yellow-300 text-lg">Syncing with server...<br /><span className="text-slate-400 text-sm">Please wait, actions are disabled during sync.</span></p>
             </div>
           )}
-          {!syncing && (
+          {!syncing && vetoFlow.length > 0 && currentStep && (
             <>
               {/* Show home/away info */}
               <div className="flex gap-8 justify-center pb-2">
@@ -322,7 +328,7 @@ const MapVetoDialog = ({
                 teamSize={teamSize}
                 isUserCaptain={isUserCaptain!}
                 // Only allow "ban" or "pick" as MapActionType!
-                currentAction={asMapActionType(currentStep?.action)}
+                currentAction={safeCurrentAction}
               />
 
               {/* Veto History */}
@@ -391,7 +397,7 @@ const MapVetoDialog = ({
                 <MapVetoMapGrid
                   maps={maps}
                   canAct={isUserEligible && canVeto && currentStep && currentStep.action !== "side_pick" && !syncing}
-                  currentAction={asMapActionType(currentStep?.action)}
+                  currentAction={safeCurrentAction}
                   bestOf={bestOf}
                   remainingMaps={getRemainingMaps(maps, vetoActions)}
                   vetoActions={vetoActions}
@@ -405,6 +411,11 @@ const MapVetoDialog = ({
               {/* Instructions */}
               <MapVetoInstructions />
             </>
+          )}
+          {!syncing && vetoFlow.length === 0 && (
+            <div className="text-red-400 text-center p-16">
+              Unable to start map veto: Session, teams, or map list is not loaded. Please retry later.
+            </div>
           )}
         </div>
       </DialogContent>

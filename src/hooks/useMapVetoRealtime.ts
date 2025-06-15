@@ -2,16 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 // Utility to safely unsubscribe and remove a channel (dedup-aware)
-const globalChannelRegistry = new Map<string, any>();
-
-/**
- * Use a unique property name for dedup/cleanup registry.
- * We do NOT use any private property from the Supabase client.
- */
-type RegistryChannel = {
-  __customRegistryKey?: string;
-};
-
 function cleanupChannel(channelRef: React.MutableRefObject<any>) {
   if (channelRef.current) {
     try {
@@ -20,20 +10,16 @@ function cleanupChannel(channelRef: React.MutableRefObject<any>) {
       console.warn('[MapVetoRealtime] Unsubscribe error (cleanup):', e);
     }
     try {
-      supabase.removeChannel(channelRef.current);
+      // Only remove if it is present
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+      }
     } catch (e) {
       console.warn('[MapVetoRealtime] Channel remove error (cleanup):', e);
-    }
-    // Remove from registry using our custom property
-    const regChannel = channelRef.current as RegistryChannel;
-    if (regChannel.__customRegistryKey) {
-      globalChannelRegistry.delete(regChannel.__customRegistryKey);
     }
     channelRef.current = null;
   }
 }
-
-// ------- Realtime connection/sync/auto-resubscribe hooks with backoff/connect-state -------
 
 // Exponential backoff utility
 function getBackoffDelay(attempt: number, base: number = 500, max: number = 15000) {
@@ -51,10 +37,8 @@ export function useMapVetoActionsRealtime(
   const callbackRef = useRef(callback);
   callbackRef.current = callback;
   const channelRef = useRef<any>(null);
-  const [retry, setRetry] = useState(0);
 
   useEffect(() => {
-    // Always cleanup!
     cleanupChannel(channelRef);
     if (!vetoSessionId) return;
 
@@ -66,14 +50,9 @@ export function useMapVetoActionsRealtime(
 
       const channelName = `map-veto-actions-${vetoSessionId}`;
       let disconnected = false;
-      // Deduplication remains the same
-      if (globalChannelRegistry.has(channelName)) {
-        channelRef.current = globalChannelRegistry.get(channelName);
-        onConnectionChange?.("online");
-        return;
-      }
+
+      // Normal subscription/no registry
       const channel = supabase.channel(channelName);
-      (channel as RegistryChannel).__customRegistryKey = channelName;
 
       const handleChange = (payload: any) => {
         if (callbackRef.current) callbackRef.current(payload);
@@ -89,7 +68,6 @@ export function useMapVetoActionsRealtime(
         },
         handleChange
       );
-      // Reconnection/error handlers
       channel.subscribe((status) => {
         if (status === "SUBSCRIBED") {
           retryCount = 0;
@@ -97,7 +75,6 @@ export function useMapVetoActionsRealtime(
         }
         if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
           onConnectionChange?.("error");
-          // Cleanup, backoff and re-subscribe
           disconnected = true;
           cleanupChannel(channelRef);
           const nextDelay = getBackoffDelay(retryCount++);
@@ -113,7 +90,6 @@ export function useMapVetoActionsRealtime(
       });
 
       channelRef.current = channel;
-      globalChannelRegistry.set(channelName, channel);
     }
 
     subscribeWithBackoff();
@@ -125,7 +101,6 @@ export function useMapVetoActionsRealtime(
     };
   }, [vetoSessionId, onConnectionChange]);
 }
-
 
 export function useMapVetoSessionRealtime(
   vetoSessionId: string | null,
@@ -148,13 +123,8 @@ export function useMapVetoSessionRealtime(
 
       const channelName = `map-veto-session-${vetoSessionId}`;
       let disconnected = false;
-      if (globalChannelRegistry.has(channelName)) {
-        channelRef.current = globalChannelRegistry.get(channelName);
-        onConnectionChange?.("online");
-        return;
-      }
+
       const channel = supabase.channel(channelName);
-      (channel as RegistryChannel).__customRegistryKey = channelName;
 
       channel.on(
         "postgres_changes",
@@ -190,7 +160,6 @@ export function useMapVetoSessionRealtime(
       });
 
       channelRef.current = channel;
-      globalChannelRegistry.set(channelName, channel);
     }
 
     subscribeWithBackoff();
