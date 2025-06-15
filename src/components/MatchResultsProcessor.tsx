@@ -23,6 +23,24 @@ export type NotificationFunctions = {
 };
 
 /**
+ * Determines if this match is the final of the bracket and all prior rounds are complete.
+ */
+function isBracketFinalMatch(currentMatch: any, allMatches: any[]): boolean {
+  // Compute maximum round
+  const roundNumbers = allMatches.map(m => m.round_number);
+  const maxRound = roundNumbers.length ? Math.max(...roundNumbers) : 1;
+
+  // This is a candidate final if: 
+  // - It's in the max round
+  // - All matches in ALL prior rounds are completed
+  const priorRounds = allMatches.filter(m => m.round_number < maxRound);
+  const allPriorRoundsCompleted = priorRounds.every(m => m.status === 'completed');
+  const isFinalMatch = currentMatch.round_number === maxRound;
+  // Only allow final completion if this IS the final & all prior are done
+  return isFinalMatch && allPriorRoundsCompleted;
+}
+
+/**
  * Process match results (admin or user): marks match complete, updates winner, advances bracket, updates stats.
  * Accepts toast/notif functions as dependency injection for strong React compatibility.
  */
@@ -50,7 +68,7 @@ export async function processMatchResults(
   const safeNotifyMatchReady = notifyMatchReady ?? (() => Promise.resolve());
 
   try {
-    // Mark match as completed
+    // Mark match as completed (now or again)
     {
       const { error: updateMatchError } = await supabase
         .from('matches')
@@ -65,7 +83,7 @@ export async function processMatchResults(
       if (updateMatchError) throw updateMatchError;
     }
 
-    // Fetch full match & tournament context, and ALL tournament matches for bracket checks
+    // Fetch full context: current match and all matches in this tournament
     const { data: match } = await supabase
       .from('matches')
       .select('*')
@@ -81,31 +99,16 @@ export async function processMatchResults(
 
     if (!allMatches) throw new Error('Could not load all matches in tournament');
 
-    // Bracket logic: Advance the winner if this is not the final (single remaining) match
-    const roundNumbers = allMatches.map(m => m.round_number);
-    const maxRound = roundNumbers.length ? Math.max(...roundNumbers) : 1;
-    const finalRoundMatches = allMatches.filter(m => m.round_number === maxRound);
-    const isTournamentComplete = (
-      finalRoundMatches.length === 1 &&
-      !!finalRoundMatches[0].winner_id &&
-      finalRoundMatches[0].status === "completed"
-    );
-
-    // 3. Bracket Advancement
-    if (!isTournamentComplete) {
+    // --- Bracket Logic & Advancement ---
+    // 1. Try to advance this match winner to the next round (unless final)
+    if (!isBracketFinalMatch(match, allMatches)) {
       await advanceWinnerToNextRound(match, winnerId, tournamentId);
     }
 
-    // --- Update team statuses right away ---
-    if (!isTournamentComplete) {
-      if (loserId) {
-        await supabase
-          .from('teams')
-          .update({ status: 'eliminated' })
-          .eq('id', loserId);
-      }
-    }
-    else {
+    // 2. Determine if tournament is now complete (final match and all rounds finished)
+    const isThisFinalMatch = isBracketFinalMatch(match, allMatches);
+    if (isThisFinalMatch) {
+      // Mark the winner as "winner", eliminate the loser
       if (winnerId) {
         await supabase
           .from('teams')
@@ -118,24 +121,32 @@ export async function processMatchResults(
           .update({ status: 'eliminated' })
           .eq('id', loserId);
       }
+    } else {
+      // If not final, only eliminate the loser
+      if (loserId) {
+        await supabase
+          .from('teams')
+          .update({ status: 'eliminated' })
+          .eq('id', loserId);
+      }
     }
 
-    // 4. Update player statistics
+    // 3. Stats always update per-match (safe, not duplicated for tournament)
     await updatePlayerStatistics(winnerId, loserId);
 
-    // 5. Notify
-    await safeNotifyMatchComplete(matchId, winnerId, loserId);
+    // 4. Notify completion of this match
+    await (notifyMatchComplete ?? (() => Promise.resolve()))(matchId, winnerId, loserId);
 
-    // 6. On finals, complete tournament!
-    if (isTournamentComplete) {
+    // 5. If this was tournament final, complete tournament & trigger notifications
+    if (isThisFinalMatch) {
       await completeTournament(tournamentId, winnerId);
-      await safeNotifyTournamentWinner(tournamentId, winnerId);
-      safeToast({
+      await (notifyTournamentWinner ?? (() => Promise.resolve()))(tournamentId, winnerId);
+      toast?.({
         title: "Tournament Complete!",
         description: "Congratulations to the tournament winner!"
       });
     } else {
-      // Non-final bracket: notify ready matches for the next round
+      // Notify readiness for next round, if new matches are now ready
       const { data: readyMatches } = await supabase
         .from('matches')
         .select('id, team1_id, team2_id')
@@ -147,20 +158,19 @@ export async function processMatchResults(
       if (readyMatches) {
         for (const readyMatch of readyMatches) {
           if (readyMatch.team1_id && readyMatch.team2_id) {
-            await safeNotifyMatchReady(readyMatch.id, readyMatch.team1_id, readyMatch.team2_id);
+            await (notifyMatchReady ?? (() => Promise.resolve()))(readyMatch.id, readyMatch.team1_id, readyMatch.team2_id);
           }
         }
       }
     }
 
-    safeToast({
+    toast?.({
       title: "Match Results Processed",
       description: "Statistics and tournament progress updated"
     });
-
     if (onComplete) onComplete();
   } catch (error: any) {
-    safeToast({
+    toast?.({
       title: "Match Result Processing Error",
       description: error.message || "Failed to record and process results",
       variant: "destructive",
