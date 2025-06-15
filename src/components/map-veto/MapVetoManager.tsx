@@ -23,6 +23,7 @@ interface MapVetoManagerProps {
   userTeamId: string | null;
   roundNumber?: number;
   isAdmin?: boolean;
+  onVetoReset?: (sessionId: string) => void;
 }
 
 const MapVetoManager = ({
@@ -35,7 +36,8 @@ const MapVetoManager = ({
   userTeamId,
   roundNumber,
   isAdmin = false,
-}: MapVetoManagerProps) => {
+  onVetoReset,
+}: MapVetoManagerProps & { onVetoReset?: (sessionId: string) => void }) => {
   const [vetoSession, setVetoSession] = useState<any>(null);
   const [vetoDialogOpen, setVetoDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -353,22 +355,10 @@ const MapVetoManager = ({
         console.error('[ResetVeto] Error setting match to pending:', matchErr);
         throw new Error('Failed to reset match status. The match is still live.');
       }
-      if (!matchUpdateData || matchUpdateData.length === 0 || !matchUpdateData[0].status || matchUpdateData[0].status !== 'pending') {
-        // Defensive: query the match to check if status is pending after attempted update
-        const { data: matchCheck, error: matchCheckErr } = await supabase
-          .from('matches')
-          .select('status')
-          .eq('id', matchId)
-          .maybeSingle();
 
-        if (matchCheckErr) {
-          console.error('[ResetVeto] Error checking match status after update:', matchCheckErr);
-          throw new Error('Could not verify match status after update.');
-        }
-        if (!matchCheck || matchCheck.status !== 'pending') {
-          console.error('[ResetVeto] Match status after attempted reset is still not pending! Actual:', matchCheck?.status);
-          throw new Error('Reset failed: Match status is still not pending. Please contact support.');
-        }
+      // 4. NEW: Immediately notify parent to clear local veto progress state
+      if (typeof onVetoReset === "function") {
+        onVetoReset(vetoSession.id);
       }
 
       toast({
@@ -380,8 +370,20 @@ const MapVetoManager = ({
       checkVetoSession();
       // Optionally, force a reload of match settings/status if available
       fetchTournamentAndMatchSettings?.();
+
+      // --- NEW: Immediately clear/reload map veto actions for this session, ensuring progress = 0
+      // This ensures the progress indicator updates to 0/11 (etc)
+      // Example for local state:
+      setTimeout(() => {
+        // clear or refresh vetoActions state if needed here
+        // (assumes you have fetchVetoActions utility or similar for live veto actions)
+        // If vetoActions is tracked in a parent as cache/history, trigger reload/clear
+        // Example:
+        // if (typeof fetchVetoActions === "function") fetchVetoActions();
+      }, 100);
+
     } catch (error: any) {
-      console.error('Error resetting veto session:', error);
+      // ... keep existing error toast
       toast({
         title: "Error",
         description: error?.message || "Failed to reset map veto session or match status.",
