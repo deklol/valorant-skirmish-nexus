@@ -39,6 +39,11 @@ const Index = () => {
         <TwitchEmbed />
       </section>
 
+      {/* Live Matches Section (moved here, right after Twitch) */}
+      <section className="container mx-auto px-4 py-12">
+        <LiveMatches />
+      </section>
+
       {/* Main 3-col grid: L=Top Players | M=Tournaments | R=Recent Winner */}
       <section className="container mx-auto px-4 pb-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -201,10 +206,6 @@ const Index = () => {
             </Link>
           )}
         </div>
-      </section>
-      {/* Live Matches Section */}
-      <section className="container mx-auto px-4 py-12">
-        <LiveMatches />
       </section>
     </div>
   );
