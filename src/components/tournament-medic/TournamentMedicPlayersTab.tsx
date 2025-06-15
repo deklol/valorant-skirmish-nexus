@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+
+import { useEffect, useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useDebouncedValue } from "./useDebouncedValue";
 
-// Use a central Tournament and Player type
+// Central types
 type Player = {
   id: string;
   discord_username: string | null;
@@ -13,19 +15,18 @@ type Player = {
 };
 type Tournament = { id: string };
 
-// -- Logic (same as before) --
+// Get all players signed up for this tournament
 function useTournamentPlayers(tournamentId: string) {
-  // ... keep existing code (useTournamentPlayers) the same ...
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(false);
 
   async function fetchPlayers() {
     setLoading(true);
-    // Fetch players signed up for this tournament
     const { data, error } = await supabase
       .from("users")
       .select("id, discord_username, riot_id")
-      .in("id",
+      .in(
+        "id",
         (
           await supabase
             .from("tournament_signups")
@@ -36,61 +37,90 @@ function useTournamentPlayers(tournamentId: string) {
     setPlayers(data || []);
     setLoading(false);
     if (error) {
-      toast({ title: "Player Load Error", description: error.message, variant: "destructive" });
+      toast({
+        title: "Player Load Error",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   }
   useEffect(() => { fetchPlayers(); }, [tournamentId]);
   return { players, fetchPlayers, loading };
 }
 
-// Modular: search for any user by discord name or riot id or user id
-function UserSearchBox({ onSelect, hideIfSelectedId }: {
+// Modular user search: real-time, excludes already signed-up players
+function UserSearchBox({
+  onSelect,
+  excludeIds = [],
+}: {
   onSelect: (user: Player) => void;
-  hideIfSelectedId?: string | null;
+  excludeIds?: string[];
 }) {
   const [query, setQuery] = useState("");
+  const debouncedQuery = useDebouncedValue(query, 300);
   const [results, setResults] = useState<Player[]>([]);
   const [loading, setLoading] = useState(false);
 
-  async function handleSearch() {
+  useEffect(() => {
+    if (!debouncedQuery) {
+      setResults([]);
+      return;
+    }
     setLoading(true);
-    const { data, error } = await supabase
+    // Search by Discord username or Riot ID (case-insensitive)
+    supabase
       .from("users")
       .select("id, discord_username, riot_id")
       .or(
         [
-          `discord_username.ilike.%${query}%`,
-          `riot_id.ilike.%${query}%`,
-          `id.eq.${query}`
+          `discord_username.ilike.%${debouncedQuery}%`,
+          `riot_id.ilike.%${debouncedQuery}%`,
         ].join(",")
       )
-      .limit(10);
-    setResults(data || []);
-    setLoading(false);
-    if (error) toast({ title: "Search Error", description: error.message, variant: "destructive" });
-  }
+      .limit(10)
+      .then(({ data, error }) => {
+        setLoading(false);
+        if (error) {
+          toast({
+            title: "Search Error",
+            description: error.message,
+            variant: "destructive",
+          });
+        }
+        // Exclude users already signed up or manually excluded
+        const filtered =
+          data?.filter(
+            (u: Player) => !excludeIds.includes(u.id)
+          ) || [];
+        setResults(filtered);
+      });
+  }, [debouncedQuery, excludeIds]);
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1 mt-1">
       <Input
         value={query}
         onChange={e => setQuery(e.target.value)}
-        placeholder="Find user by Discord, Riot ID, or user ID"
+        placeholder="Type Discord or Riot ID to search…"
         className="max-w-xs"
-        onKeyDown={e => { if (e.key === "Enter") handleSearch(); }}
       />
-      <Button size="sm" className="w-fit" onClick={handleSearch} disabled={loading || !query}>
-        Search
-      </Button>
-      <div className="flex flex-col gap-1 mt-1 max-h-32 overflow-y-auto">
-        {results.filter(r => r.id !== hideIfSelectedId).map(u => (
+      <div className="flex flex-col gap-1 mt-1 max-h-40 overflow-y-auto">
+        {loading && <div className="text-xs text-slate-400">Searching…</div>}
+        {!loading && debouncedQuery && results.length === 0 && (
+          <div className="text-xs text-slate-500">No results found.</div>
+        )}
+        {results.map(u => (
           <div key={u.id} className="bg-slate-700 rounded p-1 flex items-center gap-2 text-xs">
             <span className="font-mono">{u.discord_username || "No Discord"}</span>
             <span className="opacity-50">{u.riot_id || "No Riot"}</span>
             <Button
               size="sm"
-              onClick={() => { onSelect(u); setResults([]); setQuery(""); }}
-            >Select</Button>
+              onClick={() => {
+                onSelect(u);
+                setResults([]);
+                setQuery("");
+              }}
+            >Add</Button>
           </div>
         ))}
       </div>
@@ -98,18 +128,19 @@ function UserSearchBox({ onSelect, hideIfSelectedId }: {
   );
 }
 
-export default function TournamentMedicPlayersTab({ tournament, onRefresh }: {
+export default function TournamentMedicPlayersTab({
+  tournament,
+  onRefresh,
+}: {
   tournament: Tournament;
   onRefresh: () => void;
 }) {
   const { players, fetchPlayers, loading } = useTournamentPlayers(tournament.id);
-  const [search, setSearch] = useState("");
   const [forceUser, setForceUser] = useState<Player | null>(null);
   const [adding, setAdding] = useState(false);
 
   // Remove player modularized:
   async function forceRemovePlayer(playerId: string) {
-    // Remove from tournament_signups
     const { error } = await supabase
       .from("tournament_signups")
       .delete()
@@ -129,14 +160,17 @@ export default function TournamentMedicPlayersTab({ tournament, onRefresh }: {
   async function handleForceAddPlayer() {
     if (!forceUser) return;
     setAdding(true);
-    // Insert only if not already signed up
     const { data } = await supabase
       .from("tournament_signups")
       .select("id")
       .eq("tournament_id", tournament.id)
       .eq("user_id", forceUser.id);
     if (data && data.length > 0) {
-      toast({ title: "Already signed up", description: "User already present in tournament", variant: "destructive" });
+      toast({
+        title: "Already signed up",
+        description: "User already present in tournament",
+        variant: "destructive",
+      });
       setAdding(false);
       return;
     }
@@ -154,31 +188,48 @@ export default function TournamentMedicPlayersTab({ tournament, onRefresh }: {
     }
   }
 
-  const filteredPlayers = players.filter(p =>
-    !search ||
-    (p.discord_username && p.discord_username.toLowerCase().includes(search.toLowerCase())) ||
-    (p.riot_id && p.riot_id.toLowerCase().includes(search.toLowerCase()))
+  // Remove search field for already signed-up players
+  // Only show a simple filter by username or riot for the list
+  const [search, setSearch] = useState("");
+  const filteredPlayers = useMemo(
+    () =>
+      players.filter(
+        p =>
+          !search ||
+          (p.discord_username &&
+            p.discord_username.toLowerCase().includes(search.toLowerCase())) ||
+          (p.riot_id &&
+            p.riot_id.toLowerCase().includes(search.toLowerCase()))
+      ),
+    [players, search]
   );
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Small filter for signed-up list only */}
       <div className="flex gap-2">
         <Input
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Search Discord username, Riot ID"
+          placeholder="Filter players in tournament"
           className="max-w-xs"
         />
       </div>
       <div className="flex flex-col gap-2 max-h-48 overflow-y-auto scrollbar-thin text-xs">
         {loading ? (
           <div>Loading...</div>
+        ) : filteredPlayers.length === 0 ? (
+          <div className="text-slate-400 text-xs">No players in this tournament.</div>
         ) : (
           filteredPlayers.map(p => (
             <div key={p.id} className="flex items-center gap-2 bg-slate-800 p-2 rounded">
               <span className="font-mono">{p.discord_username || "No Discord"}</span>
               <span className="text-xs opacity-60">{p.riot_id}</span>
-              <Button size="sm" variant="outline" onClick={() => forceRemovePlayer(p.id)}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => forceRemovePlayer(p.id)}
+              >
                 Remove
               </Button>
             </div>
@@ -188,7 +239,7 @@ export default function TournamentMedicPlayersTab({ tournament, onRefresh }: {
       <div className="font-semibold text-xs mt-3">Force Add Player:</div>
       <UserSearchBox
         onSelect={setForceUser}
-        hideIfSelectedId={forceUser?.id || ""}
+        excludeIds={players.map(p => p.id)}
       />
       {forceUser && (
         <div className="flex gap-2 items-center mt-1">
@@ -198,9 +249,13 @@ export default function TournamentMedicPlayersTab({ tournament, onRefresh }: {
           <Button size="sm" onClick={handleForceAddPlayer} disabled={adding}>
             Force Add
           </Button>
-          <Button size="sm" variant="ghost" onClick={() => setForceUser(null)}>Cancel</Button>
+          <Button size="sm" variant="ghost" onClick={() => setForceUser(null)}>
+            Cancel
+          </Button>
         </div>
       )}
     </div>
   );
 }
+
+// Note: This file is now nearly 200 lines - please consider refactoring
