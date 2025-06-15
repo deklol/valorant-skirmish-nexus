@@ -86,28 +86,32 @@ export default function VetoMedicManager() {
       toast({ title: "Error", description: error.message, variant: "destructive" });
       setSessions([]);
     } else {
-      setSessions(
-        (data || []).map((session: any) => ({
-          ...session,
-          match_id: session.match_id ?? null,
-          home_team_id: session.home_team_id ?? null,    // <-- Defensive mapping
-          away_team_id: session.away_team_id ?? null,    // <-- Defensive mapping
-          match: session.match
-            ? {
-                ...session.match,
-                tournament: session.match.tournament && session.match.tournament.id
-                  ? session.match.tournament
-                  : null,
-                team1: session.match.team1 && session.match.team1.id
-                  ? session.match.team1
-                  : null,
-                team2: session.match.team2 && session.match.team2.id
-                  ? session.match.team2
-                  : null,
-              }
-            : null,
-        }))
-      );
+      const sessionsData = (data || []).map((session: any) => ({
+        ...session,
+        match_id: session.match_id ?? null,
+        home_team_id: session.home_team_id ?? null,    // <-- Defensive mapping
+        away_team_id: session.away_team_id ?? null,    // <-- Defensive mapping
+        match: session.match
+          ? {
+              ...session.match,
+              tournament: session.match.tournament && session.match.tournament.id
+                ? session.match.tournament
+                : null,
+              team1: session.match.team1 && session.match.team1.id
+                ? session.match.team1
+                : null,
+              team2: session.match.team2 && session.match.team2.id
+                ? session.match.team2
+                : null,
+            }
+          : null,
+      }));
+      setSessions(sessionsData);
+      
+      // Auto-fetch veto actions for all sessions to fix the data display
+      sessionsData.forEach((session: VetoSessionWithDetails) => {
+        fetchVetoActions(session.id);
+      });
     }
     setLoading(false);
   }, [toast]);
@@ -642,7 +646,7 @@ export default function VetoMedicManager() {
                         </ol>
                       </div>
 
-                      {/* MOVED: Show health results right after action history */}
+                      {/* Show health results right after action history */}
                       {healthCheckResults[session.id] && (
                         <div className="bg-slate-700/30 text-xs text-cyan-200 p-2 rounded mt-2 max-w-xl">
                           <b>Session Health:</b> {healthCheckResults[session.id].healthy ? "OK" : "Issues Detected"}

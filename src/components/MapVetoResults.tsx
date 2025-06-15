@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -64,6 +65,7 @@ export default function MapVetoResults({ matchId }: MapVetoResultsProps) {
   if (!vetoSessionId) {
     return null;
   }
+  
   // Group picks/bans
   const pickedMaps = actions.filter((a) => a.action === "pick");
   const bannedMaps = actions.filter((a) => a.action === "ban");
@@ -78,9 +80,27 @@ export default function MapVetoResults({ matchId }: MapVetoResultsProps) {
           <h4 className="font-bold text-green-400 mb-2">Picked Maps</h4>
           <div className="flex flex-wrap gap-3">
             {pickedMaps.map((pick) => (
-              <Badge key={pick.id} className="bg-green-600/20 border-green-500/40 text-green-200">
-                {pick.maps?.display_name}
-              </Badge>
+              <div key={pick.id} className="flex flex-col items-center gap-2 bg-green-600/20 border border-green-500/40 rounded-lg p-3">
+                {pick.maps?.thumbnail_url && (
+                  <img 
+                    src={pick.maps.thumbnail_url} 
+                    alt={pick.maps?.display_name}
+                    className="w-24 h-16 object-cover rounded"
+                  />
+                )}
+                <Badge className="bg-green-600/20 border-green-500/40 text-green-200">
+                  {pick.maps?.display_name}
+                </Badge>
+                {pick.side_choice && (
+                  <Badge className={
+                    pick.side_choice === "attack"
+                      ? "bg-red-700/30 text-red-200 border-red-500/40"
+                      : "bg-blue-700/30 text-blue-200 border-blue-500/40"
+                  }>
+                    {pick.side_choice.toUpperCase()} SIDE
+                  </Badge>
+                )}
+              </div>
             ))}
             {pickedMaps.length === 0 && <div className="text-slate-400">No picks</div>}
           </div>
@@ -89,9 +109,18 @@ export default function MapVetoResults({ matchId }: MapVetoResultsProps) {
           <h4 className="font-bold text-red-400 mb-2">Banned Maps</h4>
           <div className="flex flex-wrap gap-3">
             {bannedMaps.map((ban) => (
-              <Badge key={ban.id} className="bg-red-600/20 border-red-500/40 text-red-200">
-                {ban.maps?.display_name}
-              </Badge>
+              <div key={ban.id} className="flex flex-col items-center gap-2 bg-red-600/20 border border-red-500/40 rounded-lg p-3">
+                {ban.maps?.thumbnail_url && (
+                  <img 
+                    src={ban.maps.thumbnail_url} 
+                    alt={ban.maps?.display_name}
+                    className="w-24 h-16 object-cover rounded opacity-50"
+                  />
+                )}
+                <Badge className="bg-red-600/20 border-red-500/40 text-red-200">
+                  {ban.maps?.display_name}
+                </Badge>
+              </div>
             ))}
             {bannedMaps.length === 0 && <div className="text-slate-400">No bans</div>}
           </div>
@@ -108,6 +137,15 @@ export default function MapVetoResults({ matchId }: MapVetoResultsProps) {
                     <CheckCircle className="w-4 h-4 text-green-400" />
                   )}
                   <span className="text-white">{a.maps?.display_name}</span>
+                  {a.side_choice && (
+                    <Badge className={
+                      a.side_choice === "attack"
+                        ? "bg-red-700/30 text-red-200 border-red-500/40"
+                        : "bg-blue-700/30 text-blue-200 border-blue-500/40"
+                    }>
+                      {a.side_choice.toUpperCase()}
+                    </Badge>
+                  )}
                   {a.users?.discord_username && (
                     <span className="text-blue-300 text-xs ml-2">
                       by {a.users.discord_username}
