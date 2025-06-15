@@ -199,6 +199,7 @@ const MapVetoManager = ({
       return;
     }
 
+    console.log("[MapVetoManager] Start Map Veto button pressed");
     setLoading(true);
     try {
       // Refetch the latest session
@@ -213,8 +214,12 @@ const MapVetoManager = ({
       let session = null;
       let homeTeamIdFromSession = sessionRaw?.home_team_id || team1Id;
 
+      console.log("[MapVetoManager] Current veto session object at button press:", sessionRaw);
+
       // --- Revised: If session is pending with current_turn_team_id, ONLY ONE may promote it to in_progress
       if (sessionRaw && sessionRaw.status === 'pending' && !!sessionRaw.current_turn_team_id) {
+        console.log("[MapVetoManager] Attempting to promote pending session to in_progress (atomic)");
+
         // Try to promote to in_progress *atomically*
         const { data: promoted, error: promoteErr } = await supabase
           .from('map_veto_sessions')
@@ -227,9 +232,11 @@ const MapVetoManager = ({
           .eq('status', 'pending')
           .select()
           .single();
+
         if (promoteErr) {
+          console.log("[MapVetoManager] Error promoting session to in_progress:", promoteErr);
+
           if (promoteErr.code === "PGRST116" || promoteErr.code === "PGRST119") {
-            // Row no longer qualifies: another user updated it. Tell user to refresh.
             toast({
               title: "Veto Already Started",
               description: "Another captain started the veto. Please refresh the page.",
@@ -241,7 +248,10 @@ const MapVetoManager = ({
           }
           throw promoteErr; // Some other error
         }
+
         session = promoted;
+        console.log("[MapVetoManager] Session status changed from 'pending' to 'in_progress':", session);
+
         toast({
           title: "Map Veto Started",
           description: "Veto session is now live! Please refresh if you don't see the Participate button."
@@ -257,6 +267,7 @@ const MapVetoManager = ({
       // Continue with existing logic for new/in_progress
       if (sessionRaw && sessionRaw.status === 'pending') {
         // If current_turn_team_id is not set yet, set up as before
+        console.log("[MapVetoManager] Updating pending session to set current_turn_team_id (basic init)");
         const { data: updated, error: updateErr } = await supabase
           .from('map_veto_sessions')
           .update({
@@ -269,8 +280,14 @@ const MapVetoManager = ({
           .select()
           .single();
 
-        if (updateErr) throw updateErr;
+        if (updateErr) {
+          console.log("[MapVetoManager] Error updating pending session:", updateErr);
+          throw updateErr;
+        }
         session = updated;
+        if (session.status === 'in_progress') {
+          console.log("[MapVetoManager] Session status changed from 'pending' to 'in_progress' via update:", session);
+        }
       } else if (sessionRaw && sessionRaw.status === 'in_progress') {
         session = sessionRaw;
         if (!sessionRaw.current_turn_team_id) {
@@ -280,10 +297,14 @@ const MapVetoManager = ({
             .eq('id', sessionRaw.id)
             .select()
             .single();
-          if (patchErr) throw patchErr;
+          if (patchErr) {
+            console.log("[MapVetoManager] Error patching in_progress session:", patchErr);
+            throw patchErr;
+          }
           session = patched;
         }
       } else {
+        console.log("[MapVetoManager] Creating a new veto session (should only occur if none exists)");
         const { data: inserted, error: insertErr } = await supabase
           .from('map_veto_sessions')
           .insert({
@@ -296,8 +317,14 @@ const MapVetoManager = ({
           })
           .select()
           .single();
-        if (insertErr) throw insertErr;
+        if (insertErr) {
+          console.log("[MapVetoManager] Error inserting new session:", insertErr);
+          throw insertErr;
+        }
         session = inserted;
+        if (session.status === 'in_progress') {
+          console.log("[MapVetoManager] New session status: 'in_progress'", session);
+        }
       }
 
       setVetoSession(session);
@@ -311,7 +338,7 @@ const MapVetoManager = ({
 
       fetchTournamentAndMatchSettings?.();
     } catch (error: any) {
-      console.error('Error initializing map veto:', error);
+      console.log("[MapVetoManager] Error initializing map veto:", error);
       toast({
         title: "Error",
         description: error?.message || "Failed to start map veto",
