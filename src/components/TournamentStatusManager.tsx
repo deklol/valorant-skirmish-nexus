@@ -61,8 +61,9 @@ const TournamentStatusManager = ({ tournamentId, currentStatus, onStatusChange }
     setLoading(true);
 
     try {
+      // For "completed", ALWAYS use full completion flow.
       if (targetStatus === 'completed') {
-        // Try to auto-detect winner as before
+        // Try to auto-detect winner
         const { data: matches, error: fetchMatchesError } = await supabase
           .from('matches')
           .select('id, winner_id, round_number, status')
@@ -85,6 +86,8 @@ const TournamentStatusManager = ({ tournamentId, currentStatus, onStatusChange }
           setLoading(false);
           return;
         }
+
+        // FULL completion logic: stats and statuses
         const result = await completeTournament(tournamentId, winnerId);
         if (result) {
           toast({
@@ -96,7 +99,7 @@ const TournamentStatusManager = ({ tournamentId, currentStatus, onStatusChange }
           throw new Error("Failed to fully complete tournament. Please check console for errors.");
         }
       } else {
-        // Allow any status change (admin only); update fields for "live" stage.
+        // Status changes other than "completed" are allowed as before.
         const updateData: any = { status: targetStatus };
         if (targetStatus === 'live') {
           updateData.start_time = new Date().toISOString();
