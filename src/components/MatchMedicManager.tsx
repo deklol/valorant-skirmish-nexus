@@ -45,6 +45,7 @@ interface MatchInfo {
   score_team2: number;
   completed_at: string | null;
   scheduled_time: string | null;
+  started_at?: string | null;
   // New: veto session summary fields
   vetoSession?: VetoSessionSummary | null;
 }
@@ -204,7 +205,7 @@ export default function MatchMedicManager() {
     const { data, error } = await supabase
       .from("matches")
       .select(`
-        id, round_number, match_number, status, score_team1, score_team2, completed_at, scheduled_time,
+        id, round_number, match_number, status, score_team1, score_team2, completed_at, scheduled_time, started_at,
         tournament:tournament_id ( id, name ),
         team1:team1_id ( id, name ),
         team2:team2_id ( id, name ),
@@ -230,6 +231,7 @@ export default function MatchMedicManager() {
           score_team2: m.score_team2,
           completed_at: m.completed_at,
           scheduled_time: m.scheduled_time,
+          started_at: m.started_at,
           tournament: parseTournamentInfo(m.tournament),
           team1: parseTeamInfo(m.team1),
           team2: parseTeamInfo(m.team2),
