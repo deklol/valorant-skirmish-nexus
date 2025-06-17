@@ -55,6 +55,8 @@ const MapVetoManager = ({
     roll_seed: null,
   });
   const [vetoDialogLastProps, setVetoDialogLastProps] = useState<any>(null);
+  const [tournamentMapPool, setTournamentMapPool] = useState<any[]>([]);
+  const [tournamentId, setTournamentId] = useState<string | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
   const { notifyMapVetoReady } = useEnhancedNotifications();
@@ -100,9 +102,12 @@ const MapVetoManager = ({
         .select(`
           map_veto_enabled,
           round_number,
+          tournament_id,
           tournaments:tournament_id (
+            id,
             enable_map_veto,
-            map_veto_required_rounds
+            map_veto_required_rounds,
+            map_pool
           )
         `)
         .eq('id', matchId)
@@ -112,6 +117,36 @@ const MapVetoManager = ({
 
       setMatchSettings(matchData ?? null);
       setTournamentSettings(matchData && matchData.tournaments ? matchData.tournaments : null);
+      setTournamentId(matchData?.tournament_id || null);
+
+      // Fetch tournament map pool if available
+      if (matchData?.tournaments?.map_pool && Array.isArray(matchData.tournaments.map_pool)) {
+        const mapIds = matchData.tournaments.map_pool;
+        if (mapIds.length > 0) {
+          const { data: mapData, error: mapError } = await supabase
+            .from('maps')
+            .select('id, name, display_name, thumbnail_url, is_active')
+            .in('id', mapIds);
+          
+          if (!mapError && mapData) {
+            // Sort maps by display_name to maintain consistent order
+            const sortedMaps = mapData.sort((a, b) => a.display_name.localeCompare(b.display_name));
+            setTournamentMapPool(sortedMaps);
+          }
+        }
+      } else {
+        // Fallback to global active maps if tournament has no map pool
+        const { data: globalMaps, error: globalError } = await supabase
+          .from('maps')
+          .select('id, name, display_name, thumbnail_url, is_active')
+          .eq('is_active', true)
+          .order('display_name');
+        
+        if (!globalError && globalMaps) {
+          setTournamentMapPool(globalMaps);
+        }
+      }
+
       if (!matchData) {
         console.log("[MapVetoManager] No matchData returned");
       }
@@ -119,6 +154,7 @@ const MapVetoManager = ({
       console.error('Error fetching tournament/match settings:', error);
       setMatchSettings(null);
       setTournamentSettings(null);
+      setTournamentMapPool([]);
     } finally {
       setSettingsLoading(false);
     }
@@ -199,7 +235,19 @@ const MapVetoManager = ({
       return;
     }
 
+    // Validate tournament has adequate map pool
+    if (tournamentMapPool.length < 2) {
+      toast({
+        title: "Error",
+        description: `Tournament map pool has ${tournamentMapPool.length} maps. At least 2 maps are required for veto.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     console.log("[MapVetoManager] Start Map Veto button pressed");
+    console.log("[MapVetoManager] Tournament map pool:", tournamentMapPool.map(m => m.display_name));
+    
     setLoading(true);
     try {
       // Refetch the latest session
@@ -529,8 +577,8 @@ const MapVetoManager = ({
     return null;
   }
 
-  // Defensive: If settings can't be loaded, display fallback
-  if (!matchSettings || !tournamentSettings) {
+  // Defensive: If settings or map pool can't be loaded, display fallback
+  if (!matchSettings || !tournamentSettings || tournamentMapPool.length === 0) {
     return (
       <Card className="bg-slate-800 border-slate-700">
         <CardHeader>
@@ -540,8 +588,18 @@ const MapVetoManager = ({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="p-4 text-center text-red-400">
-            Unable to load map veto settings. Please reload or contact admin.
+          <div className="p-4 text-center">
+            {settingsLoading ? (
+              <div className="text-yellow-400">Loading map veto settings...</div>
+            ) : tournamentMapPool.length === 0 ? (
+              <div className="text-red-400">
+                Tournament has no map pool configured. Contact admin to set up active maps.
+              </div>
+            ) : (
+              <div className="text-red-400">
+                Unable to load map veto settings. Please reload or contact admin.
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -593,9 +651,27 @@ const MapVetoManager = ({
         <CardTitle className="text-white flex items-center gap-2">
           <Map className="w-5 h-5" />
           Map Veto System
+          <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 ml-2">
+            {tournamentMapPool.length} Maps in Pool
+          </Badge>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Tournament Map Pool Display */}
+        <div className="bg-slate-900/50 border border-slate-600 rounded-lg p-3">
+          <div className="text-sm font-medium text-slate-300 mb-2">Tournament Map Pool:</div>
+          <div className="flex flex-wrap gap-2">
+            {tournamentMapPool.map(map => (
+              <div key={map.id} className="flex items-center gap-1 bg-slate-700/40 px-2 py-1 rounded text-xs">
+                {map.thumbnail_url && (
+                  <img src={map.thumbnail_url} alt={map.display_name} className="w-4 h-3 object-cover rounded" />
+                )}
+                <span className="text-slate-200">{map.display_name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-white font-medium">Map Veto:</span>

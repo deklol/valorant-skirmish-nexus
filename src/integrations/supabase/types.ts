@@ -821,6 +821,7 @@ export type Database = {
           enable_map_veto: boolean | null
           final_match_format: Database["public"]["Enums"]["match_format"] | null
           id: string
+          map_pool: Json | null
           map_veto_required_rounds: Json | null
           match_format: Database["public"]["Enums"]["match_format"] | null
           max_players: number
@@ -850,6 +851,7 @@ export type Database = {
             | Database["public"]["Enums"]["match_format"]
             | null
           id?: string
+          map_pool?: Json | null
           map_veto_required_rounds?: Json | null
           match_format?: Database["public"]["Enums"]["match_format"] | null
           max_players?: number
@@ -879,6 +881,7 @@ export type Database = {
             | Database["public"]["Enums"]["match_format"]
             | null
           id?: string
+          map_pool?: Json | null
           map_veto_required_rounds?: Json | null
           match_format?: Database["public"]["Enums"]["match_format"] | null
           max_players?: number
@@ -1053,6 +1056,10 @@ export type Database = {
         }
         Returns: string
       }
+      capture_active_map_pool: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       create_notification: {
         Args: {
           p_user_id: string
@@ -1070,6 +1077,16 @@ export type Database = {
       fix_missing_tournament_wins: {
         Args: Record<PropertyKey, never>
         Returns: number
+      }
+      get_tournament_map_pool: {
+        Args: { p_tournament_id: string }
+        Returns: {
+          id: string
+          name: string
+          display_name: string
+          thumbnail_url: string
+          is_active: boolean
+        }[]
       }
       get_user_match_history: {
         Args: { profile_user_id: string; match_limit?: number }

@@ -12,12 +12,40 @@ interface MapVetoResultsProps {
 export default function MapVetoResults({ matchId }: MapVetoResultsProps) {
   const [vetoSessionId, setVetoSessionId] = useState<string | null>(null);
   const [actions, setActions] = useState<any[]>([]);
-  const [maps, setMaps] = useState<any[]>([]);
+  const [tournamentMapPool, setTournamentMapPool] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadSession() {
       setLoading(true);
+      
+      // Find veto session and get tournament info
+      const { data: match } = await supabase
+        .from("matches")
+        .select(`
+          tournament_id,
+          tournaments:tournament_id (
+            map_pool
+          )
+        `)
+        .eq("id", matchId)
+        .maybeSingle();
+
+      // Load tournament map pool
+      if (match?.tournaments?.map_pool && Array.isArray(match.tournaments.map_pool)) {
+        const mapIds = match.tournaments.map_pool;
+        if (mapIds.length > 0) {
+          const { data: mapData } = await supabase
+            .from('maps')
+            .select('id, name, display_name, thumbnail_url, is_active')
+            .in('id', mapIds);
+          
+          if (mapData) {
+            setTournamentMapPool(mapData.sort((a, b) => a.display_name.localeCompare(b.display_name)));
+          }
+        }
+      }
+
       // Find veto session
       const { data: session } = await supabase
         .from("map_veto_sessions")
@@ -25,6 +53,7 @@ export default function MapVetoResults({ matchId }: MapVetoResultsProps) {
         .eq("match_id", matchId)
         .eq("status", "completed")
         .maybeSingle();
+        
       if (!session) {
         setVetoSessionId(null);
         setActions([]);
@@ -62,6 +91,7 @@ export default function MapVetoResults({ matchId }: MapVetoResultsProps) {
       </Card>
     );
   }
+  
   if (!vetoSessionId) {
     return null;
   }
@@ -73,9 +103,45 @@ export default function MapVetoResults({ matchId }: MapVetoResultsProps) {
   return (
     <Card className="bg-slate-900 border-slate-700 my-6">
       <CardHeader>
-        <CardTitle className="text-white">Map Veto Results</CardTitle>
+        <CardTitle className="text-white flex items-center gap-2">
+          <Map className="w-5 h-5" />
+          Map Veto Results
+          <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
+            Pool: {tournamentMapPool.length} Maps
+          </Badge>
+        </CardTitle>
       </CardHeader>
       <CardContent>
+        {/* Tournament Map Pool Overview */}
+        {tournamentMapPool.length > 0 && (
+          <div className="mb-4 p-3 bg-slate-800/50 border border-slate-600 rounded-lg">
+            <h4 className="font-medium text-slate-300 mb-2 text-sm">Tournament Map Pool Used:</h4>
+            <div className="flex flex-wrap gap-2">
+              {tournamentMapPool.map(map => {
+                const wasBanned = bannedMaps.some(ban => ban.map_id === map.id);
+                const wasPicked = pickedMaps.some(pick => pick.map_id === map.id);
+                
+                return (
+                  <div key={map.id} className={`flex items-center gap-1 px-2 py-1 rounded text-xs border ${
+                    wasPicked 
+                      ? "bg-green-600/20 border-green-500/40 text-green-200"
+                      : wasBanned
+                      ? "bg-red-600/20 border-red-500/40 text-red-300"
+                      : "bg-slate-700/40 border-slate-600 text-slate-300"
+                  }`}>
+                    {map.thumbnail_url && (
+                      <img src={map.thumbnail_url} alt={map.display_name} className="w-4 h-3 object-cover rounded" />
+                    )}
+                    <span>{map.display_name}</span>
+                    {wasPicked && <CheckCircle className="w-3 h-3" />}
+                    {wasBanned && <Ban className="w-3 h-3" />}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         <div className="mb-4">
           <h4 className="font-bold text-green-400 mb-2">Picked Maps</h4>
           <div className="flex flex-wrap gap-3">
@@ -105,6 +171,7 @@ export default function MapVetoResults({ matchId }: MapVetoResultsProps) {
             {pickedMaps.length === 0 && <div className="text-slate-400">No picks</div>}
           </div>
         </div>
+        
         <div className="mb-4">
           <h4 className="font-bold text-red-400 mb-2">Banned Maps</h4>
           <div className="flex flex-wrap gap-3">
@@ -125,6 +192,7 @@ export default function MapVetoResults({ matchId }: MapVetoResultsProps) {
             {bannedMaps.length === 0 && <div className="text-slate-400">No bans</div>}
           </div>
         </div>
+        
         <div>
           <h4 className="font-bold text-slate-300 mb-2">Full Timeline</h4>
           {actions.length ? (
@@ -164,7 +232,4 @@ export default function MapVetoResults({ matchId }: MapVetoResultsProps) {
       </CardContent>
     </Card>
   );
-
-  // Final safeguard; never return undefined.
-  return null; // fallback; should never hit
 }

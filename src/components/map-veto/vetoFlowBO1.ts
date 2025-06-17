@@ -1,8 +1,8 @@
 
 /**
- * Generate a dynamic veto sequence for BO1 based on the number of active maps.
+ * Generate a dynamic veto sequence for BO1 based on tournament map pool.
  * Competitive logic, matching backend SQL (see perform_veto_action SQL):
- * - Home bans 1 map (step1)
+ * - Home bans 1 map (step1)  
  * - Away bans 2 maps if >3 maps (step2/3), else only 1
  * - Alternate (Home, Away, Home...) until 1 map remains
  * - The final map is auto-picked; then Home chooses side via set_side_choice
@@ -12,37 +12,71 @@
 export function generateBO1VetoFlow({
   homeTeamId,
   awayTeamId,
-  maps,
+  tournamentMapPool,
 }: {
   homeTeamId: string;
   awayTeamId: string;
-  maps: { id: string; name: string }[];
+  tournamentMapPool: { id: string; name: string }[];
 }) {
-  const totalMaps = maps.length;
+  const totalMaps = tournamentMapPool.length;
   if (!homeTeamId || !awayTeamId || totalMaps < 2) return [];
 
   let steps: { teamId: string | null; action: "ban" | "pick" | "side_pick"; step: number }[] = [];
   let step = 0;
 
-  // Ban sequence now matches backend definition exactly!
-  steps.push({ teamId: homeTeamId, action: "ban", step: step++ }); // Home ban 1
-
-  let awayDoubleBan = totalMaps > 3 ? 2 : 1;
-  for (let i = 0; i < awayDoubleBan; i++) {
-    steps.push({ teamId: awayTeamId, action: "ban", step: step++ }); // Away ban(s)
+  // Build competitive ban sequence: [home, away, away, home, away, home] for 7 maps
+  const totalBans = totalMaps - 1;
+  const banSequence: string[] = [];
+  
+  // Always start with home ban
+  banSequence.push(homeTeamId);
+  
+  // Away team bans: 2 if >3 maps, 1 if ≤3 maps
+  if (totalMaps >= 4) {
+    banSequence.push(awayTeamId, awayTeamId);
+  } else {
+    banSequence.push(awayTeamId);
+  }
+  
+  // Continue alternating until we have enough bans
+  let nextTeam = homeTeamId; // Start alternating with home after away's double ban
+  for (let i = banSequence.length; i < totalBans; i++) {
+    banSequence.push(nextTeam);
+    nextTeam = nextTeam === homeTeamId ? awayTeamId : homeTeamId;
   }
 
-  // Alternating bans: Home, Away, ... until only one map left
-  let bansSoFar = steps.length;
-  let currentTeam = homeTeamId;
-  while (bansSoFar < totalMaps - 1) {
-    steps.push({ teamId: currentTeam, action: "ban", step: step++ });
-    bansSoFar++;
-    currentTeam = currentTeam === homeTeamId ? awayTeamId : homeTeamId;
-  }
-  // Final auto-pick and side-pick
-  steps.push({ teamId: null, action: "pick", step: step++ }); // auto-pick
-  steps.push({ teamId: homeTeamId, action: "side_pick", step: step }); // home picks side
+  // Add ban steps
+  banSequence.forEach(teamId => {
+    steps.push({ teamId, action: "ban", step: step++ });
+  });
+
+  // Auto-pick final map (no team assigned - handled by backend)
+  steps.push({ teamId: null, action: "pick", step: step++ });
+  
+  // Home team picks side
+  steps.push({ teamId: homeTeamId, action: "side_pick", step: step });
 
   return steps;
+}
+
+/**
+ * Validate that a ban sequence matches the expected competitive flow
+ */
+export function validateBO1BanSequence(
+  banSequence: string[],
+  homeTeamId: string,
+  awayTeamId: string,
+  totalMaps: number
+): boolean {
+  const expectedSequence = generateBO1VetoFlow({
+    homeTeamId,
+    awayTeamId,
+    tournamentMapPool: Array(totalMaps).fill(0).map((_, i) => ({ id: `map-${i}`, name: `Map ${i}` }))
+  });
+  
+  const expectedBanTeams = expectedSequence
+    .filter(step => step.action === "ban")
+    .map(step => step.teamId);
+  
+  return JSON.stringify(banSequence) === JSON.stringify(expectedBanTeams);
 }

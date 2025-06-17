@@ -1,415 +1,426 @@
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState, useEffect } from "react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Map, Plus, Edit, Trash2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Map, Plus, Edit2, Trash2, Eye, EyeOff, AlertCircle, CheckCircle } from "lucide-react";
 
 interface MapData {
   id: string;
   name: string;
   display_name: string;
-  thumbnail_url: string | null;
+  thumbnail_url?: string;
   is_active: boolean;
-  created_at: string;
 }
 
-const MapManager = () => {
+export default function MapManager() {
   const [maps, setMaps] = useState<MapData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
   const [editingMap, setEditingMap] = useState<MapData | null>(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    display_name: '',
-    thumbnail_url: ''
+  const [newMap, setNewMap] = useState({
+    name: "",
+    display_name: "",
+    thumbnail_url: "",
   });
+  const [showAddForm, setShowAddForm] = useState(false);
   const { toast } = useToast();
+
+  const fetchMaps = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("maps")
+      .select("*")
+      .order("display_name");
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch maps",
+        variant: "destructive",
+      });
+    } else {
+      setMaps(data || []);
+    }
+    setLoading(false);
+  };
 
   useEffect(() => {
     fetchMaps();
   }, []);
 
-  const fetchMaps = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('maps')
-        .select('*')
-        .order('name');
-
-      if (error) throw error;
-      setMaps(data || []);
-    } catch (error) {
-      console.error('Error fetching maps:', error);
+  const handleCreateMap = async () => {
+    if (!newMap.name.trim() || !newMap.display_name.trim()) {
       toast({
         title: "Error",
-        description: "Failed to load maps",
+        description: "Map name and display name are required",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    try {
-      if (editingMap) {
-        // Update existing map
-        const { error } = await supabase
-          .from('maps')
-          .update({
-            name: formData.name,
-            display_name: formData.display_name,
-            thumbnail_url: formData.thumbnail_url || null
-          })
-          .eq('id', editingMap.id);
-
-        if (error) throw error;
-
-        toast({
-          title: "Map Updated",
-          description: `${formData.display_name} has been updated successfully`,
-        });
-      } else {
-        // Create new map
-        const { error } = await supabase
-          .from('maps')
-          .insert({
-            name: formData.name,
-            display_name: formData.display_name,
-            thumbnail_url: formData.thumbnail_url || null,
-            is_active: true
-          });
-
-        if (error) throw error;
-
-        toast({
-          title: "Map Added",
-          description: `${formData.display_name} has been added to the map pool`,
-        });
-      }
-
-      setDialogOpen(false);
-      setEditingMap(null);
-      setFormData({ name: '', display_name: '', thumbnail_url: '' });
-      fetchMaps();
-    } catch (error: any) {
-      console.error('Error saving map:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to save map",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleEdit = (map: MapData) => {
-    setEditingMap(map);
-    setFormData({
-      name: map.name,
-      display_name: map.display_name,
-      thumbnail_url: map.thumbnail_url || ''
-    });
-    setDialogOpen(true);
-  };
-
-  const handleDelete = async (mapId: string, mapName: string) => {
-    if (!confirm(`Are you sure you want to delete "${mapName}"? This cannot be undone.`)) {
       return;
     }
 
-    try {
-      const { error } = await supabase
-        .from('maps')
-        .delete()
-        .eq('id', mapId);
+    const { error } = await supabase.from("maps").insert([
+      {
+        name: newMap.name.trim(),
+        display_name: newMap.display_name.trim(),
+        thumbnail_url: newMap.thumbnail_url.trim() || null,
+        is_active: false, // New maps start inactive
+      },
+    ]);
 
-      if (error) throw error;
-
-      toast({
-        title: "Map Deleted",
-        description: `${mapName} has been removed from the map pool`,
-      });
-
-      fetchMaps();
-    } catch (error: any) {
-      console.error('Error deleting map:', error);
+    if (error) {
       toast({
         title: "Error",
-        description: error.message || "Failed to delete map",
+        description: "Failed to create map",
         variant: "destructive",
       });
+    } else {
+      toast({
+        title: "Success",
+        description: "Map created successfully",
+      });
+      setNewMap({ name: "", display_name: "", thumbnail_url: "" });
+      setShowAddForm(false);
+      fetchMaps();
     }
   };
 
-  const toggleMapStatus = async (mapId: string, currentStatus: boolean) => {
-    try {
-      const { error } = await supabase
-        .from('maps')
-        .update({ is_active: !currentStatus })
-        .eq('id', mapId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Map Status Updated",
-        description: `Map has been ${!currentStatus ? 'activated' : 'deactivated'}`,
-      });
-
-      fetchMaps();
-    } catch (error: any) {
-      console.error('Error updating map status:', error);
+  const handleUpdateMap = async () => {
+    if (!editingMap || !editingMap.name.trim() || !editingMap.display_name.trim()) {
       toast({
         title: "Error",
-        description: error.message || "Failed to update map status",
+        description: "Map name and display name are required",
         variant: "destructive",
       });
+      return;
+    }
+
+    const { error } = await supabase
+      .from("maps")
+      .update({
+        name: editingMap.name.trim(),
+        display_name: editingMap.display_name.trim(),
+        thumbnail_url: editingMap.thumbnail_url?.trim() || null,
+        is_active: editingMap.is_active,
+      })
+      .eq("id", editingMap.id);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update map",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Success",
+        description: "Map updated successfully",
+      });
+      setEditingMap(null);
+      fetchMaps();
     }
   };
 
-  const resetDialog = () => {
-    setEditingMap(null);
-    setFormData({ name: '', display_name: '', thumbnail_url: '' });
-    setDialogOpen(false);
+  const handleDeleteMap = async (mapId: string) => {
+    if (!confirm("Are you sure you want to delete this map?")) return;
+
+    const { error } = await supabase.from("maps").delete().eq("id", mapId);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete map",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Success",
+        description: "Map deleted successfully",
+      });
+      fetchMaps();
+    }
   };
+
+  const handleToggleActive = async (mapId: string, isActive: boolean) => {
+    const activeMapsCount = maps.filter(m => m.is_active).length;
+    
+    // Warn if trying to activate when we already have 7 active maps
+    if (isActive && activeMapsCount >= 7) {
+      toast({
+        title: "Warning",
+        description: "You already have 7 active maps. Consider deactivating another map first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Warn if trying to deactivate when we only have 1-2 active maps
+    if (!isActive && activeMapsCount <= 2) {
+      toast({
+        title: "Warning", 
+        description: "You need at least 2 active maps for tournaments.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const { error } = await supabase
+      .from("maps")
+      .update({ is_active: isActive })
+      .eq("id", mapId);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update map status",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Success",
+        description: `Map ${isActive ? 'activated' : 'deactivated'} successfully`,
+      });
+      fetchMaps();
+    }
+  };
+
+  const activeMaps = maps.filter(m => m.is_active);
+  const inactiveMaps = maps.filter(m => !m.is_active);
 
   if (loading) {
     return (
       <Card className="bg-slate-800 border-slate-700">
-        <CardContent className="p-8 text-center">
-          <p className="text-white">Loading maps...</p>
+        <CardContent className="p-6">
+          <div className="text-center text-slate-400">Loading maps...</div>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="bg-slate-800 border-slate-700">
-      <CardHeader>
-        <div className="flex items-center justify-between">
+    <div className="space-y-6">
+      <Card className="bg-slate-800 border-slate-700">
+        <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
-            <Map className="w-5 h-5 text-blue-400" />
-            Map Manager
+            <Map className="w-5 h-5" />
+            Map Pool Management
           </CardTitle>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button
-                onClick={resetDialog}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add Map
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="bg-slate-800 border-slate-700">
-              <DialogHeader>
-                <DialogTitle className="text-white">
-                  {editingMap ? 'Edit Map' : 'Add New Map'}
-                </DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="text-white">Map Name (Internal)</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    className="bg-slate-700 border-slate-600 text-white"
-                    placeholder="e.g., ascent, bind, haven"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="display_name" className="text-white">Display Name</Label>
-                  <Input
-                    id="display_name"
-                    value={formData.display_name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, display_name: e.target.value }))}
-                    className="bg-slate-700 border-slate-600 text-white"
-                    placeholder="e.g., Ascent, Bind, Haven"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="thumbnail_url" className="text-white">Thumbnail URL</Label>
-                  <Input
-                    id="thumbnail_url"
-                    value={formData.thumbnail_url}
-                    onChange={(e) => setFormData(prev => ({ ...prev, thumbnail_url: e.target.value }))}
-                    className="bg-slate-700 border-slate-600 text-white"
-                    placeholder="https://example.com/map-image.jpg"
-                    type="url"
-                  />
-                </div>
-                <div className="flex justify-end gap-2 pt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={resetDialog}
-                    className="border-slate-600 text-slate-300"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    {editingMap ? 'Update Map' : 'Add Map'}
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {maps.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-slate-400 mb-4">No maps added yet.</p>
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button className="bg-blue-600 hover:bg-blue-700">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Your First Map
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="bg-slate-800 border-slate-700">
-                <DialogHeader>
-                  <DialogTitle className="text-white">Add New Map</DialogTitle>
-                </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name" className="text-white">Map Name (Internal)</Label>
-                    <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                      className="bg-slate-700 border-slate-600 text-white"
-                      placeholder="e.g., ascent, bind, haven"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="display_name" className="text-white">Display Name</Label>
-                    <Input
-                      id="display_name"
-                      value={formData.display_name}
-                      onChange={(e) => setFormData(prev => ({ ...prev, display_name: e.target.value }))}
-                      className="bg-slate-700 border-slate-600 text-white"
-                      placeholder="e.g., Ascent, Bind, Haven"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="thumbnail_url" className="text-white">Thumbnail URL</Label>
-                    <Input
-                      id="thumbnail_url"
-                      value={formData.thumbnail_url}
-                      onChange={(e) => setFormData(prev => ({ ...prev, thumbnail_url: e.target.value }))}
-                      className="bg-slate-700 border-slate-600 text-white"
-                      placeholder="https://example.com/map-image.jpg"
-                      type="url"
-                    />
-                  </div>
-                  <div className="flex justify-end gap-2 pt-4">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={resetDialog}
-                      className="border-slate-600 text-slate-300"
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="submit"
-                      className="bg-blue-600 hover:bg-blue-700"
-                    >
-                      Add Map
-                    </Button>
-                  </div>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-slate-300">Preview</TableHead>
-                  <TableHead className="text-slate-300">Map Name</TableHead>
-                  <TableHead className="text-slate-300">Status</TableHead>
-                  <TableHead className="text-slate-300">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {maps.map((map) => (
-                  <TableRow key={map.id}>
-                    <TableCell>
-                      {map.thumbnail_url ? (
-                        <img
-                          src={map.thumbnail_url}
-                          alt={map.display_name}
-                          className="w-16 h-10 object-cover rounded border border-slate-600"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                          }}
-                        />
-                      ) : (
-                        <div className="w-16 h-10 bg-slate-700 rounded border border-slate-600 flex items-center justify-center">
-                          <Map className="w-4 h-4 text-slate-400" />
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-white font-medium">{map.display_name}</TableCell>
-                    <TableCell>
-                      <Button
-                        onClick={() => toggleMapStatus(map.id, map.is_active)}
-                        className={`px-3 py-1 text-xs ${
-                          map.is_active
-                            ? 'bg-green-600 hover:bg-green-700'
-                            : 'bg-gray-600 hover:bg-gray-700'
-                        }`}
-                      >
-                        {map.is_active ? 'Active' : 'Inactive'}
-                      </Button>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          onClick={() => handleEdit(map)}
-                          size="sm"
-                          variant="outline"
-                          className="border-slate-600 text-white"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          onClick={() => handleDelete(map.id, map.display_name)}
-                          size="sm"
-                          variant="outline"
-                          className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-};
+        </CardHeader>
+        <CardContent>
+          {/* Active Map Pool Status */}
+          <div className="mb-6 p-4 bg-slate-900/50 rounded-lg border border-slate-600">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-white">Current Active Map Pool</h3>
+              <Badge className={
+                activeMaps.length === 7 
+                  ? "bg-green-600/20 text-green-400 border-green-500/40"
+                  : activeMaps.length < 2
+                  ? "bg-red-600/20 text-red-400 border-red-500/40"
+                  : "bg-yellow-600/20 text-yellow-400 border-yellow-500/40"
+              }>
+                {activeMaps.length} / 7 Maps Active
+              </Badge>
+            </div>
+            
+            {activeMaps.length === 7 ? (
+              <div className="flex items-center gap-2 text-green-400 text-sm">
+                <CheckCircle className="w-4 h-4" />
+                Perfect! Your map pool is ready for competitive tournaments.
+              </div>
+            ) : activeMaps.length < 2 ? (
+              <div className="flex items-center gap-2 text-red-400 text-sm">
+                <AlertCircle className="w-4 h-4" />
+                You need at least 2 active maps to create tournaments.
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-yellow-400 text-sm">
+                <AlertCircle className="w-4 h-4" />
+                Consider having exactly 7 active maps for optimal competitive play.
+              </div>
+            )}
 
-export default MapManager;
+            {activeMaps.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {activeMaps.map(map => (
+                  <div key={map.id} className="flex items-center gap-2 bg-green-600/10 border border-green-500/30 rounded px-3 py-1">
+                    {map.thumbnail_url && (
+                      <img src={map.thumbnail_url} alt={map.display_name} className="w-6 h-4 object-cover rounded" />
+                    )}
+                    <span className="text-green-300 text-sm font-medium">{map.display_name}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Add New Map Button */}
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-white">All Maps</h3>
+            <Button
+              onClick={() => setShowAddForm(!showAddForm)}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add New Map
+            </Button>
+          </div>
+
+          {/* Add Map Form */}
+          {showAddForm && (
+            <div className="mb-6 p-4 bg-slate-900/50 rounded-lg border border-slate-600">
+              <h4 className="font-medium text-white mb-3">Add New Map</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <Input
+                  placeholder="Map name (e.g., de_dust2)"
+                  value={newMap.name}
+                  onChange={(e) => setNewMap({ ...newMap, name: e.target.value })}
+                  className="bg-slate-800 border-slate-600 text-white"
+                />
+                <Input
+                  placeholder="Display name (e.g., Dust 2)"
+                  value={newMap.display_name}
+                  onChange={(e) => setNewMap({ ...newMap, display_name: e.target.value })}
+                  className="bg-slate-800 border-slate-600 text-white"
+                />
+                <Input
+                  placeholder="Thumbnail URL (optional)"
+                  value={newMap.thumbnail_url}
+                  onChange={(e) => setNewMap({ ...newMap, thumbnail_url: e.target.value })}
+                  className="bg-slate-800 border-slate-600 text-white"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={handleCreateMap} className="bg-green-600 hover:bg-green-700">
+                  Create Map
+                </Button>
+                <Button onClick={() => setShowAddForm(false)} variant="outline">
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Maps List */}
+          <div className="space-y-3">
+            {maps.map((map) => (
+              <div
+                key={map.id}
+                className={`flex items-center justify-between p-4 rounded-lg border ${
+                  map.is_active
+                    ? "bg-green-600/10 border-green-500/30"
+                    : "bg-slate-900/50 border-slate-600"
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  {map.thumbnail_url && (
+                    <img
+                      src={map.thumbnail_url}
+                      alt={map.display_name}
+                      className="w-16 h-10 object-cover rounded"
+                    />
+                  )}
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-medium text-white">{map.display_name}</h4>
+                      <Badge className={
+                        map.is_active
+                          ? "bg-green-600/20 text-green-400 border-green-500/40"
+                          : "bg-gray-600/20 text-gray-400 border-gray-500/40"
+                      }>
+                        {map.is_active ? "Active" : "Inactive"}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-slate-400">{map.name}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  {/* Active/Inactive Toggle */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-slate-400">
+                      {map.is_active ? "Active" : "Inactive"}
+                    </span>
+                    <Switch
+                      checked={map.is_active}
+                      onCheckedChange={(checked) => handleToggleActive(map.id, checked)}
+                    />
+                  </div>
+
+                  {/* Edit Button */}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setEditingMap(map)}
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </Button>
+
+                  {/* Delete Button */}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleDeleteMap(map.id)}
+                    className="text-red-400 hover:text-red-300"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Edit Map Modal */}
+      {editingMap && (
+        <Card className="bg-slate-800 border-slate-700">
+          <CardHeader>
+            <CardTitle className="text-white">Edit Map</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <Input
+                placeholder="Map name"
+                value={editingMap.name}
+                onChange={(e) => setEditingMap({ ...editingMap, name: e.target.value })}
+                className="bg-slate-800 border-slate-600 text-white"
+              />
+              <Input
+                placeholder="Display name"
+                value={editingMap.display_name}
+                onChange={(e) => setEditingMap({ ...editingMap, display_name: e.target.value })}
+                className="bg-slate-800 border-slate-600 text-white"
+              />
+              <Input
+                placeholder="Thumbnail URL"
+                value={editingMap.thumbnail_url || ""}
+                onChange={(e) => setEditingMap({ ...editingMap, thumbnail_url: e.target.value })}
+                className="bg-slate-800 border-slate-600 text-white"
+              />
+            </div>
+            <div className="flex items-center gap-4 mb-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-slate-400">Active in map pool:</span>
+                <Switch
+                  checked={editingMap.is_active}
+                  onCheckedChange={(checked) => setEditingMap({ ...editingMap, is_active: checked })}
+                />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={handleUpdateMap} className="bg-green-600 hover:bg-green-700">
+                Save Changes
+              </Button>
+              <Button onClick={() => setEditingMap(null)} variant="outline">
+                Cancel
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
