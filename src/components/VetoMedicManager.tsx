@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useCallback } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,7 +31,6 @@ interface MatchInfo {
   team2: TeamInfo | null;
 }
 
-// -- Update: Add home_team_id and away_team_id for correct type
 interface VetoSession {
   id: string;
   match_id: string | null;
@@ -39,9 +39,8 @@ interface VetoSession {
   current_turn_team_id: string | null;
   started_at: string | null;
   completed_at: string | null;
-  home_team_id: string | null;    // <-- ADDED
-  away_team_id: string | null;    // <-- ADDED
-  // ... Add any other session-level fields if needed ...
+  home_team_id: string | null;
+  away_team_id: string | null;
 }
 
 type VetoSessionWithDetails = VetoSession;
@@ -54,7 +53,6 @@ export default function VetoMedicManager() {
   const [maps, setMaps] = useState<any[]>([]);
   const [pickableMaps, setPickableMaps] = useState<any[]>([]);
   const [forceSession, setForceSession] = useState<VetoSessionWithDetails | null>(null);
-  // -- REPLACE veto action history from audit_logs with veto actions --
   const [actionsBySession, setActionsBySession] = useState<Record<string, any[]>>({});
   const [actionsLoadingBySession, setActionsLoadingBySession] = useState<Record<string, boolean>>({});
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -67,51 +65,55 @@ export default function VetoMedicManager() {
   const fetchSessions = useCallback(async () => {
     setLoading(true);
 
-    const { data, error } = await supabase
-      .from("map_veto_sessions")
-      .select(`
-        *,
-        match:match_id (
-          id,
-          tournament:tournament_id ( id, name ),
-          team1:team1_id ( id, name ),
-          team2:team2_id ( id, name )
-        )
-      `)
-      // ^^^ By using `*`, home_team_id and away_team_id ARE selected!
-      .order("started_at", { ascending: false })
-      .limit(40); // for admin, fetch the latest 40
+    try {
+      const { data, error } = await supabase
+        .from("map_veto_sessions")
+        .select(`
+          *,
+          match:match_id (
+            id,
+            tournament:tournament_id ( id, name ),
+            team1:team1_id ( id, name ),
+            team2:team2_id ( id, name )
+          )
+        `)
+        .order("started_at", { ascending: false })
+        .limit(40);
 
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      if (error) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+        setSessions([]);
+      } else {
+        const sessionsData = (data || []).map((session: any) => ({
+          ...session,
+          match_id: session.match_id ?? null,
+          home_team_id: session.home_team_id ?? null,
+          away_team_id: session.away_team_id ?? null,
+          match: session.match
+            ? {
+                ...session.match,
+                tournament: session.match.tournament && session.match.tournament.id
+                  ? session.match.tournament
+                  : null,
+                team1: session.match.team1 && session.match.team1.id
+                  ? session.match.team1
+                  : null,
+                team2: session.match.team2 && session.match.team2.id
+                  ? session.match.team2
+                  : null,
+              }
+            : null,
+        }));
+        setSessions(sessionsData);
+        
+        // Auto-fetch veto actions for all sessions to fix the data display
+        sessionsData.forEach((session: VetoSessionWithDetails) => {
+          fetchVetoActions(session.id);
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching sessions:', err);
       setSessions([]);
-    } else {
-      const sessionsData = (data || []).map((session: any) => ({
-        ...session,
-        match_id: session.match_id ?? null,
-        home_team_id: session.home_team_id ?? null,    // <-- Defensive mapping
-        away_team_id: session.away_team_id ?? null,    // <-- Defensive mapping
-        match: session.match
-          ? {
-              ...session.match,
-              tournament: session.match.tournament && session.match.tournament.id
-                ? session.match.tournament
-                : null,
-              team1: session.match.team1 && session.match.team1.id
-                ? session.match.team1
-                : null,
-              team2: session.match.team2 && session.match.team2.id
-                ? session.match.team2
-                : null,
-            }
-          : null,
-      }));
-      setSessions(sessionsData);
-      
-      // Auto-fetch veto actions for all sessions to fix the data display
-      sessionsData.forEach((session: VetoSessionWithDetails) => {
-        fetchVetoActions(session.id);
-      });
     }
     setLoading(false);
   }, [toast]);
@@ -134,7 +136,6 @@ export default function VetoMedicManager() {
   // Filtering, search, and status controls
   const filteredSessions = sessions.filter(session => {
     let sessionStatus = filterStatus === "all" || session.status === filterStatus;
-    // Search in tournament, team names, or session id (first 8 chars if user types short)
     let s = search.trim().toLowerCase();
     let sessionSearch =
       !s ||
@@ -151,38 +152,9 @@ export default function VetoMedicManager() {
     return sessionStatus && sessionSearch;
   });
 
-  // Hook for canonical veto actions for a session
-  function useVetoActions(sessionId: string) {
-    const [actions, setActions] = useState<any[]>([]);
-    const [loading, setLoading] = useState(false);
-
-    const fetch = useCallback(async () => {
-      setLoading(true);
-      // Join maps and users
-      const { data, error } = await supabase
-        .from("map_veto_actions")
-        .select(`
-          *,
-          maps:map_id ( display_name ),
-          users:performed_by ( discord_username )
-        `)
-        .eq("veto_session_id", sessionId)
-        .order("order_number", { ascending: true });
-      setActions(error ? [] : (data || []));
-      setLoading(false);
-    }, [sessionId]);
-
-    useEffect(() => {
-      if (sessionId) fetch();
-    }, [sessionId, fetch]);
-
-    return { actions, loading, reload: fetch };
-  }
-
   // When viewing session details, fetch actions (not audit log)
   const fetchVetoActions = useCallback(async (sessionId: string) => {
     setActionsLoadingBySession((m) => ({ ...m, [sessionId]: true }));
-    // Join maps and user for canonical actions (no audit log)
     const { data, error } = await supabase
       .from("map_veto_actions")
       .select("*, maps:map_id(display_name), users:performed_by(discord_username)")
@@ -195,10 +167,6 @@ export default function VetoMedicManager() {
     }));
     setActionsLoadingBySession((m) => ({ ...m, [sessionId]: false }));
   }, []);
-
-  const handleExpandHistory = (sessionId: string, expand: boolean) => {
-    if (expand && !actionsBySession[sessionId]) fetchVetoActions(sessionId);
-  };
 
   // Reset (clear the session's actions and set to pending)
   const resetSession = async (sessionId: string) => {
@@ -278,11 +246,9 @@ export default function VetoMedicManager() {
     setActionSessionId(forceSession.id);
     try {
       let sessionRow = forceSession;
-      // DEFENSIVE: extract team1/team2 from match object
       const team1Id = sessionRow.match?.team1?.id || null;
       const team2Id = sessionRow.match?.team2?.id || null;
       const currentTurnTeamId = sessionRow.current_turn_team_id;
-      // Find the opposite team for final pick
       let oppositeTeam: string | null = null;
       if (team1Id && team2Id && currentTurnTeamId) {
         oppositeTeam =
@@ -344,42 +310,44 @@ export default function VetoMedicManager() {
   const handleRollbackLast = async (sessionId: string) => {
     setActionSessionId(sessionId);
     try {
-      // 1. Get last action
       const actions = actionsBySession[sessionId] || [];
       if (!actions.length) throw new Error("No veto actions to rollback");
       const last = actions[actions.length - 1];
-      // 2. Delete last action only (by id)
-      const { error } = await supabase
+      await supabase
         .from("map_veto_actions")
         .delete()
         .eq("id", last.id);
-      if (error) throw error;
-      toast({ title: "Rolled Back", description: "Last veto action has been undone." });
-      await fetchVetoActions(sessionId); // Refetch
-      fetchSessions(); // Also update parent veto state
+      toast({ title: "Rolled Back", description: `Action #${last.order_number}: ${last.action} on ${last.maps?.display_name || last.map_id || "?"}` });
+      console.log("[VETO ROLLBACK]", last);
+      await fetchVetoActions(sessionId);
+      fetchSessions();
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
     } finally {
       setActionSessionId(null);
     }
-  }
+  };
 
-  // --- Start: Helper for progress steps calculation (B/E alignment, canonical logic) ---
+  // Helper for progress steps calculation
   function getCanonicalProgressStats(session: VetoSessionWithDetails, allActions: any[], allMaps: any[]) {
     const team1Id = session.match?.team1?.id || null;
     const team2Id = session.match?.team2?.id || null;
     if (!team1Id || !team2Id || allMaps.length < 2) return { completed: 0, total: allMaps.length };
+    
+    // Use safe fallback values for home/away team IDs
+    const homeTeamId = session.home_team_id || team1Id;
+    const awayTeamId = session.away_team_id || team2Id;
+    
     const vetoFlow = generateBO1VetoFlow({
-      homeTeamId: session.home_team_id!,
-      awayTeamId: session.away_team_id!,
-      maps: allMaps.map((m: any) => ({ id: m.id, name: m.display_name || m.name })),
+      homeTeamId,
+      awayTeamId,
+      tournamentMapPool: allMaps.map((m: any) => ({ id: m.id, name: m.display_name || m.name })),
     });
-    // Only count ban/pick steps for step progress
+    
     const total = vetoFlow.filter(s => s.action === "ban" || s.action === "pick").length;
     const completed = (allActions || []).filter((a: any) => a.action === "ban" || a.action === "pick").length;
     return { completed, total };
   }
-  // --- End: Helper ---
 
   return (
     <>
@@ -391,7 +359,7 @@ export default function VetoMedicManager() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {/* --- Search/filter controls, unchanged --- */}
+          {/* Search/filter controls */}
           <div className="mb-4 flex flex-wrap gap-2 items-center">
             <Input
               type="text"
@@ -432,6 +400,7 @@ export default function VetoMedicManager() {
               Refresh
             </Button>
           </div>
+          
           {loading ? (
             <div className="text-center text-slate-300 py-8">Loading veto sessions...</div>
           ) : filteredSessions.length === 0 ? (
@@ -439,35 +408,32 @@ export default function VetoMedicManager() {
           ) : (
             <div className="space-y-4">
               {filteredSessions.map((session) => {
-                // Carefully extract match/team info
                 const match = session.match;
                 const team1 = match?.team1;
                 const team2 = match?.team2;
                 const tournament = match?.tournament;
 
-                // Always use canonical map_veto_actions:
                 const actions = actionsBySession[session.id] || [];
-
-                // Calculate expected steps for the current flow given map count
                 const mapCount = maps.length;
-                let totalSteps = mapCount; // for BO1 competitive
-                // Use the canonical BO1 sequence for BO1 (to match backend)
-                const vetoFlowSteps = (team1 && team2 && mapCount > 1)
+                let totalSteps = mapCount;
+                
+                // Use safe fallback values for team IDs
+                const homeTeamId = session.home_team_id || team1?.id;
+                const awayTeamId = session.away_team_id || team2?.id;
+                
+                const vetoFlowSteps = (team1 && team2 && mapCount > 1 && homeTeamId && awayTeamId)
                   ? generateBO1VetoFlow({
-                      homeTeamId: session.home_team_id,
-                      awayTeamId: session.away_team_id,
-                      maps: maps.map(m => ({ id: m.id, name: m.display_name || m.name }))
+                      homeTeamId,
+                      awayTeamId,
+                      tournamentMapPool: maps.map(m => ({ id: m.id, name: m.display_name || m.name }))
                     })
                   : [];
-                // Count only ban/pick actions, not side_pick
+                  
                 const progressActions = actions.filter(a => a.action === 'ban' || a.action === 'pick');
-                // Step label: bans+picks (canonical)
                 const vetoProgressLabel = `${progressActions.length}/${vetoFlowSteps.filter(s => s.action !== 'side_pick').length || totalSteps}`;
 
-                // Insert health check handler (per session)
                 const onHealthCheck = async () => {
                   setHealthLoadingId(session.id);
-                  // Assume actions fetched
                   const result = await checkVetoSessionHealth({
                     session,
                     actions,
@@ -486,11 +452,9 @@ export default function VetoMedicManager() {
                   }
                 };
 
-                // Auto-recovery attempt (fix order/gaps)
                 const onAutoRecover = async () => {
                   setActionSessionId(session.id);
                   try {
-                    // Try to re-number all order_numbers in actions
                     let changed = false;
                     for (let i = 0; i < actions.length; i++) {
                       if (actions[i].order_number !== i+1) {
@@ -501,12 +465,10 @@ export default function VetoMedicManager() {
                         changed = true;
                       }
                     }
-                    // Remove duplicate map actions (keep earliest)
                     const seen: Record<string, boolean> = {};
                     for (let i = 0; i < actions.length; i++) {
                       const mapId = actions[i].map_id;
                       if (mapId && seen[mapId]) {
-                        // Remove this action (log which)
                         await supabase
                           .from("map_veto_actions")
                           .delete()
@@ -530,29 +492,6 @@ export default function VetoMedicManager() {
                   }
                 };
 
-                // Enhanced rollback with logging
-                const handleRollbackLast = async (sessionId: string) => {
-                  setActionSessionId(sessionId);
-                  try {
-                    const actions = actionsBySession[sessionId] || [];
-                    if (!actions.length) throw new Error("No veto actions to rollback");
-                    const last = actions[actions.length - 1];
-                    await supabase
-                      .from("map_veto_actions")
-                      .delete()
-                      .eq("id", last.id);
-                    toast({ title: "Rolled Back", description: `Action #${last.order_number}: ${last.action} on ${last.maps?.display_name || last.map_id || "?"}` });
-                    console.log("[VETO ROLLBACK]", last);
-                    await fetchVetoActions(sessionId);
-                    fetchSessions();
-                  } catch (err: any) {
-                    toast({ title: "Error", description: err.message, variant: "destructive" });
-                  } finally {
-                    setActionSessionId(null);
-                  }
-                };
-
-                // ... keep code for session row rendering, but ADD new buttons and logs ...
                 return (
                   <div
                     key={session.id}
@@ -604,11 +543,11 @@ export default function VetoMedicManager() {
                           <span className="text-blue-400">Completed: {new Date(session.completed_at).toLocaleString()}</span>
                         )}
                       </div>
-                      {/* Canonical veto action log (history, point C/F) */}
+                      
+                      {/* Veto action history */}
                       <div className="bg-slate-800 border border-slate-700 mt-2 mb-1 rounded-lg p-2 max-w-xl">
                         <div className="font-semibold text-sm text-yellow-200 mb-1">Veto Action History</div>
                         <ol className="space-y-1">
-                          {/* Defensive: display only if actions present */}
                           {actions.length === 0 && (
                             <li className="text-slate-500 text-xs py-1">No actions yet.</li>
                           )}
@@ -626,7 +565,6 @@ export default function VetoMedicManager() {
                                   {act.action.toUpperCase()}
                                 </span>
                                 <span className="text-white font-medium">{act.maps?.display_name || "??"}</span>
-                                {/* Show side_choice badge if pick and available */}
                                 {act.action === "pick" && act.side_choice && (
                                   <span className={
                                     act.side_choice === "attack"
@@ -646,7 +584,7 @@ export default function VetoMedicManager() {
                         </ol>
                       </div>
 
-                      {/* Show health results right after action history */}
+                      {/* Health results */}
                       {healthCheckResults[session.id] && (
                         <div className="bg-slate-700/30 text-xs text-cyan-200 p-2 rounded mt-2 max-w-xl">
                           <b>Session Health:</b> {healthCheckResults[session.id].healthy ? "OK" : "Issues Detected"}
@@ -666,9 +604,9 @@ export default function VetoMedicManager() {
                       )}
                     </div>
                     
-                    {/* Action buttons section */}
+                    {/* Action buttons */}
                     <div className="flex flex-col gap-2 items-end justify-end mt-2 md:mt-0">
-                      {/* Diagnostic Tools Group */}
+                      {/* Diagnostic Tools */}
                       <div className="flex flex-col gap-1">
                         <Button
                           size="sm"
@@ -694,7 +632,7 @@ export default function VetoMedicManager() {
                         )}
                       </div>
 
-                      {/* Action Tools Group */}
+                      {/* Action Tools */}
                       <div className="flex flex-col gap-1">
                         <Button
                           size="sm"

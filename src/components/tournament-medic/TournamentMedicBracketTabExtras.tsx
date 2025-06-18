@@ -29,7 +29,6 @@ export default function TournamentMedicBracketTabExtras({ tournament, onRefresh 
     <div className="flex flex-col gap-4 mt-3">
       <BracketGenerator
         tournamentId={tournament.id}
-        tournament={tournament}
         teams={teams}
         onBracketGenerated={onRefresh}
       />

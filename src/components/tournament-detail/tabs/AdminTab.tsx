@@ -1,53 +1,32 @@
 
-import ComprehensiveTournamentEditor from "@/components/ComprehensiveTournamentEditor";
-import TournamentStatusManager from "@/components/TournamentStatusManager";
+import React from "react";
 import BracketGenerator from "@/components/BracketGenerator";
+import IntegratedBracketView from "@/components/IntegratedBracketView";
 
-export default function AdminTab({
-  tournament,
-  onTournamentUpdated,
-  matches,
-  teams,
-  parsedMapVetoRounds,
-  onBracketGenerated,
-  onStatusChange
-}: {
-  tournament: any,
-  onTournamentUpdated: () => void,
-  matches: any[],
-  teams: any[],
-  parsedMapVetoRounds: number[],
-  onBracketGenerated: () => void,
-  onStatusChange: () => void
-}) {
+interface AdminTabProps {
+  tournament: any;
+  teams: any[];
+  onRefresh: () => void;
+}
+
+export default function AdminTab({ tournament, teams, onRefresh }: AdminTabProps) {
   return (
-    <>
-      <ComprehensiveTournamentEditor
-        tournament={tournament}
-        onTournamentUpdated={onTournamentUpdated}
-      />
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <TournamentStatusManager
-          tournamentId={tournament.id}
-          currentStatus={tournament.status}
-          onStatusChange={onStatusChange}
-        />
-        <BracketGenerator
-          tournamentId={tournament.id}
-          tournament={{
-            status: tournament.status,
-            max_teams: tournament.max_teams,
-            bracket_type: tournament.bracket_type,
-            match_format: tournament.match_format,
-            final_match_format: tournament.final_match_format,
-            semifinal_match_format: tournament.semifinal_match_format,
-            enable_map_veto: tournament.enable_map_veto,
-            map_veto_required_rounds: parsedMapVetoRounds
-          }}
-          teams={teams}
-          onBracketGenerated={onBracketGenerated}
-        />
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4">
+        <h3 className="text-xl font-bold text-white">Tournament Administration</h3>
+        
+        <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
+          <h4 className="text-lg font-semibold text-white mb-4">Bracket Management</h4>
+          <div className="flex flex-col gap-4">
+            <BracketGenerator
+              tournamentId={tournament.id}
+              teams={teams}
+              onBracketGenerated={onRefresh}
+            />
+            <IntegratedBracketView tournamentId={tournament.id} />
+          </div>
+        </div>
       </div>
-    </>
+    </div>
   );
 }

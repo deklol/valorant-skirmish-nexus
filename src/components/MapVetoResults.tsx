@@ -35,10 +35,12 @@ export default function MapVetoResults({ matchId }: MapVetoResultsProps) {
       if (match?.tournaments?.map_pool && Array.isArray(match.tournaments.map_pool)) {
         const mapIds = match.tournaments.map_pool;
         if (mapIds.length > 0) {
+          // Convert JSON values to strings for the query
+          const stringMapIds = mapIds.map(id => String(id));
           const { data: mapData } = await supabase
             .from('maps')
             .select('id, name, display_name, thumbnail_url, is_active')
-            .in('id', mapIds);
+            .in('id', stringMapIds);
           
           if (mapData) {
             setTournamentMapPool(mapData.sort((a, b) => a.display_name.localeCompare(b.display_name)));

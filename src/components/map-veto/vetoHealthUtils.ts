@@ -1,81 +1,92 @@
 
 import { generateBO1VetoFlow } from "./vetoFlowBO1";
 
-/**
- * Checks the health status of a veto session.
- * Returns an object: { healthy: boolean, warnings: string[], fixable: boolean }
- */
-export async function checkVetoSessionHealth({ session, actions, maps }: {
+export interface VetoHealthCheckResult {
+  healthy: boolean;
+  warnings: string[];
+  fixable: boolean;
+}
+
+export async function checkVetoSessionHealth({
+  session,
+  actions,
+  maps,
+}: {
   session: any;
   actions: any[];
   maps: any[];
-}) {
+}): Promise<VetoHealthCheckResult> {
   const warnings: string[] = [];
   let fixable = false;
 
-  // 1. Check actions order and step match
+  // Basic validation
+  if (!session) {
+    warnings.push("Session data is missing");
+    return { healthy: false, warnings, fixable: false };
+  }
+
   if (!actions || !Array.isArray(actions)) {
-    warnings.push("No veto actions found for this session.");
+    warnings.push("Actions data is invalid");
+    return { healthy: false, warnings, fixable: false };
+  }
+
+  if (!maps || !Array.isArray(maps) || maps.length === 0) {
+    warnings.push("Maps data is missing or empty");
+    return { healthy: false, warnings, fixable: false };
+  }
+
+  // Check for duplicate order numbers
+  const orderNumbers = actions.map(a => a.order_number).filter(Boolean);
+  const uniqueOrderNumbers = [...new Set(orderNumbers)];
+  if (orderNumbers.length !== uniqueOrderNumbers.length) {
+    warnings.push("Duplicate order numbers detected");
     fixable = true;
   }
 
-  // 2. Check for duplicate map picks/bans
-  const mapActionCounts: Record<string, number> = {};
-  actions.forEach(a => {
-    if (a.map_id) {
-      mapActionCounts[a.map_id] = (mapActionCounts[a.map_id] || 0) + 1;
-    }
-  });
-  const dupes = Object.entries(mapActionCounts).filter(([_, count]) => count > 1);
-  if (dupes.length > 0) {
-    warnings.push(
-      "Some maps appear in multiple actions (duplicate bans/picks): " +
-        dupes.map(([mid]) => mid).join(", ")
-    );
-    fixable = true;
-  }
-
-  // 3. Check for gaps in action order
-  const orderNumbers = actions.map(a => a.order_number);
-  const missingOrders = [];
-  for (let i = 1; i <= actions.length; i++) {
-    if (!orderNumbers.includes(i)) missingOrders.push(i);
-  }
-  if (missingOrders.length > 0) {
-    warnings.push("Missing order numbers in veto actions: " + missingOrders.join(", "));
-    fixable = true;
-  }
-
-  // 4. Compare actual to expected flow (client-side, rough check)
-  if (session && maps && session.home_team_id && session.away_team_id && maps.length > 1) {
-    try {
-      const steps = generateBO1VetoFlow({
-        homeTeamId: session.home_team_id,
-        awayTeamId: session.away_team_id,
-        maps: maps.map((m: any) => ({ id: m.id, name: m.display_name || m.name })),
-      });
-      if (actions.length > steps.length) {
-        warnings.push(
-          `More actions (${actions.length}) than expected steps (${steps.length}).`
-        );
-        fixable = true;
-      }
-    } catch (e) {
-      warnings.push("Error during flow step comparison: " + (e.message || e));
-    }
-  } else {
-    warnings.push("Session flow could not be validated (missing teams or maps).");
-  }
-
-  // 5. Status consistency
-  if (session.status === "completed") {
-    const picks = actions.filter(a => a.action === "pick");
-    if (picks.length < 1) {
-      warnings.push("Session marked completed, but no final pick found.");
+  // Check for gaps in order numbers
+  const sortedOrderNumbers = orderNumbers.sort((a, b) => a - b);
+  for (let i = 0; i < sortedOrderNumbers.length - 1; i++) {
+    if (sortedOrderNumbers[i + 1] - sortedOrderNumbers[i] > 1) {
+      warnings.push("Gaps in order numbers detected");
       fixable = true;
+      break;
     }
   }
 
-  const healthy = warnings.length === 0;
-  return { healthy, warnings, fixable };
+  // Check for duplicate map actions
+  const mapIds = actions.map(a => a.map_id).filter(Boolean);
+  const uniqueMapIds = [...new Set(mapIds)];
+  if (mapIds.length !== uniqueMapIds.length) {
+    warnings.push("Duplicate map actions detected");
+    fixable = true;
+  }
+
+  // Check expected flow for BO1
+  if (session.match && session.home_team_id && session.away_team_id) {
+    const expectedFlow = generateBO1VetoFlow({
+      homeTeamId: session.home_team_id,
+      awayTeamId: session.away_team_id,
+      tournamentMapPool: maps.map(m => ({ id: m.id, name: m.display_name || m.name }))
+    });
+
+    const expectedBanCount = expectedFlow.filter(step => step.action === "ban").length;
+    const actualBanCount = actions.filter(a => a.action === "ban").length;
+    
+    if (actualBanCount > expectedBanCount) {
+      warnings.push(`Too many bans: expected ${expectedBanCount}, found ${actualBanCount}`);
+    }
+
+    const expectedPickCount = expectedFlow.filter(step => step.action === "pick").length;
+    const actualPickCount = actions.filter(a => a.action === "pick").length;
+    
+    if (actualPickCount > expectedPickCount) {
+      warnings.push(`Too many picks: expected ${expectedPickCount}, found ${actualPickCount}`);
+    }
+  }
+
+  return {
+    healthy: warnings.length === 0,
+    warnings,
+    fixable
+  };
 }
