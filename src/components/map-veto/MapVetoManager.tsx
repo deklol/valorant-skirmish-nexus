@@ -119,7 +119,8 @@ export default function MapVetoManager({
     return <div className="text-center py-4 text-red-400">Match not found</div>;
   }
 
-  if (!match.tournament?.enable_map_veto) {
+  // Allow admins to bypass tournament veto settings
+  if (!isAdmin && !match.tournament?.enable_map_veto) {
     return <div className="text-center py-4 text-slate-400">Map veto is not enabled for this tournament</div>;
   }
 

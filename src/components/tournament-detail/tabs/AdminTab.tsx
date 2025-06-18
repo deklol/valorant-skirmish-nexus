@@ -2,6 +2,10 @@
 import React from "react";
 import BracketGenerator from "@/components/BracketGenerator";
 import IntegratedBracketView from "@/components/IntegratedBracketView";
+import TournamentStatusManager from "@/components/TournamentStatusManager";
+import TournamentEditDialog from "@/components/TournamentEditDialog";
+import ComprehensiveTournamentEditor from "@/components/ComprehensiveTournamentEditor";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface AdminTabProps {
   tournament: any;
@@ -29,17 +33,51 @@ export default function AdminTab({
       <div className="flex flex-col gap-4">
         <h3 className="text-xl font-bold text-white">Tournament Administration</h3>
         
-        <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
-          <h4 className="text-lg font-semibold text-white mb-4">Bracket Management</h4>
-          <div className="flex flex-col gap-4">
+        {/* Tournament Status Management */}
+        <Card className="bg-slate-800 border-slate-700">
+          <CardHeader>
+            <CardTitle className="text-white">Tournament Status</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <TournamentStatusManager
+              tournamentId={tournament.id}
+              currentStatus={tournament.status}
+              onStatusChange={onStatusChange || onRefresh}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Tournament Settings */}
+        <Card className="bg-slate-800 border-slate-700">
+          <CardHeader>
+            <CardTitle className="text-white">Tournament Settings</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <TournamentEditDialog
+              tournament={tournament}
+              onTournamentUpdated={onTournamentUpdated || onRefresh}
+            />
+            <ComprehensiveTournamentEditor
+              tournamentId={tournament.id}
+              onUpdate={onTournamentUpdated || onRefresh}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Bracket Management */}
+        <Card className="bg-slate-800 border-slate-700">
+          <CardHeader>
+            <CardTitle className="text-white">Bracket Management</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <BracketGenerator
               tournamentId={tournament.id}
               teams={teams}
               onBracketGenerated={onBracketGenerated || onRefresh}
             />
             <IntegratedBracketView tournamentId={tournament.id} />
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
