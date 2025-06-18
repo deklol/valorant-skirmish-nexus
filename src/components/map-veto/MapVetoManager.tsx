@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import MapVetoDialog from "./MapVetoDialog";
 import MapVetoHistory from "./MapVetoHistory";
-import VetoMedicManager from "@/components/VetoMedicManager";
+import AdminVetoControls from "./AdminVetoControls";
 import { getTournamentMapPool } from "./vetoFlowUtils";
 
 interface MapVetoManagerProps {
@@ -127,9 +127,15 @@ export default function MapVetoManager({
 
   return (
     <div className="space-y-4">
-      {/* Always show VetoMedicManager for admins */}
+      {/* Always show AdminVetoControls for admins */}
       {isAdmin && (
-        <VetoMedicManager />
+        <AdminVetoControls
+          matchId={matchId}
+          onVetoAction={() => {
+            loadMatchAndSession();
+            onVetoComplete?.();
+          }}
+        />
       )}
       
       {/* Show normal veto flow if session exists */}
