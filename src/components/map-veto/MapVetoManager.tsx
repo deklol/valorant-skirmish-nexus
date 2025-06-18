@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import MapVetoDialog from "./MapVetoDialog";
 import MapVetoHistory from "./MapVetoHistory";
+import VetoMedicManager from "@/components/VetoMedicManager";
 import { getTournamentMapPool } from "./vetoFlowUtils";
 
 interface MapVetoManagerProps {
@@ -124,22 +125,33 @@ export default function MapVetoManager({
     return <div className="text-center py-4 text-slate-400">Map veto is not enabled for this tournament</div>;
   }
 
-  if (!vetoSession) {
-    return <div className="text-center py-4 text-yellow-400">No veto session found for this match</div>;
-  }
-
   return (
     <div className="space-y-4">
-      <MapVetoDialog
-        matchId={matchId}
-        vetoSession={vetoSession}
-        tournamentMapPool={tournamentMapPool}
-        onVetoComplete={() => {
-          loadMatchAndSession();
-          onVetoComplete?.();
-        }}
-      />
-      <MapVetoHistory vetoActions={vetoActions} />
+      {/* Always show VetoMedicManager for admins */}
+      {isAdmin && (
+        <VetoMedicManager />
+      )}
+      
+      {/* Show normal veto flow if session exists */}
+      {vetoSession ? (
+        <>
+          <MapVetoDialog
+            matchId={matchId}
+            vetoSession={vetoSession}
+            tournamentMapPool={tournamentMapPool}
+            onVetoComplete={() => {
+              loadMatchAndSession();
+              onVetoComplete?.();
+            }}
+          />
+          <MapVetoHistory vetoActions={vetoActions} />
+        </>
+      ) : (
+        /* Show message for non-admins when no session exists */
+        !isAdmin && (
+          <div className="text-center py-4 text-yellow-400">No veto session found for this match</div>
+        )
+      )}
     </div>
   );
 }
