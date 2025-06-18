@@ -1,3 +1,4 @@
+
 import React, { useCallback, useEffect, useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -228,11 +229,17 @@ const MapVetoDialog = ({
     toast,
   });
 
-  // Veto flow and steps
+  // Veto flow and steps - FIXED: Remove invalid 'maps' property
   const vetoFlow = useMemo(() => {
     if (!homeTeamId || !awayTeamId || maps.length === 0) return [];
-    return getVctVetoFlow({ homeTeamId, awayTeamId, bestOf, maps });
+    return getVctVetoFlow({ 
+      homeTeamId, 
+      awayTeamId, 
+      bestOf, 
+      tournamentMapPool: maps.map(m => ({ id: m.id, name: m.display_name || m.name }))
+    });
   }, [homeTeamId, awayTeamId, bestOf, maps]);
+  
   // New: Current step index and step info
   const vetoStep = vetoActions.length < vetoFlow.length
     ? vetoActions.length

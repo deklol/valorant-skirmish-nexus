@@ -7,6 +7,11 @@ interface AdminTabProps {
   tournament: any;
   teams: any[];
   onRefresh: () => void;
+  onTournamentUpdated?: () => void;
+  matches?: any[];
+  parsedMapVetoRounds?: number[];
+  onBracketGenerated?: () => void;
+  onStatusChange?: () => void;
 }
 
 export default function AdminTab({ tournament, teams, onRefresh }: AdminTabProps) {

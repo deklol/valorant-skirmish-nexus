@@ -14,6 +14,7 @@ interface MapVetoManagerProps {
 export default function MapVetoManager({ matchId, onVetoComplete }: MapVetoManagerProps) {
   const [match, setMatch] = useState<any>(null);
   const [vetoSession, setVetoSession] = useState<any>(null);
+  const [vetoActions, setVetoActions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [tournamentMapPool, setTournamentMapPool] = useState<any[]>([]);
   const { toast } = useToast();
@@ -66,6 +67,17 @@ export default function MapVetoManager({ matchId, onVetoComplete }: MapVetoManag
         .maybeSingle();
 
       setVetoSession(sessionData);
+
+      // Load veto actions if session exists
+      if (sessionData) {
+        const { data: actionsData } = await supabase
+          .from("map_veto_actions")
+          .select("*, maps:map_id(*), users:performed_by(discord_username)")
+          .eq("veto_session_id", sessionData.id)
+          .order("order_number");
+        
+        setVetoActions(actionsData || []);
+      }
     } catch (error: any) {
       console.error("Error loading match and veto session:", error);
       toast({
@@ -109,7 +121,7 @@ export default function MapVetoManager({ matchId, onVetoComplete }: MapVetoManag
           onVetoComplete?.();
         }}
       />
-      <MapVetoHistory matchId={matchId} />
+      <MapVetoHistory vetoActions={vetoActions} />
     </div>
   );
 }
