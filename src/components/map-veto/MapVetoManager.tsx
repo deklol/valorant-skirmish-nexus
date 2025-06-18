@@ -8,10 +8,27 @@ import { getTournamentMapPool } from "./vetoFlowUtils";
 
 interface MapVetoManagerProps {
   matchId: string;
+  team1Id?: string;
+  team2Id?: string;
+  team1Name?: string;
+  team2Name?: string;
+  matchStatus?: string;
+  userTeamId?: string | null;
+  isAdmin?: boolean;
   onVetoComplete?: () => void;
 }
 
-export default function MapVetoManager({ matchId, onVetoComplete }: MapVetoManagerProps) {
+export default function MapVetoManager({ 
+  matchId, 
+  team1Id, 
+  team2Id, 
+  team1Name, 
+  team2Name, 
+  matchStatus, 
+  userTeamId, 
+  isAdmin = false,
+  onVetoComplete 
+}: MapVetoManagerProps) {
   const [match, setMatch] = useState<any>(null);
   const [vetoSession, setVetoSession] = useState<any>(null);
   const [vetoActions, setVetoActions] = useState<any[]>([]);

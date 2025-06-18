@@ -14,7 +14,16 @@ interface AdminTabProps {
   onStatusChange?: () => void;
 }
 
-export default function AdminTab({ tournament, teams, onRefresh }: AdminTabProps) {
+export default function AdminTab({ 
+  tournament, 
+  teams, 
+  onRefresh, 
+  onTournamentUpdated,
+  matches,
+  parsedMapVetoRounds,
+  onBracketGenerated,
+  onStatusChange
+}: AdminTabProps) {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4">
@@ -26,7 +35,7 @@ export default function AdminTab({ tournament, teams, onRefresh }: AdminTabProps
             <BracketGenerator
               tournamentId={tournament.id}
               teams={teams}
-              onBracketGenerated={onRefresh}
+              onBracketGenerated={onBracketGenerated || onRefresh}
             />
             <IntegratedBracketView tournamentId={tournament.id} />
           </div>

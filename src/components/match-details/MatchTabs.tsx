@@ -1,3 +1,4 @@
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Settings, Users, User } from "lucide-react";
 import MatchScoreCards from "./MatchScoreCards";
@@ -5,6 +6,7 @@ import MatchInformation from "./MatchInformation";
 import MapVetoManager from "@/components/MapVetoManager";
 import MapVetoResults from "@/components/MapVetoResults";
 import ScoreReporting from "@/components/ScoreReporting";
+import VetoMedicManager from "@/components/VetoMedicManager";
 import { useTeamPlayers } from "./useTeamPlayers";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -65,6 +67,12 @@ const MatchTabs = ({
         <TabsTrigger value="overview" className="text-slate-300 data-[state=active]:text-white">
           Overview
         </TabsTrigger>
+        {isAdmin && (
+          <TabsTrigger value="admin" className="text-slate-300 data-[state=active]:text-white">
+            <Settings className="w-4 h-4 mr-2" />
+            Admin
+          </TabsTrigger>
+        )}
       </TabsList>
 
       <TabsContent value="overview" className="space-y-6">
@@ -81,13 +89,7 @@ const MatchTabs = ({
         {match.team1_id && match.team2_id && (
           <MapVetoManager
             matchId={match.id}
-            team1Id={match.team1_id}
-            team2Id={match.team2_id}
-            team1Name={match.team1?.name || 'Team 1'}
-            team2Name={match.team2?.name || 'Team 2'}
-            matchStatus={match.status}
-            userTeamId={userTeamId}
-            isAdmin={isAdmin}
+            onVetoComplete={onScoreSubmitted}
           />
         )}
 
@@ -217,6 +219,15 @@ const MatchTabs = ({
         </Card>
         {/* End Teams & Players Panel */}
       </TabsContent>
+
+      {isAdmin && (
+        <TabsContent value="admin" className="space-y-6">
+          <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
+            <h3 className="text-lg font-semibold text-white mb-4">Match Administration</h3>
+            <VetoMedicManager matchId={match.id} />
+          </div>
+        </TabsContent>
+      )}
     </Tabs>
   );
 };
