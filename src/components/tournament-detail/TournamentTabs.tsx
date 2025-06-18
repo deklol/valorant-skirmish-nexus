@@ -71,7 +71,16 @@ export default function TournamentTabs({
       {isAdmin &&
         <>
           <TabsContent value="admin" className="space-y-6">
-            <AdminTab tournament={tournament} onTournamentUpdated={onRefresh} matches={matches} teams={teams} parsedMapVetoRounds={parsedMapVetoRounds} onBracketGenerated={onRefresh} onStatusChange={onRefresh} />
+            <AdminTab 
+              tournament={tournament} 
+              teams={teams} 
+              onRefresh={onRefresh}
+              onTournamentUpdated={onRefresh} 
+              matches={matches} 
+              parsedMapVetoRounds={parsedMapVetoRounds} 
+              onBracketGenerated={onRefresh} 
+              onStatusChange={onRefresh} 
+            />
           </TabsContent>
           <TabsContent value="players" className="space-y-6">
             <PlayersTab tournamentId={tournament.id} maxPlayers={maxPlayers} onCheckInUpdate={onRefresh} />

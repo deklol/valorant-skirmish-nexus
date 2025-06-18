@@ -224,7 +224,7 @@ const MatchTabs = ({
         <TabsContent value="admin" className="space-y-6">
           <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
             <h3 className="text-lg font-semibold text-white mb-4">Match Administration</h3>
-            <VetoMedicManager matchId={match.id} />
+            <VetoMedicManager />
           </div>
         </TabsContent>
       )}
