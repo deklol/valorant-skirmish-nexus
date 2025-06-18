@@ -58,8 +58,8 @@ export default function AdminTab({
               onTournamentUpdated={onTournamentUpdated || onRefresh}
             />
             <ComprehensiveTournamentEditor
-              tournamentId={tournament.id}
-              onUpdate={onTournamentUpdated || onRefresh}
+              tournament={tournament}
+              onTournamentUpdated={onTournamentUpdated || onRefresh}
             />
           </CardContent>
         </Card>
