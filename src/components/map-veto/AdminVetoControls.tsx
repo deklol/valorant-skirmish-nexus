@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Settings, Play, RotateCcw, Ban } from "lucide-react";
+import { Settings, Play, RotateCcw } from "lucide-react";
 import { useState } from "react";
 
 interface AdminVetoControlsProps {
@@ -23,76 +23,47 @@ export default function AdminVetoControls({
   const [loading, setLoading] = useState(false);
   const [resettingVeto, setResettingVeto] = useState(false);
 
-  const toggleMapVetoForMatch = async (enable: boolean) => {
+  const enableVetoForMatch = async () => {
     setLoading(true);
     try {
-      if (enable) {
-        // Enable veto and create session
-        const { error: matchError } = await supabase
+      // First enable veto on the match
+      const { error: matchError } = await supabase
+        .from('matches')
+        .update({ map_veto_enabled: true })
+        .eq('id', matchId);
+
+      if (matchError) throw matchError;
+
+      // If no veto session exists, create one
+      if (!vetoSession) {
+        const { data: matchData } = await supabase
           .from('matches')
-          .update({ map_veto_enabled: true })
-          .eq('id', matchId);
+          .select('team1_id, team2_id')
+          .eq('id', matchId)
+          .single();
 
-        if (matchError) throw matchError;
-
-        // Create veto session if it doesn't exist
-        if (!vetoSession) {
-          const { data: matchData } = await supabase
-            .from('matches')
-            .select('team1_id, team2_id')
-            .eq('id', matchId)
-            .single();
-
-          if (matchData) {
-            const { error: sessionError } = await supabase
-              .from('map_veto_sessions')
-              .insert({
-                match_id: matchId,
-                status: 'pending',
-                current_turn_team_id: matchData.team1_id
-              });
-
-            if (sessionError) throw sessionError;
-          }
-        }
-
-        toast({
-          title: "Success",
-          description: "Map veto enabled for this match",
-        });
-      } else {
-        // Disable veto
-        const { error: matchError } = await supabase
-          .from('matches')
-          .update({ map_veto_enabled: false })
-          .eq('id', matchId);
-
-        if (matchError) throw matchError;
-
-        // Delete veto session and actions if they exist
-        if (vetoSession) {
-          await supabase
-            .from('map_veto_actions')
-            .delete()
-            .eq('veto_session_id', vetoSession.id);
-
-          await supabase
+        if (matchData) {
+          const { error: sessionError } = await supabase
             .from('map_veto_sessions')
-            .delete()
-            .eq('id', vetoSession.id);
-        }
+            .insert({
+              match_id: matchId,
+              status: 'pending',
+              current_turn_team_id: matchData.team1_id
+            });
 
-        toast({
-          title: "Success",
-          description: "Map veto disabled for this match",
-        });
+          if (sessionError) throw sessionError;
+        }
       }
-      
+
+      toast({
+        title: "Map Veto Enabled",
+        description: "Map veto has been enabled for this match",
+      });
       onVetoAction();
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "Failed to toggle veto",
+        description: error.message || "Failed to enable veto",
         variant: "destructive",
       });
     } finally {
@@ -100,7 +71,47 @@ export default function AdminVetoControls({
     }
   };
 
-  const initializeMapVeto = async () => {
+  const disableVetoForMatch = async () => {
+    setLoading(true);
+    try {
+      // Disable veto on the match
+      const { error: matchError } = await supabase
+        .from('matches')
+        .update({ map_veto_enabled: false })
+        .eq('id', matchId);
+
+      if (matchError) throw matchError;
+
+      // Delete veto session and actions if they exist
+      if (vetoSession) {
+        await supabase
+          .from('map_veto_actions')
+          .delete()
+          .eq('veto_session_id', vetoSession.id);
+
+        await supabase
+          .from('map_veto_sessions')
+          .delete()
+          .eq('id', vetoSession.id);
+      }
+
+      toast({
+        title: "Map Veto Disabled",
+        description: "Map veto has been disabled for this match",
+      });
+      onVetoAction();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to disable veto",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const startVetoSession = async () => {
     setLoading(true);
     try {
       const { data: matchData } = await supabase
@@ -111,26 +122,40 @@ export default function AdminVetoControls({
 
       if (!matchData) throw new Error('Match not found');
 
-      const { error } = await supabase
-        .from('map_veto_sessions')
-        .insert({
-          match_id: matchId,
-          status: 'in_progress',
-          current_turn_team_id: matchData.team1_id,
-          started_at: new Date().toISOString()
-        });
+      // Create veto session if it doesn't exist
+      if (!vetoSession) {
+        const { error } = await supabase
+          .from('map_veto_sessions')
+          .insert({
+            match_id: matchId,
+            status: 'in_progress',
+            current_turn_team_id: matchData.team1_id,
+            started_at: new Date().toISOString()
+          });
 
-      if (error) throw error;
+        if (error) throw error;
+      } else {
+        // Update existing session to in_progress
+        const { error } = await supabase
+          .from('map_veto_sessions')
+          .update({
+            status: 'in_progress',
+            started_at: new Date().toISOString()
+          })
+          .eq('id', vetoSession.id);
+
+        if (error) throw error;
+      }
 
       toast({
-        title: "Success",
-        description: "Map veto session started",
+        title: "Veto Session Started",
+        description: "Map veto session has been started",
       });
       onVetoAction();
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "Failed to start veto",
+        description: error.message || "Failed to start veto session",
         variant: "destructive",
       });
     } finally {
@@ -172,14 +197,14 @@ export default function AdminVetoControls({
         .eq('id', vetoSession.id);
 
       toast({
-        title: "Success",
-        description: "Veto session reset",
+        title: "Veto Session Reset",
+        description: "Veto session has been reset",
       });
       onVetoAction();
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "Failed to reset veto",
+        description: error.message || "Failed to reset veto session",
         variant: "destructive",
       });
     } finally {
@@ -199,7 +224,7 @@ export default function AdminVetoControls({
         <div className="flex flex-wrap gap-2">
           {/* Enable/Disable Veto buttons */}
           <Button
-            onClick={() => toggleMapVetoForMatch(true)}
+            onClick={enableVetoForMatch}
             disabled={loading || matchSettings?.map_veto_enabled === true}
             size="sm"
             className="bg-green-600/20 hover:bg-green-600/30 border-green-600/30 text-green-400"
@@ -207,7 +232,7 @@ export default function AdminVetoControls({
             Enable Veto
           </Button>
           <Button
-            onClick={() => toggleMapVetoForMatch(false)}
+            onClick={disableVetoForMatch}
             disabled={loading || matchSettings?.map_veto_enabled === false}
             size="sm"
             className="bg-red-600/20 hover:bg-red-600/30 border-red-600/30 text-red-400"
@@ -217,8 +242,8 @@ export default function AdminVetoControls({
 
           {/* Start Veto button */}
           <Button
-            onClick={initializeMapVeto}
-            disabled={loading || !!vetoSession}
+            onClick={startVetoSession}
+            disabled={loading || (vetoSession && vetoSession.status === 'in_progress')}
             variant="outline"
             className="flex items-center gap-2"
           >
