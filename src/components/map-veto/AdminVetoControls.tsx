@@ -34,7 +34,7 @@ export default function AdminVetoControls({
 
       if (matchError) throw matchError;
 
-      // If no veto session exists, create one
+      // If no veto session exists, create one in PENDING status so dice roll shows
       if (!vetoSession) {
         const { data: matchData } = await supabase
           .from('matches')
@@ -47,7 +47,7 @@ export default function AdminVetoControls({
             .from('map_veto_sessions')
             .insert({
               match_id: matchId,
-              status: 'pending',
+              status: 'pending', // Start in pending so dice roll dialog appears
               current_turn_team_id: matchData.team1_id
             });
 
