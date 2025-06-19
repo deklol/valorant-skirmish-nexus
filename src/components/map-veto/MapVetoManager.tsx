@@ -135,6 +135,8 @@ export default function MapVetoManager({
             loadMatchAndSession();
             onVetoComplete?.();
           }}
+          vetoSession={vetoSession}
+          matchSettings={match}
         />
       )}
       
