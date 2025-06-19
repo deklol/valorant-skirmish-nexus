@@ -16,7 +16,7 @@ export default function AdminVetoControls({ matchId, onVetoAction }: AdminVetoCo
   const handleForceVeto = async () => {
     try {
       // Force create a veto session for this match
-      const { error } = await supabase.rpc('force_create_veto_session', {
+      const { data, error } = await supabase.rpc('force_create_veto_session' as any, {
         p_match_id: matchId
       });
 
@@ -39,7 +39,7 @@ export default function AdminVetoControls({ matchId, onVetoAction }: AdminVetoCo
   const handleStartVeto = async () => {
     try {
       // Start the veto process for this match
-      const { error } = await supabase.rpc('start_veto_session', {
+      const { data, error } = await supabase.rpc('start_veto_session' as any, {
         p_match_id: matchId
       });
 
@@ -62,7 +62,7 @@ export default function AdminVetoControls({ matchId, onVetoAction }: AdminVetoCo
   const handleResetVeto = async () => {
     try {
       // Reset the veto session for this match
-      const { error } = await supabase.rpc('reset_veto_session', {
+      const { data, error } = await supabase.rpc('reset_veto_session' as any, {
         p_match_id: matchId
       });
 
@@ -85,7 +85,7 @@ export default function AdminVetoControls({ matchId, onVetoAction }: AdminVetoCo
   const handleDisableVeto = async () => {
     try {
       // Disable veto for this match
-      const { error } = await supabase.rpc('disable_veto_session', {
+      const { data, error } = await supabase.rpc('disable_veto_session' as any, {
         p_match_id: matchId
       });
 
