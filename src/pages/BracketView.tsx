@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -203,25 +204,26 @@ export default function BracketView() {
           ))}
         </div>
         
-      {selectedMatch && vetoDialogOpen && (
-        <MapVetoDialog
-          open={vetoDialogOpen}
-          onOpenChange={setVetoDialogOpen}
-          matchId={selectedMatch.id}
-          vetoSessionId={selectedMatch.veto_session_id || ''}
-          team1Name={selectedMatch.team1?.name || 'Team 1'}
-          team2Name={selectedMatch.team2?.name || 'Team 2'}
-          currentTeamTurn={selectedMatch.current_turn_team_id || selectedMatch.team1_id || ''}
-          userTeamId={userTeamId}
-          team1Id={selectedMatch.team1_id || ''}
-          team2Id={selectedMatch.team2_id || ''}
-          tournamentMapPool={[]} // Add empty array for now since this view doesn't have tournament data
-          onVetoComplete={() => {
-            setVetoDialogOpen(false);
-            // Optionally refresh bracket data here
-          }}
-        />
-      )}
+        {selectedMatch && vetoDialogOpen && (
+          <MapVetoDialog
+            open={vetoDialogOpen}
+            onOpenChange={setVetoDialogOpen}
+            matchId={selectedMatch.id}
+            vetoSessionId={selectedMatch.veto_session_id || ''}
+            team1Name={selectedMatch.team1?.name || 'Team 1'}
+            team2Name={selectedMatch.team2?.name || 'Team 2'}
+            currentTeamTurn={selectedMatch.current_turn_team_id || selectedMatch.team1_id || ''}
+            userTeamId={userTeamId}
+            team1Id={selectedMatch.team1_id || ''}
+            team2Id={selectedMatch.team2_id || ''}
+            tournamentMapPool={[]} // Add empty array for now since this view doesn't have tournament data
+            onVetoComplete={() => {
+              setVetoDialogOpen(false);
+              // Optionally refresh bracket data here
+            }}
+          />
+        )}
+      </div>
     </div>
   );
 }
