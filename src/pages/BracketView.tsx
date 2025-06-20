@@ -87,16 +87,23 @@ export default function BracketView() {
 
         setBracketData(data);
 
-        // Load tournament map pool
+        // Load tournament map pool - fix the type conversion
         if (data.map_pool && Array.isArray(data.map_pool) && data.map_pool.length > 0) {
-          const { data: mapData } = await supabase
-            .from('maps')
-            .select('*')
-            .in('id', data.map_pool)
-            .eq('is_active', true);
+          // Convert Json[] to string[] safely
+          const mapPoolIds = data.map_pool
+            .filter((id): id is string => typeof id === 'string')
+            .filter(Boolean);
           
-          if (mapData) {
-            setTournamentMapPool(mapData.sort((a, b) => a.display_name.localeCompare(b.display_name)));
+          if (mapPoolIds.length > 0) {
+            const { data: mapData } = await supabase
+              .from('maps')
+              .select('*')
+              .in('id', mapPoolIds)
+              .eq('is_active', true);
+            
+            if (mapData) {
+              setTournamentMapPool(mapData.sort((a, b) => a.display_name.localeCompare(b.display_name)));
+            }
           }
         }
 

@@ -16,20 +16,22 @@ interface TournamentStatusManagerProps {
   onStatusChange: () => void;
 }
 
+type TournamentStatus = 'draft' | 'open' | 'balancing' | 'live' | 'completed' | 'archived';
+
 const TOURNAMENT_STATUSES = [
-  { value: 'draft', label: 'Draft', color: 'bg-gray-500/20 text-gray-400', description: 'Tournament being prepared' },
-  { value: 'open', label: 'Open', color: 'bg-green-500/20 text-green-400', description: 'Registration is open' },
-  { value: 'balancing', label: 'Balancing', color: 'bg-yellow-500/20 text-yellow-400', description: 'Teams being balanced' },
-  { value: 'live', label: 'Live', color: 'bg-red-500/20 text-red-400', description: 'Tournament in progress' },
-  { value: 'completed', label: 'Completed', color: 'bg-blue-500/20 text-blue-400', description: 'Tournament finished' },
-  { value: 'archived', label: 'Archived', color: 'bg-slate-500/20 text-slate-400', description: 'Tournament archived' }
+  { value: 'draft' as TournamentStatus, label: 'Draft', color: 'bg-gray-500/20 text-gray-400', description: 'Tournament being prepared' },
+  { value: 'open' as TournamentStatus, label: 'Open', color: 'bg-green-500/20 text-green-400', description: 'Registration is open' },
+  { value: 'balancing' as TournamentStatus, label: 'Balancing', color: 'bg-yellow-500/20 text-yellow-400', description: 'Teams being balanced' },
+  { value: 'live' as TournamentStatus, label: 'Live', color: 'bg-red-500/20 text-red-400', description: 'Tournament in progress' },
+  { value: 'completed' as TournamentStatus, label: 'Completed', color: 'bg-blue-500/20 text-blue-400', description: 'Tournament finished' },
+  { value: 'archived' as TournamentStatus, label: 'Archived', color: 'bg-slate-500/20 text-slate-400', description: 'Tournament archived' }
 ];
 
 const TournamentStatusManager = ({ tournamentId, currentStatus, onStatusChange }: TournamentStatusManagerProps) => {
   const [loading, setLoading] = useState(false);
-  const [newStatus, setNewStatus] = useState(currentStatus);
+  const [newStatus, setNewStatus] = useState<TournamentStatus>(currentStatus as TournamentStatus);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [pendingStatus, setPendingStatus] = useState<string | null>(null);
+  const [pendingStatus, setPendingStatus] = useState<TournamentStatus | null>(null);
   const { toast } = useToast();
 
   const statusOptions = TOURNAMENT_STATUSES;
@@ -45,12 +47,13 @@ const TournamentStatusManager = ({ tournamentId, currentStatus, onStatusChange }
   };
 
   const handleManualChange = (selectedStatus: string) => {
-    setNewStatus(selectedStatus);
+    const typedStatus = selectedStatus as TournamentStatus;
+    setNewStatus(typedStatus);
     if (getStatusIndex(selectedStatus) < getStatusIndex(currentStatus)) {
-      setPendingStatus(selectedStatus);
+      setPendingStatus(typedStatus);
       setShowConfirm(true);
     } else {
-      updateTournamentStatus(selectedStatus);
+      updateTournamentStatus(typedStatus);
     }
   };
 
@@ -83,22 +86,24 @@ const TournamentStatusManager = ({ tournamentId, currentStatus, onStatusChange }
     return count;
   };
 
-  const updateTournamentStatus = async (forcedStatus?: string) => {
+  const updateTournamentStatus = async (forcedStatus?: TournamentStatus) => {
     const targetStatus = forcedStatus || newStatus;
     if (targetStatus === currentStatus) return;
     setLoading(true);
 
     try {
       if (targetStatus === 'completed') {
+        // Get all matches to find the final match
         const { data: matches, error: fetchMatchesError } = await supabase
           .from('matches')
-          .select('id, winner_id, round_number, status')
+          .select('id, winner_id, round_number, status, team1_id, team2_id')
           .eq('tournament_id', tournamentId)
           .order('round_number', { ascending: false });
 
         if (fetchMatchesError || !matches || matches.length === 0) {
           throw new Error("Cannot fetch matches to determine winner");
         }
+        
         const highestRound = Math.max(...matches.map(m => m.round_number));
         const finalMatch = matches.find(m => m.round_number === highestRound && m.status === 'completed');
         const winnerId = finalMatch?.winner_id;
@@ -113,6 +118,7 @@ const TournamentStatusManager = ({ tournamentId, currentStatus, onStatusChange }
           return;
         }
 
+        // Use completeTournament utility
         const result = await completeTournament(tournamentId, winnerId);
         if (result) {
           toast({

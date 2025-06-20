@@ -1,3 +1,4 @@
+
 // SINGLE authoritatve result processor for matches & bracket progression (atomic & robust)
 // This must be used by all admin overrides, user result submissions, and auto-tournament logic!
 
@@ -67,6 +68,8 @@ export async function processMatchResults(
   const safeNotifyTournamentWinner = notifyTournamentWinner ?? (() => Promise.resolve());
   const safeNotifyMatchReady = notifyMatchReady ?? (() => Promise.resolve());
 
+  console.log('🏆 Processing match results:', { matchId, winnerId, loserId, tournamentId });
+
   try {
     // Mark match as completed (now or again)
     {
@@ -81,6 +84,7 @@ export async function processMatchResults(
         .eq('id', matchId);
 
       if (updateMatchError) throw updateMatchError;
+      console.log('✅ Match marked as completed');
     }
 
     // Fetch full context: current match and all matches in this tournament
@@ -99,27 +103,39 @@ export async function processMatchResults(
 
     if (!allMatches) throw new Error('Could not load all matches in tournament');
 
+    console.log('📊 Tournament context:', { 
+      totalMatches: allMatches.length, 
+      completedMatches: allMatches.filter(m => m.status === 'completed').length,
+      currentMatchRound: match.round_number
+    });
+
     // --- Bracket Logic & Advancement ---
     // 1. Try to advance this match winner to the next round (unless final)
     if (!isBracketFinalMatch(match, allMatches)) {
+      console.log('⬆️ Advancing winner to next round...');
       await advanceWinnerToNextRound(match, winnerId, tournamentId);
+    } else {
+      console.log('🏁 This is the final match!');
     }
 
     // 2. Determine if tournament is now complete (final match and all rounds finished)
     const isThisFinalMatch = isBracketFinalMatch(match, allMatches);
     if (isThisFinalMatch) {
+      console.log('🎉 Tournament is complete! Setting winner and completing tournament...');
       // Mark the winner as "winner", eliminate the loser
       if (winnerId) {
         await supabase
           .from('teams')
           .update({ status: 'winner' })
           .eq('id', winnerId);
+        console.log('👑 Winner team status updated');
       }
       if (loserId) {
         await supabase
           .from('teams')
           .update({ status: 'eliminated' })
           .eq('id', loserId);
+        console.log('❌ Loser team eliminated');
       }
     } else {
       // If not final, only eliminate the loser
@@ -128,20 +144,23 @@ export async function processMatchResults(
           .from('teams')
           .update({ status: 'eliminated' })
           .eq('id', loserId);
+        console.log('❌ Loser team eliminated');
       }
     }
 
     // 3. Stats always update per-match (safe, not duplicated for tournament)
+    console.log('📈 Updating player statistics...');
     await updatePlayerStatistics(winnerId, loserId);
 
     // 4. Notify completion of this match
-    await (notifyMatchComplete ?? (() => Promise.resolve()))(matchId, winnerId, loserId);
+    await safeNotifyMatchComplete(matchId, winnerId, loserId);
 
     // 5. If this was tournament final, complete tournament & trigger notifications
     if (isThisFinalMatch) {
+      console.log('🏆 Completing tournament...');
       await completeTournament(tournamentId, winnerId);
-      await (notifyTournamentWinner ?? (() => Promise.resolve()))(tournamentId, winnerId);
-      toast?.({
+      await safeNotifyTournamentWinner(tournamentId, winnerId);
+      safeToast({
         title: "Tournament Complete!",
         description: "Congratulations to the tournament winner!"
       });
@@ -155,22 +174,25 @@ export async function processMatchResults(
         .not('team1_id', 'is', null)
         .not('team2_id', 'is', null);
 
-      if (readyMatches) {
+      if (readyMatches && readyMatches.length > 0) {
+        console.log(`🔔 ${readyMatches.length} matches are now ready`);
         for (const readyMatch of readyMatches) {
           if (readyMatch.team1_id && readyMatch.team2_id) {
-            await (notifyMatchReady ?? (() => Promise.resolve()))(readyMatch.id, readyMatch.team1_id, readyMatch.team2_id);
+            await safeNotifyMatchReady(readyMatch.id, readyMatch.team1_id, readyMatch.team2_id);
           }
         }
       }
     }
 
-    toast?.({
+    safeToast({
       title: "Match Results Processed",
       description: "Statistics and tournament progress updated"
     });
+    console.log('✅ Match processing complete');
     if (onComplete) onComplete();
   } catch (error: any) {
-    toast?.({
+    console.error('❌ Match Result Processing Error:', error);
+    safeToast({
       title: "Match Result Processing Error",
       description: error.message || "Failed to record and process results",
       variant: "destructive",
@@ -184,6 +206,8 @@ async function advanceWinnerToNextRound(currentMatch: any, winnerId: string, tou
     const nextRound = currentMatch.round_number + 1;
     const nextMatchNumber = Math.ceil(currentMatch.match_number / 2);
 
+    console.log(`🔄 Looking for next match: Round ${nextRound}, Match #${nextMatchNumber}`);
+
     const { data: nextMatch } = await supabase
       .from('matches')
       .select('*')
@@ -196,6 +220,9 @@ async function advanceWinnerToNextRound(currentMatch: any, winnerId: string, tou
       // Assign to correct slot: odd -> team1 (left side), even -> team2 (right side)
       const isOdd = currentMatch.match_number % 2 === 1;
       const updateField = isOdd ? 'team1_id' : 'team2_id';
+      
+      console.log(`📍 Assigning winner to ${updateField} in next match`);
+      
       await supabase
         .from('matches')
         .update({ [updateField]: winnerId })
@@ -209,11 +236,14 @@ async function advanceWinnerToNextRound(currentMatch: any, winnerId: string, tou
         .maybeSingle();
 
       if (updated?.team1_id && updated?.team2_id) {
+        console.log('🔥 Both teams assigned, setting match to live');
         await supabase
           .from('matches')
-          .update({ status: 'live' }) // now set to live, not pending!
+          .update({ status: 'live' })
           .eq('id', nextMatch.id);
       }
+    } else {
+      console.log('ℹ️ No next match found (probably tournament final)');
     }
   } catch (err) {
     // Not critical: the bracket is reparable, just log
@@ -238,11 +268,13 @@ async function updatePlayerStatistics(winnerTeamId: string, loserTeamId: string)
       for (const w of winnerMembers) {
         await supabase.rpc('increment_user_wins', { user_id: w.user_id });
       }
+      console.log(`📊 Updated wins for ${winnerMembers.length} players`);
     }
     if (loserMembers) {
       for (const l of loserMembers) {
         await supabase.rpc('increment_user_losses', { user_id: l.user_id });
       }
+      console.log(`📊 Updated losses for ${loserMembers.length} players`);
     }
   } catch (err) {
     // For now, log. Could trigger a repair-audit later
