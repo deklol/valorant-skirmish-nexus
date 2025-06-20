@@ -31,15 +31,10 @@ interface MapVetoDialogProps {
   bestOf?: number;
   homeTeamId?: string | null;
   awayTeamId?: string | null;
+  tournamentMapPool: MapData[];
+  onVetoComplete: () => void;
 }
 
-// asMapActionType function remains unchanged
-const asMapActionType = (act: string | undefined | null): "ban" | "pick" =>
-  act === "ban" ? "ban" : act === "pick" ? "pick" : "ban";
-
-/**
- * Simplified, polling-based MapVetoDialog (no real-time websocket syncing).
- */
 const MapVetoDialog = ({
   open,
   onOpenChange,
@@ -56,15 +51,15 @@ const MapVetoDialog = ({
   bestOf = 1,
   homeTeamId,
   awayTeamId,
-}: any) => {
+  tournamentMapPool,
+  onVetoComplete,
+}: MapVetoDialogProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // State for controlling team turn, manually set only if we need to force it
   const [sidePickModal, setSidePickModal] = useState<null | { mapId: string, onPick: (side: "attack" | "defend") => void }>(null);
   const [loading, setLoading] = useState(false);
 
-  // Compute which state must be loaded, for disable or error
   const hasMinimalData = vetoSessionId && team1Id && team2Id;
   if (!hasMinimalData) {
     return (
@@ -73,14 +68,7 @@ const MapVetoDialog = ({
           <DialogHeader>
             <DialogTitle>Critical Error: Missing Map Veto Session Data</DialogTitle>
             <DialogDescription>
-              Session or teams are missing. Please contact an administrator.<br />
-              <span className="text-xs text-red-400">
-                Missing: {[
-                  !vetoSessionId && "vetoSessionId",
-                  !team1Id && "team1Id",
-                  !team2Id && "team2Id"
-                ].filter(Boolean).join(", ") || "Unknown"}
-              </span>
+              Session or teams are missing. Please contact an administrator.
             </DialogDescription>
           </DialogHeader>
         </DialogContent>
@@ -90,20 +78,8 @@ const MapVetoDialog = ({
 
   const dialogTitle = `Map Veto - ${team1Name} vs ${team2Name}`;
 
-  // ---- Data fetching with React Query ----
-  // Maps
-  const { data: maps = [], isLoading: mapsLoading, refetch: refetchMaps } = useQuery({
-    queryKey: ['map-veto-maps', vetoSessionId],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("maps").select("*").eq("is_active", true).order("name");
-      if (error) throw error;
-      return data ?? [];
-    },
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
-    enabled: open && !!vetoSessionId,
-    staleTime: 10000,
-  });
+  // Use tournament map pool directly
+  const maps = tournamentMapPool;
 
   // Veto Actions
   const {
@@ -130,11 +106,11 @@ const MapVetoDialog = ({
             : null,
       })) as VetoAction[];
     },
-    refetchInterval: open ? 2000 : false, // poll every 2 seconds while dialog is open
+    refetchInterval: open ? 2000 : false,
     refetchOnMount: true,
     refetchOnWindowFocus: true,
     enabled: open && !!vetoSessionId,
-    staleTime: 10000,
+    staleTime: 1000,
   });
 
   // Session for current turn, home/away, etc.
@@ -157,27 +133,24 @@ const MapVetoDialog = ({
     refetchOnMount: true,
     refetchOnWindowFocus: true,
     enabled: open && !!vetoSessionId,
-    staleTime: 10000,
+    staleTime: 1000,
   });
 
-  // Loading state - if anything is loading
-  const loadingAny = mapsLoading || vetoActionsLoading || sessionLoading || vetoActionsFetching || loading;
+  const loadingAny = vetoActionsLoading || sessionLoading || vetoActionsFetching || loading;
 
   // Manual refresh button handler
   const handleManualRefresh = async () => {
     await Promise.all([
       refetchSession(),
-      refetchMaps(),
       refetchVetoActions(),
     ]);
     toast({ title: "Refreshed", description: "Latest data loaded." });
   };
 
-  // Defensive: Pull current turn from session (DB is source of truth)
-  const currentTurnTeamId = sessionData?.current_turn_team_id
-    ?? currentTeamTurn;
+  // Pull current turn from session (DB is source of truth)
+  const currentTurnTeamId = sessionData?.current_turn_team_id ?? currentTeamTurn;
 
-  // ---- Permissions ----
+  // Permissions
   const {
     isUserOnMatchTeam,
     isUserTeamTurn,
@@ -206,10 +179,10 @@ const MapVetoDialog = ({
     onActionComplete: () => {
       refetchVetoActions();
       refetchSession();
+      onVetoComplete();
     },
     checkPermissions: () => {
       const result = explainPermissions();
-      // Only return an error if ok: false
       if (typeof result === "string") return result;
       if (result && result.ok === false) {
         console.error("VETO | PERMISSION DENIED", {
@@ -223,13 +196,13 @@ const MapVetoDialog = ({
         });
         return result.reason ?? "You are not allowed to perform this action";
       }
-      return null; // Permission is OK
+      return null;
     },
     setLoading,
     toast,
   });
 
-  // Veto flow and steps - FIXED: Remove invalid 'maps' property
+  // Veto flow and steps
   const vetoFlow = useMemo(() => {
     if (!homeTeamId || !awayTeamId || maps.length === 0) return [];
     return getVctVetoFlow({ 
@@ -240,13 +213,12 @@ const MapVetoDialog = ({
     });
   }, [homeTeamId, awayTeamId, bestOf, maps]);
   
-  // New: Current step index and step info
   const vetoStep = vetoActions.length < vetoFlow.length
     ? vetoActions.length
     : Math.max(0, vetoFlow.length - 1);
   const currentStep = vetoFlow[vetoStep] || null;
 
-  // Defensive: vetoComplete, action checks
+  // Veto completion logic
   const bansMade = vetoActions.filter(a => a.action === "ban").length;
   const totalBansNeeded = maps.length - 1;
   const pickMade = vetoActions.some(a => a.action === "pick");
@@ -258,7 +230,7 @@ const MapVetoDialog = ({
 
   const canVeto = vetoFlow.length > 0;
 
-  // Home/away labels; stays same
+  // Home/away labels
   const [homeLabel, setHomeLabel] = useState<string>("Home");
   const [awayLabel, setAwayLabel] = useState<string>("Away");
   useEffect(() => {
@@ -271,7 +243,7 @@ const MapVetoDialog = ({
     }
   }, [homeTeamId, awayTeamId, team1Id, team2Id, team1Name, team2Name]);
 
-  // Side pick modal logic for side selection, kept aligned to new backend
+  // Side pick modal logic
   useEffect(() => {
     if (
       bestOf === 1 &&
@@ -282,14 +254,13 @@ const MapVetoDialog = ({
       if (
         lastPick &&
         isUserCaptain &&
-        userTeamId === homeTeamId
+        userTeamId === homeTeamId &&
+        !lastPick.side_choice
       ) {
         setSidePickModal({
           mapId: lastPick.map_id,
           onPick: async (side: "attack" | "defend") => {
-            if (lastPick.side_choice) return;
             setLoading(true);
-            // Use robust hook which now calls the new set_side_choice RPC
             try {
               const { data, error } = await supabase.rpc('set_side_choice', {
                 p_veto_session_id: vetoSessionId,
@@ -302,10 +273,9 @@ const MapVetoDialog = ({
                 toast({ title: "Error", description: error.message, variant: "destructive" });
               } else if (data === "OK") {
                 toast({ title: "Side Selected", description: `You picked ${side} side.` });
+                onVetoComplete();
               } else if (typeof data === "string") {
                 toast({ title: "Error", description: data, variant: "destructive" });
-              } else {
-                toast({ title: "Error", description: "Unexpected response from side selection." });
               }
             } catch (error: any) {
               toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -318,9 +288,7 @@ const MapVetoDialog = ({
     } else {
       setSidePickModal(null);
     }
-    // eslint-disable-next-line
-  }, [bestOf, maps, bansMade, pickMade, sideChosen, vetoActions, currentStep, isUserCaptain, userTeamId, homeTeamId, toast]);
-  // only toast and refetchVetoActions dependencies change across renders
+  }, [bestOf, maps, bansMade, pickMade, sideChosen, vetoActions, currentStep, isUserCaptain, userTeamId, homeTeamId, toast, vetoSessionId, refetchVetoActions, onVetoComplete]);
 
   const safeCurrentAction: "ban" | "pick" =
     currentStep && (currentStep.action === "ban" || currentStep.action === "pick")
@@ -331,7 +299,6 @@ const MapVetoDialog = ({
   const pickedMap = maps.find(m => m.id === finalPickAction?.map_id);
   const pickedSide = finalPickAction?.side_choice;
 
-  // getMapStatus and rest of logic remains as is
   const getMapStatus = (mapId: string) => {
     const action = vetoActions.find((action) => action.map_id === mapId);
     if (!action) return null;
@@ -341,7 +308,6 @@ const MapVetoDialog = ({
     };
   };
 
-  // Defensive: fallback UI if missing data
   if (!open || !vetoFlow || vetoFlow.length === 0) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -357,14 +323,13 @@ const MapVetoDialog = ({
     );
   }
 
-  // Dialog Render
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-slate-900 border-slate-700 text-white" aria-describedby="map-veto-dialog-description">
         <DialogHeader>
           <DialogTitle>{dialogTitle}</DialogTitle>
           <DialogDescription id="map-veto-dialog-description">
-            Participate in map bans and picks. All team members see this in real time. <br />
+            Participate in map bans and picks. All team members see this in real time.
             <Button
               variant="link"
               className="text-blue-300 underline text-xs p-0 h-auto font-medium hover:text-blue-400 ml-2"
@@ -378,7 +343,6 @@ const MapVetoDialog = ({
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-6">
-          {/* If waiting for dice roll */}
           {(!homeTeamId || !awayTeamId) ? (
             <div className="flex flex-col items-center justify-center py-14">
               <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-yellow-500 mb-2" />
@@ -386,16 +350,8 @@ const MapVetoDialog = ({
                 Waiting for dice roll...
               </div>
               <div className="text-slate-300 text-base mt-2">
-                Home/Away are not set yet.<br />
-                A captain or admin must roll dice to set Home/Away.
+                Home/Away are not set yet. A captain or admin must roll dice to set Home/Away.
               </div>
-              <pre className="bg-slate-800 mt-4 p-2 rounded text-xs text-slate-400 border border-slate-700 max-w-xl overflow-auto">
-                Missing: {!homeTeamId && "homeTeamId "}
-                {!awayTeamId && "awayTeamId"}
-                {"\n"}vetoSessionId: {vetoSessionId}
-                {"\n"}team1Id: {team1Id}
-                {"\n"}team2Id: {team2Id}
-              </pre>
             </div>
           ) : (
             <>
@@ -477,9 +433,6 @@ const MapVetoDialog = ({
                       Defend
                     </Button>
                   </div>
-                  {pickedSide && (
-                    <div className="mt-2 text-green-200">Side already selected: <span className="font-bold">{pickedSide}</span></div>
-                  )}
                 </div>
               ) : (
                 <MapVetoMapGrid
@@ -499,11 +452,6 @@ const MapVetoDialog = ({
               {/* Instructions */}
               <MapVetoInstructions />
             </>
-          )}
-          {!loadingAny && vetoFlow.length === 0 && (
-            <div className="text-red-400 text-center p-16">
-              Unable to start map veto: Session, teams, or map list is not loaded. Please retry later.
-            </div>
           )}
         </div>
       </DialogContent>

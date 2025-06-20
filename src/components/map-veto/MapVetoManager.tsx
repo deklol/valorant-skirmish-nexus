@@ -42,7 +42,7 @@ export default function MapVetoManager({
   const [loading, setLoading] = useState(true);
   const [tournamentMapPool, setTournamentMapPool] = useState<any[]>([]);
   const [vetoDialogOpen, setVetoDialogOpen] = useState(false);
-  const [vetoDialogLastProps, setVetoDialogLastProps] = useState<any>(null);
+  const [isUserCaptain, setIsUserCaptain] = useState(false);
   const { toast } = useToast();
 
   const loadMatchAndSession = useCallback(async () => {
@@ -84,6 +84,18 @@ export default function MapVetoManager({
         }
       }
 
+      // Check if user is captain of their team
+      if (userTeamId) {
+        const { data: captainData } = await supabase
+          .from('team_members')
+          .select('is_captain')
+          .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+          .eq('team_id', userTeamId)
+          .maybeSingle();
+        
+        setIsUserCaptain(captainData?.is_captain || false);
+      }
+
       // Load veto session
       const { data: sessionData } = await supabase
         .from("map_veto_sessions")
@@ -113,7 +125,7 @@ export default function MapVetoManager({
     } finally {
       setLoading(false);
     }
-  }, [matchId, toast]);
+  }, [matchId, toast, userTeamId]);
 
   const checkVetoSession = useCallback(() => {
     loadMatchAndSession();
@@ -134,7 +146,7 @@ export default function MapVetoManager({
         .from('map_veto_sessions')
         .insert({
           match_id: matchId,
-          status: 'in_progress',
+          status: 'pending', // Start in pending so dice roll shows
           current_turn_team_id: matchData.team1_id,
           started_at: new Date().toISOString()
         });
@@ -208,7 +220,6 @@ export default function MapVetoManager({
   }
 
   // Derived state
-  const matchSettings = match;
   const mapVetoAvailable = isAdmin || (match.tournament?.enable_map_veto && match.map_veto_enabled !== false);
   const showStartVeto = !vetoSession;
   const showVetoFlow = vetoSession;
@@ -216,7 +227,6 @@ export default function MapVetoManager({
   const isVetoComplete = vetoSession?.status === 'completed';
   const canParticipate = userTeamId && (userTeamId === team1Id || userTeamId === team2Id);
   const teamSize = 5; // Default team size
-  const isUserCaptain = canParticipate; // Simplified for now
 
   // Labels for home/away teams
   const homeLabel = vetoSession?.home_team_id === team1Id ? team1Name : team2Name;
@@ -297,7 +307,7 @@ export default function MapVetoManager({
             </div>
           )}
 
-        {/* Updated: Map Veto start logic */}
+        {/* Map Veto start logic */}
         {!mapVetoAvailable ? (
           <div className="flex items-center gap-2 p-3 bg-gray-500/10 border border-gray-500/20 rounded-lg">
             <AlertCircle className="w-4 h-4 text-gray-500" />
@@ -326,7 +336,7 @@ export default function MapVetoManager({
         ) : (
           showVetoFlow && (
             <div className="space-y-4">
-              {/* Only allow participate if roll completed */}
+              {/* Veto status and participate button */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-white font-medium">Veto Status:</span>
@@ -348,28 +358,7 @@ export default function MapVetoManager({
                 {/* Only allow open dialog if dice roll is complete */}
                 {isVetoActive && canParticipate && vetoSession.home_team_id && vetoSession.away_team_id && (
                   <Button
-                    onClick={() => {
-                      // DEBUG LOG: Log all dialog props
-                      const dialogProps = {
-                        open: true,
-                        matchId,
-                        vetoSessionId: vetoSession.id,
-                        team1Name,
-                        team2Name,
-                        currentTeamTurn: vetoSession.current_turn_team_id || team1Id,
-                        userTeamId,
-                        isUserCaptain,
-                        teamSize,
-                        team1Id,
-                        team2Id,
-                        bestOf: matchSettings?.best_of || 1,
-                        homeTeamId: vetoSession.home_team_id,
-                        awayTeamId: vetoSession.away_team_id
-                      };
-                      console.log("[MapVetoManager] Participating – opening dialog with props:", dialogProps);
-                      setVetoDialogLastProps(dialogProps); // keep if needed for debugging
-                      setVetoDialogOpen(true);
-                    }}
+                    onClick={() => setVetoDialogOpen(true)}
                     className="bg-green-600 hover:bg-green-700"
                     disabled={(!isUserCaptain && (teamSize && teamSize > 1))}
                   >
@@ -411,7 +400,7 @@ export default function MapVetoManager({
         {vetoSession && <MapVetoHistory vetoActions={vetoActions} />}
       </CardContent>
 
-      {/* Only open the dialog if home/away is set */}
+      {/* Map Veto Dialog */}
       {vetoSession &&
         vetoSession.status === "in_progress" &&
         team1Id && team2Id && mapVetoAvailable &&
@@ -421,7 +410,18 @@ export default function MapVetoManager({
               open={vetoDialogOpen}
               onOpenChange={setVetoDialogOpen}
               matchId={matchId}
-              vetoSession={vetoSession}
+              vetoSessionId={vetoSession.id}
+              team1Name={team1Name || 'Team 1'}
+              team2Name={team2Name || 'Team 2'}
+              currentTeamTurn={vetoSession.current_turn_team_id || team1Id}
+              userTeamId={userTeamId}
+              isUserCaptain={isUserCaptain}
+              teamSize={teamSize}
+              team1Id={team1Id}
+              team2Id={team2Id}
+              bestOf={match?.best_of || 1}
+              homeTeamId={vetoSession.home_team_id}
+              awayTeamId={vetoSession.away_team_id}
               tournamentMapPool={tournamentMapPool}
               onVetoComplete={() => {
                 loadMatchAndSession();
