@@ -1,399 +1,227 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Trophy, Users, Clock, Eye, Settings } from "lucide-react";
+import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import Header from "@/components/Header";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import MapVetoDialog from "@/components/MapVetoDialog";
-import BracketHeader from "@/components/bracket-details/BracketHeader";
 
 interface Match {
   id: string;
+  team1_id: string;
+  team2_id: string;
+  team1: { name: string } | null;
+  team2: { name: string } | null;
   round_number: number;
   match_number: number;
-  team1_id: string | null;
-  team2_id: string | null;
-  winner_id: string | null;
-  status: "pending" | "live" | "completed";
-  score_team1: number;
-  score_team2: number;
-  scheduled_time: string | null;
-  team1?: { name: string; id: string } | null;
-  team2?: { name: string; id: string } | null;
-  winner?: { name: string; id: string } | null;
-}
-
-interface Tournament {
-  id: string;
-  name: string;
   status: string;
-  bracket_type: string;
-  match_format: string;
-  max_teams: number;
+  map_veto_enabled: boolean;
+  veto_session_id: string | null;
+  current_turn_team_id: string | null;
 }
 
-const BracketView = () => {
-  const { id } = useParams<{ id: string }>();
-  const [tournament, setTournament] = useState<Tournament | null>(null);
-  const [matches, setMatches] = useState<Match[]>([]);
+export default function BracketView() {
+  const { id: tournamentId } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const [bracketData, setBracketData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
-  const [mapVetoOpen, setMapVetoOpen] = useState(false);
-  const [vetoSessionId, setVetoSessionId] = useState<string | null>(null);
-  const [vetoSessionLoading, setVetoSessionLoading] = useState(false);
-  const { user, isAdmin } = useAuth();
+  const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
+  const [userTeamId, setUserTeamId] = useState<string | null>(null);
+  const [vetoDialogOpen, setVetoDialogOpen] = useState(false);
 
   useEffect(() => {
-    const fetchBracketData = async () => {
-      if (!id) return;
+    if (!tournamentId) {
+      toast({
+        title: "Error",
+        description: "No tournament ID provided in URL.",
+        variant: "destructive",
+      });
+      navigate(-1);
+      return;
+    }
 
+    const fetchBracketData = async () => {
+      setLoading(true);
       try {
-        setLoading(true);
-        
-        const { data: tournamentData, error: tournamentError } = await supabase
-          .from('tournaments')
-          .select('*')
-          .eq('id', id)
+        const { data, error } = await supabase
+          .from("tournaments")
+          .select(
+            `
+            *,
+            matches (
+              id,
+              team1_id,
+              team2_id,
+              round_number,
+              match_number,
+              status,
+              map_veto_enabled,
+              veto_session_id,
+              current_turn_team_id,
+              team1:team1_id (name),
+              team2:team2_id (name)
+            )
+          `
+          )
+          .eq("id", tournamentId)
           .single();
 
-        if (tournamentError) throw tournamentError;
+        if (error) throw error;
+        if (!data) throw new Error("Tournament not found");
 
-        const { data: matchesData, error: matchesError } = await supabase
-          .from('matches')
-          .select(`
-            *,
-            team1:teams!matches_team1_id_fkey (name, id),
-            team2:teams!matches_team2_id_fkey (name, id),
-            winner:teams!matches_winner_id_fkey (name, id)
-          `)
-          .eq('tournament_id', id)
-          .order('round_number', { ascending: true })
-          .order('match_number', { ascending: true });
+        setBracketData(data);
 
-        if (matchesError) throw matchesError;
+        // Find user's team ID if they are participating
+        if (user) {
+          const { data: teamData } = await supabase
+            .from("team_members")
+            .select("team_id")
+            .eq("user_id", user.id)
+            .limit(1)
+            .single();
 
-        setTournament(tournamentData);
-        setMatches(matchesData || []);
-      } catch (error) {
-        console.error('Error fetching bracket:', error);
+          setUserTeamId(teamData?.team_id || null);
+        }
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to load bracket data",
+          variant: "destructive",
+        });
       } finally {
         setLoading(false);
       }
     };
 
     fetchBracketData();
-  }, [id]);
+  }, [tournamentId, user, navigate, toast]);
 
-  // Generate bracket structure based on max_teams
-  const generateBracketStructure = (maxTeams: number) => {
-    const rounds = Math.ceil(Math.log2(maxTeams));
-    const structure = [];
-    
-    for (let round = 1; round <= rounds; round++) {
-      const matchesInRound = Math.ceil(maxTeams / Math.pow(2, round));
-      structure.push({
-        round,
-        matchCount: matchesInRound,
-        name: getRoundName(round, rounds)
-      });
-    }
-    
-    return structure;
-  };
-
-  const getMatchesByRound = (roundNumber: number) => {
-    return matches.filter(match => match.round_number === roundNumber);
-  };
-
-  const getMaxRounds = () => {
-    if (tournament?.max_teams) {
-      return Math.ceil(Math.log2(tournament.max_teams));
-    }
-    return Math.max(...matches.map(match => match.round_number), 0);
-  };
-
-  const getRoundName = (roundNumber: number, maxRounds: number) => {
-    if (roundNumber === maxRounds) return "Final";
-    if (roundNumber === maxRounds - 1) return "Semi-Final";
-    if (roundNumber === maxRounds - 2) return "Quarter-Final";
-    if (roundNumber === 1) return "Round 1";
-    return `Round ${roundNumber}`;
-  };
-
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, string> = {
-      pending: "bg-gray-500/20 text-gray-400",
-      live: "bg-red-500/20 text-red-400",
-      completed: "bg-green-500/20 text-green-400"
-    };
-
-    return (
-      <Badge className={variants[status] || variants.pending}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
-      </Badge>
-    );
-  };
-
-  const formatTime = (timeString: string | null) => {
-    if (!timeString) return "TBD";
-    return new Date(timeString).toLocaleDateString("en-GB", {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit"
-    });
-  };
-
-  const handleMapVeto = async (matchId: string) => {
-    setSelectedMatch(matchId);
-    setMapVetoOpen(true);
-    setVetoSessionLoading(true);
-    setVetoSessionId(null);
-
-    // Fetch the veto session for this match
-    const { data, error } = await supabase
-      .from('map_veto_sessions')
-      .select('id')
-      .eq('match_id', matchId)
-      .maybeSingle();
-    if (!error && data && data.id) {
-      setVetoSessionId(data.id);
-    } else {
-      setVetoSessionId(null);
-    }
-    setVetoSessionLoading(false);
-  };
-
-  useEffect(() => {
-    if (!mapVetoOpen) {
-      setVetoSessionId(null);
-      setVetoSessionLoading(false);
-    }
-  }, [mapVetoOpen]);
-
-  const handleManageBracket = () => {
-    console.log("Manage Bracket Clicked");
+  const handleMatchClick = (match: Match) => {
+    setSelectedMatch(match);
+    setVetoDialogOpen(true);
   };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        {/* Global Header is handled at App/root level, no need to render <Header /> here */}
         <div className="container mx-auto px-4 py-8">
-          <div className="text-center">
-            <p className="text-white text-lg">Loading bracket...</p>
+          <Button onClick={() => navigate(-1)} className="mb-4">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Go Back
+          </Button>
+          <Skeleton className="w-[200px] h-8 mb-4" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Card key={i} className="bg-slate-800 border-slate-700">
+                <CardHeader>
+                  <CardTitle>
+                    <Skeleton className="w-[150px] h-6" />
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="w-full h-20" />
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </div>
     );
   }
 
-  if (!tournament) {
+  if (!bracketData) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
         <div className="container mx-auto px-4 py-8">
-          <div className="text-center">
-            <p className="text-white text-lg">Tournament not found</p>
-          </div>
+          <Button onClick={() => navigate(-1)} className="mb-4">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Go Back
+          </Button>
+          <div className="text-center text-white">Tournament not found</div>
         </div>
       </div>
     );
   }
-
-  const maxRounds = getMaxRounds();
-  const bracketStructure = generateBracketStructure(tournament.max_teams || 8);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       <div className="container mx-auto px-4 py-8">
-        {/* Use new BracketHeader */}
-        <BracketHeader
-          name={tournament.name}
-          bracketType={tournament.bracket_type}
-          matchFormat={tournament.match_format}
-          maxTeams={tournament.max_teams}
-          status={tournament.status}
-          onBack={() => window.history.length > 2 ? window.history.back() : window.location.assign("/tournaments")}
-          isAdmin={isAdmin}
-          onManageBracket={handleManageBracket}
-        />
-
-        <div className="space-y-8">
-          {/* Bracket Grid */}
-          <div className="overflow-x-auto pb-4">
-            <div className="flex gap-8 min-w-max justify-center">
-              {bracketStructure.map((roundInfo) => {
-                const roundMatches = getMatchesByRound(roundInfo.round);
-                
-                return (
-                  <div key={roundInfo.round} className="flex flex-col space-y-6 min-w-[320px]">
-                    <h3 className="text-xl font-bold text-white text-center py-2 bg-slate-800 rounded-lg">
-                      {roundInfo.name}
-                    </h3>
-                    
-                    <div className="space-y-4 flex flex-col justify-center" style={{ minHeight: '400px' }}>
-                      {Array.from({ length: roundInfo.matchCount }, (_, matchIndex) => {
-                        const existingMatch = roundMatches.find(m => m.match_number === matchIndex + 1);
-                        
-                        return (
-                          <Card key={`${roundInfo.round}-${matchIndex}`} className="bg-slate-800 border-slate-700 hover:border-slate-600 transition-colors">
-                            <CardHeader className="pb-3">
-                              <div className="flex items-center justify-between">
-                                <div className="text-sm text-slate-400">Match {matchIndex + 1}</div>
-                                <div className="flex items-center gap-2">
-                                  {existingMatch ? getStatusBadge(existingMatch.status) : (
-                                    <Badge className="bg-gray-500/20 text-gray-400">Pending</Badge>
-                                  )}
-                                  {existingMatch?.status === "live" && tournament.match_format !== "BO1" && (
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-white"
-                                      onClick={() => handleMapVeto(existingMatch.id)}
-                                    >
-                                      <Eye className="w-3 h-3 mr-1" />
-                                      Maps
-                                    </Button>
-                                  )}
-                                </div>
-                              </div>
-                            </CardHeader>
-                            <CardContent className="space-y-3">
-                              {/* Team 1 */}
-                              <div className={`flex items-center justify-between p-3 rounded-lg transition-colors ${
-                                existingMatch?.winner_id === existingMatch?.team1_id 
-                                  ? 'bg-green-500/20 border border-green-500/30' 
-                                  : existingMatch?.status === 'completed' 
-                                    ? 'bg-slate-700/50' 
-                                    : 'bg-slate-700'
-                              }`}>
-                                <div className="flex items-center gap-2">
-                                  <Users className="w-4 h-4 text-slate-400" />
-                                  <span className="text-white font-medium">
-                                    {existingMatch?.team1?.name || "TBD"}
-                                  </span>
-                                  {existingMatch?.winner_id === existingMatch?.team1_id && (
-                                    <Trophy className="w-4 h-4 text-yellow-500" />
-                                  )}
-                                </div>
-                                <span className="text-white font-bold text-lg">
-                                  {existingMatch?.score_team1 || 0}
-                                </span>
-                              </div>
-                              
-                              {/* VS Divider */}
-                              <div className="text-center">
-                                <span className="text-slate-400 font-medium">VS</span>
-                              </div>
-                              
-                              {/* Team 2 */}
-                              <div className={`flex items-center justify-between p-3 rounded-lg transition-colors ${
-                                existingMatch?.winner_id === existingMatch?.team2_id 
-                                  ? 'bg-green-500/20 border border-green-500/30' 
-                                  : existingMatch?.status === 'completed' 
-                                    ? 'bg-slate-700/50' 
-                                    : 'bg-slate-700'
-                              }`}>
-                                <div className="flex items-center gap-2">
-                                  <Users className="w-4 h-4 text-slate-400" />
-                                  <span className="text-white font-medium">
-                                    {existingMatch?.team2?.name || "TBD"}
-                                  </span>
-                                  {existingMatch?.winner_id === existingMatch?.team2_id && (
-                                    <Trophy className="w-4 h-4 text-yellow-500" />
-                                  )}
-                                </div>
-                                <span className="text-white font-bold text-lg">
-                                  {existingMatch?.score_team2 || 0}
-                                </span>
-                              </div>
-                              
-                              {/* Match Info */}
-                              <div className="flex items-center justify-between text-sm text-slate-400 pt-2 border-t border-slate-600">
-                                <div className="flex items-center gap-1">
-                                  <Clock className="w-3 h-3" />
-                                  <span>{existingMatch ? formatTime(existingMatch.scheduled_time) : "TBD"}</span>
-                                </div>
-                                {existingMatch?.status === "live" && (
-                                  <div className="flex items-center gap-1">
-                                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                                    <span className="text-red-400">LIVE</span>
-                                  </div>
-                                )}
-                              </div>
-                            </CardContent>
-                          </Card>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Champion */}
-          {tournament.status === "completed" && (
-            <Card className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-500/30">
+        <Button onClick={() => navigate(-1)} className="mb-4">
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Go Back
+        </Button>
+        <h1 className="text-2xl font-bold text-white mb-4">
+          {bracketData.name} Bracket
+        </h1>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {bracketData.matches.map((match: Match) => (
+            <Card
+              key={match.id}
+              className="bg-slate-800 border-slate-700 cursor-pointer hover:bg-slate-700"
+              onClick={() => handleMatchClick(match)}
+            >
               <CardHeader>
-                <CardTitle className="text-center text-white flex items-center justify-center gap-2">
-                  <Trophy className="w-6 h-6 text-yellow-500" />
-                  Tournament Champion
+                <CardTitle className="text-white flex items-center justify-between">
+                  Match {match.match_number}
+                  <Badge
+                    variant="secondary"
+                    className={cn(
+                      match.status === "completed"
+                        ? "bg-green-500/20 text-green-400 border-green-500/30"
+                        : match.status === "in_progress"
+                        ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                        : "bg-gray-500/20 text-gray-400 border-gray-500/30"
+                    )}
+                  >
+                    {match.status}
+                  </Badge>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="text-center">
-                <div className="text-2xl font-bold text-yellow-500 mb-2">
-                  {matches.find(m => m.round_number === maxRounds)?.winner?.name || "TBD"}
+              <CardContent className="text-white">
+                <div className="flex justify-between">
+                  <div>
+                    {match.team1 ? match.team1.name : "TBD"}
+                  </div>
+                  <div>vs</div>
+                  <div>
+                    {match.team2 ? match.team2.name : "TBD"}
+                  </div>
                 </div>
-                <p className="text-slate-300">Congratulations on winning {tournament.name}!</p>
+                <div className="text-slate-400 text-sm mt-2">
+                  Round: {match.round_number}
+                </div>
               </CardContent>
             </Card>
-          )}
+          ))}
         </div>
-      </div>
-
-      {/* Map Veto Dialog */}
-      {selectedMatch && mapVetoOpen && (
-        // Only render dialog if we have a vetoSessionId (we need it per updated props)
-        vetoSessionLoading ? (
-          <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/70">
-            <div className="bg-slate-800 p-8 rounded-xl text-white text-xl">Loading Map Veto...</div>
-          </div>
-        ) : vetoSessionId ? (
-          <MapVetoDialog
-            open={mapVetoOpen}
-            onOpenChange={setMapVetoOpen}
-            matchId={selectedMatch}
-            vetoSessionId={vetoSessionId}
-            team1Name={matches.find(m => m.id === selectedMatch)?.team1?.name || "Team 1"}
-            team2Name={matches.find(m => m.id === selectedMatch)?.team2?.name || "Team 2"}
-            currentTeamTurn={matches.find(m => m.id === selectedMatch)?.team1_id || ""}
-            userTeamId={user?.id || null}
-            team1Id={matches.find(m => m.id === selectedMatch)?.team1_id || null}
-            team2Id={matches.find(m => m.id === selectedMatch)?.team2_id || null}
-          />
-        ) : (
-          // Veto not started for this match yet
-          <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/70">
-            <div className="bg-slate-800 p-8 rounded-xl text-white text-xl">
-              Map veto has not been started for this match yet.<br />
-              <span className="text-base text-slate-400">Contact the tournament admin or your opponent.</span>
-              <br />
-              <button
-                className="mt-4 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded"
-                onClick={() => setMapVetoOpen(false)}
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        )
+        
+      {selectedMatch && vetoDialogOpen && (
+        <MapVetoDialog
+          open={vetoDialogOpen}
+          onOpenChange={setVetoDialogOpen}
+          matchId={selectedMatch.id}
+          vetoSessionId={selectedMatch.veto_session_id || ''}
+          team1Name={selectedMatch.team1?.name || 'Team 1'}
+          team2Name={selectedMatch.team2?.name || 'Team 2'}
+          currentTeamTurn={selectedMatch.current_turn_team_id || selectedMatch.team1_id || ''}
+          userTeamId={userTeamId}
+          team1Id={selectedMatch.team1_id || ''}
+          team2Id={selectedMatch.team2_id || ''}
+          tournamentMapPool={[]} // Add empty array for now since this view doesn't have tournament data
+          onVetoComplete={() => {
+            setVetoDialogOpen(false);
+            // Optionally refresh bracket data here
+          }}
+        />
       )}
     </div>
   );
-};
-
-export default BracketView;
+}

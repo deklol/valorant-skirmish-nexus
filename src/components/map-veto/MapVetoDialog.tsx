@@ -1,4 +1,3 @@
-
 import React, { useCallback, useEffect, useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -81,7 +80,7 @@ const MapVetoDialog = ({
   // Use tournament map pool directly
   const maps = tournamentMapPool;
 
-  // Veto Actions
+  // Veto Actions with more stable refetching
   const {
     data: vetoActions = [],
     isLoading: vetoActionsLoading,
@@ -106,14 +105,14 @@ const MapVetoDialog = ({
             : null,
       })) as VetoAction[];
     },
-    refetchInterval: open ? 2000 : false,
+    refetchInterval: open ? 3000 : false, // Slower polling to reduce flicker
     refetchOnMount: true,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false, // Disable to prevent unwanted refetches
     enabled: open && !!vetoSessionId,
-    staleTime: 1000,
+    staleTime: 2000, // Keep data fresh longer
   });
 
-  // Session for current turn, home/away, etc.
+  // Session data with more stable refetching
   const {
     data: sessionData,
     isLoading: sessionLoading,
@@ -129,11 +128,11 @@ const MapVetoDialog = ({
       if (error) throw error;
       return data;
     },
-    refetchInterval: open ? 2000 : false,
+    refetchInterval: open ? 3000 : false, // Slower polling
     refetchOnMount: true,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false, // Disable to prevent unwanted refetches
     enabled: open && !!vetoSessionId,
-    staleTime: 1000,
+    staleTime: 2000,
   });
 
   const loadingAny = vetoActionsLoading || sessionLoading || vetoActionsFetching || loading;
@@ -166,7 +165,7 @@ const MapVetoDialog = ({
     seq: 0
   });
 
-  // Map action handler via custom hook
+  // Map action handler via custom hook - with better completion handling
   const { handleMapAction } = useVetoMapAction({
     vetoSessionId,
     team1Id,
@@ -177,9 +176,17 @@ const MapVetoDialog = ({
     vetoActions,
     maps,
     onActionComplete: () => {
-      refetchVetoActions();
-      refetchSession();
-      onVetoComplete();
+      // Don't call onVetoComplete immediately - let the queries update first
+      setTimeout(() => {
+        refetchVetoActions();
+        refetchSession();
+        
+        // Only call onVetoComplete for actual completion, not every action
+        const isActuallyComplete = sessionData?.status === 'completed';
+        if (isActuallyComplete) {
+          onVetoComplete();
+        }
+      }, 500); // Small delay to ensure DB updates are processed
     },
     checkPermissions: () => {
       const result = explainPermissions();
@@ -243,7 +250,7 @@ const MapVetoDialog = ({
     }
   }, [homeTeamId, awayTeamId, team1Id, team2Id, team1Name, team2Name]);
 
-  // Side pick modal logic
+  // Side pick modal logic - prevent auto-close during side selection
   useEffect(() => {
     if (
       bestOf === 1 &&
@@ -273,6 +280,7 @@ const MapVetoDialog = ({
                 toast({ title: "Error", description: error.message, variant: "destructive" });
               } else if (data === "OK") {
                 toast({ title: "Side Selected", description: `You picked ${side} side.` });
+                // Only call onVetoComplete here since veto is truly complete
                 onVetoComplete();
               } else if (typeof data === "string") {
                 toast({ title: "Error", description: data, variant: "destructive" });

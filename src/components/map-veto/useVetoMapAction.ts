@@ -91,8 +91,9 @@ export function useVetoMapAction({
 
       if (data === 'OK') {
         toast({
-          title: "Action Successful",
-          description: `Map ${action === 'ban' ? 'banned' : 'picked'} successfully`,
+          title: `Map ${action === 'ban' ? 'Banned' : 'Picked'}`,
+          description: `Successfully ${action === 'ban' ? 'banned' : 'picked'} the map`,
+          variant: "default", // Change to default instead of no variant
         });
         onActionComplete();
       } else {
@@ -116,4 +117,3 @@ export function useVetoMapAction({
     handleMapAction,
   };
 }
-
