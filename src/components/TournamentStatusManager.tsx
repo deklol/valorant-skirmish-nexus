@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,24 +40,21 @@ const TournamentStatusManager = ({ tournamentId, currentStatus, onStatusChange }
     return statusOptions.find(option => option.value === currentStatus) || statusOptions[0];
   };
 
-  // Show all statuses as options except for the current one
   const getAllManualStatuses = () => {
     return statusOptions.filter(option => option.value !== currentStatus);
   };
 
-  // When updating, prompt if rolling back (previous stage)
   const handleManualChange = (selectedStatus: string) => {
     setNewStatus(selectedStatus);
-    // compare indexes to determine if rollback
     if (getStatusIndex(selectedStatus) < getStatusIndex(currentStatus)) {
       setPendingStatus(selectedStatus);
       setShowConfirm(true);
+    } else {
+      updateTournamentStatus(selectedStatus);
     }
   };
 
-  // Helper to automatically start round 1 matches
   const startFirstRoundMatches = async () => {
-    // Update all matches in round 1 with both team1_id and team2_id present
     const { data, error } = await supabase
       .from('matches')
       .update({ status: 'live', started_at: new Date().toISOString() })
@@ -64,8 +62,8 @@ const TournamentStatusManager = ({ tournamentId, currentStatus, onStatusChange }
       .eq('round_number', 1)
       .not('team1_id', 'is', null)
       .not('team2_id', 'is', null)
-      .in('status', ['pending', 'live']) // Cover only pending/live (idempotent)
-      .select(); // Add this to force data to be an array of records
+      .in('status', ['pending', 'live'])
+      .select();
 
     if (error) {
       toast({
@@ -75,7 +73,6 @@ const TournamentStatusManager = ({ tournamentId, currentStatus, onStatusChange }
       });
       return 0;
     }
-    // data should now be strongly typed as an array (Record<string, any>[] or matches row[]).
     const count = data && Array.isArray(data) ? data.length : 0;
     if (count > 0) {
       toast({
@@ -86,16 +83,13 @@ const TournamentStatusManager = ({ tournamentId, currentStatus, onStatusChange }
     return count;
   };
 
-  // Called after confirmation or if moving forward
   const updateTournamentStatus = async (forcedStatus?: string) => {
     const targetStatus = forcedStatus || newStatus;
     if (targetStatus === currentStatus) return;
     setLoading(true);
 
     try {
-      // For "completed", ALWAYS use full completion flow.
       if (targetStatus === 'completed') {
-        // Try to auto-detect winner
         const { data: matches, error: fetchMatchesError } = await supabase
           .from('matches')
           .select('id, winner_id, round_number, status')
@@ -119,46 +113,37 @@ const TournamentStatusManager = ({ tournamentId, currentStatus, onStatusChange }
           return;
         }
 
-        // FULL completion logic: stats and statuses
         const result = await completeTournament(tournamentId, winnerId);
         if (result) {
           toast({
             title: "Tournament Completed!",
             description: "Tournament has been marked complete and stats have been updated."
           });
-          onStatusChange();
-        } else {
-          throw new Error("Failed to fully complete tournament. Please check console for errors.");
         }
       } else {
-        // Status changes other than "completed" are allowed as before.
-        const updateData: any = { status: targetStatus };
-        if (targetStatus === 'live') {
-          updateData.start_time = new Date().toISOString();
-        }
         const { error } = await supabase
           .from('tournaments')
-          .update(updateData)
+          .update({ status: targetStatus })
           .eq('id', tournamentId);
+
         if (error) throw error;
+
+        if (targetStatus === 'live') {
+          await startFirstRoundMatches();
+        }
 
         toast({
           title: "Status Updated",
           description: `Tournament status changed to ${targetStatus}`,
         });
-
-        // Auto-start round 1 matches if going live
-        if (targetStatus === "live") {
-          await startFirstRoundMatches();
-        }
-
-        onStatusChange();
       }
+
+      onStatusChange();
     } catch (error: any) {
-      console.error('Error updating status:', error);
+      console.error('Error updating tournament status:', error);
       toast({
         title: "Error",
-        description: "Failed to update tournament status",
+        description: error.message || "Failed to update tournament status",
         variant: "destructive",
       });
     } finally {
@@ -168,221 +153,72 @@ const TournamentStatusManager = ({ tournamentId, currentStatus, onStatusChange }
     }
   };
 
-  const getStatusActions = () => {
-    switch (currentStatus) {
-      case 'draft':
-        return [
-          {
-            action: 'open',
-            label: 'Open Registration',
-            icon: <Play className="w-4 h-4" />,
-            color: 'bg-green-600 hover:bg-green-700'
-          }
-        ];
-      case 'open':
-        return [
-          {
-            action: 'balancing',
-            label: 'Start Balancing',
-            icon: <Edit className="w-4 h-4" />,
-            color: 'bg-yellow-600 hover:bg-yellow-700'
-          }
-        ];
-      case 'balancing':
-        return [
-          {
-            action: 'live',
-            label: 'Start Tournament',
-            icon: <Play className="w-4 h-4" />,
-            color: 'bg-red-600 hover:bg-red-700'
-          }
-        ];
-      case 'live':
-        return [
-          {
-            action: 'completed',
-            label: 'Complete Tournament',
-            icon: <Square className="w-4 h-4" />,
-            color: 'bg-blue-600 hover:bg-blue-700'
-          }
-        ];
-      case 'completed':
-        return [
-          {
-            action: 'archived',
-            label: 'Archive Tournament',
-            icon: <Archive className="w-4 h-4" />,
-            color: 'bg-slate-600 hover:bg-slate-700'
-          }
-        ];
-      default:
-        return [];
-    }
-  };
-
-  const quickStatusChange = async (status: string) => {
-    setNewStatus(status);
-    setLoading(true);
-
-    try {
-      const updateData: any = { status };
-
-      if (status === 'live') {
-        updateData.start_time = new Date().toISOString();
-      }
-      // If opening registration, force the open time to now
-      if (status === 'open') {
-        updateData.registration_opens_at = new Date().toISOString();
-      }
-
-      const { error } = await supabase
-        .from('tournaments')
-        .update(updateData)
-        .eq('id', tournamentId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Status Updated",
-        description: `Tournament status changed to ${status}`,
-      });
-
-      // If we're starting the tournament, also auto-start round 1 matches
-      if (status === "live") {
-        await startFirstRoundMatches();
-      }
-
-      onStatusChange();
-    } catch (error: any) {
-      console.error('Error updating status:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update tournament status",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const currentStatusInfo = getCurrentStatusInfo();
-  const manualStatuses = getAllManualStatuses();
-  const statusActions = getStatusActions();
-
   return (
     <Card className="bg-slate-800 border-slate-700">
       <CardHeader>
         <CardTitle className="text-white flex items-center gap-2">
           <Settings className="w-5 h-5" />
-          Tournament Status
+          Tournament Status Management
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-sm text-slate-400 mb-1">Current Status</div>
-            <Badge className={currentStatusInfo.color}>
-              {currentStatusInfo.label}
-            </Badge>
-          </div>
-          <div className="text-right text-sm text-slate-400">
-            {currentStatusInfo.description}
+        <div className="flex items-center gap-4">
+          <span className="text-white font-medium">Current Status:</span>
+          <Badge className={getCurrentStatusInfo().color}>
+            {getCurrentStatusInfo().label}
+          </Badge>
+          <span className="text-slate-400 text-sm">
+            {getCurrentStatusInfo().description}
+          </span>
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex items-center gap-4">
+            <Select value={newStatus} onValueChange={handleManualChange}>
+              <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                <SelectValue placeholder="Change status to..." />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-700 border-slate-600">
+                {getAllManualStatuses().map((status) => (
+                  <SelectItem key={status.value} value={status.value}>
+                    <div className="flex items-center gap-2">
+                      <Badge className={status.color} variant="outline">
+                        {status.label}
+                      </Badge>
+                      <span className="text-slate-300 text-xs">
+                        {status.description}
+                      </span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
-        {/* Quick Actions */}
-        {statusActions.length > 0 && (
-          <div className="space-y-2">
-            <div className="text-sm text-slate-400">Quick Actions</div>
-            <div className="flex gap-2">
-              {statusActions.map((action) => (
-                <Button
-                  key={action.action}
-                  onClick={() => quickStatusChange(action.action)}
-                  disabled={loading}
-                  className={action.color}
-                  size="sm"
-                >
-                  {action.icon}
-                  <span className="ml-2">{action.label}</span>
-                </Button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Manual Status Change */}
-        {manualStatuses.length > 0 && (
-          <div className="space-y-2">
-            <div className="text-sm text-slate-400">Manual Status Change</div>
-            <div className="flex gap-2">
-              <Select value={newStatus} onValueChange={handleManualChange}>
-                <SelectTrigger className="bg-slate-700 border-slate-600">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {statusOptions.map(statusOpt => (
-                    statusOpt.value !== currentStatus && (
-                      <SelectItem key={statusOpt.value} value={statusOpt.value}>
-                        {statusOpt.label}
-                      </SelectItem>
-                    )
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                onClick={() =>
-                  (getStatusIndex(newStatus) < getStatusIndex(currentStatus)
-                    ? setShowConfirm(true)
-                    : updateTournamentStatus())
-                }
-                disabled={loading || newStatus === currentStatus}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                {loading ? "Updating..." : "Update"}
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Admin Confirmation Dialog for Rollback */}
         <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
-          <AlertDialogTrigger asChild>
-            <span></span>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
+          <AlertDialogContent className="bg-slate-800 border-slate-700">
             <AlertDialogHeader>
-              <AlertDialogTitle>Confirm Tournament Status Rollback</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to revert the tournament status from <b>{currentStatusInfo.label}</b> to <b>{statusOptions.find(opt => opt.value === (pendingStatus || newStatus))?.label}</b>?<br />
-                <span className="text-red-500">
-                  This may require participants or admins to re-verify results or matches.
-                </span>
+              <AlertDialogTitle className="text-white">Confirm Status Rollback</AlertDialogTitle>
+              <AlertDialogDescription className="text-slate-400">
+                You are about to roll back the tournament status from "{getCurrentStatusInfo().label}" to "{statusOptions.find(s => s.value === pendingStatus)?.label}". 
+                This may affect tournament data and participant experience. Are you sure?
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel
-                onClick={() => {
-                  setShowConfirm(false);
-                  setPendingStatus(null);
-                  setNewStatus(currentStatus);
-                }}
-              >Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                className="bg-blue-600 hover:bg-blue-700"
-                onClick={() => updateTournamentStatus(pendingStatus || newStatus)}
+              <AlertDialogCancel className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600">
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={() => updateTournamentStatus(pendingStatus!)}
+                className="bg-red-600 hover:bg-red-700"
+                disabled={loading}
               >
-                Yes, Revert Status
+                {loading ? "Updating..." : "Confirm Rollback"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-
-        {currentStatus === 'archived' && (
-          <div className="text-center py-4">
-            <div className="text-slate-400">This tournament has been archived</div>
-          </div>
-        )}
       </CardContent>
     </Card>
   );

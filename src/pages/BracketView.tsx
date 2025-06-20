@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,6 +26,14 @@ interface Match {
   current_turn_team_id: string | null;
 }
 
+interface MapData {
+  id: string;
+  name: string;
+  display_name: string;
+  thumbnail_url: string | null;
+  is_active: boolean;
+}
+
 export default function BracketView() {
   const { id: tournamentId } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -33,6 +41,7 @@ export default function BracketView() {
   const { toast } = useToast();
 
   const [bracketData, setBracketData] = useState<any>(null);
+  const [tournamentMapPool, setTournamentMapPool] = useState<MapData[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [userTeamId, setUserTeamId] = useState<string | null>(null);
@@ -54,8 +63,7 @@ export default function BracketView() {
       try {
         const { data, error } = await supabase
           .from("tournaments")
-          .select(
-            `
+          .select(`
             *,
             matches (
               id,
@@ -70,8 +78,7 @@ export default function BracketView() {
               team1:team1_id (name),
               team2:team2_id (name)
             )
-          `
-          )
+          `)
           .eq("id", tournamentId)
           .single();
 
@@ -79,6 +86,19 @@ export default function BracketView() {
         if (!data) throw new Error("Tournament not found");
 
         setBracketData(data);
+
+        // Load tournament map pool
+        if (data.map_pool && Array.isArray(data.map_pool) && data.map_pool.length > 0) {
+          const { data: mapData } = await supabase
+            .from('maps')
+            .select('*')
+            .in('id', data.map_pool)
+            .eq('is_active', true);
+          
+          if (mapData) {
+            setTournamentMapPool(mapData.sort((a, b) => a.display_name.localeCompare(b.display_name)));
+          }
+        }
 
         // Find user's team ID if they are participating
         if (user) {
@@ -108,6 +128,40 @@ export default function BracketView() {
   const handleMatchClick = (match: Match) => {
     setSelectedMatch(match);
     setVetoDialogOpen(true);
+  };
+
+  const refreshBracketData = async () => {
+    if (!tournamentId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from("tournaments")
+        .select(`
+          *,
+          matches (
+            id,
+            team1_id,
+            team2_id,
+            round_number,
+            match_number,
+            status,
+            map_veto_enabled,
+            veto_session_id,
+            current_turn_team_id,
+            team1:team1_id (name),
+            team2:team2_id (name)
+          )
+        `)
+        .eq("id", tournamentId)
+        .single();
+
+      if (error) throw error;
+      if (data) {
+        setBracketData(data);
+      }
+    } catch (error: any) {
+      console.error('Failed to refresh bracket data:', error);
+    }
   };
 
   if (loading) {
@@ -216,10 +270,10 @@ export default function BracketView() {
             userTeamId={userTeamId}
             team1Id={selectedMatch.team1_id || ''}
             team2Id={selectedMatch.team2_id || ''}
-            tournamentMapPool={[]} // Add empty array for now since this view doesn't have tournament data
+            tournamentMapPool={tournamentMapPool}
             onVetoComplete={() => {
               setVetoDialogOpen(false);
-              // Optionally refresh bracket data here
+              refreshBracketData();
             }}
           />
         )}
