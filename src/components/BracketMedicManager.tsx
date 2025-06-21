@@ -90,33 +90,107 @@ export default function BracketMedicManager() {
     if (!selectedTournament) return;
     setLoading(true);
     try {
-      // 1. For each completed match, propagate the winner to the correct next match
-      const completedMatches = matches.filter(m => m.status === "completed" && m.winner_id);
+      console.log('🔧 Starting bracket progression fix...');
+      
+      // Get all matches ordered by round and match number
+      const { data: allMatches, error: fetchError } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('tournament_id', selectedTournament.id)
+        .order('round_number', { ascending: true })
+        .order('match_number', { ascending: true });
+
+      if (fetchError || !allMatches) {
+        throw new Error('Failed to fetch matches for progression fix');
+      }
+
+      console.log('📊 Loaded matches for progression fix:', allMatches.length);
+
+      // Process each completed match to advance winners
+      const completedMatches = allMatches.filter(m => m.status === 'completed' && m.winner_id);
+      const maxRound = Math.max(...allMatches.map(m => m.round_number));
+      
+      console.log('🏆 Found completed matches:', completedMatches.length, 'Max round:', maxRound);
+
+      let fixesApplied = 0;
+
       for (const match of completedMatches) {
+        // Skip if this is already the final round
+        if (match.round_number >= maxRound) {
+          console.log(`⏭️ Skipping final round match ${match.id}`);
+          continue;
+        }
+
         const nextRound = match.round_number + 1;
         const nextMatchNumber = Math.ceil(match.match_number / 2);
-        // Find next match
-        const next = matches.find(m =>
+        
+        // Find the next match this winner should advance to
+        const nextMatch = allMatches.find(m => 
           m.round_number === nextRound && m.match_number === nextMatchNumber
         );
-        if (next && next.status !== "completed") {
-          // Assign the winner to the correct side
-          const isOdd = match.match_number % 2 === 1;
-          const updateField = isOdd ? "team1_id" : "team2_id";
-          await supabase
-            .from("matches")
-            .update({ [updateField]: match.winner_id })
-            .eq("id", next.id);
+
+        if (!nextMatch) {
+          console.warn(`⚠️ No next match found for R${match.round_number}M${match.match_number}`);
+          continue;
+        }
+
+        // Determine which slot the winner should occupy
+        const isOdd = match.match_number % 2 === 1;
+        const targetSlot = isOdd ? 'team1_id' : 'team2_id';
+        const currentOccupant = isOdd ? nextMatch.team1_id : nextMatch.team2_id;
+
+        console.log(`🎯 Match ${match.id} winner ${match.winner_id} should go to ${targetSlot} in match ${nextMatch.id}`);
+
+        // Only update if the slot is empty or has wrong team
+        if (currentOccupant !== match.winner_id) {
+          const updateData = { [targetSlot]: match.winner_id };
+          
+          const { error: updateError } = await supabase
+            .from('matches')
+            .update(updateData)
+            .eq('id', nextMatch.id);
+
+          if (updateError) {
+            console.error(`❌ Failed to advance winner from match ${match.id}:`, updateError);
+            throw updateError;
+          }
+
+          console.log(`✅ Advanced winner ${match.winner_id} to ${targetSlot} in match ${nextMatch.id}`);
+          fixesApplied++;
+
+          // Check if this next match now has both teams and should be set to live
+          const updatedNextMatch = {
+            ...nextMatch,
+            [targetSlot]: match.winner_id
+          };
+
+          if (updatedNextMatch.team1_id && updatedNextMatch.team2_id && updatedNextMatch.status === 'pending') {
+            const { error: statusError } = await supabase
+              .from('matches')
+              .update({ status: 'live' })
+              .eq('id', nextMatch.id);
+
+            if (!statusError) {
+              console.log(`🔥 Set match ${nextMatch.id} to live (both teams now assigned)`);
+            }
+          }
+        } else {
+          console.log(`✓ Winner ${match.winner_id} already correctly placed in match ${nextMatch.id}`);
         }
       }
+
       await loadBracket(selectedTournament.id);
+      
       toast({
-        title: "Team Progression Fixed",
-        description: "Winners have been re-propagated to future rounds.",
+        title: "Bracket Progression Fixed",
+        description: `Applied ${fixesApplied} progression fixes. Winners have been advanced to their correct positions.`,
       });
+
+      console.log(`🎉 Bracket progression fix complete: ${fixesApplied} fixes applied`);
     } catch (err: any) {
+      console.error('❌ Bracket progression fix error:', err);
       toast({
-        title: "Progression Repair Error",
+        title: "Progression Fix Error",
         description: err.message,
         variant: "destructive",
       });
