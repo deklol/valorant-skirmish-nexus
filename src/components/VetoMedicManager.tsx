@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useCallback } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,6 +11,8 @@ import VetoMedicHistory from "./VetoMedicHistory";
 import { generateBO1VetoFlow } from "./map-veto/vetoFlowBO1";
 import { checkVetoSessionHealth } from "./map-veto/vetoHealthUtils";
 import { AlertCircle, ShieldCheck, RotateCcw } from "lucide-react";
+import { processMatchResults } from "./MatchResultsProcessor";
+import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
 
 // --- Enhanced interfaces for defensive types ---
 interface TeamInfo {
@@ -60,6 +61,13 @@ export default function VetoMedicManager() {
   const { toast } = useToast();
   const [healthCheckResults, setHealthCheckResults] = useState<Record<string, any>>({});
   const [healthLoadingId, setHealthLoadingId] = useState<string | null>(null);
+  
+  // Add notification hooks for proper match processing
+  const {
+    notifyMatchComplete,
+    notifyTournamentWinner,
+    notifyMatchReady,
+  } = useEnhancedNotifications();
 
   // Fetch ALL veto sessions (not limited to pending/in_progress!)
   const fetchSessions = useCallback(async () => {
@@ -168,10 +176,125 @@ export default function VetoMedicManager() {
     setActionsLoadingBySession((m) => ({ ...m, [sessionId]: false }));
   }, []);
 
-  // Reset (clear the session's actions and set to pending)
+  // Enhanced force complete with proper bracket progression
+  const handleForceConfirm = async (selectedMapIds: string[]) => {
+    if (!forceSession) return;
+    setActionSessionId(forceSession.id);
+    
+    try {
+      let sessionRow = forceSession;
+      const team1Id = sessionRow.match?.team1?.id || null;
+      const team2Id = sessionRow.match?.team2?.id || null;
+      const currentTurnTeamId = sessionRow.current_turn_team_id;
+      const matchId = sessionRow.match_id;
+      const tournamentId = sessionRow.match?.tournament?.id;
+      
+      let oppositeTeam: string | null = null;
+      if (team1Id && team2Id && currentTurnTeamId) {
+        oppositeTeam = currentTurnTeamId === team1Id ? team2Id : team1Id;
+      }
+
+      console.log('🎯 Force completing veto session:', {
+        sessionId: sessionRow.id,
+        matchId,
+        tournamentId,
+        selectedMaps: selectedMapIds.length,
+        currentTurn: currentTurnTeamId,
+        oppositeTeam
+      });
+
+      // Insert pick actions for each selected map as 'pick'
+      for (const mapId of selectedMapIds) {
+        await supabase.from("map_veto_actions").insert({
+          veto_session_id: sessionRow.id,
+          team_id: oppositeTeam,
+          map_id: mapId,
+          action: "pick",
+          performed_by: null,
+          order_number: await getNextOrderNumber(sessionRow.id),
+        });
+      }
+
+      // Mark session as completed
+      await supabase
+        .from("map_veto_sessions")
+        .update({
+          status: "completed",
+          completed_at: new Date().toISOString(),
+        })
+        .eq("id", sessionRow.id);
+
+      console.log('✅ Veto session marked as completed');
+      
+      // If this veto completion should trigger match completion, handle it
+      if (matchId && tournamentId && team1Id && team2Id) {
+        console.log('🏆 Checking if match should be completed after veto...');
+        
+        // Get the current match status
+        const { data: match } = await supabase
+          .from('matches')
+          .select('status, winner_id, score_team1, score_team2')
+          .eq('id', matchId)
+          .single();
+
+        // If the match already has a winner and scores, process the results
+        if (match && match.winner_id && (match.score_team1 > 0 || match.score_team2 > 0)) {
+          console.log('🎯 Match has winner and scores, processing results...');
+          
+          const winnerId = match.winner_id;
+          const loserId = winnerId === team1Id ? team2Id : team1Id;
+          
+          await processMatchResults(
+            {
+              matchId,
+              winnerId,
+              loserId,
+              tournamentId,
+              scoreTeam1: match.score_team1 || 0,
+              scoreTeam2: match.score_team2 || 0,
+            },
+            {
+              toast: (args) => toast({
+                ...args,
+                variant: (args.variant ?? "default") as "default" | "destructive",
+              }),
+              notifyMatchComplete,
+              notifyTournamentWinner,
+              notifyMatchReady,
+            }
+          );
+          
+          console.log('✅ Match results processed after veto completion');
+        } else {
+          console.log('ℹ️ Match not ready for completion (no winner or scores yet)');
+        }
+      }
+
+      toast({
+        title: "Veto Forced Complete",
+        description: `Veto session forcibly completed. Map(s) selected and bracket progression checked.`,
+      });
+      
+      fetchSessions();
+    } catch (error: any) {
+      console.error('❌ Error in force complete:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to complete veto.",
+        variant: "destructive",
+      });
+    } finally {
+      setActionSessionId(null);
+      setForceDialogOpen(false);
+    }
+  };
+
+  // Enhanced reset with better state management
   const resetSession = async (sessionId: string) => {
     setActionSessionId(sessionId);
     try {
+      console.log('🔄 Resetting veto session:', sessionId);
+      
       // 1. Delete all actions for this session
       const { error: actionsErr } = await supabase
         .from("map_veto_actions")
@@ -182,7 +305,7 @@ export default function VetoMedicManager() {
       // 2. Fetch the session to get the home_team_id
       const { data: sessionRow, error: sessionFetchErr } = await supabase
         .from("map_veto_sessions")
-        .select("home_team_id")
+        .select("home_team_id, match_id")
         .eq("id", sessionId)
         .maybeSingle();
       if (sessionFetchErr) throw sessionFetchErr;
@@ -200,12 +323,16 @@ export default function VetoMedicManager() {
 
       if (sessionErr) throw sessionErr;
 
+      console.log('✅ Veto session reset successfully');
+      
       toast({
         title: "Veto Reset",
         description: "Veto session has been reset. Home team is now set for first turn.",
       });
+      
       fetchSessions();
     } catch (err: any) {
+      console.error('❌ Error resetting session:', err);
       toast({
         title: "Error",
         description: err.message || "Failed to reset veto session.",
@@ -238,60 +365,6 @@ export default function VetoMedicManager() {
     setPickableMaps(availableMaps || []);
     setForceDialogOpen(true);
     setActionSessionId(null);
-  };
-
-  // "Force Complete" + save picks
-  const handleForceConfirm = async (selectedMapIds: string[]) => {
-    if (!forceSession) return;
-    setActionSessionId(forceSession.id);
-    try {
-      let sessionRow = forceSession;
-      const team1Id = sessionRow.match?.team1?.id || null;
-      const team2Id = sessionRow.match?.team2?.id || null;
-      const currentTurnTeamId = sessionRow.current_turn_team_id;
-      let oppositeTeam: string | null = null;
-      if (team1Id && team2Id && currentTurnTeamId) {
-        oppositeTeam =
-          currentTurnTeamId === team1Id
-            ? team2Id
-            : team1Id;
-      }
-      // Insert pick actions for each selected map as 'pick'
-      for (const mapId of selectedMapIds) {
-        await supabase.from("map_veto_actions").insert({
-          veto_session_id: sessionRow.id,
-          team_id: oppositeTeam,
-          map_id: mapId,
-          action: "pick",
-          performed_by: null,
-          order_number:
-            (await getNextOrderNumber(sessionRow.id)),
-        });
-      }
-      // Mark session as completed
-      await supabase
-        .from("map_veto_sessions")
-        .update({
-          status: "completed",
-          completed_at: new Date().toISOString(),
-        })
-        .eq("id", sessionRow.id);
-
-      toast({
-        title: "Veto Forced Complete",
-        description: `Veto session forcibly completed. Map(s) selected.`,
-      });
-      fetchSessions();
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to complete veto.",
-        variant: "destructive",
-      });
-    } finally {
-      setActionSessionId(null);
-      setForceDialogOpen(false);
-    }
   };
 
   // Helper to get the next order number for actions in a session

@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import BracketOverview from "./BracketOverview";
 import { analyzeBracketState } from "@/utils/analyzeBracketState";
 import BracketMedicTournamentList from "./BracketMedicTournamentList";
+import { diagnoseBracketProgression, autoFixBracketProgression } from "@/utils/bracketProgressionUtils";
 
 // Minimal team & match info
 type TournamentInfo = { id: string; name: string };
@@ -264,6 +265,51 @@ export default function BracketMedicManager() {
     }
   };
 
+  // Add new action for bracket progression diagnosis
+  const handleDiagnoseBracketProgression = async () => {
+    if (!selectedTournament) return;
+    setLoading(true);
+    
+    try {
+      const diagnostic = await diagnoseBracketProgression(selectedTournament.id);
+      
+      if (diagnostic.issues.length === 0) {
+        toast({
+          title: "Bracket Progression Healthy",
+          description: "No progression issues detected in the bracket.",
+        });
+      } else {
+        console.log('🔍 Bracket Progression Issues:', diagnostic);
+        toast({
+          title: `${diagnostic.issues.length} Progression Issues Found`,
+          description: diagnostic.issues.slice(0, 2).join("; ") + (diagnostic.issues.length > 2 ? "..." : ""),
+          variant: "destructive",
+        });
+        
+        // Try auto-fix
+        const autoFix = await autoFixBracketProgression(selectedTournament.id);
+        if (autoFix.success && autoFix.fixesApplied.length > 0) {
+          toast({
+            title: "Auto-Fix Applied",
+            description: `Applied ${autoFix.fixesApplied.length} fixes to bracket progression.`,
+          });
+          await loadBracket(selectedTournament.id);
+        } else if (autoFix.errors.length > 0) {
+          console.error('Auto-fix errors:', autoFix.errors);
+        }
+      }
+    } catch (err: any) {
+      console.error('Progression diagnosis error:', err);
+      toast({
+        title: "Diagnosis Error",
+        description: err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // UI Rendering
   return (
     <Card className="bg-slate-800 border-slate-700 mb-8">
@@ -327,6 +373,24 @@ export default function BracketMedicManager() {
 
             {/* BRACKET ACTIONS */}
             <div className="flex flex-wrap gap-4 my-6">
+              {/* Progression Diagnosis */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-purple-600/40 text-purple-300"
+                    disabled={loading}
+                    onClick={handleDiagnoseBracketProgression}
+                  >
+                    <AlertCircle className="w-4 h-4 mr-1" />
+                    Diagnose Progression
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Analyze and auto-fix bracket progression issues
+                </TooltipContent>
+              </Tooltip>
               {/* Fix progression */}
               <Tooltip>
                 <TooltipTrigger asChild>
