@@ -105,8 +105,9 @@ export default function BracketMedicManager() {
       }
 
       console.log('📊 Loaded matches for progression fix:', allMatches.length);
+      console.log('📊 All matches:', allMatches.map(m => `R${m.round_number}M${m.match_number} (${m.status}) ID:${m.id.slice(0,8)}`));
 
-      // Process each completed match to advance winners
+      // Find completed matches that have winners but haven't advanced them
       const completedMatches = allMatches.filter(m => m.status === 'completed' && m.winner_id);
       const maxRound = Math.max(...allMatches.map(m => m.round_number));
       
@@ -117,12 +118,18 @@ export default function BracketMedicManager() {
       for (const match of completedMatches) {
         // Skip if this is already the final round
         if (match.round_number >= maxRound) {
-          console.log(`⏭️ Skipping final round match ${match.id}`);
+          console.log(`⏭️ Skipping final round match ${match.id.slice(0,8)} (R${match.round_number}M${match.match_number})`);
           continue;
         }
 
         const nextRound = match.round_number + 1;
+        
+        // For single elimination: winners advance to the next round
+        // Round 1 Match 1,2 → Round 2 Match 1
+        // Round 1 Match 3,4 → Round 2 Match 2, etc.
         const nextMatchNumber = Math.ceil(match.match_number / 2);
+        
+        console.log(`🎯 Looking for next match: R${nextRound}M${nextMatchNumber} for winner of R${match.round_number}M${match.match_number}`);
         
         // Find the next match this winner should advance to
         const nextMatch = allMatches.find(m => 
@@ -130,16 +137,19 @@ export default function BracketMedicManager() {
         );
 
         if (!nextMatch) {
-          console.warn(`⚠️ No next match found for R${match.round_number}M${match.match_number}`);
+          console.warn(`⚠️ No next match found for R${match.round_number}M${match.match_number} (looking for R${nextRound}M${nextMatchNumber})`);
           continue;
         }
 
+        console.log(`🎯 Found next match: ${nextMatch.id.slice(0,8)} (R${nextMatch.round_number}M${nextMatch.match_number})`);
+
         // Determine which slot the winner should occupy
+        // For single elimination: odd match numbers go to team1, even to team2
         const isOdd = match.match_number % 2 === 1;
         const targetSlot = isOdd ? 'team1_id' : 'team2_id';
         const currentOccupant = isOdd ? nextMatch.team1_id : nextMatch.team2_id;
 
-        console.log(`🎯 Match ${match.id} winner ${match.winner_id} should go to ${targetSlot} in match ${nextMatch.id}`);
+        console.log(`🎯 Match ${match.id.slice(0,8)} winner ${match.winner_id?.slice(0,8)} should go to ${targetSlot} in match ${nextMatch.id.slice(0,8)}`);
 
         // Only update if the slot is empty or has wrong team
         if (currentOccupant !== match.winner_id) {
@@ -151,11 +161,11 @@ export default function BracketMedicManager() {
             .eq('id', nextMatch.id);
 
           if (updateError) {
-            console.error(`❌ Failed to advance winner from match ${match.id}:`, updateError);
+            console.error(`❌ Failed to advance winner from match ${match.id.slice(0,8)}:`, updateError);
             throw updateError;
           }
 
-          console.log(`✅ Advanced winner ${match.winner_id} to ${targetSlot} in match ${nextMatch.id}`);
+          console.log(`✅ Advanced winner ${match.winner_id?.slice(0,8)} to ${targetSlot} in match ${nextMatch.id.slice(0,8)}`);
           fixesApplied++;
 
           // Check if this next match now has both teams and should be set to live
@@ -171,11 +181,11 @@ export default function BracketMedicManager() {
               .eq('id', nextMatch.id);
 
             if (!statusError) {
-              console.log(`🔥 Set match ${nextMatch.id} to live (both teams now assigned)`);
+              console.log(`🔥 Set match ${nextMatch.id.slice(0,8)} to live (both teams now assigned)`);
             }
           }
         } else {
-          console.log(`✓ Winner ${match.winner_id} already correctly placed in match ${nextMatch.id}`);
+          console.log(`✓ Winner ${match.winner_id?.slice(0,8)} already correctly placed in match ${nextMatch.id.slice(0,8)}`);
         }
       }
 
