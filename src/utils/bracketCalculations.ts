@@ -1,4 +1,3 @@
-
 /**
  * Dynamic bracket calculations for any tournament size
  * This is the SINGLE SOURCE OF TRUTH for all bracket logic
@@ -30,6 +29,7 @@ export interface BracketValidationResult {
 
 /**
  * Calculate complete bracket structure for any number of teams
+ * FIXED: Now correctly calculates matches per round working FORWARD from first round
  */
 export function calculateBracketStructure(teamCount: number): BracketStructure {
   if (teamCount < 2) {
@@ -45,14 +45,26 @@ export function calculateBracketStructure(teamCount: number): BracketStructure {
   // Calculate byes for first round
   const firstRoundByes = nextPowerOfTwo - teamCount;
   
-  // Calculate matches per round (working backwards from final)
+  // FIXED: Calculate matches per round working FORWARD from Round 1
   const matchesPerRound: number[] = [];
-  for (let round = totalRounds; round >= 1; round--) {
-    const matchesInRound = Math.pow(2, round - 1);
-    matchesPerRound.unshift(matchesInRound);
+  
+  // Round 1: Start with half the next power of 2 (this accommodates byes)
+  let matchesInRound = nextPowerOfTwo / 2;
+  
+  for (let round = 1; round <= totalRounds; round++) {
+    matchesPerRound.push(matchesInRound);
+    matchesInRound = matchesInRound / 2; // Each subsequent round has half the matches
   }
   
   const totalMatches = matchesPerRound.reduce((sum, matches) => sum + matches, 0);
+  
+  console.log(`🏗️ Bracket Structure for ${teamCount} teams:`, {
+    totalRounds,
+    matchesPerRound,
+    totalMatches,
+    isPowerOfTwo,
+    firstRoundByes
+  });
   
   return {
     totalRounds,
