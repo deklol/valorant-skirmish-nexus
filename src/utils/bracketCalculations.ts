@@ -1,6 +1,7 @@
 
 /**
  * Dynamic bracket calculations for any tournament size
+ * This is the SINGLE SOURCE OF TRUTH for all bracket logic
  */
 
 export interface BracketStructure {
@@ -9,6 +10,7 @@ export interface BracketStructure {
   matchesPerRound: number[];
   teamCount: number;
   isPowerOfTwo: boolean;
+  firstRoundByes: number;
 }
 
 export interface MatchPosition {
@@ -17,6 +19,13 @@ export interface MatchPosition {
   nextRound?: number;
   nextMatchNumber?: number;
   isFirstRoundBye?: boolean;
+}
+
+export interface BracketValidationResult {
+  isValid: boolean;
+  issues: string[];
+  tournamentComplete: boolean;
+  winner?: string;
 }
 
 /**
@@ -29,8 +38,12 @@ export function calculateBracketStructure(teamCount: number): BracketStructure {
 
   const isPowerOfTwo = (teamCount & (teamCount - 1)) === 0;
   
-  // For single elimination, we need log2(teamCount) rounds (rounded up)
+  // For single elimination, we need to find the next power of 2
+  const nextPowerOfTwo = Math.pow(2, Math.ceil(Math.log2(teamCount)));
   const totalRounds = Math.ceil(Math.log2(teamCount));
+  
+  // Calculate byes for first round
+  const firstRoundByes = nextPowerOfTwo - teamCount;
   
   // Calculate matches per round (working backwards from final)
   const matchesPerRound: number[] = [];
@@ -46,7 +59,8 @@ export function calculateBracketStructure(teamCount: number): BracketStructure {
     totalMatches,
     matchesPerRound,
     teamCount,
-    isPowerOfTwo
+    isPowerOfTwo,
+    firstRoundByes
   };
 }
 
@@ -92,8 +106,10 @@ export function getWinnerSlot(matchNumber: number): 'team1_id' | 'team2_id' {
 export function validateBracketProgression(
   matches: any[],
   bracketStructure: BracketStructure
-): { isValid: boolean; issues: string[] } {
+): BracketValidationResult {
   const issues: string[] = [];
+  let tournamentComplete = false;
+  let winner: string | undefined;
   
   // Group matches by round
   const matchesByRound: Record<number, any[]> = {};
@@ -137,8 +153,63 @@ export function validateBracketProgression(
     });
   }
   
+  // Check if tournament is complete (final match decided)
+  const finalRound = bracketStructure.totalRounds;
+  const finalMatches = matchesByRound[finalRound] || [];
+  if (finalMatches.length === 1 && finalMatches[0].status === 'completed' && finalMatches[0].winner_id) {
+    tournamentComplete = true;
+    winner = finalMatches[0].winner_id;
+  }
+  
   return {
     isValid: issues.length === 0,
-    issues
+    issues,
+    tournamentComplete,
+    winner
   };
+}
+
+/**
+ * Check if a specific match is the tournament final
+ */
+export function isTournamentFinal(
+  match: any,
+  bracketStructure: BracketStructure
+): boolean {
+  return match.round_number === bracketStructure.totalRounds && match.match_number === 1;
+}
+
+/**
+ * Get all matches that should be ready to play (both teams assigned, status pending)
+ */
+export function getReadyMatches(matches: any[]): any[] {
+  return matches.filter(match => 
+    match.status === 'pending' && 
+    match.team1_id && 
+    match.team2_id
+  );
+}
+
+/**
+ * Get all completed matches that need their winners advanced
+ */
+export function getMatchesNeedingProgression(
+  matches: any[],
+  bracketStructure: BracketStructure
+): any[] {
+  return matches.filter(match => {
+    if (match.status !== 'completed' || !match.winner_id) return false;
+    if (match.round_number >= bracketStructure.totalRounds) return false; // Final round doesn't advance
+    
+    const nextPos = findNextMatchPosition(match.round_number, match.match_number, bracketStructure);
+    if (!nextPos) return false;
+    
+    const nextMatch = matches.find(m => 
+      m.round_number === nextPos.round && m.match_number === nextPos.matchNumber
+    );
+    if (!nextMatch) return false;
+    
+    const expectedSlot = getWinnerSlot(match.match_number);
+    return nextMatch[expectedSlot] !== match.winner_id;
+  });
 }

@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
-import { processMatchResults } from "@/components/MatchResultsProcessor";
+import { UnifiedBracketService } from "@/services/unifiedBracketService";
 import MatchEditModal, { parseStatus } from "@/components/MatchEditModal";
 import MatchResultHistory from "./match-details/MatchResultHistory";
 
@@ -32,12 +33,10 @@ interface ScoreReportingProps {
 }
 
 const ScoreReporting = ({ match, onScoreSubmitted }: ScoreReportingProps) => {
-  // --- General state for both cards ---
   const { user } = useAuth();
   const { toast } = useToast();
   const notifications = useEnhancedNotifications();
 
-  // Only show to captains or admins; combat via SQL in useMatchData or a prop in real life
   const [isCaptain, setIsCaptain] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -46,7 +45,7 @@ const ScoreReporting = ({ match, onScoreSubmitted }: ScoreReportingProps) => {
   const [modalDataCap, setModalDataCap] = useState<any>(null);
   const [loadingCap, setLoadingCap] = useState(false);
 
-  // Admin modal state (not changed, still needs separate handling)
+  // Admin modal state
   const [openAdmin, setOpenAdmin] = useState(false);
   const [modalDataAdmin, setModalDataAdmin] = useState<any>(null);
   const [loadingAdmin, setLoadingAdmin] = useState(false);
@@ -55,7 +54,6 @@ const ScoreReporting = ({ match, onScoreSubmitted }: ScoreReportingProps) => {
     let ok = true;
     (async () => {
       if (!user || !match.id) return;
-      // Check if captain for either team
       if (match.team1_id || match.team2_id) {
         const { data } = await supabase.from('team_members')
           .select('is_captain')
@@ -64,7 +62,6 @@ const ScoreReporting = ({ match, onScoreSubmitted }: ScoreReportingProps) => {
           .maybeSingle();
         setIsCaptain(!!(data && data.is_captain));
       }
-      // Admin check (users table)
       const { data: adm } = await supabase
         .from('users')
         .select('role')
@@ -75,11 +72,9 @@ const ScoreReporting = ({ match, onScoreSubmitted }: ScoreReportingProps) => {
     return () => { ok = false; };
   }, [user, match.team1_id, match.team2_id, match.id]);
 
-  // Use actual team names
   const team1Name = match.team1?.name || "Team 1";
   const team2Name = match.team2?.name || "Team 2";
 
-  // Build modal "match" object (the minimum required for MatchEditModal)
   const matchEditModalData = useMemo(() => ({
     id: match.id,
     match_number: match.match_number,
@@ -98,7 +93,7 @@ const ScoreReporting = ({ match, onScoreSubmitted }: ScoreReportingProps) => {
     score_team2: typeof match.score_team2 === "number" ? match.score_team2 : 0,
   }), [match, team1Name, team2Name]);
 
-  // --- Submission handlers for each role ---
+  // Captain submission handler using unified service
   async function handleCaptainSave({ status, score_team1, score_team2, winner_id }: any) {
     setLoadingCap(true);
     try {
@@ -114,6 +109,8 @@ const ScoreReporting = ({ match, onScoreSubmitted }: ScoreReportingProps) => {
       if (!winnerId) {
         winnerId = score_team1 > score_team2 ? match.team1_id : match.team2_id;
       }
+      
+      // Store submission for captain confirmation flow
       await supabase.from('match_result_submissions').insert({
         match_id: match.id,
         score_team1, score_team2,
@@ -121,6 +118,8 @@ const ScoreReporting = ({ match, onScoreSubmitted }: ScoreReportingProps) => {
         submitted_by: user.id,
         status: "pending"
       });
+      
+      // Check for matching submissions
       const { data: allSubs } = await supabase
         .from('match_result_submissions')
         .select('*')
@@ -133,21 +132,28 @@ const ScoreReporting = ({ match, onScoreSubmitted }: ScoreReportingProps) => {
           && sub.winner_id === winnerId
           && sub.status === "pending"
       ) ?? [];
+      
       if (matchingSubs.length >= 2) {
+        // Both captains agree - confirm and process using unified service
         const subIds = matchingSubs.slice(0, 2).map(sub => sub.id);
         await supabase.from('match_result_submissions')
           .update({ status: "confirmed", confirmed_by: user.id, confirmed_at: new Date().toISOString() })
           .in('id', subIds);
+          
         if (match.tournament_id) {
-          await processMatchResults({
-            matchId: match.id,
+          console.log('🏆 Using UnifiedBracketService for captain-confirmed result');
+          const loserId = winnerId === match.team1_id ? match.team2_id : match.team1_id;
+          
+          await UnifiedBracketService.advanceMatchWinner(
+            match.id,
             winnerId,
-            loserId: winnerId === match.team1_id ? match.team2_id : match.team1_id,
-            tournamentId: match.tournament_id,
-            scoreTeam1: score_team1,
-            scoreTeam2: score_team2,
-          });
+            loserId,
+            match.tournament_id,
+            score_team1,
+            score_team2
+          );
         }
+        
         toast({
           title: "Score Confirmed and Match Finalized",
           description: "Both captains submitted the same result. The match is now complete and bracket advanced."
@@ -171,7 +177,7 @@ const ScoreReporting = ({ match, onScoreSubmitted }: ScoreReportingProps) => {
     setLoadingCap(false);
   }
 
-  // Admin force-save handler
+  // Admin force-save handler using unified service
   async function handleAdminSave({ status, score_team1, score_team2, winner_id }: any) {
     setLoadingAdmin(true);
     try {
@@ -187,7 +193,8 @@ const ScoreReporting = ({ match, onScoreSubmitted }: ScoreReportingProps) => {
       if (!winnerId) {
         winnerId = score_team1 > score_team2 ? match.team1_id : match.team2_id;
       }
-      // Admin override (status: confirmed, confirmed_by admin)
+      
+      // Admin override - store confirmed submission
       await supabase.from('match_result_submissions').insert({
         match_id: match.id,
         score_team1, score_team2,
@@ -197,16 +204,21 @@ const ScoreReporting = ({ match, onScoreSubmitted }: ScoreReportingProps) => {
         confirmed_by: user.id,
         confirmed_at: new Date().toISOString(),
       });
+      
       if (match.tournament_id) {
-        await processMatchResults({
-          matchId: match.id,
+        console.log('🏆 Using UnifiedBracketService for admin override');
+        const loserId = winnerId === match.team1_id ? match.team2_id : match.team1_id;
+        
+        await UnifiedBracketService.advanceMatchWinner(
+          match.id,
           winnerId,
-          loserId: winnerId === match.team1_id ? match.team2_id : match.team1_id,
-          tournamentId: match.tournament_id,
-          scoreTeam1: score_team1,
-          scoreTeam2: score_team2,
-        });
+          loserId,
+          match.tournament_id,
+          score_team1,
+          score_team2
+        );
       }
+      
       toast({
         title: "Admin: Match Overridden & Finalized",
         description: "You forced this match result as admin. Audit record has been stored.",
@@ -224,7 +236,6 @@ const ScoreReporting = ({ match, onScoreSubmitted }: ScoreReportingProps) => {
     setLoadingAdmin(false);
   }
 
-  // Show "only captains/admin" warning if not either 
   if (!isCaptain && !isAdmin) {
     return (
       <Card className="bg-slate-800 border-slate-700">
@@ -238,10 +249,6 @@ const ScoreReporting = ({ match, onScoreSubmitted }: ScoreReportingProps) => {
       </Card>
     );
   }
-
-  // ----- Render UI -----
-  // If user is BOTH admin and captain, show both interfaces stacked.
-  // Otherwise, show only their interface.
 
   return (
     <div className="space-y-6">

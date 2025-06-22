@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ShieldAlert } from "lucide-react";
@@ -8,8 +7,7 @@ import BracketOverview from "./BracketOverview";
 import BracketMedicTournamentList from "./BracketMedicTournamentList";
 import BracketHealthAnalyzer from "./bracket-medic/BracketHealthAnalyzer";
 import BracketMedicActions from "./bracket-medic/BracketMedicActions";
-import { fixBracketProgression } from "@/services/bracketProgressionService";
-import { diagnoseBracketProgression, autoFixBracketProgression } from "@/utils/bracketProgressionUtils";
+import { UnifiedBracketService } from "@/services/unifiedBracketService";
 
 // Minimal types for component use
 type TournamentInfo = { id: string; name: string };
@@ -35,7 +33,7 @@ export default function BracketMedicManager() {
   const [eliminatedTeamIds, setEliminatedTeamIds] = useState<string[]>([]);
   const [teamCount, setTeamCount] = useState(0);
 
-  // --- Load tournaments ---
+  // Load tournaments
   useEffect(() => {
     const fetchTournaments = async () => {
       const { data } = await supabase
@@ -48,11 +46,10 @@ export default function BracketMedicManager() {
     fetchTournaments();
   }, []);
 
-  // --- Load bracket data ---
+  // Load bracket data
   const loadBracket = useCallback(async (tournamentId: string) => {
     setLoading(true);
     
-    // Get matches
     const { data: matchesRaw } = await supabase
       .from("matches")
       .select("id, round_number, match_number, status, team1_id, team2_id, winner_id, score_team1, score_team2")
@@ -61,7 +58,6 @@ export default function BracketMedicManager() {
       .order("match_number", { ascending: true });
     setMatches(matchesRaw ?? []);
 
-    // Get eliminated teams
     const { data: eliminatedTeams } = await supabase
       .from("teams")
       .select("id")
@@ -69,7 +65,6 @@ export default function BracketMedicManager() {
       .eq("status", "eliminated");
     setEliminatedTeamIds(eliminatedTeams?.map(t => t.id) ?? []);
 
-    // Get total team count
     const { data: allTeams } = await supabase
       .from("teams")
       .select("id")
@@ -92,13 +87,14 @@ export default function BracketMedicManager() {
     }
   };
 
-  // --- Action: Fix Team Progression (using new dynamic service) ---
+  // Fix Team Progression using unified service
   const handleFixProgression = async () => {
     if (!selectedTournament) return;
     setLoading(true);
     
     try {
-      const result = await fixBracketProgression(selectedTournament.id);
+      console.log('🔧 Using UnifiedBracketService to fix progression');
+      const result = await UnifiedBracketService.fixAllBracketProgression(selectedTournament.id);
       
       if (result.success) {
         await loadBracket(selectedTournament.id);
@@ -124,15 +120,16 @@ export default function BracketMedicManager() {
     }
   };
 
-  // --- Action: Diagnose Progression ---
+  // Diagnose Progression using unified service
   const handleDiagnoseBracketProgression = async () => {
     if (!selectedTournament) return;
     setLoading(true);
     
     try {
-      const diagnostic = await diagnoseBracketProgression(selectedTournament.id);
+      console.log('🔍 Using UnifiedBracketService for diagnosis');
+      const diagnostic = await UnifiedBracketService.diagnoseBracket(selectedTournament.id);
       
-      if (diagnostic.issues.length === 0) {
+      if (diagnostic.isValid) {
         toast({
           title: "Bracket Progression Healthy",
           description: "No progression issues detected in the bracket.",
@@ -247,7 +244,6 @@ export default function BracketMedicManager() {
 
     setLoading(true);
     try {
-      // Get current, non-eliminated teams
       const { data: teamsRaw, error: teamErr } = await supabase
         .from("teams")
         .select("id")
@@ -259,7 +255,6 @@ export default function BracketMedicManager() {
       const teams = teamsRaw?.map(t => t.id);
       if (!teams || teams.length < 2) throw new Error("Not enough active teams to build bracket.");
 
-      // Reset all matches (other than completed)
       const resetMatches = matches.filter(m => m.status !== "completed");
       for (const m of resetMatches) {
         await supabase
@@ -275,7 +270,6 @@ export default function BracketMedicManager() {
           .eq("id", m.id);
       }
       
-      // Assign teams randomly into round 1 matches
       const shuffledTeams = teams.slice().sort(() => Math.random() - 0.5);
       let assigned = 0;
       const round1Matches = matches.filter(m => m.round_number === 1);
@@ -313,11 +307,10 @@ export default function BracketMedicManager() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-white">
           <ShieldAlert className="w-5 h-5 text-cyan-300" />
-          Bracket Medic <span className="text-xs text-cyan-200">(Dynamic Tournament Bracket Health & Repair)</span>
+          Bracket Medic <span className="text-xs text-cyan-200">(Unified Dynamic Tournament System)</span>
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {/* Tournament selection UI */}
         {!selectedTournament && (
           <div>
             <BracketMedicTournamentList
@@ -331,24 +324,20 @@ export default function BracketMedicManager() {
           </div>
         )}
 
-        {/* Bracket analysis, tools, and actions */}
         {selectedTournament && (
           <>
-            {/* Bracket Health Status */}
             <BracketHealthAnalyzer 
               matches={matches}
               eliminatedTeamIds={eliminatedTeamIds}
               teamCount={teamCount}
             />
 
-            {/* VISUAL BRACKET */}
             <BracketOverview
               matches={matches}
               selectedMatchId={selectedMatchId}
               onSelectMatch={setSelectedMatchId}
             />
 
-            {/* BRACKET ACTIONS */}
             <BracketMedicActions
               loading={loading}
               selectedMatchId={selectedMatchId}
@@ -360,7 +349,7 @@ export default function BracketMedicManager() {
             />
 
             <div className="text-xs text-slate-500 mt-4">
-              <p>Dynamic Bracket Medic automatically calculates correct bracket structure for any number of teams and fixes progression issues.<br/>
+              <p>Unified Bracket System automatically calculates correct bracket structure for any number of teams and fixes progression issues.<br/>
                 <span className="font-bold">Pro tip:</span> click any match in the bracket view to select it for individual match operations.</p>
             </div>
           </>
