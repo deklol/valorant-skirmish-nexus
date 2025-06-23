@@ -1,3 +1,4 @@
+
 /**
  * Dynamic bracket calculations for any tournament size
  * This is the SINGLE SOURCE OF TRUTH for all bracket logic
@@ -29,21 +30,21 @@ export interface BracketValidationResult {
 
 /**
  * Calculate complete bracket structure for any number of teams
- * FIXED: Now correctly calculates matches per round working FORWARD from first round
+ * CRITICAL FIX: Always use ORIGINAL team count, not current active teams
  */
-export function calculateBracketStructure(teamCount: number): BracketStructure {
-  if (teamCount < 2) {
+export function calculateBracketStructure(originalTeamCount: number): BracketStructure {
+  if (originalTeamCount < 2) {
     throw new Error("Tournament needs at least 2 teams");
   }
 
-  const isPowerOfTwo = (teamCount & (teamCount - 1)) === 0;
+  const isPowerOfTwo = (originalTeamCount & (originalTeamCount - 1)) === 0;
   
   // For single elimination, we need to find the next power of 2
-  const nextPowerOfTwo = Math.pow(2, Math.ceil(Math.log2(teamCount)));
-  const totalRounds = Math.ceil(Math.log2(teamCount));
+  const nextPowerOfTwo = Math.pow(2, Math.ceil(Math.log2(originalTeamCount)));
+  const totalRounds = Math.ceil(Math.log2(originalTeamCount));
   
   // Calculate byes for first round
-  const firstRoundByes = nextPowerOfTwo - teamCount;
+  const firstRoundByes = nextPowerOfTwo - originalTeamCount;
   
   // FIXED: Calculate matches per round working FORWARD from Round 1
   const matchesPerRound: number[] = [];
@@ -58,7 +59,7 @@ export function calculateBracketStructure(teamCount: number): BracketStructure {
   
   const totalMatches = matchesPerRound.reduce((sum, matches) => sum + matches, 0);
   
-  console.log(`🏗️ Bracket Structure for ${teamCount} teams:`, {
+  console.log(`🏗️ Bracket Structure for ${originalTeamCount} teams:`, {
     totalRounds,
     matchesPerRound,
     totalMatches,
@@ -70,7 +71,7 @@ export function calculateBracketStructure(teamCount: number): BracketStructure {
     totalRounds,
     totalMatches,
     matchesPerRound,
-    teamCount,
+    teamCount: originalTeamCount,
     isPowerOfTwo,
     firstRoundByes
   };
@@ -114,14 +115,18 @@ export function getWinnerSlot(matchNumber: number): 'team1_id' | 'team2_id' {
 
 /**
  * Validate bracket progression for any tournament structure
+ * CRITICAL FIX: Use original team count for validation
  */
 export function validateBracketProgression(
   matches: any[],
-  bracketStructure: BracketStructure
+  originalTeamCount: number
 ): BracketValidationResult {
   const issues: string[] = [];
   let tournamentComplete = false;
   let winner: string | undefined;
+  
+  // Calculate bracket structure using ORIGINAL team count
+  const bracketStructure = calculateBracketStructure(originalTeamCount);
   
   // Group matches by round
   const matchesByRound: Record<number, any[]> = {};
@@ -204,11 +209,14 @@ export function getReadyMatches(matches: any[]): any[] {
 
 /**
  * Get all completed matches that need their winners advanced
+ * CRITICAL FIX: Use original team count for structure calculations
  */
 export function getMatchesNeedingProgression(
   matches: any[],
-  bracketStructure: BracketStructure
+  originalTeamCount: number
 ): any[] {
+  const bracketStructure = calculateBracketStructure(originalTeamCount);
+  
   return matches.filter(match => {
     if (match.status !== 'completed' || !match.winner_id) return false;
     if (match.round_number >= bracketStructure.totalRounds) return false; // Final round doesn't advance
@@ -224,4 +232,27 @@ export function getMatchesNeedingProgression(
     const expectedSlot = getWinnerSlot(match.match_number);
     return nextMatch[expectedSlot] !== match.winner_id;
   });
+}
+
+/**
+ * Get original team count for a tournament
+ * CRITICAL: This function must return the ORIGINAL team count when bracket was created
+ */
+export async function getOriginalTeamCount(tournamentId: string): Promise<number> {
+  // For now, we'll count all teams in the tournament (including eliminated)
+  // TODO: Add initial_team_count column to tournaments table
+  const { supabase } = await import("@/integrations/supabase/client");
+  
+  const { data: teams, error } = await supabase
+    .from('teams')
+    .select('id')
+    .eq('tournament_id', tournamentId);
+    
+  if (error || !teams) {
+    console.error('Failed to get original team count:', error);
+    return 0;
+  }
+  
+  console.log(`📊 Original team count for tournament ${tournamentId}: ${teams.length}`);
+  return teams.length;
 }

@@ -22,6 +22,7 @@ export type NotificationFunctions = {
 
 /**
  * Process match results using the unified bracket progression service
+ * CRITICAL FIX: All progression now routes through UnifiedBracketService
  */
 export async function processMatchResults(
   {
@@ -48,7 +49,7 @@ export async function processMatchResults(
   console.log('🏆 Processing match results with unified service:', { matchId, winnerId, loserId, tournamentId });
 
   try {
-    // Use unified bracket service for all progression logic
+    // CRITICAL FIX: Use ONLY unified bracket service for all progression logic
     const result = await UnifiedBracketService.advanceMatchWinner(
       matchId,
       winnerId,
@@ -83,12 +84,12 @@ export async function processMatchResults(
       
       safeToast({
         title: "Match Results Processed",
-        description: "Winner advanced to next round successfully"
+        description: "Winner advanced to next round successfully using unified bracket logic"
       });
     } else {
       safeToast({
         title: "Match Results Processed",
-        description: "Statistics and tournament progress updated"
+        description: "Statistics and tournament progress updated using unified bracket logic"
       });
     }
     

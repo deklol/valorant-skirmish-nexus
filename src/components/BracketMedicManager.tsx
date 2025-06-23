@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ShieldAlert } from "lucide-react";
@@ -8,6 +9,7 @@ import BracketMedicTournamentList from "./BracketMedicTournamentList";
 import BracketHealthAnalyzer from "./bracket-medic/BracketHealthAnalyzer";
 import BracketMedicActions from "./bracket-medic/BracketMedicActions";
 import { UnifiedBracketService } from "@/services/unifiedBracketService";
+import { getOriginalTeamCount } from "@/utils/bracketCalculations";
 
 // Minimal types for component use
 type TournamentInfo = { id: string; name: string };
@@ -31,7 +33,7 @@ export default function BracketMedicManager() {
   const [loading, setLoading] = useState(false);
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
   const [eliminatedTeamIds, setEliminatedTeamIds] = useState<string[]>([]);
-  const [teamCount, setTeamCount] = useState(0);
+  const [originalTeamCount, setOriginalTeamCount] = useState(0);
 
   // Load tournaments
   useEffect(() => {
@@ -65,11 +67,10 @@ export default function BracketMedicManager() {
       .eq("status", "eliminated");
     setEliminatedTeamIds(eliminatedTeams?.map(t => t.id) ?? []);
 
-    const { data: allTeams } = await supabase
-      .from("teams")
-      .select("id")
-      .eq("tournament_id", tournamentId);
-    setTeamCount(allTeams?.length ?? 0);
+    // CRITICAL FIX: Get original team count for proper bracket validation
+    const originalCount = await getOriginalTeamCount(tournamentId);
+    setOriginalTeamCount(originalCount);
+    console.log(`🔍 Loaded bracket data for tournament ${tournamentId}: ${originalCount} original teams`);
 
     setLoading(false);
   }, []);
@@ -83,7 +84,7 @@ export default function BracketMedicManager() {
       loadBracket(t.id);
     } else {
       setMatches([]);
-      setTeamCount(0);
+      setOriginalTeamCount(0);
     }
   };
 
@@ -100,7 +101,7 @@ export default function BracketMedicManager() {
         await loadBracket(selectedTournament.id);
         toast({
           title: "Bracket Progression Fixed",
-          description: `Applied ${result.fixesApplied} fixes using dynamic tournament logic.`,
+          description: `Applied ${result.fixesApplied} fixes using original team count (${originalTeamCount} teams).`,
         });
       } else {
         toast({
@@ -132,7 +133,7 @@ export default function BracketMedicManager() {
       if (diagnostic.isValid) {
         toast({
           title: "Bracket Progression Healthy",
-          description: "No progression issues detected in the bracket.",
+          description: `No progression issues detected. Using ${originalTeamCount} original teams for validation.`,
         });
       } else {
         console.log('🔍 Bracket Progression Issues:', diagnostic);
@@ -329,7 +330,7 @@ export default function BracketMedicManager() {
             <BracketHealthAnalyzer 
               matches={matches}
               eliminatedTeamIds={eliminatedTeamIds}
-              teamCount={teamCount}
+              teamCount={originalTeamCount}
             />
 
             <BracketOverview
@@ -349,7 +350,7 @@ export default function BracketMedicManager() {
             />
 
             <div className="text-xs text-slate-500 mt-4">
-              <p>Unified Bracket System automatically calculates correct bracket structure for any number of teams and fixes progression issues.<br/>
+              <p>Unified Bracket System uses original team count ({originalTeamCount} teams) for all calculations and fixes progression issues.<br/>
                 <span className="font-bold">Pro tip:</span> click any match in the bracket view to select it for individual match operations.</p>
             </div>
           </>

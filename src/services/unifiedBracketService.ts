@@ -7,7 +7,8 @@ import {
   getWinnerSlot,
   getMatchesNeedingProgression,
   getReadyMatches,
-  isTournamentFinal
+  isTournamentFinal,
+  getOriginalTeamCount
 } from "@/utils/bracketCalculations";
 import { completeTournament } from "@/utils/completeTournament";
 
@@ -31,12 +32,13 @@ export interface MatchAdvancementResult {
 
 /**
  * UNIFIED bracket progression service - used by ALL tournament flows
- * This is the single source of truth for bracket progression logic
+ * CRITICAL FIX: Always uses original team count for bracket structure calculations
  */
 export class UnifiedBracketService {
   
   /**
    * Advance a single match winner and handle all progression logic
+   * FIXED: Uses original team count for proper bracket structure
    */
   static async advanceMatchWinner(
     matchId: string,
@@ -65,7 +67,7 @@ export class UnifiedBracketService {
 
       if (updateError) throw updateError;
 
-      // Step 2: Get tournament context
+      // Step 2: Get tournament context using ORIGINAL team count
       const { data: allMatches, error: matchesError } = await supabase
         .from('matches')
         .select('*')
@@ -77,18 +79,14 @@ export class UnifiedBracketService {
         throw new Error('Failed to load tournament matches');
       }
 
-      const { data: teams, error: teamsError } = await supabase
-        .from('teams')
-        .select('id')
-        .eq('tournament_id', tournamentId)
-        .neq('status', 'eliminated');
-
-      if (teamsError || !teams) {
-        throw new Error('Failed to load tournament teams');
+      // CRITICAL FIX: Get original team count, not current active teams
+      const originalTeamCount = await getOriginalTeamCount(tournamentId);
+      if (originalTeamCount === 0) {
+        throw new Error('Failed to determine original team count');
       }
 
-      // Step 3: Calculate bracket structure
-      const bracketStructure = calculateBracketStructure(teams.length);
+      // Step 3: Calculate bracket structure using ORIGINAL team count
+      const bracketStructure = calculateBracketStructure(originalTeamCount);
       const currentMatch = allMatches.find(m => m.id === matchId);
       
       if (!currentMatch) {
@@ -184,6 +182,7 @@ export class UnifiedBracketService {
 
   /**
    * Fix all bracket progression issues for a tournament
+   * CRITICAL FIX: Uses original team count for proper validation
    */
   static async fixAllBracketProgression(tournamentId: string): Promise<BracketProgressionResult> {
     console.log('🔧 UnifiedBracketService: Fixing all bracket progression issues');
@@ -196,7 +195,7 @@ export class UnifiedBracketService {
     };
 
     try {
-      // Get all matches and teams
+      // Get all matches
       const { data: allMatches, error: matchesError } = await supabase
         .from('matches')
         .select('*')
@@ -209,22 +208,17 @@ export class UnifiedBracketService {
         return result;
       }
 
-      const { data: teams, error: teamsError } = await supabase
-        .from('teams')
-        .select('id, status')
-        .eq('tournament_id', tournamentId);
-
-      if (teamsError || !teams) {
-        result.errors.push('Failed to fetch tournament teams');
+      // CRITICAL FIX: Get original team count for proper bracket structure
+      const originalTeamCount = await getOriginalTeamCount(tournamentId);
+      if (originalTeamCount === 0) {
+        result.errors.push('Failed to determine original team count');
         return result;
       }
 
-      // Calculate bracket structure
-      const activeTeams = teams.filter(t => t.status !== 'eliminated');
-      const bracketStructure = calculateBracketStructure(activeTeams.length);
-      
-      // Validate current state
-      const validation = validateBracketProgression(allMatches, bracketStructure);
+      console.log(`🏗️ Using original team count: ${originalTeamCount} for bracket validation`);
+
+      // Validate current state using original team count
+      const validation = validateBracketProgression(allMatches, originalTeamCount);
       result.issues = validation.issues;
 
       if (validation.isValid) {
@@ -233,11 +227,16 @@ export class UnifiedBracketService {
         return result;
       }
 
-      // Fix progression issues
-      const matchesNeedingProgression = getMatchesNeedingProgression(allMatches, bracketStructure);
+      console.log('🔍 Bracket issues found:', validation.issues);
+
+      // Fix progression issues using original team count
+      const matchesNeedingProgression = getMatchesNeedingProgression(allMatches, originalTeamCount);
+      const bracketStructure = calculateBracketStructure(originalTeamCount);
       
+      console.log(`🔄 Found ${matchesNeedingProgression.length} matches needing progression`);
+
       for (const match of matchesNeedingProgression) {
-        console.log(`🔄 Fixing progression for R${match.round_number}M${match.match_number}`);
+        console.log(`🔄 Fixing progression for R${match.round_number}M${match.match_number} winner: ${match.winner_id}`);
         
         const nextPos = findNextMatchPosition(match.round_number, match.match_number, bracketStructure);
         if (!nextPos) continue;
@@ -248,6 +247,8 @@ export class UnifiedBracketService {
         if (!nextMatch) continue;
 
         const targetSlot = getWinnerSlot(match.match_number);
+        
+        console.log(`🎯 Advancing winner ${match.winner_id} to R${nextPos.round}M${nextPos.matchNumber} slot ${targetSlot}`);
         
         const { error: updateError } = await supabase
           .from('matches')
@@ -289,6 +290,7 @@ export class UnifiedBracketService {
 
   /**
    * Validate and diagnose bracket health
+   * CRITICAL FIX: Uses original team count for proper validation
    */
   static async diagnoseBracket(tournamentId: string) {
     try {
@@ -301,19 +303,15 @@ export class UnifiedBracketService {
         throw new Error('Failed to fetch matches');
       }
 
-      const { data: teams, error: teamsError } = await supabase
-        .from('teams')
-        .select('id, status')
-        .eq('tournament_id', tournamentId);
-
-      if (teamsError || !teams) {
-        throw new Error('Failed to fetch teams');
+      // CRITICAL FIX: Use original team count for validation
+      const originalTeamCount = await getOriginalTeamCount(tournamentId);
+      if (originalTeamCount === 0) {
+        throw new Error('Failed to determine original team count');
       }
 
-      const activeTeams = teams.filter(t => t.status !== 'eliminated');
-      const bracketStructure = calculateBracketStructure(activeTeams.length);
+      console.log(`🔍 Diagnosing bracket with original team count: ${originalTeamCount}`);
       
-      return validateBracketProgression(allMatches, bracketStructure);
+      return validateBracketProgression(allMatches, originalTeamCount);
     } catch (error: any) {
       return {
         isValid: false,

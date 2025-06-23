@@ -9,10 +9,10 @@ export interface BracketProgressionDiagnostic {
 }
 
 /**
- * Diagnose bracket progression using unified service
+ * Diagnose bracket progression using unified service with original team count fix
  */
 export async function diagnoseBracketProgression(tournamentId: string): Promise<BracketProgressionDiagnostic> {
-  console.log('🔍 Legacy diagnoseBracketProgression called - routing to unified service');
+  console.log('🔍 Legacy diagnoseBracketProgression called - routing to unified service with original team count fix');
   
   try {
     const validation = await UnifiedBracketService.diagnoseBracket(tournamentId);
@@ -34,21 +34,21 @@ export async function diagnoseBracketProgression(tournamentId: string): Promise<
 }
 
 /**
- * Auto-fix bracket progression using unified service
+ * Auto-fix bracket progression using unified service with original team count fix
  */
 export async function autoFixBracketProgression(tournamentId: string): Promise<{
   success: boolean;
   fixesApplied: string[];
   errors: string[];
 }> {
-  console.log('🔧 Legacy autoFixBracketProgression called - routing to unified service');
+  console.log('🔧 Legacy autoFixBracketProgression called - routing to unified service with original team count fix');
   
   try {
     const result = await UnifiedBracketService.fixAllBracketProgression(tournamentId);
     
     return {
       success: result.success,
-      fixesApplied: [`Applied ${result.fixesApplied} bracket progression fixes`],
+      fixesApplied: [`Applied ${result.fixesApplied} bracket progression fixes using original team count`],
       errors: result.errors
     };
   } catch (error: any) {
