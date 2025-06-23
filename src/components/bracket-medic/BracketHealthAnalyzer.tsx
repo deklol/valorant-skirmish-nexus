@@ -31,7 +31,7 @@ export default function BracketHealthAnalyzer({
   }
 
   const bracketStructure = calculateBracketStructure(teamCount);
-  const validation = validateBracketProgression(matches, bracketStructure);
+  const validation = validateBracketProgression(matches, teamCount); // FIX: Pass teamCount instead of bracketStructure
   const healthy = validation.isValid;
 
   return (
