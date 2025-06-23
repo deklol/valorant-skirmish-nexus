@@ -122,7 +122,7 @@ export function getWinnerSlot(matchNumber: number): 'team1_id' | 'team2_id' {
 
 /**
  * Validate bracket progression for any tournament structure
- * CRITICAL FIX: Completely rewritten to properly detect progression issues
+ * CRITICAL FIX: Better diagnostics and handles missing matches
  */
 export function validateBracketProgression(
   matches: any[],
@@ -151,6 +151,8 @@ export function validateBracketProgression(
     matchesByRound[match.round_number].push(match);
   });
   
+  console.log('📋 Matches by round:', Object.fromEntries(Object.entries(matchesByRound).map(([round, matches]) => [round, matches.map(m => `M${m.match_number}`)])));
+  
   // Check each round has expected number of matches
   bracketStructure.matchesPerRound.forEach((expectedMatches, index) => {
     const round = index + 1;
@@ -173,7 +175,9 @@ export function validateBracketProgression(
         const nextPos = findNextMatchPosition(round, match.match_number, bracketStructure);
         if (nextPos) {
           const nextMatch = nextRoundMatches.find(m => m.match_number === nextPos.matchNumber);
-          if (nextMatch) {
+          if (!nextMatch) {
+            issues.push(`Round ${round} Match ${match.match_number} should advance to Round ${nextPos.round} Match ${nextPos.matchNumber} but that match doesn't exist`);
+          } else {
             const expectedSlot = getWinnerSlot(match.match_number);
             const actualWinnerInNextRound = nextMatch[expectedSlot];
             
@@ -182,8 +186,6 @@ export function validateBracketProgression(
             if (actualWinnerInNextRound !== match.winner_id) {
               issues.push(`Round ${round} Match ${match.match_number} winner (${match.winner_id?.slice(0,8)}) not advanced to Round ${nextPos.round} Match ${nextPos.matchNumber}`);
             }
-          } else {
-            issues.push(`Round ${round} Match ${match.match_number} should advance to Round ${nextPos.round} Match ${nextPos.matchNumber} but that match doesn't exist`);
           }
         }
       }
@@ -251,7 +253,7 @@ export function getReadyMatches(matches: any[]): any[] {
 
 /**
  * Get all completed matches that need their winners advanced
- * CRITICAL FIX: Completely rewritten to properly detect progression needs
+ * CRITICAL FIX: Better detection and handles missing next matches
  */
 export function getMatchesNeedingProgression(
   matches: any[],
@@ -288,7 +290,7 @@ export function getMatchesNeedingProgression(
     );
     if (!nextMatch) {
       console.log(`⚠️ R${match.round_number}M${match.match_number} winner should go to R${nextPos.round}M${nextPos.matchNumber} but that match doesn't exist`);
-      return false;
+      return false; // Can't progress if next match doesn't exist
     }
     
     const expectedSlot = getWinnerSlot(match.match_number);

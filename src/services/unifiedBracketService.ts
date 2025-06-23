@@ -132,7 +132,9 @@ export class UnifiedBracketService {
       );
 
       if (!nextMatch) {
-        throw new Error(`Next match not found: Round ${nextPos.round}, Match ${nextPos.matchNumber}`);
+        console.error(`❌ CRITICAL: Next match not found: Round ${nextPos.round}, Match ${nextPos.matchNumber}`);
+        console.log('📋 Available matches:', allMatches.map(m => `R${m.round_number}M${m.match_number}`));
+        throw new Error(`Next match not found: Round ${nextPos.round}, Match ${nextPos.matchNumber}. Available matches: ${allMatches.map(m => `R${m.round_number}M${m.match_number}`).join(', ')}`);
       }
 
       // Step 6: Update next match with winner
@@ -188,7 +190,7 @@ export class UnifiedBracketService {
 
   /**
    * Fix all bracket progression issues for a tournament
-   * CRITICAL FIX: Uses original team count for proper validation and includes detailed logging
+   * CRITICAL FIX: Now handles missing matches and creates them if needed
    */
   static async fixAllBracketProgression(tournamentId: string): Promise<BracketProgressionResult> {
     console.log('🔧 UnifiedBracketService: Fixing all bracket progression issues for tournament:', tournamentId);
@@ -237,9 +239,22 @@ export class UnifiedBracketService {
 
       console.log(`🔍 Bracket issues found (${validation.issues.length}):`, validation.issues);
 
-      // Fix progression issues using original team count
-      const matchesNeedingProgression = getMatchesNeedingProgression(allMatches, originalTeamCount);
+      // CRITICAL FIX: Check for missing matches and create them
       const bracketStructure = calculateBracketStructure(originalTeamCount);
+      await this.ensureAllMatchesExist(tournamentId, allMatches, bracketStructure, result);
+
+      // Reload matches after potential creation
+      const { data: updatedMatches } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('tournament_id', tournamentId)
+        .order('round_number', { ascending: true })
+        .order('match_number', { ascending: true });
+
+      const matchesToUse = updatedMatches || allMatches;
+
+      // Fix progression issues using original team count
+      const matchesNeedingProgression = getMatchesNeedingProgression(matchesToUse, originalTeamCount);
       
       console.log(`🔄 Found ${matchesNeedingProgression.length} matches needing progression`);
 
@@ -249,10 +264,13 @@ export class UnifiedBracketService {
         const nextPos = findNextMatchPosition(match.round_number, match.match_number, bracketStructure);
         if (!nextPos) continue;
 
-        const nextMatch = allMatches.find(m => 
+        const nextMatch = matchesToUse.find(m => 
           m.round_number === nextPos.round && m.match_number === nextPos.matchNumber
         );
-        if (!nextMatch) continue;
+        if (!nextMatch) {
+          result.errors.push(`Next match R${nextPos.round}M${nextPos.matchNumber} not found for R${match.round_number}M${match.match_number}`);
+          continue;
+        }
 
         const targetSlot = getWinnerSlot(match.match_number);
         
@@ -273,7 +291,7 @@ export class UnifiedBracketService {
       }
 
       // Set ready matches to live
-      const readyMatches = getReadyMatches(allMatches);
+      const readyMatches = getReadyMatches(matchesToUse);
       console.log(`🔥 Setting ${readyMatches.length} ready matches to live`);
       
       for (const match of readyMatches) {
@@ -297,6 +315,50 @@ export class UnifiedBracketService {
       console.error('❌ Bracket fix error:', error);
       result.errors.push(`Bracket fix error: ${error.message}`);
       return result;
+    }
+  }
+
+  /**
+   * NEW: Ensure all expected matches exist in the database
+   */
+  static async ensureAllMatchesExist(
+    tournamentId: string, 
+    existingMatches: any[], 
+    bracketStructure: any,
+    result: BracketProgressionResult
+  ) {
+    console.log('🔧 Checking for missing matches...');
+    
+    for (let round = 1; round <= bracketStructure.totalRounds; round++) {
+      const expectedMatchesInRound = bracketStructure.matchesPerRound[round - 1];
+      
+      for (let matchNum = 1; matchNum <= expectedMatchesInRound; matchNum++) {
+        const existingMatch = existingMatches.find(m => 
+          m.round_number === round && m.match_number === matchNum
+        );
+        
+        if (!existingMatch) {
+          console.log(`🔧 Creating missing match: R${round}M${matchNum}`);
+          
+          const { error: createError } = await supabase
+            .from('matches')
+            .insert({
+              tournament_id: tournamentId,
+              round_number: round,
+              match_number: matchNum,
+              status: 'pending',
+              score_team1: 0,
+              score_team2: 0
+            });
+          
+          if (createError) {
+            result.errors.push(`Failed to create missing match R${round}M${matchNum}: ${createError.message}`);
+          } else {
+            result.fixesApplied++;
+            console.log(`✅ Created missing match R${round}M${matchNum}`);
+          }
+        }
+      }
     }
   }
 
