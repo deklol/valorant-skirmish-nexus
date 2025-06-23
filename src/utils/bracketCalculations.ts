@@ -31,8 +31,15 @@ export interface BracketValidationResult {
 /**
  * Calculate complete bracket structure for any number of teams
  * CRITICAL FIX: Always use ORIGINAL team count, not current active teams
+ * FIXED: Added type checking to prevent object parameters
  */
-export function calculateBracketStructure(originalTeamCount: number): BracketStructure {
+export function calculateBracketStructure(originalTeamCount: number | any): BracketStructure {
+  // CRITICAL FIX: Type checking to prevent objects being passed
+  if (typeof originalTeamCount !== 'number' || isNaN(originalTeamCount)) {
+    console.error('❌ calculateBracketStructure received invalid input:', originalTeamCount, typeof originalTeamCount);
+    throw new Error(`calculateBracketStructure expects a number, got ${typeof originalTeamCount}: ${originalTeamCount}`);
+  }
+
   if (originalTeamCount < 2) {
     throw new Error("Tournament needs at least 2 teams");
   }
@@ -115,16 +122,23 @@ export function getWinnerSlot(matchNumber: number): 'team1_id' | 'team2_id' {
 
 /**
  * Validate bracket progression for any tournament structure
- * CRITICAL FIX: Use original team count for validation
+ * CRITICAL FIX: Completely rewritten to properly detect progression issues
  */
 export function validateBracketProgression(
   matches: any[],
-  originalTeamCount: number
+  originalTeamCount: number | any
 ): BracketValidationResult {
   const issues: string[] = [];
   let tournamentComplete = false;
   let winner: string | undefined;
   
+  // CRITICAL FIX: Type checking to prevent objects being passed
+  if (typeof originalTeamCount !== 'number' || isNaN(originalTeamCount)) {
+    console.error('❌ validateBracketProgression received invalid teamCount:', originalTeamCount, typeof originalTeamCount);
+    issues.push(`Invalid team count provided: ${typeof originalTeamCount}`);
+    return { isValid: false, issues, tournamentComplete };
+  }
+
   // Calculate bracket structure using ORIGINAL team count
   const bracketStructure = calculateBracketStructure(originalTeamCount);
   
@@ -147,27 +161,53 @@ export function validateBracketProgression(
     }
   });
   
-  // Check winner progression
+  // CRITICAL FIX: Check for completed matches whose winners haven't been advanced
   for (let round = 1; round < bracketStructure.totalRounds; round++) {
     const roundMatches = matchesByRound[round] || [];
     const nextRoundMatches = matchesByRound[round + 1] || [];
     
     roundMatches.forEach(match => {
       if (match.status === 'completed' && match.winner_id) {
+        console.log(`🔍 Checking progression for R${round}M${match.match_number} winner: ${match.winner_id}`);
+        
         const nextPos = findNextMatchPosition(round, match.match_number, bracketStructure);
         if (nextPos) {
           const nextMatch = nextRoundMatches.find(m => m.match_number === nextPos.matchNumber);
           if (nextMatch) {
             const expectedSlot = getWinnerSlot(match.match_number);
-            const actualWinner = nextMatch[expectedSlot];
+            const actualWinnerInNextRound = nextMatch[expectedSlot];
             
-            if (actualWinner !== match.winner_id) {
-              issues.push(`Round ${round} Match ${match.match_number} winner not advanced to Round ${nextPos.round} Match ${nextPos.matchNumber}`);
+            console.log(`🎯 R${round}M${match.match_number} winner ${match.winner_id} should be in R${nextPos.round}M${nextPos.matchNumber} slot ${expectedSlot}, currently: ${actualWinnerInNextRound}`);
+            
+            if (actualWinnerInNextRound !== match.winner_id) {
+              issues.push(`Round ${round} Match ${match.match_number} winner (${match.winner_id?.slice(0,8)}) not advanced to Round ${nextPos.round} Match ${nextPos.matchNumber}`);
             }
+          } else {
+            issues.push(`Round ${round} Match ${match.match_number} should advance to Round ${nextPos.round} Match ${nextPos.matchNumber} but that match doesn't exist`);
           }
         }
       }
     });
+  }
+  
+  // Check for empty matches in later rounds when previous rounds have completed matches
+  for (let round = 2; round <= bracketStructure.totalRounds; round++) {
+    const roundMatches = matchesByRound[round] || [];
+    const prevRoundMatches = matchesByRound[round - 1] || [];
+    
+    // Count completed matches in previous round
+    const completedPrevMatches = prevRoundMatches.filter(m => m.status === 'completed' && m.winner_id);
+    
+    if (completedPrevMatches.length > 0) {
+      // Check if current round matches are missing teams
+      roundMatches.forEach(match => {
+        if (!match.team1_id && !match.team2_id) {
+          issues.push(`Round ${round} Match ${match.match_number} has no teams assigned despite completed matches in Round ${round - 1}`);
+        } else if (!match.team1_id || !match.team2_id) {
+          issues.push(`Round ${round} Match ${match.match_number} is missing one team assignment`);
+        }
+      });
+    }
   }
   
   // Check if tournament is complete (final match decided)
@@ -177,6 +217,8 @@ export function validateBracketProgression(
     tournamentComplete = true;
     winner = finalMatches[0].winner_id;
   }
+  
+  console.log(`🔍 Bracket validation complete: ${issues.length} issues found`, issues);
   
   return {
     isValid: issues.length === 0,
@@ -209,29 +251,60 @@ export function getReadyMatches(matches: any[]): any[] {
 
 /**
  * Get all completed matches that need their winners advanced
- * CRITICAL FIX: Use original team count for structure calculations
+ * CRITICAL FIX: Completely rewritten to properly detect progression needs
  */
 export function getMatchesNeedingProgression(
   matches: any[],
-  originalTeamCount: number
+  originalTeamCount: number | any
 ): any[] {
+  // CRITICAL FIX: Type checking to prevent objects being passed
+  if (typeof originalTeamCount !== 'number' || isNaN(originalTeamCount)) {
+    console.error('❌ getMatchesNeedingProgression received invalid teamCount:', originalTeamCount, typeof originalTeamCount);
+    return [];
+  }
+
   const bracketStructure = calculateBracketStructure(originalTeamCount);
   
-  return matches.filter(match => {
-    if (match.status !== 'completed' || !match.winner_id) return false;
-    if (match.round_number >= bracketStructure.totalRounds) return false; // Final round doesn't advance
+  console.log(`🔄 Checking for matches needing progression in ${originalTeamCount}-team tournament`);
+  
+  const needingProgression = matches.filter(match => {
+    // Must be completed with a winner
+    if (match.status !== 'completed' || !match.winner_id) {
+      return false;
+    }
+    
+    // Final round doesn't advance anywhere
+    if (match.round_number >= bracketStructure.totalRounds) {
+      return false;
+    }
     
     const nextPos = findNextMatchPosition(match.round_number, match.match_number, bracketStructure);
-    if (!nextPos) return false;
+    if (!nextPos) {
+      return false;
+    }
     
     const nextMatch = matches.find(m => 
       m.round_number === nextPos.round && m.match_number === nextPos.matchNumber
     );
-    if (!nextMatch) return false;
+    if (!nextMatch) {
+      console.log(`⚠️ R${match.round_number}M${match.match_number} winner should go to R${nextPos.round}M${nextPos.matchNumber} but that match doesn't exist`);
+      return false;
+    }
     
     const expectedSlot = getWinnerSlot(match.match_number);
-    return nextMatch[expectedSlot] !== match.winner_id;
+    const currentWinnerInSlot = nextMatch[expectedSlot];
+    
+    const needsProgression = currentWinnerInSlot !== match.winner_id;
+    
+    if (needsProgression) {
+      console.log(`🎯 R${match.round_number}M${match.match_number} winner ${match.winner_id?.slice(0,8)} needs to advance to R${nextPos.round}M${nextPos.matchNumber} slot ${expectedSlot} (currently: ${currentWinnerInSlot?.slice(0,8) || 'empty'})`);
+    }
+    
+    return needsProgression;
   });
+  
+  console.log(`🔄 Found ${needingProgression.length} matches needing progression`);
+  return needingProgression;
 }
 
 /**
@@ -253,6 +326,7 @@ export async function getOriginalTeamCount(tournamentId: string): Promise<number
     return 0;
   }
   
-  console.log(`📊 Original team count for tournament ${tournamentId}: ${teams.length}`);
-  return teams.length;
+  const count = teams.length;
+  console.log(`📊 Original team count for tournament ${tournamentId}: ${count}`);
+  return count;
 }

@@ -85,6 +85,8 @@ export class UnifiedBracketService {
         throw new Error('Failed to determine original team count');
       }
 
+      console.log(`🎯 Processing advancement with ${originalTeamCount} original teams`);
+
       // Step 3: Calculate bracket structure using ORIGINAL team count
       const bracketStructure = calculateBracketStructure(originalTeamCount);
       const currentMatch = allMatches.find(m => m.id === matchId);
@@ -123,6 +125,8 @@ export class UnifiedBracketService {
         return { success: true, tournamentComplete: false };
       }
 
+      console.log(`🎯 Advancing winner to R${nextPos.round}M${nextPos.matchNumber}`);
+
       const nextMatch = allMatches.find(m => 
         m.round_number === nextPos.round && m.match_number === nextPos.matchNumber
       );
@@ -133,6 +137,8 @@ export class UnifiedBracketService {
 
       // Step 6: Update next match with winner
       const targetSlot = getWinnerSlot(currentMatch.match_number);
+      
+      console.log(`🎯 Placing winner ${winnerId.slice(0,8)} in ${targetSlot} of R${nextPos.round}M${nextPos.matchNumber}`);
       
       const { error: advanceError } = await supabase
         .from('matches')
@@ -182,10 +188,10 @@ export class UnifiedBracketService {
 
   /**
    * Fix all bracket progression issues for a tournament
-   * CRITICAL FIX: Uses original team count for proper validation
+   * CRITICAL FIX: Uses original team count for proper validation and includes detailed logging
    */
   static async fixAllBracketProgression(tournamentId: string): Promise<BracketProgressionResult> {
-    console.log('🔧 UnifiedBracketService: Fixing all bracket progression issues');
+    console.log('🔧 UnifiedBracketService: Fixing all bracket progression issues for tournament:', tournamentId);
     
     const result: BracketProgressionResult = {
       success: false,
@@ -208,6 +214,8 @@ export class UnifiedBracketService {
         return result;
       }
 
+      console.log(`🔍 Loaded ${allMatches.length} matches for tournament`);
+
       // CRITICAL FIX: Get original team count for proper bracket structure
       const originalTeamCount = await getOriginalTeamCount(tournamentId);
       if (originalTeamCount === 0) {
@@ -227,7 +235,7 @@ export class UnifiedBracketService {
         return result;
       }
 
-      console.log('🔍 Bracket issues found:', validation.issues);
+      console.log(`🔍 Bracket issues found (${validation.issues.length}):`, validation.issues);
 
       // Fix progression issues using original team count
       const matchesNeedingProgression = getMatchesNeedingProgression(allMatches, originalTeamCount);
@@ -236,7 +244,7 @@ export class UnifiedBracketService {
       console.log(`🔄 Found ${matchesNeedingProgression.length} matches needing progression`);
 
       for (const match of matchesNeedingProgression) {
-        console.log(`🔄 Fixing progression for R${match.round_number}M${match.match_number} winner: ${match.winner_id}`);
+        console.log(`🔄 Fixing progression for R${match.round_number}M${match.match_number} winner: ${match.winner_id?.slice(0,8)}`);
         
         const nextPos = findNextMatchPosition(match.round_number, match.match_number, bracketStructure);
         if (!nextPos) continue;
@@ -248,7 +256,7 @@ export class UnifiedBracketService {
 
         const targetSlot = getWinnerSlot(match.match_number);
         
-        console.log(`🎯 Advancing winner ${match.winner_id} to R${nextPos.round}M${nextPos.matchNumber} slot ${targetSlot}`);
+        console.log(`🎯 Advancing winner ${match.winner_id?.slice(0,8)} to R${nextPos.round}M${nextPos.matchNumber} slot ${targetSlot}`);
         
         const { error: updateError } = await supabase
           .from('matches')
@@ -261,10 +269,13 @@ export class UnifiedBracketService {
         }
 
         result.fixesApplied++;
+        console.log(`✅ Fixed progression for R${match.round_number}M${match.match_number}`);
       }
 
       // Set ready matches to live
       const readyMatches = getReadyMatches(allMatches);
+      console.log(`🔥 Setting ${readyMatches.length} ready matches to live`);
+      
       for (const match of readyMatches) {
         const { error: statusError } = await supabase
           .from('matches')
@@ -283,6 +294,7 @@ export class UnifiedBracketService {
       return result;
 
     } catch (error: any) {
+      console.error('❌ Bracket fix error:', error);
       result.errors.push(`Bracket fix error: ${error.message}`);
       return result;
     }
