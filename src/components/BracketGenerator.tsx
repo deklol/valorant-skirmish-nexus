@@ -1,9 +1,9 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { calculateBracketStructure } from "@/utils/bracketCalculations";
+import BatchBracketGenerator from "./BatchBracketGenerator";
 
 interface BracketGeneratorProps {
   tournamentId: string;
@@ -14,6 +14,9 @@ interface BracketGeneratorProps {
 const BracketGenerator = ({ tournamentId, teams, onBracketGenerated }: BracketGeneratorProps) => {
   const [generating, setGenerating] = useState(false);
   const { toast } = useToast();
+
+  // Use batch processing for tournaments with 8+ teams (32+ players typically)
+  const shouldUseBatchMode = teams.length >= 8;
 
   const generateBracket = async () => {
     if (teams.length < 2) {
@@ -68,6 +71,7 @@ const BracketGenerator = ({ tournamentId, teams, onBracketGenerated }: BracketGe
       onBracketGenerated();
       
       // Add logging for map pool capture
+      const { data: activeMapPoolData } = await supabase.rpc('capture_active_map_pool');
       const mapCount = Array.isArray(activeMapPoolData) ? activeMapPoolData.length : (activeMapPoolData ? 1 : 0);
       console.log(`[BracketGenerator] Captured ${mapCount} maps for tournament ${tournamentId}`);
 
@@ -185,6 +189,25 @@ const BracketGenerator = ({ tournamentId, teams, onBracketGenerated }: BracketGe
       console.log('✅ Bracket structure validation passed');
     }
   };
+
+  // Show batch generator for large tournaments, regular generator for small ones
+  if (shouldUseBatchMode) {
+    return (
+      <div className="space-y-4">
+        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <h3 className="font-semibold text-blue-800">Large Tournament Detected</h3>
+          <p className="text-sm text-blue-600 mt-1">
+            Using batch processing for optimal performance with {teams.length} teams.
+          </p>
+        </div>
+        <BatchBracketGenerator 
+          tournamentId={tournamentId} 
+          teams={teams} 
+          onBracketGenerated={onBracketGenerated} 
+        />
+      </div>
+    );
+  }
 
   return (
     <Button
