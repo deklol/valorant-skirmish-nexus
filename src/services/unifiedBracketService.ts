@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { 
   calculateBracketStructure, 
@@ -38,7 +37,7 @@ export class UnifiedBracketService {
   
   /**
    * Advance a single match winner and handle all progression logic
-   * FIXED: Uses original team count for proper bracket structure
+   * FIXED: Enhanced error handling for missing matches with bracket structure validation
    */
   static async advanceMatchWinner(
     matchId: string,
@@ -95,6 +94,9 @@ export class UnifiedBracketService {
         throw new Error('Match not found after update');
       }
 
+      // ENHANCED: Validate bracket structure before proceeding
+      await this.validateBracketStructure(allMatches, bracketStructure, tournamentId);
+
       // Step 4: Check if this is the tournament final
       if (isTournamentFinal(currentMatch, bracketStructure)) {
         console.log('🎉 Tournament final completed! Winner:', winnerId);
@@ -134,7 +136,32 @@ export class UnifiedBracketService {
       if (!nextMatch) {
         console.error(`❌ CRITICAL: Next match not found: Round ${nextPos.round}, Match ${nextPos.matchNumber}`);
         console.log('📋 Available matches:', allMatches.map(m => `R${m.round_number}M${m.match_number}`));
-        throw new Error(`Next match not found: Round ${nextPos.round}, Match ${nextPos.matchNumber}. Available matches: ${allMatches.map(m => `R${m.round_number}M${m.match_number}`).join(', ')}`);
+        
+        // ENHANCED: Auto-create missing match if possible
+        const createdMatch = await this.createMissingMatch(tournamentId, nextPos.round, nextPos.matchNumber);
+        if (!createdMatch) {
+          throw new Error(`Next match not found: Round ${nextPos.round}, Match ${nextPos.matchNumber}. Available matches: ${allMatches.map(m => `R${m.round_number}M${m.match_number}`).join(', ')}. Auto-creation failed.`);
+        }
+        
+        console.log(`✅ Auto-created missing match R${nextPos.round}M${nextPos.matchNumber}`);
+        // Use the newly created match
+        const targetSlot = getWinnerSlot(currentMatch.match_number);
+        
+        const { error: advanceError } = await supabase
+          .from('matches')
+          .update({ [targetSlot]: winnerId })
+          .eq('id', createdMatch.id);
+
+        if (advanceError) throw advanceError;
+
+        await supabase.from('teams').update({ status: 'eliminated' }).eq('id', loserId);
+
+        return {
+          success: true,
+          tournamentComplete: false,
+          nextMatchReady: false,
+          nextMatchId: createdMatch.id
+        };
       }
 
       // Step 6: Update next match with winner
@@ -185,6 +212,61 @@ export class UnifiedBracketService {
         tournamentComplete: false,
         error: error.message
       };
+    }
+  }
+
+  /**
+   * NEW: Validate that bracket structure matches expectations
+   */
+  static async validateBracketStructure(matches: any[], expectedStructure: any, tournamentId: string) {
+    const expectedMatches = [];
+    for (let round = 1; round <= expectedStructure.totalRounds; round++) {
+      const matchesInRound = expectedStructure.matchesPerRound[round - 1];
+      for (let matchNum = 1; matchNum <= matchesInRound; matchNum++) {
+        expectedMatches.push(`R${round}M${matchNum}`);
+      }
+    }
+    
+    const actualMatches = matches.map(m => `R${m.round_number}M${m.match_number}`);
+    const missingMatches = expectedMatches.filter(expected => !actualMatches.includes(expected));
+    
+    if (missingMatches.length > 0) {
+      console.warn(`⚠️ Bracket structure validation failed for tournament ${tournamentId}:`);
+      console.warn(`   Expected: ${expectedMatches.join(', ')}`);
+      console.warn(`   Actual: ${actualMatches.join(', ')}`);
+      console.warn(`   Missing: ${missingMatches.join(', ')}`);
+    }
+  }
+
+  /**
+   * NEW: Auto-create a missing match
+   */
+  static async createMissingMatch(tournamentId: string, round: number, matchNumber: number) {
+    try {
+      console.log(`🔧 Auto-creating missing match R${round}M${matchNumber}`);
+      
+      const { data: newMatch, error } = await supabase
+        .from('matches')
+        .insert({
+          tournament_id: tournamentId,
+          round_number: round,
+          match_number: matchNumber,
+          status: 'pending',
+          score_team1: 0,
+          score_team2: 0
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error(`❌ Failed to create missing match: ${error.message}`);
+        return null;
+      }
+
+      return newMatch;
+    } catch (error) {
+      console.error(`❌ Error creating missing match:`, error);
+      return null;
     }
   }
 
@@ -319,7 +401,7 @@ export class UnifiedBracketService {
   }
 
   /**
-   * NEW: Ensure all expected matches exist in the database
+   * Ensure all expected matches exist in the database
    */
   static async ensureAllMatchesExist(
     tournamentId: string, 
