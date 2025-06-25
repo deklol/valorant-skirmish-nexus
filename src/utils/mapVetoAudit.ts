@@ -113,13 +113,12 @@ export async function auditVetoSession(sessionId: string): Promise<VetoSessionHe
   };
 
   try {
-    // Get session details
+    // Get session details with proper join
     const { data: session, error: sessionError } = await supabase
       .from('map_veto_sessions')
       .select(`
         *,
-        matches!inner(tournament_id, team1_id, team2_id, best_of),
-        tournaments!inner(map_pool)
+        matches!inner(tournament_id, team1_id, team2_id, best_of)
       `)
       .eq('id', sessionId)
       .single();
@@ -130,7 +129,19 @@ export async function auditVetoSession(sessionId: string): Promise<VetoSessionHe
     }
 
     health.status = session.status;
-    health.lastActivity = session.updated_at || session.created_at;
+    health.lastActivity = session.created_at; // Use created_at as fallback since updated_at might not exist
+
+    // Get tournament separately to access map_pool
+    const { data: tournament, error: tournamentError } = await supabase
+      .from('tournaments')
+      .select('map_pool')
+      .eq('id', session.matches.tournament_id)
+      .single();
+
+    if (tournamentError || !tournament) {
+      health.issues.push('Tournament not found for session');
+      return health;
+    }
 
     // Get all actions for this session
     const { data: actions, error: actionsError } = await supabase
@@ -147,7 +158,7 @@ export async function auditVetoSession(sessionId: string): Promise<VetoSessionHe
     health.actionCount = actions?.length || 0;
 
     // Calculate expected actions based on tournament map pool
-    const mapPool = session.tournaments?.map_pool || [];
+    const mapPool = tournament.map_pool || [];
     const mapCount = Array.isArray(mapPool) ? mapPool.length : 0;
     
     if (mapCount === 0) {
@@ -317,8 +328,7 @@ export async function cleanupVetoSessions(sessionIds: string[]) {
         .from('map_veto_sessions')
         .update({ 
           status: 'pending',
-          current_turn_team_id: null,
-          updated_at: new Date().toISOString()
+          current_turn_team_id: null
         })
         .eq('id', sessionId);
 

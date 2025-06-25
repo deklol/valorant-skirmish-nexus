@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -31,7 +32,7 @@ const BracketGenerator = ({ tournamentId, teams, onBracketGenerated }: BracketGe
     setGenerating(true);
     try {
       // First, capture current active map pool for this tournament
-      const { data: activeMapPoolData, error: mapPoolError } = await supabase
+      const { data: capturedMapPoolData, error: mapPoolError } = await supabase
         .rpc('capture_active_map_pool');
 
       if (mapPoolError) {
@@ -44,8 +45,8 @@ const BracketGenerator = ({ tournamentId, teams, onBracketGenerated }: BracketGe
       }
 
       // Update tournament with map pool before generating bracket
-      if (activeMapPoolData) {
-        const mapPoolArray = Array.isArray(activeMapPoolData) ? activeMapPoolData : [activeMapPoolData];
+      if (capturedMapPoolData) {
+        const mapPoolArray = Array.isArray(capturedMapPoolData) ? capturedMapPoolData : [capturedMapPoolData];
         const { error: updateError } = await supabase
           .from('tournaments')
           .update({ map_pool: mapPoolArray })
@@ -71,8 +72,7 @@ const BracketGenerator = ({ tournamentId, teams, onBracketGenerated }: BracketGe
       onBracketGenerated();
       
       // Add logging for map pool capture
-      const { data: activeMapPoolData } = await supabase.rpc('capture_active_map_pool');
-      const mapCount = Array.isArray(activeMapPoolData) ? activeMapPoolData.length : (activeMapPoolData ? 1 : 0);
+      const mapCount = Array.isArray(capturedMapPoolData) ? capturedMapPoolData.length : (capturedMapPoolData ? 1 : 0);
       console.log(`[BracketGenerator] Captured ${mapCount} maps for tournament ${tournamentId}`);
 
     } catch (error: any) {
