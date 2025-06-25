@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -49,7 +48,7 @@ export default function MapVetoManager({
     console.log(`🔄 MapVetoManager: Loading match and session data for match ${matchId}`);
     setLoading(true);
     try {
-      // Load match data
+      // Load match data with properly aliased team relationships
       const { data: matchData, error: matchError } = await supabase
         .from("matches")
         .select(`
@@ -57,8 +56,8 @@ export default function MapVetoManager({
           tournament:tournament_id (
             id, name, map_pool, enable_map_veto
           ),
-          team1:team1_id (id, name),
-          team2:team2_id (id, name)
+          team1:team1_id!inner (id, name),
+          team2:team2_id!inner (id, name)
         `)
         .eq("id", matchId)
         .maybeSingle();
