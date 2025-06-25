@@ -158,8 +158,21 @@ export async function auditVetoSession(sessionId: string): Promise<VetoSessionHe
     health.actionCount = actions?.length || 0;
 
     // Calculate expected actions based on tournament map pool
-    const mapPool = tournament.map_pool || [];
-    const mapCount = Array.isArray(mapPool) ? mapPool.length : 0;
+    const rawMapPool = tournament.map_pool;
+    let mapPool: string[] = [];
+    
+    // Safely handle the map pool JSON data
+    if (Array.isArray(rawMapPool)) {
+      mapPool = rawMapPool.map(id => String(id));
+    } else if (rawMapPool && typeof rawMapPool === 'object') {
+      // Handle case where it might be stored differently
+      mapPool = [];
+      health.issues.push('Tournament map pool format is invalid');
+    } else {
+      mapPool = [];
+    }
+    
+    const mapCount = mapPool.length;
     
     if (mapCount === 0) {
       health.issues.push('Tournament has no map pool defined');
@@ -197,7 +210,7 @@ export async function auditVetoSession(sessionId: string): Promise<VetoSessionHe
 
       // Check for invalid maps (not in tournament pool)
       for (const action of actions) {
-        if (action.map_id && !mapPool.includes(action.map_id)) {
+        if (action.map_id && mapPool.length > 0 && !mapPool.includes(String(action.map_id))) {
           health.issues.push(`Action contains map not in tournament pool: ${action.map_id}`);
         }
       }
