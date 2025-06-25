@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -48,7 +49,7 @@ export default function MapVetoManager({
     console.log(`🔄 MapVetoManager: Loading match and session data for match ${matchId}`);
     setLoading(true);
     try {
-      // Load match data with properly aliased team relationships
+      // Load match data with properly explicit team relationships
       const { data: matchData, error: matchError } = await supabase
         .from("matches")
         .select(`
@@ -56,8 +57,8 @@ export default function MapVetoManager({
           tournament:tournament_id (
             id, name, map_pool, enable_map_veto
           ),
-          team1:team1_id!inner (id, name),
-          team2:team2_id!inner (id, name)
+          teams!matches_team1_id_fkey (id, name),
+          teams!matches_team2_id_fkey (id, name)
         `)
         .eq("id", matchId)
         .maybeSingle();
@@ -67,8 +68,8 @@ export default function MapVetoManager({
       
       console.log(`✅ MapVetoManager: Loaded match data:`, {
         matchId,
-        team1: matchData.team1?.name,
-        team2: matchData.team2?.name,
+        team1: matchData.teams?.[0]?.name || team1Name,
+        team2: matchData.teams?.[1]?.name || team2Name,
         tournament: matchData.tournament?.name,
         mapVetoEnabled: matchData.tournament?.enable_map_veto
       });
@@ -157,7 +158,7 @@ export default function MapVetoManager({
     } finally {
       setLoading(false);
     }
-  }, [matchId, toast, userTeamId, team1Id, team2Id]);
+  }, [matchId, toast, userTeamId, team1Id, team2Id, team1Name, team2Name]);
 
   const checkVetoSession = useCallback(() => {
     console.log(`🔄 MapVetoManager: Refreshing veto session data`);
@@ -276,9 +277,9 @@ export default function MapVetoManager({
   const canParticipate = userTeamId && (userTeamId === team1Id || userTeamId === team2Id);
   const teamSize = 5; // Default team size
 
-  // Labels for home/away teams
-  const homeLabel = vetoSession?.home_team_id === team1Id ? team1Name : team2Name;
-  const awayLabel = vetoSession?.away_team_id === team1Id ? team1Name : team2Name;
+  // Labels for home/away teams - use passed props as fallback
+  const homeLabel = vetoSession?.home_team_id === team1Id ? (team1Name || 'Team 1') : (team2Name || 'Team 2');
+  const awayLabel = vetoSession?.away_team_id === team1Id ? (team1Name || 'Team 1') : (team2Name || 'Team 2');
   const rollInfo = {
     roll_seed: vetoSession?.roll_seed,
     roll_timestamp: vetoSession?.roll_timestamp,
