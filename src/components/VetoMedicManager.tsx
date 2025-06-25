@@ -42,10 +42,10 @@ interface VetoSession {
     tournaments?: {
       name: string;
       map_pool: any; // Changed from any[] to any to match Supabase Json type
-    };
-    team1?: { name: string };
-    team2?: { name: string };
-  };
+    } | null;
+    team1?: { name: string } | null;
+    team2?: { name: string } | null;
+  } | null;
 }
 
 interface Tournament {
@@ -118,7 +118,17 @@ const VetoMedicManager = () => {
 
       if (error) throw error;
 
-      const sessionsData = data || [];
+      // Transform the data to match our interface, handling potential null values
+      const sessionsData = (data || []).map((session: any) => ({
+        ...session,
+        matches: session.matches ? {
+          ...session.matches,
+          tournaments: session.matches.tournaments || null,
+          team1: session.matches.team1 || null,
+          team2: session.matches.team2 || null,
+        } : null
+      })) as VetoSession[];
+
       setSessions(sessionsData);
       
       console.log(`✅ VetoMedic: Loaded ${sessionsData.length} veto sessions`);
