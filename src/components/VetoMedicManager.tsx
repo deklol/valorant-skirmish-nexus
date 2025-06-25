@@ -41,7 +41,7 @@ interface VetoSession {
     team2_id: string;
     tournaments?: {
       name: string;
-      map_pool: any[];
+      map_pool: any; // Changed from any[] to any to match Supabase Json type
     };
     team1?: { name: string };
     team2?: { name: string };
@@ -562,10 +562,9 @@ const VetoMedicManager = () => {
           </div>
 
           {/* System Audit Panel */}
-          {showAuditPanel && systemAuditResult && (
+          {showAuditPanel && (
             <MapVetoAuditPanel 
-              auditResult={systemAuditResult}
-              onClose={() => setShowAuditPanel(false)}
+              tournamentId={selectedTournament || undefined}
             />
           )}
 
