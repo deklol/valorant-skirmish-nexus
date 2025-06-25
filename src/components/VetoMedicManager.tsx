@@ -1,757 +1,709 @@
-import React, { useEffect, useState, useCallback } from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import React, { useState, useEffect, useCallback } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Map, RefreshCw, ShieldAlert, CheckCircle2, XCircle } from "lucide-react";
+import { 
+  Search, 
+  RefreshCw, 
+  ShieldAlert, 
+  AlertTriangle, 
+  CheckCircle, 
+  XCircle, 
+  Wrench,
+  Trash2,
+  Activity,
+  Settings,
+  Zap
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import MapPickerDialog from "./MapPickerDialog";
-import VetoMedicHistory from "./VetoMedicHistory";
-import { generateBO1VetoFlow } from "./map-veto/vetoFlowBO1";
-import { checkVetoSessionHealth } from "./map-veto/vetoHealthUtils";
-import { AlertCircle, ShieldCheck, RotateCcw } from "lucide-react";
-import { processMatchResults } from "./MatchResultsProcessor";
-import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
-
-// --- Enhanced interfaces for defensive types ---
-interface TeamInfo {
-  id: string;
-  name: string;
-}
-
-interface TournamentInfo {
-  id: string;
-  name: string;
-}
-
-interface MatchInfo {
-  id: string;
-  tournament: TournamentInfo | null;
-  team1: TeamInfo | null;
-  team2: TeamInfo | null;
-}
+import { 
+  auditMapVetoSystem, 
+  auditVetoSession, 
+  cleanupVetoSessions,
+  VetoAuditResult,
+  VetoSessionHealth 
+} from "@/utils/mapVetoAudit";
+import MapVetoAuditPanel from "./MapVetoAuditPanel";
 
 interface VetoSession {
   id: string;
-  match_id: string | null;
-  match: MatchInfo | null;
-  status: string | null;
-  current_turn_team_id: string | null;
-  started_at: string | null;
-  completed_at: string | null;
-  home_team_id: string | null;
-  away_team_id: string | null;
+  match_id: string;
+  status: string;
+  created_at: string;
+  home_team_id?: string;
+  away_team_id?: string;
+  current_turn_team_id?: string;
+  matches?: {
+    tournament_id: string;
+    team1_id: string;
+    team2_id: string;
+    tournaments?: {
+      name: string;
+      map_pool: any[];
+    };
+    team1?: { name: string };
+    team2?: { name: string };
+  };
 }
 
-type VetoSessionWithDetails = VetoSession;
+interface Tournament {
+  id: string;
+  name: string;
+}
 
-export default function VetoMedicManager() {
-  const [sessions, setSessions] = useState<VetoSessionWithDetails[]>([]);
+const VetoMedicManager = () => {
+  const [sessions, setSessions] = useState<VetoSession[]>([]);
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [selectedTournament, setSelectedTournament] = useState<string>("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
-  const [actionSessionId, setActionSessionId] = useState<string | null>(null);
-  const [forceDialogOpen, setForceDialogOpen] = useState(false);
-  const [maps, setMaps] = useState<any[]>([]);
-  const [pickableMaps, setPickableMaps] = useState<any[]>([]);
-  const [forceSession, setForceSession] = useState<VetoSessionWithDetails | null>(null);
-  const [actionsBySession, setActionsBySession] = useState<Record<string, any[]>>({});
-  const [actionsLoadingBySession, setActionsLoadingBySession] = useState<Record<string, boolean>>({});
-  const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [search, setSearch] = useState<string>("");
+  const [systemAuditResult, setSystemAuditResult] = useState<VetoAuditResult | null>(null);
+  const [sessionHealthData, setSessionHealthData] = useState<Record<string, VetoSessionHealth>>({});
+  const [showAuditPanel, setShowAuditPanel] = useState(false);
   const { toast } = useToast();
-  const [healthCheckResults, setHealthCheckResults] = useState<Record<string, any>>({});
-  const [healthLoadingId, setHealthLoadingId] = useState<string | null>(null);
-  
-  // Add notification hooks for proper match processing
-  const {
-    notifyMatchComplete,
-    notifyTournamentWinner,
-    notifyMatchReady,
-  } = useEnhancedNotifications();
 
-  // Fetch ALL veto sessions (not limited to pending/in_progress!)
-  const fetchSessions = useCallback(async () => {
-    setLoading(true);
-
+  // Load tournaments for filtering
+  const loadTournaments = useCallback(async () => {
+    console.log("🔄 VetoMedic: Loading tournaments for filter dropdown");
     try {
       const { data, error } = await supabase
+        .from("tournaments")
+        .select("id, name")
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+      setTournaments(data || []);
+      console.log(`✅ VetoMedic: Loaded ${data?.length || 0} tournaments`);
+    } catch (error: any) {
+      console.error("❌ VetoMedic: Failed to load tournaments:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load tournaments",
+        variant: "destructive",
+      });
+    }
+  }, [toast]);
+
+  // Load veto sessions with comprehensive data
+  const loadVetoSessions = useCallback(async () => {
+    console.log("🔄 VetoMedic: Loading veto sessions with comprehensive data");
+    setLoading(true);
+    
+    try {
+      let query = supabase
         .from("map_veto_sessions")
         .select(`
           *,
-          match:match_id (
-            id,
-            tournament:tournament_id ( id, name ),
-            team1:team1_id ( id, name ),
-            team2:team2_id ( id, name )
+          matches!inner(
+            tournament_id,
+            team1_id,
+            team2_id,
+            tournaments!inner(name, map_pool),
+            team1:team1_id(name),
+            team2:team2_id(name)
           )
         `)
-        .order("started_at", { ascending: false })
-        .limit(40);
+        .order("created_at", { ascending: false });
 
-      if (error) {
-        toast({ title: "Error", description: error.message, variant: "destructive" });
-        setSessions([]);
-      } else {
-        const sessionsData = (data || []).map((session: any) => ({
-          ...session,
-          match_id: session.match_id ?? null,
-          home_team_id: session.home_team_id ?? null,
-          away_team_id: session.away_team_id ?? null,
-          match: session.match
-            ? {
-                ...session.match,
-                tournament: session.match.tournament && session.match.tournament.id
-                  ? session.match.tournament
-                  : null,
-                team1: session.match.team1 && session.match.team1.id
-                  ? session.match.team1
-                  : null,
-                team2: session.match.team2 && session.match.team2.id
-                  ? session.match.team2
-                  : null,
-              }
-            : null,
-        }));
-        setSessions(sessionsData);
-        
-        // Auto-fetch veto actions for all sessions to fix the data display
-        sessionsData.forEach((session: VetoSessionWithDetails) => {
-          fetchVetoActions(session.id);
-        });
+      // Apply tournament filter if selected
+      if (selectedTournament) {
+        query = query.eq("matches.tournament_id", selectedTournament);
+        console.log(`🔍 VetoMedic: Filtering by tournament ${selectedTournament}`);
       }
-    } catch (err) {
-      console.error('Error fetching sessions:', err);
-      setSessions([]);
-    }
-    setLoading(false);
-  }, [toast]);
 
-  // Fetch all active maps once
-  const fetchMaps = useCallback(async () => {
-    const { data, error } = await supabase
-      .from("maps")
-      .select("*")
-      .eq("is_active", true)
-      .order("display_name", { ascending: true });
-    if (!error) setMaps(data || []);
-  }, []);
+      const { data, error } = await query.limit(100);
 
-  useEffect(() => {
-    fetchSessions();
-    fetchMaps();
-  }, [fetchSessions, fetchMaps]);
+      if (error) throw error;
 
-  // Filtering, search, and status controls
-  const filteredSessions = sessions.filter(session => {
-    let sessionStatus = filterStatus === "all" || session.status === filterStatus;
-    let s = search.trim().toLowerCase();
-    let sessionSearch =
-      !s ||
-      [
-        session.match?.tournament?.name,
-        session.match?.team1?.name,
-        session.match?.team2?.name,
-        session.id,
-        session.id?.slice(0, 8),
-        session.match_id
-      ]
-        .filter(Boolean)
-        .some(field => field!.toLowerCase().includes(s));
-    return sessionStatus && sessionSearch;
-  });
-
-  // When viewing session details, fetch actions (not audit log)
-  const fetchVetoActions = useCallback(async (sessionId: string) => {
-    setActionsLoadingBySession((m) => ({ ...m, [sessionId]: true }));
-    const { data, error } = await supabase
-      .from("map_veto_actions")
-      .select("*, maps:map_id(display_name), users:performed_by(discord_username)")
-      .eq("veto_session_id", sessionId)
-      .order("order_number", { ascending: true });
-
-    setActionsBySession((a) => ({
-      ...a,
-      [sessionId]: error ? [] : (data || []),
-    }));
-    setActionsLoadingBySession((m) => ({ ...m, [sessionId]: false }));
-  }, []);
-
-  // Enhanced force complete with proper bracket progression
-  const handleForceConfirm = async (selectedMapIds: string[]) => {
-    if (!forceSession) return;
-    setActionSessionId(forceSession.id);
-    
-    try {
-      let sessionRow = forceSession;
-      const team1Id = sessionRow.match?.team1?.id || null;
-      const team2Id = sessionRow.match?.team2?.id || null;
-      const currentTurnTeamId = sessionRow.current_turn_team_id;
-      const matchId = sessionRow.match_id;
-      const tournamentId = sessionRow.match?.tournament?.id;
+      const sessionsData = data || [];
+      setSessions(sessionsData);
       
-      let oppositeTeam: string | null = null;
-      if (team1Id && team2Id && currentTurnTeamId) {
-        oppositeTeam = currentTurnTeamId === team1Id ? team2Id : team1Id;
-      }
-
-      console.log('🎯 Force completing veto session:', {
-        sessionId: sessionRow.id,
-        matchId,
-        tournamentId,
-        selectedMaps: selectedMapIds.length,
-        currentTurn: currentTurnTeamId,
-        oppositeTeam
+      console.log(`✅ VetoMedic: Loaded ${sessionsData.length} veto sessions`);
+      console.log("📊 VetoMedic: Session status breakdown:", {
+        pending: sessionsData.filter(s => s.status === 'pending').length,
+        in_progress: sessionsData.filter(s => s.status === 'in_progress').length,
+        completed: sessionsData.filter(s => s.status === 'completed').length,
       });
 
-      // Insert pick actions for each selected map as 'pick'
-      for (const mapId of selectedMapIds) {
-        await supabase.from("map_veto_actions").insert({
-          veto_session_id: sessionRow.id,
-          team_id: oppositeTeam,
-          map_id: mapId,
-          action: "pick",
-          performed_by: null,
-          order_number: await getNextOrderNumber(sessionRow.id),
-        });
-      }
-
-      // Mark session as completed
-      await supabase
-        .from("map_veto_sessions")
-        .update({
-          status: "completed",
-          completed_at: new Date().toISOString(),
-        })
-        .eq("id", sessionRow.id);
-
-      console.log('✅ Veto session marked as completed');
-      
-      // If this veto completion should trigger match completion, handle it
-      if (matchId && tournamentId && team1Id && team2Id) {
-        console.log('🏆 Checking if match should be completed after veto...');
-        
-        // Get the current match status
-        const { data: match } = await supabase
-          .from('matches')
-          .select('status, winner_id, score_team1, score_team2')
-          .eq('id', matchId)
-          .single();
-
-        // If the match already has a winner and scores, process the results
-        if (match && match.winner_id && (match.score_team1 > 0 || match.score_team2 > 0)) {
-          console.log('🎯 Match has winner and scores, processing results...');
-          
-          const winnerId = match.winner_id;
-          const loserId = winnerId === team1Id ? team2Id : team1Id;
-          
-          await processMatchResults(
-            {
-              matchId,
-              winnerId,
-              loserId,
-              tournamentId,
-              scoreTeam1: match.score_team1 || 0,
-              scoreTeam2: match.score_team2 || 0,
-            },
-            {
-              toast: (args) => toast({
-                ...args,
-                variant: (args.variant ?? "default") as "default" | "destructive",
-              }),
-              notifyMatchComplete,
-              notifyTournamentWinner,
-              notifyMatchReady,
-            }
-          );
-          
-          console.log('✅ Match results processed after veto completion');
-        } else {
-          console.log('ℹ️ Match not ready for completion (no winner or scores yet)');
+      // Load individual session health data
+      const healthPromises = sessionsData.map(async (session) => {
+        try {
+          const health = await auditVetoSession(session.id);
+          console.log(`🔍 VetoMedic: Session ${session.id.slice(0,8)} health check:`, {
+            issues: health.issues.length,
+            isStuck: health.isStuck,
+            actionCount: health.actionCount,
+            expectedActions: health.expectedActions
+          });
+          return { sessionId: session.id, health };
+        } catch (error) {
+          console.error(`❌ VetoMedic: Failed to audit session ${session.id}:`, error);
+          return { sessionId: session.id, health: null };
         }
-      }
-
-      toast({
-        title: "Veto Forced Complete",
-        description: `Veto session forcibly completed. Map(s) selected and bracket progression checked.`,
       });
-      
-      fetchSessions();
+
+      const healthResults = await Promise.all(healthPromises);
+      const healthMap = healthResults.reduce((acc, { sessionId, health }) => {
+        if (health) acc[sessionId] = health;
+        return acc;
+      }, {} as Record<string, VetoSessionHealth>);
+
+      setSessionHealthData(healthMap);
+      console.log(`✅ VetoMedic: Completed health checks for ${Object.keys(healthMap).length} sessions`);
+
     } catch (error: any) {
-      console.error('❌ Error in force complete:', error);
+      console.error("❌ VetoMedic: Failed to load veto sessions:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to complete veto.",
+        description: "Failed to load veto sessions",
         variant: "destructive",
       });
     } finally {
-      setActionSessionId(null);
-      setForceDialogOpen(false);
+      setLoading(false);
+    }
+  }, [selectedTournament, toast]);
+
+  // System-wide audit function
+  const runSystemAudit = async () => {
+    console.log("🔄 VetoMedic: Starting comprehensive system audit");
+    setLoading(true);
+    
+    try {
+      const auditResult = await auditMapVetoSystem(selectedTournament || undefined);
+      setSystemAuditResult(auditResult);
+      setShowAuditPanel(true);
+      
+      console.log("✅ VetoMedic: System audit completed:", {
+        isHealthy: auditResult.isHealthy,
+        totalSessions: auditResult.sessionCount,
+        completedSessions: auditResult.completedSessions,
+        issuesFound: auditResult.issues.length,
+        warningsFound: auditResult.warnings.length,
+        recommendations: auditResult.recommendations.length
+      });
+
+      toast({
+        title: auditResult.isHealthy ? "System Healthy" : "Issues Found",
+        description: auditResult.isHealthy 
+          ? `All ${auditResult.sessionCount} sessions are healthy`
+          : `Found ${auditResult.issues.length} issues and ${auditResult.warnings.length} warnings`,
+        variant: auditResult.isHealthy ? "default" : "destructive",
+      });
+    } catch (error: any) {
+      console.error("❌ VetoMedic: System audit failed:", error);
+      toast({
+        title: "Audit Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Enhanced reset with better state management
-  const resetSession = async (sessionId: string) => {
-    setActionSessionId(sessionId);
+  // Enhanced cleanup function
+  const cleanupStuckSessions = async () => {
+    console.log("🔄 VetoMedic: Starting cleanup of stuck sessions");
+    
+    const stuckSessionIds = Object.entries(sessionHealthData)
+      .filter(([_, health]) => health.isStuck)
+      .map(([sessionId]) => sessionId);
+
+    if (stuckSessionIds.length === 0) {
+      console.log("ℹ️ VetoMedic: No stuck sessions found to cleanup");
+      toast({
+        title: "No Cleanup Needed",
+        description: "No stuck sessions found",
+      });
+      return;
+    }
+
+    console.log(`🧹 VetoMedic: Cleaning up ${stuckSessionIds.length} stuck sessions:`, stuckSessionIds.map(id => id.slice(0,8)));
+    
+    setLoading(true);
     try {
-      console.log('🔄 Resetting veto session:', sessionId);
+      const cleanupResult = await cleanupVetoSessions(stuckSessionIds);
       
-      // 1. Delete all actions for this session
-      const { error: actionsErr } = await supabase
-        .from("map_veto_actions")
-        .delete()
-        .eq("veto_session_id", sessionId);
-      if (actionsErr) throw actionsErr;
+      console.log("✅ VetoMedic: Cleanup completed:", {
+        cleaned: cleanupResult.cleaned,
+        errors: cleanupResult.errors.length,
+        errorDetails: cleanupResult.errors
+      });
 
-      // 2. Fetch the session to get the home_team_id
-      const { data: sessionRow, error: sessionFetchErr } = await supabase
-        .from("map_veto_sessions")
-        .select("home_team_id, match_id")
-        .eq("id", sessionId)
-        .maybeSingle();
-      if (sessionFetchErr) throw sessionFetchErr;
+      toast({
+        title: "Cleanup Completed",
+        description: `Cleaned ${cleanupResult.cleaned} sessions${cleanupResult.errors.length > 0 ? ` (${cleanupResult.errors.length} errors)` : ''}`,
+        variant: cleanupResult.errors.length > 0 ? "destructive" : "default",
+      });
 
-      // 3. Reset the session itself, setting current_turn_team_id to home_team_id
-      const { error: sessionErr } = await supabase
+      // Reload sessions after cleanup
+      await loadVetoSessions();
+    } catch (error: any) {
+      console.error("❌ VetoMedic: Cleanup failed:", error);
+      toast({
+        title: "Cleanup Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const checkVetoSessionHealth = async (sessionId: string) => {
+    console.log(`🔍 VetoMedic: Checking health for session ${sessionId.slice(0,8)}`);
+    
+    try {
+      const health = await auditVetoSession(sessionId);
+      
+      console.log(`📊 VetoMedic: Session ${sessionId.slice(0,8)} health details:`, {
+        status: health.status,
+        issues: health.issues,
+        isStuck: health.isStuck,
+        actionCount: health.actionCount,
+        expectedActions: health.expectedActions,
+        lastActivity: health.lastActivity
+      });
+
+      // Update the session health data
+      setSessionHealthData(prev => ({
+        ...prev,
+        [sessionId]: health
+      }));
+
+      if (health.issues.length === 0) {
+        toast({
+          title: "Session Healthy",
+          description: `Session ${sessionId.slice(0,8)} has no issues`,
+        });
+      } else {
+        toast({
+          title: "Issues Found",
+          description: `${health.issues.length} issues in session ${sessionId.slice(0,8)}`,
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      console.error(`❌ VetoMedic: Health check failed for session ${sessionId}:`, error);
+      toast({
+        title: "Health Check Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const resetVetoSession = async (sessionId: string) => {
+    console.log(`🔄 VetoMedic: Resetting veto session ${sessionId.slice(0,8)}`);
+    
+    try {
+      const { error } = await supabase
         .from("map_veto_sessions")
-        .update({
+        .update({ 
           status: "pending",
-          current_turn_team_id: sessionRow?.home_team_id || null,
-          started_at: null,
-          completed_at: null,
+          current_turn_team_id: null,
+          home_team_id: null,
+          away_team_id: null,
+          roll_seed: null,
+          roll_timestamp: null,
+          roll_initiator_id: null
         })
         .eq("id", sessionId);
 
-      if (sessionErr) throw sessionErr;
+      if (error) throw error;
 
-      console.log('✅ Veto session reset successfully');
-      
-      toast({
-        title: "Veto Reset",
-        description: "Veto session has been reset. Home team is now set for first turn.",
-      });
-      
-      fetchSessions();
-    } catch (err: any) {
-      console.error('❌ Error resetting session:', err);
-      toast({
-        title: "Error",
-        description: err.message || "Failed to reset veto session.",
-        variant: "destructive"
-      });
-    } finally {
-      setActionSessionId(null);
-    }
-  };
-
-  // Open the force-complete dialog, fetch possible maps to pick
-  const openForceDialog = async (session: VetoSessionWithDetails) => {
-    setForceSession(session);
-    setActionSessionId(session.id);
-
-    // 1. Find maps not yet picked/banned in this session
-    const { data: takenMaps, error: actionsErr } = await supabase
-      .from("map_veto_actions")
-      .select("map_id")
-      .eq("veto_session_id", session.id);
-
-    if (actionsErr) {
-      toast({ title: "Error", description: actionsErr.message, variant: "destructive" });
-      setForceSession(null);
-      setActionSessionId(null);
-      return;
-    }
-    const takenIds = (takenMaps || []).map(a => a.map_id);
-    const availableMaps = maps.filter((m: any) => !takenIds.includes(m.id));
-    setPickableMaps(availableMaps || []);
-    setForceDialogOpen(true);
-    setActionSessionId(null);
-  };
-
-  // Helper to get the next order number for actions in a session
-  async function getNextOrderNumber(vetoSessionId: string): Promise<number> {
-    const { data, error } = await supabase
-      .from("map_veto_actions")
-      .select("order_number")
-      .eq("veto_session_id", vetoSessionId)
-      .order("order_number", { ascending: false })
-      .limit(1);
-
-    if (error || !data || !data[0]) return 1;
-    return (data[0].order_number || 0) + 1;
-  }
-
-  const handleRollbackLast = async (sessionId: string) => {
-    setActionSessionId(sessionId);
-    try {
-      const actions = actionsBySession[sessionId] || [];
-      if (!actions.length) throw new Error("No veto actions to rollback");
-      const last = actions[actions.length - 1];
-      await supabase
+      // Also delete all veto actions for this session
+      const { error: actionsError } = await supabase
         .from("map_veto_actions")
         .delete()
-        .eq("id", last.id);
-      toast({ title: "Rolled Back", description: `Action #${last.order_number}: ${last.action} on ${last.maps?.display_name || last.map_id || "?"}` });
-      console.log("[VETO ROLLBACK]", last);
-      await fetchVetoActions(sessionId);
-      fetchSessions();
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
-    } finally {
-      setActionSessionId(null);
+        .eq("veto_session_id", sessionId);
+
+      if (actionsError) {
+        console.warn(`⚠️ VetoMedic: Failed to delete actions for session ${sessionId}:`, actionsError);
+      }
+
+      console.log(`✅ VetoMedic: Successfully reset session ${sessionId.slice(0,8)}`);
+      
+      toast({
+        title: "Session Reset",
+        description: `Session ${sessionId.slice(0,8)} has been reset to pending`,
+      });
+
+      loadVetoSessions();
+    } catch (error: any) {
+      console.error(`❌ VetoMedic: Failed to reset session ${sessionId}:`, error);
+      toast({
+        title: "Reset Failed",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
-  // Helper for progress steps calculation
-  function getCanonicalProgressStats(session: VetoSessionWithDetails, allActions: any[], allMaps: any[]) {
-    const team1Id = session.match?.team1?.id || null;
-    const team2Id = session.match?.team2?.id || null;
-    if (!team1Id || !team2Id || allMaps.length < 2) return { completed: 0, total: allMaps.length };
+  const forceCompleteVeto = async (sessionId: string) => {
+    console.log(`🔄 VetoMedic: Force completing veto session ${sessionId.slice(0,8)}`);
     
-    // Use safe fallback values for home/away team IDs
-    const homeTeamId = session.home_team_id || team1Id;
-    const awayTeamId = session.away_team_id || team2Id;
+    try {
+      const { error } = await supabase
+        .from("map_veto_sessions")
+        .update({ 
+          status: "completed",
+          completed_at: new Date().toISOString()
+        })
+        .eq("id", sessionId);
+
+      if (error) throw error;
+
+      console.log(`✅ VetoMedic: Successfully force completed session ${sessionId.slice(0,8)}`);
+      
+      toast({
+        title: "Session Completed",
+        description: `Session ${sessionId.slice(0,8)} has been force completed`,
+      });
+
+      loadVetoSessions();
+    } catch (error: any) {
+      console.error(`❌ VetoMedic: Failed to force complete session ${sessionId}:`, error);
+      toast({
+        title: "Force Complete Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const rollbackLastAction = async (sessionId: string) => {
+    console.log(`🔄 VetoMedic: Rolling back last action for session ${sessionId.slice(0,8)}`);
     
-    const vetoFlow = generateBO1VetoFlow({
-      homeTeamId,
-      awayTeamId,
-      tournamentMapPool: allMaps.map((m: any) => ({ id: m.id, name: m.display_name || m.name })),
-    });
+    try {
+      // Get the last action
+      const { data: lastAction, error: getError } = await supabase
+        .from("map_veto_actions")
+        .select("*")
+        .eq("veto_session_id", sessionId)
+        .order("order_number", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (getError || !lastAction) {
+        throw new Error("No actions to rollback");
+      }
+
+      console.log(`🔄 VetoMedic: Found last action to rollback:`, {
+        actionId: lastAction.id,
+        action: lastAction.action,
+        mapId: lastAction.map_id,
+        orderNumber: lastAction.order_number
+      });
+
+      // Delete the last action
+      const { error: deleteError } = await supabase
+        .from("map_veto_actions")
+        .delete()
+        .eq("id", lastAction.id);
+
+      if (deleteError) throw deleteError;
+
+      // Update session status back to in_progress if it was completed
+      const { error: updateError } = await supabase
+        .from("map_veto_sessions")
+        .update({ 
+          status: "in_progress",
+          completed_at: null
+        })
+        .eq("id", sessionId);
+
+      if (updateError) throw updateError;
+
+      console.log(`✅ VetoMedic: Successfully rolled back last action for session ${sessionId.slice(0,8)}`);
+      
+      toast({
+        title: "Action Rolled Back",
+        description: `Last action for session ${sessionId.slice(0,8)} has been removed`,
+      });
+
+      loadVetoSessions();
+    } catch (error: any) {
+      console.error(`❌ VetoMedic: Failed to rollback action for session ${sessionId}:`, error);
+      toast({
+        title: "Rollback Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Filter sessions based on search term
+  const filteredSessions = sessions.filter((session) => {
+    const searchLower = searchTerm.toLowerCase();
+    const matchData = session.matches;
     
-    const total = vetoFlow.filter(s => s.action === "ban" || s.action === "pick").length;
-    const completed = (allActions || []).filter((a: any) => a.action === "ban" || a.action === "pick").length;
-    return { completed, total };
-  }
+    return (
+      session.id.toLowerCase().includes(searchLower) ||
+      session.status.toLowerCase().includes(searchLower) ||
+      matchData?.tournaments?.name?.toLowerCase().includes(searchLower) ||
+      matchData?.team1?.name?.toLowerCase().includes(searchLower) ||
+      matchData?.team2?.name?.toLowerCase().includes(searchLower)
+    );
+  });
+
+  // Get status badge variant
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "completed":
+        return "bg-green-500/20 text-green-400 border-green-500/30";
+      case "in_progress":
+        return "bg-blue-500/20 text-blue-400 border-blue-500/30";
+      case "pending":
+        return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
+      default:
+        return "bg-gray-500/20 text-gray-400 border-gray-500/30";
+    }
+  };
+
+  // Get health status icon
+  const getHealthIcon = (sessionId: string) => {
+    const health = sessionHealthData[sessionId];
+    if (!health) return <Activity className="w-4 h-4 text-gray-400" />;
+    
+    if (health.isStuck) return <XCircle className="w-4 h-4 text-red-400" />;
+    if (health.issues.length > 0) return <AlertTriangle className="w-4 h-4 text-yellow-400" />;
+    return <CheckCircle className="w-4 h-4 text-green-400" />;
+  };
+
+  // Load data on component mount
+  useEffect(() => {
+    console.log("🚀 VetoMedic: Component mounted, loading initial data");
+    loadTournaments();
+    loadVetoSessions();
+  }, [loadTournaments, loadVetoSessions]);
 
   return (
-    <>
+    <div className="space-y-6">
       <Card className="bg-slate-800 border-slate-700">
         <CardHeader>
-          <CardTitle className="flex gap-2 items-center text-white">
-            <ShieldAlert className="w-5 h-5 text-yellow-300" />
-            Veto Medic <span className="text-xs text-yellow-300">(Admin Veto Recovery)</span>
+          <CardTitle className="flex items-center gap-2 text-white">
+            <ShieldAlert className="w-5 h-5 text-red-400" />
+            Veto Medic
+            <span className="text-xs text-red-300">(Map Veto Emergency System)</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {/* Search/filter controls */}
-          <div className="mb-4 flex flex-wrap gap-2 items-center">
-            <Input
-              type="text"
-              placeholder="Search by tournament, team, or session ID"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="w-56"
-            />
-            <div className="flex gap-1">
-              {["all", "pending", "in_progress", "completed"].map(s =>
-                <Button
-                  key={s}
-                  variant={filterStatus === s ? "default" : "outline"}
-                  className={filterStatus === s ? "bg-yellow-600 text-white" : ""}
-                  size="sm"
-                  onClick={() => setFilterStatus(s)}
-                >
-                  {s === "all"
-                    ? "All"
-                    : s === "pending"
-                    ? "Pending"
-                    : s === "in_progress"
-                    ? "In Progress"
-                    : s === "completed"
-                    ? "Completed"
-                    : s}
-                </Button>
-              )}
+          {/* Enhanced Controls */}
+          <div className="flex flex-wrap gap-4 mb-6">
+            {/* Search */}
+            <div className="relative flex-1 min-w-[300px]">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search sessions by ID, status, tournament, or team..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 bg-slate-700 border-slate-600"
+              />
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={fetchSessions}
-              className="ml-auto"
-              disabled={loading}
+
+            {/* Tournament Filter */}
+            <select
+              value={selectedTournament}
+              onChange={(e) => setSelectedTournament(e.target.value)}
+              className="px-4 py-2 bg-slate-700 border border-slate-600 rounded-md text-white"
             >
-              <RefreshCw className="w-4 h-4 mr-1" />
+              <option value="">All Tournaments</option>
+              {tournaments.map((tournament) => (
+                <option key={tournament.id} value={tournament.id}>
+                  {tournament.name}
+                </option>
+              ))}
+            </select>
+
+            {/* Refresh Button */}
+            <Button
+              onClick={loadVetoSessions}
+              disabled={loading}
+              variant="outline"
+              className="border-slate-600"
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
           </div>
-          
-          {loading ? (
-            <div className="text-center text-slate-300 py-8">Loading veto sessions...</div>
-          ) : filteredSessions.length === 0 ? (
-            <div className="text-center text-slate-400 py-8">No veto sessions found.</div>
-          ) : (
-            <div className="space-y-4">
-              {filteredSessions.map((session) => {
-                const match = session.match;
-                const team1 = match?.team1;
-                const team2 = match?.team2;
-                const tournament = match?.tournament;
 
-                const actions = actionsBySession[session.id] || [];
-                const mapCount = maps.length;
-                let totalSteps = mapCount;
-                
-                // Use safe fallback values for team IDs
-                const homeTeamId = session.home_team_id || team1?.id;
-                const awayTeamId = session.away_team_id || team2?.id;
-                
-                const vetoFlowSteps = (team1 && team2 && mapCount > 1 && homeTeamId && awayTeamId)
-                  ? generateBO1VetoFlow({
-                      homeTeamId,
-                      awayTeamId,
-                      tournamentMapPool: maps.map(m => ({ id: m.id, name: m.display_name || m.name }))
-                    })
-                  : [];
-                  
-                const progressActions = actions.filter(a => a.action === 'ban' || a.action === 'pick');
-                const vetoProgressLabel = `${progressActions.length}/${vetoFlowSteps.filter(s => s.action !== 'side_pick').length || totalSteps}`;
+          {/* System-wide Actions */}
+          <div className="flex flex-wrap gap-2 mb-6 p-4 bg-slate-900/50 rounded-lg border border-slate-700">
+            <Button
+              onClick={runSystemAudit}
+              disabled={loading}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Zap className="w-4 h-4 mr-2" />
+              System Audit
+            </Button>
+            
+            <Button
+              onClick={cleanupStuckSessions}
+              disabled={loading || Object.values(sessionHealthData).filter(h => h.isStuck).length === 0}
+              className="bg-orange-600 hover:bg-orange-700"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Cleanup Stuck Sessions
+            </Button>
 
-                const onHealthCheck = async () => {
-                  setHealthLoadingId(session.id);
-                  const result = await checkVetoSessionHealth({
-                    session,
-                    actions,
-                    maps,
-                  });
-                  setHealthCheckResults(r => ({...r, [session.id]: result}));
-                  setHealthLoadingId(null);
-                  if (result.healthy) {
-                    toast({ title: "Health Check", description: "No problems found!" });
-                  } else {
-                    toast({
-                      title: "Healthcheck Problems",
-                      description: result.warnings.join(" | "),
-                      variant: "destructive",
-                    });
-                  }
-                };
+            <Button
+              onClick={() => setShowAuditPanel(!showAuditPanel)}
+              variant="outline"
+              className="border-slate-600"
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              {showAuditPanel ? 'Hide' : 'Show'} Audit Panel
+            </Button>
+          </div>
 
-                const onAutoRecover = async () => {
-                  setActionSessionId(session.id);
-                  try {
-                    let changed = false;
-                    for (let i = 0; i < actions.length; i++) {
-                      if (actions[i].order_number !== i+1) {
-                        await supabase
-                          .from("map_veto_actions")
-                          .update({ order_number: i+1 })
-                          .eq("id", actions[i].id);
-                        changed = true;
-                      }
-                    }
-                    const seen: Record<string, boolean> = {};
-                    for (let i = 0; i < actions.length; i++) {
-                      const mapId = actions[i].map_id;
-                      if (mapId && seen[mapId]) {
-                        await supabase
-                          .from("map_veto_actions")
-                          .delete()
-                          .eq("id", actions[i].id);
-                        changed = true;
-                        console.log("[AUTORECOVER]", `Removed duplicate veto action: ${actions[i].id}`);
-                      } else if (mapId) {
-                        seen[mapId] = true;
-                      }
-                    }
-                    fetchVetoActions(session.id);
-                    toast({ title: "Auto-recovery complete", description: changed ? "One or more fixes applied." : "Nothing to recover." });
-                  } catch (err: any) {
-                    toast({
-                      title: "Recovery Error",
-                      description: err.message || "Failed to auto-recover.",
-                      variant: "destructive"
-                    });
-                  } finally {
-                    setActionSessionId(null);
-                  }
-                };
+          {/* System Audit Panel */}
+          {showAuditPanel && systemAuditResult && (
+            <MapVetoAuditPanel 
+              auditResult={systemAuditResult}
+              onClose={() => setShowAuditPanel(false)}
+            />
+          )}
 
-                return (
-                  <div
-                    key={session.id}
-                    className="flex flex-col md:flex-row md:items-start md:justify-between border border-slate-700 bg-slate-900 rounded-lg p-4 shadow"
-                    id={`vetomedic-session-${session.id}`}
-                  >
-                    <div className="flex flex-col gap-1 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <Badge variant="outline" className={
-                          session.status === "in_progress"
-                            ? "bg-green-500/10 text-green-400 border-green-500/40"
-                            : session.status === "completed"
-                            ? "bg-blue-500/10 text-blue-400 border-blue-500/40"
-                            : "bg-yellow-500/10 text-yellow-400 border-yellow-500/40"
-                        }>
-                          {session.status === "in_progress"
-                            ? "In Progress"
-                            : session.status === "completed"
-                            ? "Completed"
-                            : "Pending"}
-                        </Badge>
-                        {tournament && (
-                          <span className="text-xs font-bold px-2 rounded bg-blue-900/60 text-sky-300">
-                            {tournament.name}
+          {/* Sessions List */}
+          <div className="space-y-4">
+            {loading && (
+              <div className="text-center py-8">
+                <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2" />
+                <p className="text-gray-400">Loading veto sessions...</p>
+              </div>
+            )}
+
+            {!loading && filteredSessions.length === 0 && (
+              <div className="text-center py-8 text-gray-400">
+                {sessions.length === 0 ? "No veto sessions found" : "No sessions match your search"}
+              </div>
+            )}
+
+            {!loading && filteredSessions.map((session) => {
+              const health = sessionHealthData[session.id];
+              const matchData = session.matches;
+
+              return (
+                <div
+                  key={session.id}
+                  className="p-6 bg-slate-900 rounded-lg border border-slate-700 space-y-4"
+                >
+                  {/* Session Header */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      {getHealthIcon(session.id)}
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-sm text-gray-300">
+                            {session.id.slice(0, 8)}...
                           </span>
-                        )}
-                        {(team1 || team2) && (
-                          <span className="text-xs px-2 text-blue-200 font-mono">
-                            {team1?.name || "?"} <span className="text-slate-500">vs</span> {team2?.name || "?"}
-                          </span>
-                        )}
-                        <span className="text-sm text-slate-200 font-mono">Session ID: {session.id.slice(0, 8)}...</span>
-                      </div>
-                      <div className="flex flex-col gap-0.5 text-xs mt-1">
-                        <span className="text-slate-400">
-                          <Map className="inline-block w-4 h-4 mr-1 text-slate-400" />
-                          Match ID: <span className="font-mono">{session.match_id || "?"}</span>
-                        </span>
-                        <span className="text-slate-500">
-                          Progress: <span className="font-mono">{vetoProgressLabel} actions</span>
-                          {session.status === "in_progress" && (
-                            <span> &middot; <span className="text-green-400">{actions.filter(a => a.action === "ban").length} bans</span>, <span className="text-blue-400">{actions.filter(a => a.action === "pick").length} picks</span></span>
-                          )}
-                        </span>
-                        {session.started_at && (
-                          <span className="text-slate-500">Started: {new Date(session.started_at).toLocaleString()}</span>
-                        )}
-                        {session.completed_at && (
-                          <span className="text-blue-400">Completed: {new Date(session.completed_at).toLocaleString()}</span>
-                        )}
-                      </div>
-                      
-                      {/* Veto action history */}
-                      <div className="bg-slate-800 border border-slate-700 mt-2 mb-1 rounded-lg p-2 max-w-xl">
-                        <div className="font-semibold text-sm text-yellow-200 mb-1">Veto Action History</div>
-                        <ol className="space-y-1">
-                          {actions.length === 0 && (
-                            <li className="text-slate-500 text-xs py-1">No actions yet.</li>
-                          )}
-                          {actions.map((act, idx) => (
-                            <li key={act.id} className="flex items-center justify-between text-xs bg-slate-700/40 p-1 rounded">
-                              <span className="flex items-center gap-3">
-                                <span className="text-slate-400 font-mono">#{idx + 1}</span>
-                                <span className={
-                                  act.action === "ban"
-                                    ? "bg-red-700/40 text-red-300 px-2 py-0.5 rounded font-bold"
-                                    : act.action === "pick"
-                                      ? "bg-green-700/30 text-green-200 px-2 py-0.5 rounded font-bold"
-                                      : "bg-blue-600/30 text-blue-100 px-2 py-0.5 rounded font-bold"
-                                }>
-                                  {act.action.toUpperCase()}
-                                </span>
-                                <span className="text-white font-medium">{act.maps?.display_name || "??"}</span>
-                                {act.action === "pick" && act.side_choice && (
-                                  <span className={
-                                    act.side_choice === "attack"
-                                      ? "bg-red-700/30 text-red-200 px-2 py-0.5 rounded font-bold"
-                                      : "bg-blue-700/30 text-blue-200 px-2 py-0.5 rounded font-bold"
-                                  }>
-                                    {act.side_choice.toUpperCase()} SIDE
-                                  </span>
-                                )}
-                                {act.users?.discord_username && (
-                                  <span className="ml-2 text-blue-200">by {act.users.discord_username}</span>
-                                )}
-                              </span>
-                              <span className="text-slate-400">{act.performed_at ? new Date(act.performed_at).toLocaleTimeString() : ""}</span>
-                            </li>
-                          ))}
-                        </ol>
-                      </div>
-
-                      {/* Health results */}
-                      {healthCheckResults[session.id] && (
-                        <div className="bg-slate-700/30 text-xs text-cyan-200 p-2 rounded mt-2 max-w-xl">
-                          <b>Session Health:</b> {healthCheckResults[session.id].healthy ? "OK" : "Issues Detected"}
-                          {healthCheckResults[session.id].warnings.length > 0 && (
-                            <ul className="mt-1 list-disc ml-4">
-                              {healthCheckResults[session.id].warnings.map((w: string, i: number) => (
-                                <li key={i}>{w}</li>
-                              ))}
-                            </ul>
-                          )}
-                          {healthCheckResults[session.id].fixable && (
-                            <div className="mt-1 text-green-300">
-                              Auto-recovery is available for this session.
-                            </div>
-                          )}
+                          <Badge className={getStatusBadge(session.status)}>
+                            {session.status}
+                          </Badge>
                         </div>
-                      )}
+                        <div className="text-xs text-gray-400 mt-1">
+                          {matchData?.tournaments?.name || "Unknown Tournament"}
+                        </div>
+                      </div>
                     </div>
-                    
-                    {/* Action buttons */}
-                    <div className="flex flex-col gap-2 items-end justify-end mt-2 md:mt-0">
-                      {/* Diagnostic Tools */}
-                      <div className="flex flex-col gap-1">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="border-cyan-500/40 text-cyan-300"
-                          onClick={onHealthCheck}
-                          disabled={!!actionSessionId || healthLoadingId === session.id}
-                        >
-                          <ShieldCheck className="w-4 h-4 mr-1" />
-                          {healthLoadingId === session.id ? "Checking..." : "Health Check"}
-                        </Button>
-                        {healthCheckResults[session.id]?.fixable && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="border-green-600/40 text-green-400"
-                            onClick={onAutoRecover}
-                            disabled={!!actionSessionId}
-                          >
-                            <RotateCcw className="w-4 h-4 mr-1" />
-                            Auto-Recover
-                          </Button>
-                        )}
-                      </div>
-
-                      {/* Action Tools */}
-                      <div className="flex flex-col gap-1">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="border-yellow-500/40 text-yellow-400"
-                          onClick={() => handleRollbackLast(session.id)}
-                          disabled={!!actionSessionId}
-                        >
-                          <AlertCircle className="w-4 h-4 mr-1" />
-                          Rollback Last
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="border-yellow-500/40 text-yellow-400"
-                          disabled={!!actionSessionId}
-                          onClick={() => resetSession(session.id)}
-                        >
-                          <RefreshCw className="w-4 h-4 mr-1" /> Reset Veto
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="border-green-600/40 text-green-400"
-                          disabled={!!actionSessionId}
-                          onClick={() => openForceDialog(session)}
-                        >
-                          <CheckCircle2 className="w-4 h-4 mr-1" /> Force Complete
-                        </Button>
-                      </div>
+                    <div className="text-xs text-gray-400">
+                      {new Date(session.created_at).toLocaleString()}
                     </div>
                   </div>
-                )
-              })}
-            </div>
-          )}
+
+                  {/* Teams */}
+                  <div className="flex items-center gap-4 text-sm">
+                    <span className="text-blue-400">
+                      {matchData?.team1?.name || "Team 1"}
+                    </span>
+                    <span className="text-gray-500">vs</span>
+                    <span className="text-blue-400">
+                      {matchData?.team2?.name || "Team 2"}
+                    </span>
+                  </div>
+
+                  {/* Health Information */}
+                  {health && (
+                    <div className="bg-slate-800 p-3 rounded border border-slate-600">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Activity className="w-4 h-4" />
+                        <span className="text-sm font-medium">Health Status</span>
+                      </div>
+                      <div className="text-xs space-y-1">
+                        <div>Actions: {health.actionCount}/{health.expectedActions}</div>
+                        <div>Last Activity: {health.lastActivity}</div>
+                        {health.issues.length > 0 && (
+                          <div className="text-red-400">
+                            Issues: {health.issues.join(", ")}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => checkVetoSessionHealth(session.id)}
+                      disabled={loading}
+                      className="border-slate-600"
+                    >
+                      <Activity className="w-4 h-4 mr-1" />
+                      Health Check
+                    </Button>
+
+                    {session.status !== "completed" && (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => resetVetoSession(session.id)}
+                          disabled={loading}
+                          className="border-yellow-600 text-yellow-400"
+                        >
+                          <RefreshCw className="w-4 h-4 mr-1" />
+                          Reset
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => forceCompleteVeto(session.id)}
+                          disabled={loading}
+                          className="border-green-600 text-green-400"
+                        >
+                          <CheckCircle className="w-4 h-4 mr-1" />
+                          Force Complete
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => rollbackLastAction(session.id)}
+                          disabled={loading}
+                          className="border-red-600 text-red-400"
+                        >
+                          <XCircle className="w-4 h-4 mr-1" />
+                          Rollback
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </CardContent>
       </Card>
-      <MapPickerDialog
-        open={forceDialogOpen}
-        onOpenChange={(open) => setForceDialogOpen(open)}
-        availableMaps={pickableMaps}
-        onConfirm={handleForceConfirm}
-        allowMultiPick={false}
-        loading={!!actionSessionId}
-      />
-    </>
+    </div>
   );
-}
+};
+
+export default VetoMedicManager;
