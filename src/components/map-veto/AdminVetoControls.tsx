@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
@@ -215,10 +214,10 @@ export default function AdminVetoControls({
         console.log(`✅ AdminVetoControls: Successfully deleted ${existingActions?.length || 0} actions for session ${shortId}`);
       }
 
-      // Step 3: Complete session reset with all fields nullified
+      // Step 3: Complete session reset with all fields nullified - properly typed status
       console.log(`🔄 AdminVetoControls: Resetting all session fields for ${shortId}`);
       const resetData = {
-        status: 'pending',
+        status: 'pending' as const, // Properly typed as literal
         current_turn_team_id: null,
         started_at: null,
         completed_at: null,
