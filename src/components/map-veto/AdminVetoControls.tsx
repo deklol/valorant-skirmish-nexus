@@ -168,14 +168,18 @@ export default function AdminVetoControls({
     
     setResettingVeto(true);
     try {
-      // Delete all veto actions
-      await supabase
+      // Delete all veto actions first
+      const { error: actionsError } = await supabase
         .from('map_veto_actions')
         .delete()
         .eq('veto_session_id', vetoSession.id);
 
-      // Reset session - CRITICAL FIX: Set current_turn_team_id to null instead of team1_id
-      await supabase
+      if (actionsError) {
+        console.warn(`⚠️ AdminVetoControls: Failed to delete actions:`, actionsError);
+      }
+
+      // Reset session completely - CRITICAL FIX: Clear ALL dice roll and turn data
+      const { error: sessionError } = await supabase
         .from('map_veto_sessions')
         .update({
           status: 'pending',
@@ -190,12 +194,17 @@ export default function AdminVetoControls({
         })
         .eq('id', vetoSession.id);
 
+      if (sessionError) throw sessionError;
+
+      console.log(`✅ AdminVetoControls: Successfully reset session ${vetoSession.id.slice(0,8)}`);
+
       toast({
         title: "Veto Session Reset",
-        description: "Veto session has been reset",
+        description: "Veto session has been completely reset",
       });
       onVetoAction();
     } catch (error: any) {
+      console.error(`❌ AdminVetoControls: Failed to reset session:`, error);
       toast({
         title: "Error",
         description: error.message || "Failed to reset veto session",
