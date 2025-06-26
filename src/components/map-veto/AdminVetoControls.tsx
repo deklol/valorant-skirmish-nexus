@@ -166,52 +166,129 @@ export default function AdminVetoControls({
   const resetVetoSession = async () => {
     if (!vetoSession) return;
     
+    const sessionId = vetoSession.id;
+    const shortId = sessionId.slice(0, 8);
+    
+    console.log(`🔄 AdminVetoControls: Starting complete reset of session ${shortId}`);
     setResettingVeto(true);
+    
     try {
-      // Delete all veto actions first
+      // Step 1: Get current session data for logging
+      const { data: currentSession } = await supabase
+        .from('map_veto_sessions')
+        .select('*')
+        .eq('id', sessionId)
+        .single();
+
+      if (currentSession) {
+        console.log(`📊 AdminVetoControls: Current session ${shortId} state:`, {
+          status: currentSession.status,
+          homeTeam: currentSession.home_team_id?.slice(0, 8),
+          awayTeam: currentSession.away_team_id?.slice(0, 8),
+          currentTurn: currentSession.current_turn_team_id?.slice(0, 8),
+          rollSeed: currentSession.roll_seed ? 'present' : 'null',
+          rollTimestamp: currentSession.roll_timestamp ? 'present' : 'null'
+        });
+      }
+
+      // Step 2: Count and delete all veto actions
+      const { data: existingActions, error: countError } = await supabase
+        .from('map_veto_actions')
+        .select('id, action, map_id')
+        .eq('veto_session_id', sessionId);
+
+      if (countError) {
+        console.warn(`⚠️ AdminVetoControls: Failed to count actions for ${shortId}:`, countError);
+      } else {
+        console.log(`📝 AdminVetoControls: Found ${existingActions?.length || 0} actions to delete for session ${shortId}`);
+      }
+
       const { error: actionsError } = await supabase
         .from('map_veto_actions')
         .delete()
-        .eq('veto_session_id', vetoSession.id);
+        .eq('veto_session_id', sessionId);
 
       if (actionsError) {
-        console.warn(`⚠️ AdminVetoControls: Failed to delete actions:`, actionsError);
+        console.error(`❌ AdminVetoControls: Failed to delete actions for ${shortId}:`, actionsError);
+        throw new Error(`Failed to delete veto actions: ${actionsError.message}`);
+      } else {
+        console.log(`✅ AdminVetoControls: Successfully deleted ${existingActions?.length || 0} actions for session ${shortId}`);
       }
 
-      // Reset session completely - CRITICAL FIX: Clear ALL dice roll and turn data
+      // Step 3: Complete session reset with all fields nullified
+      console.log(`🔄 AdminVetoControls: Resetting all session fields for ${shortId}`);
+      const resetData = {
+        status: 'pending',
+        current_turn_team_id: null,
+        started_at: null,
+        completed_at: null,
+        home_team_id: null,
+        away_team_id: null,
+        roll_seed: null,
+        roll_timestamp: null,
+        roll_initiator_id: null,
+        veto_order: null
+      };
+
       const { error: sessionError } = await supabase
         .from('map_veto_sessions')
-        .update({
-          status: 'pending',
-          current_turn_team_id: null, // FIXED: Don't preset to team1_id, let dice roll determine it
-          started_at: null,
-          completed_at: null,
-          home_team_id: null,
-          away_team_id: null,
-          roll_seed: null,
-          roll_timestamp: null,
-          roll_initiator_id: null
-        })
-        .eq('id', vetoSession.id);
+        .update(resetData)
+        .eq('id', sessionId);
 
-      if (sessionError) throw sessionError;
+      if (sessionError) {
+        console.error(`❌ AdminVetoControls: Failed to reset session ${shortId}:`, sessionError);
+        throw new Error(`Failed to reset session: ${sessionError.message}`);
+      }
 
-      console.log(`✅ AdminVetoControls: Successfully reset session ${vetoSession.id.slice(0,8)}`);
+      console.log(`✅ AdminVetoControls: Successfully reset session ${shortId} to clean state:`, resetData);
+
+      // Step 4: Verify reset was successful
+      const { data: verifySession } = await supabase
+        .from('map_veto_sessions')
+        .select('status, current_turn_team_id, home_team_id, away_team_id, roll_seed')
+        .eq('id', sessionId)
+        .single();
+
+      if (verifySession) {
+        console.log(`🔍 AdminVetoControls: Post-reset verification for ${shortId}:`, {
+          status: verifySession.status,
+          currentTurn: verifySession.current_turn_team_id,
+          homeTeam: verifySession.home_team_id,
+          awayTeam: verifySession.away_team_id,
+          rollSeed: verifySession.roll_seed
+        });
+
+        const isClean = verifySession.status === 'pending' &&
+                       verifySession.current_turn_team_id === null &&
+                       verifySession.home_team_id === null &&
+                       verifySession.away_team_id === null &&
+                       verifySession.roll_seed === null;
+
+        if (isClean) {
+          console.log(`🎉 AdminVetoControls: Session ${shortId} successfully reset to clean state`);
+        } else {
+          console.warn(`⚠️ AdminVetoControls: Session ${shortId} may not be completely clean after reset`);
+        }
+      }
 
       toast({
         title: "Veto Session Reset",
-        description: "Veto session has been completely reset",
+        description: `Session ${shortId} has been completely reset`,
       });
+      
+      // Trigger refresh
       onVetoAction();
+      
     } catch (error: any) {
-      console.error(`❌ AdminVetoControls: Failed to reset session:`, error);
+      console.error(`❌ AdminVetoControls: Reset failed for session ${shortId}:`, error);
       toast({
-        title: "Error",
+        title: "Reset Failed",
         description: error.message || "Failed to reset veto session",
         variant: "destructive",
       });
     } finally {
       setResettingVeto(false);
+      console.log(`🏁 AdminVetoControls: Reset operation completed for session ${shortId}`);
     }
   };
 
