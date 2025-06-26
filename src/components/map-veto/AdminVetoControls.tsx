@@ -174,18 +174,12 @@ export default function AdminVetoControls({
         .delete()
         .eq('veto_session_id', vetoSession.id);
 
-      // Reset session
-      const { data: matchData } = await supabase
-        .from('matches')
-        .select('team1_id')
-        .eq('id', matchId)
-        .single();
-
+      // Reset session - CRITICAL FIX: Set current_turn_team_id to null instead of team1_id
       await supabase
         .from('map_veto_sessions')
         .update({
           status: 'pending',
-          current_turn_team_id: matchData?.team1_id,
+          current_turn_team_id: null, // FIXED: Don't preset to team1_id, let dice roll determine it
           started_at: null,
           completed_at: null,
           home_team_id: null,
