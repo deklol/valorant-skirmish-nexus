@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -49,16 +48,14 @@ export default function MapVetoManager({
     console.log(`🔄 MapVetoManager: Loading match and session data for match ${matchId}`);
     setLoading(true);
     try {
-      // Load match data with properly explicit team relationships
+      // Load match data with simplified query to avoid table alias conflicts
       const { data: matchData, error: matchError } = await supabase
         .from("matches")
         .select(`
           *,
           tournament:tournament_id (
             id, name, map_pool, enable_map_veto
-          ),
-          teams!matches_team1_id_fkey (id, name),
-          teams!matches_team2_id_fkey (id, name)
+          )
         `)
         .eq("id", matchId)
         .maybeSingle();
@@ -66,15 +63,44 @@ export default function MapVetoManager({
       if (matchError) throw matchError;
       if (!matchData) throw new Error("Match not found");
       
+      // Load team names separately to avoid the table alias conflict
+      let team1Data = null;
+      let team2Data = null;
+      
+      if (matchData.team1_id) {
+        const { data } = await supabase
+          .from("teams")
+          .select("id, name")
+          .eq("id", matchData.team1_id)
+          .maybeSingle();
+        team1Data = data;
+      }
+      
+      if (matchData.team2_id) {
+        const { data } = await supabase
+          .from("teams")
+          .select("id, name")
+          .eq("id", matchData.team2_id)
+          .maybeSingle();
+        team2Data = data;
+      }
+
+      // Add team data to match object
+      const enrichedMatchData = {
+        ...matchData,
+        team1: team1Data,
+        team2: team2Data
+      };
+      
       console.log(`✅ MapVetoManager: Loaded match data:`, {
         matchId,
-        team1: matchData.teams?.[0]?.name || team1Name,
-        team2: matchData.teams?.[1]?.name || team2Name,
+        team1: team1Data?.name || team1Name,
+        team2: team2Data?.name || team2Name,
         tournament: matchData.tournament?.name,
         mapVetoEnabled: matchData.tournament?.enable_map_veto
       });
       
-      setMatch(matchData);
+      setMatch(enrichedMatchData);
 
       // Load tournament map pool
       if (matchData.tournament?.map_pool && Array.isArray(matchData.tournament.map_pool)) {
@@ -277,9 +303,9 @@ export default function MapVetoManager({
   const canParticipate = userTeamId && (userTeamId === team1Id || userTeamId === team2Id);
   const teamSize = 5; // Default team size
 
-  // Labels for home/away teams - use passed props as fallback
-  const homeLabel = vetoSession?.home_team_id === team1Id ? (team1Name || 'Team 1') : (team2Name || 'Team 2');
-  const awayLabel = vetoSession?.away_team_id === team1Id ? (team1Name || 'Team 1') : (team2Name || 'Team 2');
+  // Labels for home/away teams - use loaded team data as fallback to passed props
+  const homeLabel = vetoSession?.home_team_id === team1Id ? (match.team1?.name || team1Name || 'Team 1') : (match.team2?.name || team2Name || 'Team 2');
+  const awayLabel = vetoSession?.away_team_id === team1Id ? (match.team1?.name || team1Name || 'Team 1') : (match.team2?.name || team2Name || 'Team 2');
   const rollInfo = {
     roll_seed: vetoSession?.roll_seed,
     roll_timestamp: vetoSession?.roll_timestamp,
@@ -488,8 +514,8 @@ export default function MapVetoManager({
               onOpenChange={setVetoDialogOpen}
               matchId={matchId}
               vetoSessionId={vetoSession.id}
-              team1Name={team1Name || 'Team 1'}
-              team2Name={team2Name || 'Team 2'}
+              team1Name={match.team1?.name || team1Name || 'Team 1'}
+              team2Name={match.team2?.name || team2Name || 'Team 2'}
               currentTeamTurn={vetoSession.current_turn_team_id || team1Id}
               userTeamId={userTeamId}
               isUserCaptain={isUserCaptain}
