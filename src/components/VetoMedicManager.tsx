@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -122,7 +121,7 @@ export default function VetoMedicManager() {
       const health = analyzeSessionHealth(session);
       console.log(`🔍 VetoMedic: Checking health for session ${session.id.slice(0, 8)}`);
       console.log(`📊 VetoMedic: Session ${session.id.slice(0, 8)} health details:`, {
-        status: health.status,
+        status: session.status,
         issues: health.issues,
         isStuck: health.isStuck,
         actionCount: health.actionCount,
