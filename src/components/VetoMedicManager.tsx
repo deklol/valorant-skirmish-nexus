@@ -5,7 +5,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { AlertTriangle, RefreshCw, RotateCcw, MapPin, CheckCircle, XCircle, Clock, Users } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertTriangle, RefreshCw, RotateCcw, MapPin, CheckCircle, XCircle, Clock, Users, Undo, Play, Settings } from "lucide-react";
 
 interface VetoSession {
   id: string;
@@ -53,8 +54,10 @@ interface HealthStatus {
 
 export default function VetoMedicManager() {
   const [vetoSessions, setVetoSessions] = useState<VetoSession[]>([]);
+  const [tournamentMaps, setTournamentMaps] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
+  const [selectedForceMap, setSelectedForceMap] = useState<string>("");
   const { toast } = useToast();
 
   const loadVetoSessions = useCallback(async () => {
@@ -89,12 +92,14 @@ export default function VetoMedicManager() {
       setVetoSessions(processedSessions);
       console.log(`✅ VetoMedic: Loaded ${processedSessions.length} veto sessions`);
       
-      // Log session status breakdown
-      const statusBreakdown = processedSessions.reduce((acc: any, session) => {
-        acc[session.status] = (acc[session.status] || 0) + 1;
-        return acc;
-      }, {});
-      console.log("📊 VetoMedic: Session status breakdown:", statusBreakdown);
+      // Load available maps for force completion
+      const { data: maps } = await supabase
+        .from('maps')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_name');
+      
+      setTournamentMaps(maps || []);
 
       // Run health checks
       await runHealthChecks(processedSessions);
@@ -115,11 +120,14 @@ export default function VetoMedicManager() {
     console.log("🔄 VetoMedic: Running health checks on all sessions");
     for (const session of sessions) {
       const health = analyzeSessionHealth(session);
-      console.log(`🔍 VetoMedic: Session ${session.id.slice(0, 8)} health check:`, {
-        issues: health.issues.length,
+      console.log(`🔍 VetoMedic: Checking health for session ${session.id.slice(0, 8)}`);
+      console.log(`📊 VetoMedic: Session ${session.id.slice(0, 8)} health details:`, {
+        status: health.status,
+        issues: health.issues,
         isStuck: health.isStuck,
         actionCount: health.actionCount,
-        expectedActions: health.expectedActions
+        expectedActions: health.expectedActions,
+        lastActivity: health.lastActivity
       });
     }
     console.log("✅ VetoMedic: Completed health checks for", sessions.length, "sessions");
@@ -160,7 +168,7 @@ export default function VetoMedicManager() {
       isStuck: issues.length > 0 && session.status === 'in_progress',
       actionCount,
       expectedActions,
-      lastActivity
+      lastActivity: lastActivity || 'never'
     };
   };
 
@@ -289,6 +297,125 @@ export default function VetoMedicManager() {
     }
   };
 
+  const forceCompleteVeto = async (sessionId: string, mapId: string) => {
+    const shortId = sessionId.slice(0, 8);
+    console.log(`🏁 VetoMedic: Force completing session ${shortId} with map ${mapId}`);
+    setActionInProgress(sessionId);
+
+    try {
+      // Delete existing actions
+      const { error: deleteError } = await supabase
+        .from('map_veto_actions')
+        .delete()
+        .eq('veto_session_id', sessionId);
+
+      if (deleteError) throw deleteError;
+
+      // Add final pick action
+      const { error: pickError } = await supabase
+        .from('map_veto_actions')
+        .insert({
+          veto_session_id: sessionId,
+          team_id: null,
+          map_id: mapId,
+          action: 'pick',
+          order_number: 1,
+          performed_by: null
+        });
+
+      if (pickError) throw pickError;
+
+      // Mark session as completed
+      const { error: updateError } = await supabase
+        .from('map_veto_sessions')
+        .update({
+          status: 'completed',
+          completed_at: new Date().toISOString()
+        })
+        .eq('id', sessionId);
+
+      if (updateError) throw updateError;
+
+      console.log(`✅ VetoMedic: Force completed session ${shortId}`);
+      toast({
+        title: "Veto Force Completed",
+        description: `Session ${shortId} has been force completed`,
+      });
+
+      await loadVetoSessions();
+    } catch (error: any) {
+      console.error(`❌ VetoMedic: Force complete failed for ${shortId}:`, error);
+      toast({
+        title: "Force Complete Failed",
+        description: error.message || "Failed to force complete veto",
+        variant: "destructive",
+      });
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
+  const rollbackLastAction = async (sessionId: string) => {
+    const shortId = sessionId.slice(0, 8);
+    console.log(`↩️ VetoMedic: Rolling back last action for session ${shortId}`);
+    setActionInProgress(sessionId);
+
+    try {
+      // Get the last action
+      const { data: lastAction, error: fetchError } = await supabase
+        .from('map_veto_actions')
+        .select('*')
+        .eq('veto_session_id', sessionId)
+        .order('order_number', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (fetchError || !lastAction) {
+        throw new Error('No actions to rollback');
+      }
+
+      console.log(`🔄 VetoMedic: Rolling back action ${lastAction.id} (${lastAction.action} ${lastAction.map_id})`);
+
+      // Delete the last action
+      const { error: deleteError } = await supabase
+        .from('map_veto_actions')
+        .delete()
+        .eq('id', lastAction.id);
+
+      if (deleteError) throw deleteError;
+
+      // Reset session status if it was completed
+      if (lastAction.action === 'pick') {
+        const { error: statusError } = await supabase
+          .from('map_veto_sessions')
+          .update({
+            status: 'in_progress',
+            completed_at: null
+          })
+          .eq('id', sessionId);
+
+        if (statusError) throw statusError;
+      }
+
+      console.log(`✅ VetoMedic: Successfully rolled back last action for session ${shortId}`);
+      toast({
+        title: "Action Rolled Back",
+        description: `Last action has been rolled back for session ${shortId}`,
+      });
+
+      await loadVetoSessions();
+    } catch (error: any) {
+      console.error(`❌ VetoMedic: Rollback failed for ${shortId}:`, error);
+      toast({
+        title: "Rollback Failed",
+        description: error.message || "Failed to rollback last action",
+        variant: "destructive",
+      });
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
   useEffect(() => {
     loadVetoSessions();
   }, [loadVetoSessions]);
@@ -387,17 +514,6 @@ export default function VetoMedicManager() {
                         {getStatusBadge(session.status)}
                         {getHealthBadge(health)}
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          onClick={() => resetVetoSession(session.id)}
-                          disabled={isProcessing}
-                          size="sm"
-                          className="bg-yellow-600/20 hover:bg-yellow-600/30 border-yellow-600/30 text-yellow-400"
-                        >
-                          <RotateCcw className="w-4 h-4 mr-1" />
-                          {isProcessing ? 'Resetting...' : 'Reset Session'}
-                        </Button>
-                      </div>
                     </div>
 
                     {/* Match info */}
@@ -474,6 +590,72 @@ export default function VetoMedicManager() {
                         </div>
                       </div>
                     )}
+
+                    {/* VetoMedic Action Buttons */}
+                    <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-700">
+                      {/* Reset Veto */}
+                      <Button
+                        onClick={() => resetVetoSession(session.id)}
+                        disabled={isProcessing}
+                        size="sm"
+                        className="bg-yellow-600/20 hover:bg-yellow-600/30 border-yellow-600/30 text-yellow-400"
+                      >
+                        <RotateCcw className="w-4 h-4 mr-1" />
+                        {isProcessing ? 'Resetting...' : 'Reset Veto'}
+                      </Button>
+
+                      {/* Force Complete Veto */}
+                      {session.status !== 'completed' && (
+                        <div className="flex items-center gap-2">
+                          <Select value={selectedForceMap} onValueChange={setSelectedForceMap}>
+                            <SelectTrigger className="w-32 h-8 text-xs">
+                              <SelectValue placeholder="Select Map" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {tournamentMaps.map((map) => (
+                                <SelectItem key={map.id} value={map.id}>
+                                  {map.display_name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            onClick={() => forceCompleteVeto(session.id, selectedForceMap)}
+                            disabled={isProcessing || !selectedForceMap}
+                            size="sm"
+                            className="bg-green-600/20 hover:bg-green-600/30 border-green-600/30 text-green-400"
+                          >
+                            <Play className="w-4 h-4 mr-1" />
+                            Force Complete
+                          </Button>
+                        </div>
+                      )}
+
+                      {/* Rollback Last Action */}
+                      {session.actions && session.actions.length > 0 && (
+                        <Button
+                          onClick={() => rollbackLastAction(session.id)}
+                          disabled={isProcessing}
+                          size="sm"
+                          className="bg-orange-600/20 hover:bg-orange-600/30 border-orange-600/30 text-orange-400"
+                        >
+                          <Undo className="w-4 h-4 mr-1" />
+                          Rollback Last
+                        </Button>
+                      )}
+
+                      {/* Health Check (Manual Refresh) */}
+                      <Button
+                        onClick={() => runHealthChecks([session])}
+                        disabled={isProcessing}
+                        size="sm"
+                        variant="outline"
+                        className="border-blue-500/40 text-blue-300"
+                      >
+                        <Settings className="w-4 h-4 mr-1" />
+                        Health Check
+                      </Button>
+                    </div>
                   </div>
                 </div>
               );
