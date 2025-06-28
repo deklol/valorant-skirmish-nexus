@@ -1,9 +1,11 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { completeTournament } from "@/utils/completeTournament";
 import TournamentWinnerDisplay from "@/components/TournamentWinnerDisplay";
+import TournamentDeletionTool from "./TournamentDeletionTool";
 
 // Returns problems or [] if ok
 async function doHealthCheck(tournamentId: string): Promise<string[]> {
@@ -57,7 +59,7 @@ async function doHealthCheck(tournamentId: string): Promise<string[]> {
 }
 
 export default function TournamentMedicToolsTab({ tournament, onRefresh }: {
-  tournament: { id: string, status?: string };
+  tournament: { id: string, status?: string, name?: string };
   onRefresh: () => void;
 }) {
   const [running, setRunning] = useState(false);
@@ -105,35 +107,60 @@ export default function TournamentMedicToolsTab({ tournament, onRefresh }: {
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="text-xs font-semibold mb-2 text-yellow-200">Data Repair & Announcements:</div>
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={handleHealthCheck}
-        disabled={running}
-      >
-        {running ? "Running..." : "Run Data Repair Scan"}
-      </Button>
-      <Button size="sm" variant="outline" onClick={() => toast({
-        title: "Emergency Announcement",
-        description: "This will broadcast to all participants. (Not implemented yet.)"
-      })}>Send Tournament Announcement</Button>
-      <div className="mt-3 pt-2 border-t border-yellow-900/20 flex flex-col gap-2">
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-3">
+        <div className="text-xs font-semibold mb-2 text-yellow-200">Data Repair & Announcements:</div>
         <Button
           size="sm"
-          variant="default"
-          className="bg-blue-700"
-          onClick={handleCompleteTournament}
-          disabled={completing}
+          variant="outline"
+          onClick={handleHealthCheck}
+          disabled={running}
         >
-          {completing ? "Completing..." : "Complete Tournament Now"}
+          {running ? "Running..." : "Run Data Repair Scan"}
         </Button>
-        <TournamentWinnerDisplay
-          tournamentId={tournament.id}
-          tournamentStatus={tournament.status || ""}
-        />
+        <Button size="sm" variant="outline" onClick={() => toast({
+          title: "Emergency Announcement",
+          description: "This will broadcast to all participants. (Not implemented yet.)"
+        })}>Send Tournament Announcement</Button>
+        <div className="mt-3 pt-2 border-t border-yellow-900/20 flex flex-col gap-2">
+          <Button
+            size="sm"
+            variant="default"
+            className="bg-blue-700"
+            onClick={handleCompleteTournament}
+            disabled={completing}
+          >
+            {completing ? "Completing..." : "Complete Tournament Now"}
+          </Button>
+          <TournamentWinnerDisplay
+            tournamentId={tournament.id}
+            tournamentStatus={tournament.status || ""}
+          />
+        </div>
       </div>
+
+      {/* Tournament Deletion Tool */}
+      <TournamentDeletionTool
+        tournament={{
+          id: tournament.id,
+          name: tournament.name || "Unknown Tournament",
+          status: (tournament.status as any) || "unknown",
+          // Fill in required Tournament fields with defaults
+          description: null,
+          start_time: null,
+          registration_opens_at: null,
+          registration_closes_at: null,
+          check_in_starts_at: null,
+          check_in_ends_at: null,
+          max_teams: 0,
+          max_players: 0,
+          team_size: 5,
+          prize_pool: null,
+          match_format: "BO1",
+          bracket_type: "single_elimination"
+        }}
+        onTournamentDeleted={onRefresh}
+      />
     </div>
   );
 }

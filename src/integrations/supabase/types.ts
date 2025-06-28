@@ -1172,6 +1172,10 @@ export type Database = {
         }
         Returns: string
       }
+      safe_delete_tournament: {
+        Args: { p_tournament_id: string }
+        Returns: Json
+      }
       set_side_choice: {
         Args: {
           p_veto_session_id: string
