@@ -71,20 +71,26 @@ export async function previewTournamentDeletion(tournamentId: string): Promise<T
       .select('*', { count: 'exact', head: true })
       .eq('tournament_id', tournamentId);
 
-    // Count veto sessions
-    const { data: vetoSessionsData } = await supabase
-      .from('map_veto_sessions')
+    // Count veto sessions - fix the query structure
+    const { data: matchesData } = await supabase
+      .from('matches')
       .select('id')
-      .in('match_id', 
-        supabase
-          .from('matches')
-          .select('id')
-          .eq('tournament_id', tournamentId)
-      );
+      .eq('tournament_id', tournamentId);
+
+    const matchIds = matchesData?.map(m => m.id) || [];
+    
+    let vetoSessionCount = 0;
+    if (matchIds.length > 0) {
+      const { count } = await supabase
+        .from('map_veto_sessions')
+        .select('*', { count: 'exact', head: true })
+        .in('match_id', matchIds);
+      vetoSessionCount = count || 0;
+    }
 
     // Check deletion restrictions
     const restrictions: string[] = [];
-    const canDelete = tournament.status in ['completed', 'archived', 'draft'];
+    const canDelete = ['completed', 'archived', 'draft'].includes(tournament.status);
     
     if (!canDelete) {
       restrictions.push(`Tournament status '${tournament.status}' is not eligible for deletion`);
@@ -97,7 +103,7 @@ export async function previewTournamentDeletion(tournamentId: string): Promise<T
       total_participants: participantCount || 0,
       total_teams: teamCount || 0,
       total_matches: matchCount || 0,
-      veto_sessions: vetoSessionsData?.length || 0,
+      veto_sessions: vetoSessionCount,
       can_delete: canDelete,
       deletion_restrictions: restrictions.length > 0 ? restrictions : undefined
     };
@@ -133,7 +139,8 @@ export async function safeDeleteTournament(tournamentId: string): Promise<Tourna
       };
     }
 
-    const result = data as TournamentDeletionResult;
+    // Properly type the result
+    const result = data as unknown as TournamentDeletionResult;
     
     if (result.success) {
       console.log(`✅ TournamentDeletion: Successfully deleted tournament ${shortId}`);
