@@ -15,6 +15,8 @@ interface DisplayTournament extends Tournament {
   currentSignups: number;
   startTime: Date;
   format: "BO1" | "BO3";
+  maxPlayers: number; // Map from max_players
+  prizePool: string; // Map from prize_pool
 }
 
 const Tournaments = () => {
@@ -54,7 +56,9 @@ const Tournaments = () => {
             ...tournament,
             currentSignups: count || 0,
             startTime: new Date(tournament.start_time || Date.now()),
-            format: (tournament.match_format === 'BO5' ? 'BO3' : tournament.match_format) as "BO1" | "BO3"
+            format: (tournament.match_format === 'BO5' ? 'BO3' : tournament.match_format) as "BO1" | "BO3",
+            maxPlayers: tournament.max_players,
+            prizePool: tournament.prize_pool || 'TBD'
           };
         })
       );
