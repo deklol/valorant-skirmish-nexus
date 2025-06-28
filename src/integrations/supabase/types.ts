@@ -1088,6 +1088,10 @@ export type Database = {
           is_active: boolean
         }[]
       }
+      get_user_info_for_audit: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       get_user_match_history: {
         Args: { profile_user_id: string; match_limit?: number }
         Returns: {
@@ -1162,6 +1166,28 @@ export type Database = {
       is_user_on_team: {
         Args: { p_user_id: string; p_team_id: string }
         Returns: boolean
+      }
+      log_application_error: {
+        Args: {
+          p_component: string
+          p_error_message: string
+          p_error_code?: string
+          p_user_id?: string
+          p_metadata?: Json
+        }
+        Returns: undefined
+      }
+      log_audit_event: {
+        Args: {
+          p_table_name: string
+          p_action: string
+          p_record_id: string
+          p_old_values?: Json
+          p_new_values?: Json
+          p_description?: string
+          p_metadata?: Json
+        }
+        Returns: undefined
       }
       perform_veto_action: {
         Args: {

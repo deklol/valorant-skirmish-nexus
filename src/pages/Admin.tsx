@@ -1,8 +1,9 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Users, Trophy, MessageSquare, Map, ShieldAlert, Wrench, BookOpen } from "lucide-react";
+import { Settings, Users, Trophy, MessageSquare, Map, ShieldAlert, Wrench, BookOpen, FileText } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import DiscordWebhookManager from "@/components/DiscordWebhookManager";
 import CreateTournamentDialog from "@/components/CreateTournamentDialog";
@@ -18,6 +19,7 @@ import AdminHelpTab from "@/components/admin/AdminHelpTab";
 import AppSettingsManager from "@/components/admin/AppSettingsManager";
 import SchemaExportButton from "@/components/admin/SchemaExportButton";
 import BracketMedicManager from "@/components/BracketMedicManager";
+import AuditLogManager from "@/components/admin/AuditLogManager";
 
 const Admin = () => {
   const { isAdmin } = useAuth();
@@ -94,6 +96,10 @@ const Admin = () => {
             </TabsTrigger>
             {/* --- END MEDIC GROUP --- */}
 
+            <TabsTrigger value="audit-log" className="text-white data-[state=active]:bg-purple-600">
+              <FileText className="w-4 h-4 mr-2" />
+              Audit Log
+            </TabsTrigger>
             <TabsTrigger value="announcements" className="text-white data-[state=active]:bg-red-600">
               <MessageSquare className="w-4 h-4 mr-2" />
               Announcements
@@ -137,6 +143,10 @@ const Admin = () => {
             <BracketMedicManager />
           </TabsContent>
           {/* END BRACKET MEDIC */}
+
+          <TabsContent value="audit-log">
+            <AuditLogManager />
+          </TabsContent>
 
           <TabsContent value="announcements">
             <DiscordWebhookManager />

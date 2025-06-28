@@ -6,56 +6,73 @@ import { supabase } from "@/integrations/supabase/client";
 import { completeTournament } from "@/utils/completeTournament";
 import TournamentWinnerDisplay from "@/components/TournamentWinnerDisplay";
 import TournamentDeletionTool from "./TournamentDeletionTool";
+import { logApplicationError, auditActions } from "@/utils/auditLogger";
 
 // Returns problems or [] if ok
 async function doHealthCheck(tournamentId: string): Promise<string[]> {
   const problems: string[] = [];
 
-  // Find signups with missing user rows
-  const usersRes = await supabase
-    .from("tournament_signups")
-    .select("user_id")
-    .eq("tournament_id", tournamentId);
+  try {
+    // Log the health check action
+    await auditActions.adminPageAccess(`tournament-medic-health-check-${tournamentId}`);
 
-  if (!usersRes.data) {
-    problems.push("Could not fetch signups.");
+    // Find signups with missing user rows
+    const usersRes = await supabase
+      .from("tournament_signups")
+      .select("user_id")
+      .eq("tournament_id", tournamentId);
+
+    if (!usersRes.data) {
+      problems.push("Could not fetch signups.");
+      return problems;
+    }
+    const userIds = usersRes.data.map(signup => signup.user_id);
+
+    if (userIds.length > 0) {
+      const { data: usersFound } = await supabase
+        .from("users")
+        .select("id")
+        .in("id", userIds);
+      if (!usersFound || usersFound.length !== userIds.length) {
+        problems.push(
+          `There are ${userIds.length - (usersFound?.length || 0)} player(s) signed up with missing user records.`
+        );
+      }
+    }
+
+    // Check for teams without users
+    const teamsRes = await supabase
+      .from("teams")
+      .select("id")
+      .eq("tournament_id", tournamentId);
+    const teamIds = teamsRes.data?.map(t => t.id) || [];
+    if (teamIds.length > 0) {
+      const tmRes = await supabase
+        .from("team_members")
+        .select("team_id")
+        .in("team_id", teamIds);
+      const teamsWithMembers = new Set((tmRes.data || []).map(t => t.team_id));
+      const teamsWithoutPlayers = teamIds.filter(id => !teamsWithMembers.has(id));
+      if (teamsWithoutPlayers.length > 0) {
+        problems.push(`There are ${teamsWithoutPlayers.length} team(s) in this tournament without any players.`);
+      }
+    }
+    // Add more checks if needed
+    // e.g. matches linked to teams not in this tournament
+
+    return problems;
+
+  } catch (error) {
+    // Log the error to audit system
+    await logApplicationError({
+      component: 'TournamentMedicToolsTab',
+      errorMessage: `Health check failed for tournament ${tournamentId}: ${error}`,
+      errorCode: 'HEALTH_CHECK_FAILED',
+      metadata: { tournamentId }
+    });
+    problems.push("Health check encountered an error. See audit logs for details.");
     return problems;
   }
-  const userIds = usersRes.data.map(signup => signup.user_id);
-
-  if (userIds.length > 0) {
-    const { data: usersFound } = await supabase
-      .from("users")
-      .select("id")
-      .in("id", userIds);
-    if (!usersFound || usersFound.length !== userIds.length) {
-      problems.push(
-        `There are ${userIds.length - (usersFound?.length || 0)} player(s) signed up with missing user records.`
-      );
-    }
-  }
-
-  // Check for teams without users
-  const teamsRes = await supabase
-    .from("teams")
-    .select("id")
-    .eq("tournament_id", tournamentId);
-  const teamIds = teamsRes.data?.map(t => t.id) || [];
-  if (teamIds.length > 0) {
-    const tmRes = await supabase
-      .from("team_members")
-      .select("team_id")
-      .in("team_id", teamIds);
-    const teamsWithMembers = new Set((tmRes.data || []).map(t => t.team_id));
-    const teamsWithoutPlayers = teamIds.filter(id => !teamsWithMembers.has(id));
-    if (teamsWithoutPlayers.length > 0) {
-      problems.push(`There are ${teamsWithoutPlayers.length} team(s) in this tournament without any players.`);
-    }
-  }
-  // Add more checks if needed
-  // e.g. matches linked to teams not in this tournament
-
-  return problems;
 }
 
 export default function TournamentMedicToolsTab({ tournament, onRefresh }: {
@@ -85,24 +102,61 @@ export default function TournamentMedicToolsTab({ tournament, onRefresh }: {
 
   async function handleCompleteTournament() {
     setCompleting(true);
-    const teamsRes = await supabase.from("teams").select("id").eq("tournament_id", tournament.id).eq("status", "winner");
-    let winnerId = teamsRes.data?.[0]?.id;
-    if (!winnerId) {
-      toast({
-        title: "No Winner Set",
-        description: "Set a winning team before completing tournament.",
-        variant: "destructive",
-      });
+    
+    try {
+      // Log the completion attempt
+      await auditActions.adminPageAccess(`tournament-completion-${tournament.id}`);
+      
+      const teamsRes = await supabase.from("teams").select("id").eq("tournament_id", tournament.id).eq("status", "winner");
+      let winnerId = teamsRes.data?.[0]?.id;
+      if (!winnerId) {
+        toast({
+          title: "No Winner Set",
+          description: "Set a winning team before completing tournament.",
+          variant: "destructive",
+        });
+        
+        // Log the failed completion attempt
+        await logApplicationError({
+          component: 'TournamentMedicToolsTab',
+          errorMessage: `Tournament completion failed: No winner set for tournament ${tournament.name}`,
+          errorCode: 'NO_WINNER_SET',
+          metadata: { tournamentId: tournament.id, tournamentName: tournament.name }
+        });
+        
+        setCompleting(false);
+        return;
+      }
+      
+      const success = await completeTournament(tournament.id, winnerId);
       setCompleting(false);
-      return;
-    }
-    const success = await completeTournament(tournament.id, winnerId);
-    setCompleting(false);
-    if (success) {
-      toast({ title: "Tournament Marked Complete" });
-      onRefresh();
-    } else {
-      toast({ title: "Error", description: "Could not complete tournament", variant: "destructive" });
+      
+      if (success) {
+        toast({ title: "Tournament Marked Complete" });
+        onRefresh();
+      } else {
+        toast({ title: "Error", description: "Could not complete tournament", variant: "destructive" });
+        
+        // Log the completion failure
+        await logApplicationError({
+          component: 'TournamentMedicToolsTab',
+          errorMessage: `Tournament completion failed for tournament ${tournament.name}`,
+          errorCode: 'COMPLETION_FAILED',
+          metadata: { tournamentId: tournament.id, tournamentName: tournament.name, winnerId }
+        });
+      }
+    } catch (error) {
+      setCompleting(false);
+      
+      // Log unexpected errors
+      await logApplicationError({
+        component: 'TournamentMedicToolsTab',
+        errorMessage: `Unexpected error during tournament completion: ${error}`,
+        errorCode: 'COMPLETION_ERROR',
+        metadata: { tournamentId: tournament.id, tournamentName: tournament.name }
+      });
+      
+      toast({ title: "Error", description: "Unexpected error during completion", variant: "destructive" });
     }
   }
 
@@ -118,10 +172,14 @@ export default function TournamentMedicToolsTab({ tournament, onRefresh }: {
         >
           {running ? "Running..." : "Run Data Repair Scan"}
         </Button>
-        <Button size="sm" variant="outline" onClick={() => toast({
-          title: "Emergency Announcement",
-          description: "This will broadcast to all participants. (Not implemented yet.)"
-        })}>Send Tournament Announcement</Button>
+        <Button size="sm" variant="outline" onClick={() => {
+          // Log the announcement attempt
+          auditActions.adminPageAccess(`tournament-announcement-${tournament.id}`);
+          toast({
+            title: "Emergency Announcement",
+            description: "This will broadcast to all participants. (Not implemented yet.)"
+          });
+        }}>Send Tournament Announcement</Button>
         <div className="mt-3 pt-2 border-t border-yellow-900/20 flex flex-col gap-2">
           <Button
             size="sm"
