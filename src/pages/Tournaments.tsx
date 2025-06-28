@@ -8,20 +8,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import TournamentCard from "@/components/TournamentCard";
 import CreateTournamentDialog from "@/components/CreateTournamentDialog";
+import { Tournament } from "@/types/tournament";
 
-interface Tournament {
-  id: string;
-  name: string;
+// Extend the Tournament type for display purposes
+interface DisplayTournament extends Tournament {
   currentSignups: number;
-  maxPlayers: number;
-  prizePool: string;
   startTime: Date;
-  status: "open" | "balancing" | "live" | "completed" | "archived";
   format: "BO1" | "BO3";
 }
 
 const Tournaments = () => {
-  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [tournaments, setTournaments] = useState<DisplayTournament[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -54,13 +51,9 @@ const Tournaments = () => {
             .eq('tournament_id', tournament.id);
 
           return {
-            id: tournament.id,
-            name: tournament.name,
+            ...tournament,
             currentSignups: count || 0,
-            maxPlayers: tournament.max_players,
-            prizePool: tournament.prize_pool || 'TBD',
-            startTime: new Date(tournament.start_time),
-            status: tournament.status as "open" | "balancing" | "live" | "completed" | "archived",
+            startTime: new Date(tournament.start_time || Date.now()),
             format: (tournament.match_format === 'BO5' ? 'BO3' : tournament.match_format) as "BO1" | "BO3"
           };
         })
