@@ -16,7 +16,7 @@ interface Tournament {
   maxPlayers: number;
   prizePool: string;
   startTime: Date;
-  status: "open" | "balancing" | "live" | "completed";
+  status: "open" | "balancing" | "live" | "completed" | "archived";
   format: "BO1" | "BO3";
 }
 
@@ -60,7 +60,7 @@ const Tournaments = () => {
             maxPlayers: tournament.max_players,
             prizePool: tournament.prize_pool || 'TBD',
             startTime: new Date(tournament.start_time),
-            status: tournament.status as "open" | "balancing" | "live" | "completed",
+            status: tournament.status as "open" | "balancing" | "live" | "completed" | "archived",
             format: (tournament.match_format === 'BO5' ? 'BO3' : tournament.match_format) as "BO1" | "BO3"
           };
         })
@@ -90,7 +90,12 @@ const Tournaments = () => {
     const matchesStatus = statusFilter === "all" || tournament.status === statusFilter;
     const matchesFormat = formatFilter === "all" || tournament.format === formatFilter;
     
-    return matchesSearch && matchesStatus && matchesFormat;
+    // Hide archived tournaments unless specifically selected in filter
+    const isArchived = tournament.status === "archived";
+    const showArchived = statusFilter === "archived";
+    const shouldShow = !isArchived || showArchived;
+    
+    return matchesSearch && matchesStatus && matchesFormat && shouldShow;
   });
 
   if (loading) {
@@ -159,6 +164,7 @@ const Tournaments = () => {
                   <SelectItem value="balancing">Balancing</SelectItem>
                   <SelectItem value="live">Live</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="archived">Archived</SelectItem>
                 </SelectContent>
               </Select>
               

@@ -157,7 +157,8 @@ export default function TournamentMedicToolsTab({ tournament, onRefresh }: {
           team_size: 5,
           prize_pool: null,
           match_format: "BO1",
-          bracket_type: "single_elimination"
+          bracket_type: "single_elimination",
+          check_in_required: true
         }}
         onTournamentDeleted={onRefresh}
       />
