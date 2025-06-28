@@ -4,20 +4,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Users, Clock, Trophy, Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-
-interface Tournament {
-  id: string;
-  name: string;
-  currentSignups: number;
-  maxPlayers: number;
-  prizePool: string;
-  startTime: Date;
-  status: "open" | "balancing" | "live" | "completed";
-  format: "BO1" | "BO3";
-}
+import { Tournament } from "@/types/tournament";
 
 interface TournamentCardProps {
-  tournament: Tournament;
+  tournament: Tournament & {
+    currentSignups: number;
+    maxPlayers: number;
+    prizePool: string;
+    startTime: Date;
+    format: "BO1" | "BO3";
+  };
 }
 
 const TournamentCard = ({ tournament }: TournamentCardProps) => {
@@ -33,6 +29,10 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
         return "bg-red-500/20 text-red-400 border-red-500/30";
       case "completed":
         return "bg-blue-500/20 text-blue-400 border-blue-500/30";
+      case "draft":
+        return "bg-gray-500/20 text-gray-400 border-gray-500/30";
+      case "archived":
+        return "bg-slate-500/20 text-slate-400 border-slate-500/30";
       default:
         return "bg-gray-500/20 text-gray-400 border-gray-500/30";
     }
