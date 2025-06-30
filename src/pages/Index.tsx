@@ -20,10 +20,10 @@ const Index = () => {
         <div className="text-center space-y-4">
           <h1 className="text-5xl md:text-7xl font-bold text-white">
             The Last Resort
-            <span className="text-red-500"> Skirmish Hub</span>
+            <span className="text-red-500"> — Skirmish Hub</span>
           </h1>
           <p className="text-xl text-slate-300 max-w-2xl mx-auto">
-            TLRHub — The Skirmish Hub,
+            The Skirmish Hub,
             Easy to use, built specifically for our events. Track tournament progress, statistics, history all in one place!
           </p>
         </div>
