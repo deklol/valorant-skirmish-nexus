@@ -57,7 +57,7 @@ export default function TopPlayersDisplay() {
     return (
       <Card className="bg-slate-800 border-slate-700">
         <CardHeader>
-          <CardTitle className="text-white">Top Players</CardTitle>
+          <CardTitle className="text-white">Highest Ranked Players</CardTitle>
         </CardHeader>
         <CardContent>Loading...</CardContent>
       </Card>
@@ -68,7 +68,7 @@ export default function TopPlayersDisplay() {
     return (
       <Card className="bg-slate-800 border-slate-700">
         <CardHeader>
-          <CardTitle className="text-white">Top Players</CardTitle>
+          <CardTitle className="text-white">Highest Ranked Players</CardTitle>
         </CardHeader>
         <CardContent>No results</CardContent>
       </Card>
@@ -78,7 +78,7 @@ export default function TopPlayersDisplay() {
   return (
     <Card className="bg-slate-800 border-slate-700">
       <CardHeader>
-        <CardTitle className="text-white">Top Players</CardTitle>
+        <CardTitle className="text-white">Highest Ranked Players</CardTitle>
       </CardHeader>
       <CardContent>
         <ul>
