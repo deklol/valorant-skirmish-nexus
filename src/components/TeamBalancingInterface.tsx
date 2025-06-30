@@ -845,3 +845,5 @@ Team Balancing
     </DndContext>
 );
 };
+
+export default TeamBalancingInterface;
