@@ -3,11 +3,11 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Users, Shuffle, AlertTriangle } from "lucide-react";
+import { Users, Shuffle, AlertTriangle, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
-import { getRankPoints } from "@/utils/rankingSystem";
+import { getRankPointsWithFallback } from "@/utils/rankingSystem";
 
 interface MatchTeamBalancingProps {
   matchId: string;
@@ -25,6 +25,8 @@ interface TeamData {
     discord_username: string;
     rank_points: number;
     current_rank: string;
+    peak_rank?: string;
+    usingPeakRank?: boolean;
   }>;
   totalRankPoints: number;
   avgRankPoints: number;
@@ -63,6 +65,7 @@ const MatchTeamBalancing = ({
             users (
               discord_username,
               current_rank,
+              peak_rank,
               rank_points
             )
           )
@@ -77,12 +80,17 @@ const MatchTeamBalancing = ({
               user: tm.users
             }))
             .filter(member => member.user)
-            .map(member => ({
-              user_id: member.user_id,
-              discord_username: member.user.discord_username || 'Unknown',
-              rank_points: member.user.rank_points || getRankPoints(member.user.current_rank || 'Unranked'),
-              current_rank: member.user.current_rank || 'Unranked'
-            }));
+            .map(member => {
+              const rankResult = getRankPointsWithFallback(member.user.current_rank, member.user.peak_rank);
+              return {
+                user_id: member.user_id,
+                discord_username: member.user.discord_username || 'Unknown',
+                rank_points: member.user.rank_points || rankResult.points,
+                current_rank: member.user.current_rank || 'Unranked',
+                peak_rank: member.user.peak_rank,
+                usingPeakRank: rankResult.usingPeakRank
+              };
+            });
 
           const totalRankPoints = members.reduce((sum, member) => sum + member.rank_points, 0);
           const avgRankPoints = members.length > 0 ? totalRankPoints / members.length : 0;
@@ -141,7 +149,7 @@ const MatchTeamBalancing = ({
       // Get all players from both teams
       const allPlayers = teams.flatMap(team => team.members);
       
-      // Sort players by rank points (highest first)
+      // Sort players by rank points (highest first) using enhanced ranking
       const sortedPlayers = [...allPlayers].sort((a, b) => b.rank_points - a.rank_points);
 
       // Use snake draft to balance teams
@@ -169,7 +177,7 @@ const MatchTeamBalancing = ({
 
       toast({
         title: "Teams Rebalanced",
-        description: "Match teams have been automatically balanced",
+        description: "Match teams have been automatically balanced using enhanced ranking system",
       });
 
       onTeamsRebalanced();
@@ -225,6 +233,10 @@ const MatchTeamBalancing = ({
     );
   }
 
+  const playersUsingPeakRank = teams.flatMap(team => 
+    team.members.filter(member => member.usingPeakRank)
+  );
+
   return (
     <Card className="bg-slate-800 border-slate-700">
       <CardHeader>
@@ -234,6 +246,19 @@ const MatchTeamBalancing = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Peak Rank Alert for this match */}
+        {playersUsingPeakRank.length > 0 && (
+          <div className="bg-amber-900/20 border border-amber-600/50 rounded-lg p-3">
+            <div className="flex items-center gap-2 text-amber-400 text-sm font-medium mb-2">
+              <TrendingUp className="w-4 h-4" />
+              Peak Rank Balancing Active ({playersUsingPeakRank.length} player{playersUsingPeakRank.length !== 1 ? 's' : ''})
+            </div>
+            <div className="text-xs text-amber-200">
+              Some players are using their peak rank for balancing: {playersUsingPeakRank.map(p => p.discord_username).join(', ')}
+            </div>
+          </div>
+        )}
+
         {balanceAnalysis && (
           <div className="flex items-center justify-between p-3 bg-slate-700 rounded-lg">
             <div className="flex items-center gap-2">
@@ -258,8 +283,15 @@ const MatchTeamBalancing = ({
               </div>
               <div className="space-y-1">
                 {team.members.map(member => (
-                  <div key={member.user_id} className="text-xs text-slate-400 flex justify-between">
-                    <span>{member.discord_username}</span>
+                  <div key={member.user_id} className="text-xs text-slate-400 flex justify-between items-center">
+                    <div className="flex items-center gap-1">
+                      <span>{member.discord_username}</span>
+                      {member.usingPeakRank && (
+                        <Badge className="bg-amber-600 text-white text-xs">
+                          Peak: {member.peak_rank}
+                        </Badge>
+                      )}
+                    </div>
                     <span>{member.rank_points}pts</span>
                   </div>
                 ))}
@@ -278,7 +310,7 @@ const MatchTeamBalancing = ({
         </Button>
 
         <div className="text-xs text-slate-400 bg-slate-700 p-2 rounded">
-          <strong>Note:</strong> This will redistribute players using snake draft algorithm 
+          <strong>Enhanced Balancing:</strong> This uses peak rank fallback for unrated players and snake draft algorithm 
           to create more balanced teams. Players will be notified of changes.
         </div>
       </CardContent>

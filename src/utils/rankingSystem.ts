@@ -1,5 +1,4 @@
-
-// TGH Skirmish Rank-to-Point System
+// TGH Skirmish Rank-to-Point System with Peak Rank Fallback
 export const RANK_POINT_MAPPING: Record<string, number> = {
   // Iron
   'Iron 1': 10,
@@ -49,8 +48,44 @@ export const RANK_POINT_MAPPING: Record<string, number> = {
   'Phantom': 150
 };
 
+export interface RankPointsResult {
+  points: number;
+  usingPeakRank: boolean;
+  peakRank?: string;
+  currentRank: string;
+}
+
 export const getRankPoints = (rank: string): number => {
   return RANK_POINT_MAPPING[rank] || 150;
+};
+
+/**
+ * Enhanced getRankPoints that supports peak rank fallback for unrated players
+ * Returns both points and metadata about fallback usage
+ */
+export const getRankPointsWithFallback = (
+  currentRank: string, 
+  peakRank?: string | null
+): RankPointsResult => {
+  const normalizedCurrentRank = currentRank || 'Unranked';
+  const normalizedPeakRank = peakRank || null;
+  
+  // If current rank is Unranked/Unrated and we have a peak rank, use peak rank
+  if ((normalizedCurrentRank === 'Unranked' || normalizedCurrentRank === 'Unrated') && normalizedPeakRank) {
+    return {
+      points: getRankPoints(normalizedPeakRank),
+      usingPeakRank: true,
+      peakRank: normalizedPeakRank,
+      currentRank: normalizedCurrentRank
+    };
+  }
+  
+  // Otherwise use current rank
+  return {
+    points: getRankPoints(normalizedCurrentRank),
+    usingPeakRank: false,
+    currentRank: normalizedCurrentRank
+  };
 };
 
 export const calculateTeamBalance = (team1Points: number, team2Points: number) => {
@@ -93,10 +128,12 @@ export const autoBalanceTeams = (players: any[], numTeams: number) => {
   const realPlayers = players.filter(p => !p.is_phantom);
   const phantomPlayers = players.filter(p => p.is_phantom);
 
-  // Sort real players by weight_rating (highest first)
+  // Sort real players by weight_rating (highest first) - enhanced with peak rank fallback
   const sortedRealPlayers = [...realPlayers].sort((a, b) => {
-    const aPoints = a.weight_rating || getRankPoints(a.current_rank || 'Unranked');
-    const bPoints = b.weight_rating || getRankPoints(b.current_rank || 'Unranked');
+    const aRankResult = getRankPointsWithFallback(a.current_rank, a.peak_rank);
+    const bRankResult = getRankPointsWithFallback(b.current_rank, b.peak_rank);
+    const aPoints = a.weight_rating || aRankResult.points;
+    const bPoints = b.weight_rating || bRankResult.points;
     return bPoints - aPoints;
   });
 
@@ -141,8 +178,12 @@ export const autoBalanceTeams = (players: any[], numTeams: number) => {
     // Use snake draft pattern
     const targetTeam = availableTeams[currentTeamIndex % availableTeams.length];
     
-    const points = player.weight_rating || getRankPoints(player.current_rank || 'Unranked');
-    targetTeam.players.push(player);
+    const rankResult = getRankPointsWithFallback(player.current_rank, player.peak_rank);
+    const points = player.weight_rating || rankResult.points;
+    targetTeam.players.push({
+      ...player,
+      _rankingMeta: rankResult // Store ranking metadata for UI display
+    });
     targetTeam.totalPoints += points;
     
     // Move to next team in snake pattern

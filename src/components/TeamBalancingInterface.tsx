@@ -4,11 +4,12 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Users, Shuffle, Save, Plus, GripVertical, Zap } from "lucide-react";
+import { AlertTriangle, Users, Shuffle, Save, Plus, GripVertical, Zap, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { getRankPoints, calculateTeamBalance } from "@/utils/rankingSystem";
+import { getRankPointsWithFallback, calculateTeamBalance } from "@/utils/rankingSystem";
 import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
+import PeakRankFallbackAlert from "@/components/team-balancing/PeakRankFallbackAlert";
 
 interface TeamBalancingInterfaceProps {
   tournamentId: string;
@@ -23,6 +24,7 @@ interface Player {
   rank_points: number;
   weight_rating: number;
   current_rank: string;
+  peak_rank?: string;
   riot_id?: string;
 }
 
@@ -34,7 +36,7 @@ interface Team {
   isPlaceholder?: boolean;
 }
 
-// Draggable Player Component
+// Enhanced Draggable Player Component with peak rank indicator
 const DraggablePlayer = ({ player }: { player: Player }) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: player.id,
@@ -43,6 +45,8 @@ const DraggablePlayer = ({ player }: { player: Player }) => {
   const style = transform ? {
     transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
   } : undefined;
+
+  const rankResult = getRankPointsWithFallback(player.current_rank, player.peak_rank);
 
   return (
     <div
@@ -57,9 +61,25 @@ const DraggablePlayer = ({ player }: { player: Player }) => {
       <div className="flex items-center gap-2">
         <GripVertical className="w-4 h-4 text-slate-400" />
         <div>
-          <span className="text-white font-medium">{player.discord_username}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-white font-medium">{player.discord_username}</span>
+            {rankResult.usingPeakRank && (
+              <Badge className="bg-amber-600 text-white text-xs flex items-center gap-1">
+                <TrendingUp className="w-3 h-3" />
+                Peak: {rankResult.peakRank}
+              </Badge>
+            )}
+          </div>
           <div className="text-xs text-slate-400">
-            {player.current_rank} • {player.weight_rating} pts
+            {rankResult.usingPeakRank ? (
+              <span>
+                {player.current_rank || 'Unrated'} → Using {rankResult.peakRank} ({rankResult.points} pts)
+              </span>
+            ) : (
+              <span>
+                {player.current_rank} • {player.weight_rating || rankResult.points} pts
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -181,7 +201,7 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
     try {
       console.log('Fetching teams and players for tournament:', tournamentId);
       
-      // Fetch teams with their members
+      // Fetch teams with their members including peak_rank
       const { data: teamsData, error: teamsError } = await supabase
         .from('teams')
         .select(`
@@ -195,6 +215,7 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
               rank_points,
               weight_rating,
               current_rank,
+              peak_rank,
               riot_id
             )
           )
@@ -203,7 +224,7 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
 
       if (teamsError) throw teamsError;
 
-      // Fetch tournament participants to find unassigned players
+      // Fetch tournament participants to find unassigned players including peak_rank
       const { data: participantsData, error: participantsError } = await supabase
         .from('tournament_signups')
         .select(`
@@ -214,6 +235,7 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
             rank_points,
             weight_rating,
             current_rank,
+            peak_rank,
             riot_id
           )
         `)
@@ -226,16 +248,23 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
         const members = team.team_members
           .map(member => member.users)
           .filter(user => user)
-          .map(user => ({
-            id: user.id,
-            discord_username: user.discord_username || 'Unknown',
-            rank_points: user.rank_points || 0,
-            weight_rating: user.weight_rating || getRankPoints(user.current_rank || 'Unranked'),
-            current_rank: user.current_rank || 'Unranked',
-            riot_id: user.riot_id
-          }));
+          .map(user => {
+            const rankResult = getRankPointsWithFallback(user.current_rank, user.peak_rank);
+            return {
+              id: user.id,
+              discord_username: user.discord_username || 'Unknown',
+              rank_points: user.rank_points || 0,
+              weight_rating: user.weight_rating || rankResult.points,
+              current_rank: user.current_rank || 'Unranked',
+              peak_rank: user.peak_rank,
+              riot_id: user.riot_id
+            };
+          });
 
-        const totalWeight = members.reduce((sum, member) => sum + member.weight_rating, 0);
+        const totalWeight = members.reduce((sum, member) => {
+          const rankResult = getRankPointsWithFallback(member.current_rank, member.peak_rank);
+          return sum + (member.weight_rating || rankResult.points);
+        }, 0);
 
         return {
           id: team.id,
@@ -253,14 +282,18 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
       const unassigned = (participantsData || [])
         .map(participant => participant.users)
         .filter(user => user && !allAssignedUserIds.has(user.id))
-        .map(user => ({
-          id: user.id,
-          discord_username: user.discord_username || 'Unknown',
-          rank_points: user.rank_points || 0,
-          weight_rating: user.weight_rating || getRankPoints(user.current_rank || 'Unranked'),
-          current_rank: user.current_rank || 'Unranked',
-          riot_id: user.riot_id
-        }));
+        .map(user => {
+          const rankResult = getRankPointsWithFallback(user.current_rank, user.peak_rank);
+          return {
+            id: user.id,
+            discord_username: user.discord_username || 'Unknown',
+            rank_points: user.rank_points || 0,
+            weight_rating: user.weight_rating || rankResult.points,
+            current_rank: user.current_rank || 'Unranked',
+            peak_rank: user.peak_rank,
+            riot_id: user.riot_id
+          };
+        });
 
       // If no teams exist, create placeholder teams
       let finalTeams = processedTeams;
@@ -400,7 +433,10 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
         prevTeams.map(team => {
           if (team.id === sourceTeamId) {
             const newMembers = team.members.filter(p => p.id !== player.id);
-            const totalWeight = newMembers.reduce((sum, member) => sum + member.weight_rating, 0);
+            const totalWeight = newMembers.reduce((sum, member) => {
+              const rankResult = getRankPointsWithFallback(member.current_rank, member.peak_rank);
+              return sum + (member.weight_rating || rankResult.points);
+            }, 0);
             return { ...team, members: newMembers, totalWeight };
           }
           return team;
@@ -421,7 +457,10 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
         prevTeams.map(team => {
           if (team.id === sourceTeamId) {
             const newMembers = team.members.filter(p => p.id !== player.id);
-            const totalWeight = newMembers.reduce((sum, member) => sum + member.weight_rating, 0);
+            const totalWeight = newMembers.reduce((sum, member) => {
+              const rankResult = getRankPointsWithFallback(member.current_rank, member.peak_rank);
+              return sum + (member.weight_rating || rankResult.points);
+            }, 0);
             return { ...team, members: newMembers, totalWeight };
           }
           return team;
@@ -436,7 +475,10 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
       prevTeams.map(team => {
         if (team.id === targetTeamId) {
           const newMembers = [...team.members, player];
-          const totalWeight = newMembers.reduce((sum, member) => sum + member.weight_rating, 0);
+          const totalWeight = newMembers.reduce((sum, member) => {
+            const rankResult = getRankPointsWithFallback(member.current_rank, member.peak_rank);
+            return sum + (member.weight_rating || rankResult.points);
+          }, 0);
           return { ...team, members: newMembers, totalWeight };
         }
         return team;
@@ -444,7 +486,7 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
     );
   };
 
-  // 🧠 Autobalance Algorithm (greedy minimal weight difference)
+  // 🧠 Enhanced Autobalance Algorithm with peak rank support
   function autobalanceUnassignedPlayers() {
     setAutobalancing(true);
     try {
@@ -452,8 +494,14 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
       const teamsCopy: Team[] = teams.map(team => ({ ...team, members: [...team.members] }));
       let unassignedCopy: Player[] = [...unassignedPlayers];
 
-      // Sort unassigned players by weight_rating DESC (highest first)
-      unassignedCopy.sort((a, b) => b.weight_rating - a.weight_rating);
+      // Sort unassigned players by weight_rating DESC (highest first) with peak rank fallback
+      unassignedCopy.sort((a, b) => {
+        const aRankResult = getRankPointsWithFallback(a.current_rank, a.peak_rank);
+        const bRankResult = getRankPointsWithFallback(b.current_rank, b.peak_rank);
+        const aWeight = a.weight_rating || aRankResult.points;
+        const bWeight = b.weight_rating || bRankResult.points;
+        return bWeight - aWeight;
+      });
 
       while (unassignedCopy.length > 0) {
         // Pick the next strongest player
@@ -468,16 +516,22 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
           if (teamsCopy[i].members.length >= teamSize) continue;
 
           // Simulate adding to this team
+          const rankResult = getRankPointsWithFallback(player.current_rank, player.peak_rank);
+          const playerWeight = player.weight_rating || rankResult.points;
+          
           const simulatedTeams = teamsCopy.map((t, idx) =>
             idx === i
-              ? { ...t, members: [...t.members, player], totalWeight: t.totalWeight + player.weight_rating }
+              ? { ...t, members: [...t.members, player], totalWeight: t.totalWeight + playerWeight }
               : t
           );
 
           // Only consider teams that will have >0 members after this operation (skip empty if phantom)
           const teamWeights = simulatedTeams
             .filter(t => t.members.length > 0)
-            .map(t => t.members.reduce((sum, m) => sum + m.weight_rating, 0));
+            .map(t => t.members.reduce((sum, m) => {
+              const mRankResult = getRankPointsWithFallback(m.current_rank, m.peak_rank);
+              return sum + (m.weight_rating || mRankResult.points);
+            }, 0));
 
           const maxW = Math.max(...teamWeights, 0);
           const minW = Math.min(...teamWeights, 0);
@@ -493,16 +547,21 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
         if (bestTeamIndex === -1) break;
 
         // Assign the player to the best team found
+        const rankResult = getRankPointsWithFallback(player.current_rank, player.peak_rank);
+        const playerWeight = player.weight_rating || rankResult.points;
         teamsCopy[bestTeamIndex].members.push(player);
-        teamsCopy[bestTeamIndex].totalWeight =
-          (teamsCopy[bestTeamIndex].totalWeight || 0) + player.weight_rating;
+        teamsCopy[bestTeamIndex].totalWeight = 
+          (teamsCopy[bestTeamIndex].totalWeight || 0) + playerWeight;
       }
 
       setUnassignedPlayers([]);
       setTeams(
         teamsCopy.map(team => ({
           ...team,
-          totalWeight: team.members.reduce((sum, m) => sum + m.weight_rating, 0),
+          totalWeight: team.members.reduce((sum, m) => {
+            const mRankResult = getRankPointsWithFallback(m.current_rank, m.peak_rank);
+            return sum + (m.weight_rating || mRankResult.points);
+          }, 0),
         }))
       );
 
@@ -524,7 +583,13 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
   function getCaptainBasedTeamName(members: Player[], fallback: string = "Team Unknown") {
     if (members.length === 0) return fallback;
     // Captain is highest weight_rating (if equal, first in list wins)
-    let sorted = [...members].sort((a, b) => b.weight_rating - a.weight_rating);
+    let sorted = [...members].sort((a, b) => {
+      const aRankResult = getRankPointsWithFallback(a.current_rank, a.peak_rank);
+      const bRankResult = getRankPointsWithFallback(b.current_rank, b.peak_rank);
+      const aWeight = a.weight_rating || aRankResult.points;
+      const bWeight = b.weight_rating || bRankResult.points;
+      return bWeight - aWeight;
+    });
     let captain = sorted[0];
     if (!captain || !captain.discord_username) return fallback;
     return teamSize === 1
@@ -538,7 +603,13 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
     try {
       const usedNames = new Set<string>();
       let reorderedTeams = teams.map(team => {
-        const sortedMembers = [...team.members].sort((a, b) => b.weight_rating - a.weight_rating);
+        const sortedMembers = [...team.members].sort((a, b) => {
+          const aRankResult = getRankPointsWithFallback(a.current_rank, a.peak_rank);
+          const bRankResult = getRankPointsWithFallback(b.current_rank, b.peak_rank);
+          const aWeight = a.weight_rating || aRankResult.points;
+          const bWeight = b.weight_rating || bRankResult.points;
+          return bWeight - aWeight;
+        });
         let teamName = getCaptainBasedTeamName(sortedMembers, team.name);
         let uniqueName = teamName;
         let count = 2;
@@ -616,7 +687,7 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
 
       toast({
         title: "Teams Updated",
-        description: "Team assignments have been saved successfully, captains and names updated.",
+        description: "Team assignments have been saved successfully, captains and names updated with enhanced rank balancing.",
       });
 
       // Refresh the data
@@ -665,10 +736,14 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
 
   const balance = getBalanceAnalysis();
   const hasPlaceholderTeams = teams.some(team => team.isPlaceholder);
+  const allPlayers = [...unassignedPlayers, ...teams.flatMap(team => team.members)];
 
   return (
     <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <div className="space-y-6">
+        {/* Peak Rank Fallback Alert */}
+        <PeakRankFallbackAlert players={allPlayers} />
+
         <Card className="bg-slate-800 border-slate-700">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">

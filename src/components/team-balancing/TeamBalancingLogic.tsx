@@ -1,6 +1,7 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
-import { getRankPoints } from "@/utils/rankingSystem";
+import { getRankPointsWithFallback } from "@/utils/rankingSystem";
 
 interface UseTeamBalancingProps {
   tournamentId: string;
@@ -24,7 +25,7 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
     const teamSize = tournament.team_size || 5; // Default to 5v5 if not set
     console.log(`Tournament team size: ${teamSize}v${teamSize}`);
 
-    // Get all signups with user details and weight_rating (including checked-in players)
+    // Get all signups with user details including peak_rank (including checked-in players)
     const { data: signups } = await supabase
       .from('tournament_signups')
       .select(`
@@ -34,6 +35,7 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
           discord_username,
           rank_points,
           current_rank,
+          peak_rank,
           weight_rating
         )
       `)
@@ -70,12 +72,14 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
     // Clear existing teams
     await clearExistingTeams();
 
-    // Sort players by weight_rating (descending) with fallback to rank-based calculation
+    // Sort players by weight_rating (descending) with enhanced peak rank fallback
     const sortedPlayers = signups
       .filter(signup => signup.users)
       .sort((a, b) => {
-        const aWeight = a.users?.weight_rating || getRankPoints(a.users?.current_rank || 'Unranked');
-        const bWeight = b.users?.weight_rating || getRankPoints(b.users?.current_rank || 'Unranked');
+        const aRankResult = getRankPointsWithFallback(a.users?.current_rank, a.users?.peak_rank);
+        const bRankResult = getRankPointsWithFallback(b.users?.current_rank, b.users?.peak_rank);
+        const aWeight = a.users?.weight_rating || aRankResult.points;
+        const bWeight = b.users?.weight_rating || bRankResult.points;
         return bWeight - aWeight;
       });
 
@@ -110,7 +114,8 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
     for (let i = 0; i < sortedPlayers.length; i++) {
       const player = sortedPlayers[i];
       const teamName = `${player.users?.discord_username || 'Player'} (Solo)`;
-      const playerWeight = player.users?.weight_rating || getRankPoints(player.users?.current_rank || 'Unranked');
+      const rankResult = getRankPointsWithFallback(player.users?.current_rank, player.users?.peak_rank);
+      const playerWeight = player.users?.weight_rating || rankResult.points;
       
       // Create team
       const { data: newTeam, error: teamError } = await supabase
@@ -197,9 +202,10 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
       }
       usedNames.add(teamName);
 
-      // Calculate total weight_rating for the team
+      // Calculate total weight_rating for the team using enhanced ranking system
       const totalWeight = teams[i].reduce((sum, player) => {
-        const weight = player.users?.weight_rating || getRankPoints(player.users?.current_rank || 'Unranked');
+        const rankResult = getRankPointsWithFallback(player.users?.current_rank, player.users?.peak_rank);
+        const weight = player.users?.weight_rating || rankResult.points;
         return sum + weight;
       }, 0);
 
