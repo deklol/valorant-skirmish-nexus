@@ -36,7 +36,8 @@ const Login = () => {
           <CardHeader className="text-center">
             <CardTitle className="text-2xl text-white">Sign In</CardTitle>
             <CardDescription className="text-slate-300">
-              <p>Sign-in securely with Discord to access the TLR Skirmish Hub, once signed-in - you'll be prompted for your Riot ID.<br/></p>
+              <p>Sign-in securely with Discord to access the TLR Skirmish Hub, once signed-in - you'll be prompted for your Riot ID.</p>
+              <p> </p>
               <p>Please ensure you enter it correctly (name#tag) to avoid any issues.</p> 
             </CardDescription>
           </CardHeader>
