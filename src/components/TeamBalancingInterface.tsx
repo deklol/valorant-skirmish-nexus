@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getRankPointsWithFallback, calculateTeamBalance } from "@/utils/rankingSystem";
 import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
 import PeakRankFallbackAlert from "@/components/team-balancing/PeakRankFallbackAlert";
-import EnhancedRankFallbackAlert from "./team-balancing/EnhancedRankFallbackAlert";
+import EnhancedRankFallbackAlert from "@/components/team-balancing/EnhancedRankFallbackAlert";
 
 interface TeamBalancingInterfaceProps {
 tournamentId: string;
