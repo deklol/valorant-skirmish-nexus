@@ -23,8 +23,8 @@ const Index = () => {
             <span className="text-red-500"> Management</span>
           </h1>
           <p className="text-xl text-slate-300 max-w-2xl mx-auto">
-            Organize and compete in professional esports tournaments with seamless bracket management,
-            team balancing, and live match tracking.
+            TLRHub- The Skirmish Hub,
+            Easy to use, built specifically for our events. Track tournament progress, statistics, history all in one place!
           </p>
         </div>
       </section>
