@@ -966,9 +966,14 @@ export type Database = {
           last_rank_update: string | null
           last_seen: string | null
           losses: number | null
+          manual_rank_override: string | null
+          manual_weight_override: number | null
           mvp_awards: number | null
           peak_rank: string | null
           profile_visibility: string | null
+          rank_override_reason: string | null
+          rank_override_set_at: string | null
+          rank_override_set_by: string | null
           rank_points: number | null
           riot_id: string | null
           riot_id_last_updated: string | null
@@ -978,6 +983,7 @@ export type Database = {
           twitch_handle: string | null
           twitter_handle: string | null
           updated_at: string | null
+          use_manual_override: boolean | null
           weight_rating: number | null
           wins: number | null
         }
@@ -996,9 +1002,14 @@ export type Database = {
           last_rank_update?: string | null
           last_seen?: string | null
           losses?: number | null
+          manual_rank_override?: string | null
+          manual_weight_override?: number | null
           mvp_awards?: number | null
           peak_rank?: string | null
           profile_visibility?: string | null
+          rank_override_reason?: string | null
+          rank_override_set_at?: string | null
+          rank_override_set_by?: string | null
           rank_points?: number | null
           riot_id?: string | null
           riot_id_last_updated?: string | null
@@ -1008,6 +1019,7 @@ export type Database = {
           twitch_handle?: string | null
           twitter_handle?: string | null
           updated_at?: string | null
+          use_manual_override?: boolean | null
           weight_rating?: number | null
           wins?: number | null
         }
@@ -1026,9 +1038,14 @@ export type Database = {
           last_rank_update?: string | null
           last_seen?: string | null
           losses?: number | null
+          manual_rank_override?: string | null
+          manual_weight_override?: number | null
           mvp_awards?: number | null
           peak_rank?: string | null
           profile_visibility?: string | null
+          rank_override_reason?: string | null
+          rank_override_set_at?: string | null
+          rank_override_set_by?: string | null
           rank_points?: number | null
           riot_id?: string | null
           riot_id_last_updated?: string | null
@@ -1038,10 +1055,19 @@ export type Database = {
           twitch_handle?: string | null
           twitter_handle?: string | null
           updated_at?: string | null
+          use_manual_override?: boolean | null
           weight_rating?: number | null
           wins?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "users_rank_override_set_by_fkey"
+            columns: ["rank_override_set_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

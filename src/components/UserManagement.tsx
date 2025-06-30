@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,16 +8,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Users, Edit, Ban, Shield, ShieldOff, Search, ExternalLink, RefreshCw } from "lucide-react";
+import { Users, Edit, Ban, Shield, ShieldOff, Search, ExternalLink, RefreshCw, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import ClickableUsername from "./ClickableUsername";
+import ManualRankOverrideSection from "./admin/ManualRankOverrideSection";
 
 interface UserData {
   id: string;
   discord_username: string | null;
   riot_id: string | null;
   current_rank: string | null;
+  peak_rank: string | null;
   weight_rating: number;
   role: 'admin' | 'player' | 'viewer';
   is_banned: boolean;
@@ -33,6 +34,11 @@ interface UserData {
   twitter_handle: string | null;
   twitch_handle: string | null;
   profile_visibility: string | null;
+  manual_rank_override: string | null;
+  manual_weight_override: number | null;
+  use_manual_override: boolean;
+  rank_override_reason: string | null;
+  rank_override_set_by: string | null;
 }
 
 const UserManagement = () => {
@@ -54,6 +60,12 @@ const UserManagement = () => {
     twitter_handle: '',
     twitch_handle: '',
     profile_visibility: 'public'
+  });
+  const [manualOverrideForm, setManualOverrideForm] = useState({
+    manual_rank_override: null as string | null,
+    manual_weight_override: null as number | null,
+    use_manual_override: false,
+    rank_override_reason: null as string | null
   });
   const { toast } = useToast();
 
@@ -77,7 +89,10 @@ const UserManagement = () => {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('*')
+        .select(`
+          *,
+          rank_override_set_by_user:rank_override_set_by(discord_username)
+        `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -118,7 +133,7 @@ const UserManagement = () => {
       toast({
         title: "Rank Updated",
         description: data.current_rank 
-          ? `Rank updated to ${data.current_rank} (${data.weight_rating} weight)`
+          ? `Rank updated to ${data.current_rank} (${data.weight_rating} weight)${data.peak_rank_updated ? ', Peak rank also updated' : ''}`
           : "Rank data refreshed",
       });
 
@@ -145,6 +160,12 @@ const UserManagement = () => {
       twitch_handle: user.twitch_handle || '',
       profile_visibility: user.profile_visibility || 'public'
     });
+    setManualOverrideForm({
+      manual_rank_override: user.manual_rank_override,
+      manual_weight_override: user.manual_weight_override,
+      use_manual_override: user.use_manual_override || false,
+      rank_override_reason: user.rank_override_reason
+    });
     setEditDialogOpen(true);
   };
 
@@ -159,28 +180,18 @@ const UserManagement = () => {
           bio: editForm.bio || null,
           twitter_handle: editForm.twitter_handle || null,
           twitch_handle: editForm.twitch_handle || null,
-          profile_visibility: editForm.profile_visibility
+          profile_visibility: editForm.profile_visibility,
+          // Manual rank override fields
+          manual_rank_override: manualOverrideForm.manual_rank_override,
+          manual_weight_override: manualOverrideForm.manual_weight_override,
+          use_manual_override: manualOverrideForm.use_manual_override,
+          rank_override_reason: manualOverrideForm.rank_override_reason,
+          rank_override_set_by: manualOverrideForm.use_manual_override ? (await supabase.auth.getUser()).data.user?.id : null,
+          rank_override_set_at: manualOverrideForm.use_manual_override ? new Date().toISOString() : null
         })
         .eq('id', editingUser.id);
 
       if (error) throw error;
-
-      // Log the audit action
-      await supabase
-        .from('audit_logs')
-        .insert({
-          action: 'user_updated',
-          table_name: 'users',
-          record_id: editingUser.id,
-          old_values: {
-            role: editingUser.role,
-            bio: editingUser.bio,
-            twitter_handle: editingUser.twitter_handle,
-            twitch_handle: editingUser.twitch_handle,
-            profile_visibility: editingUser.profile_visibility
-          },
-          new_values: editForm
-        });
 
       toast({
         title: "User Updated",
@@ -374,6 +385,12 @@ const UserManagement = () => {
                     <div className="flex flex-col gap-1">
                       <span>{user.current_rank || 'Unranked'}</span>
                       <span className="text-xs text-slate-400">Weight: {user.weight_rating || 150}</span>
+                      {user.use_manual_override && (
+                        <Badge className="bg-amber-600 text-white text-xs w-fit">
+                          <Settings className="w-3 h-3 mr-1" />
+                          Override
+                        </Badge>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -449,118 +466,146 @@ const UserManagement = () => {
 
         {/* Edit User Dialog */}
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-          <DialogContent className="bg-slate-800 border-slate-700 max-w-2xl">
+          <DialogContent className="bg-slate-800 border-slate-700 max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-white">Edit User</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 max-h-96 overflow-y-auto">
-              <div className="space-y-2">
-                <Label className="text-white">Discord Username</Label>
-                <Input
-                  value={editingUser?.discord_username || ''}
-                  disabled
-                  className="bg-slate-600 border-slate-500 text-slate-400"
-                  placeholder="Cannot be edited - managed by Discord OAuth"
-                />
-                <p className="text-xs text-slate-400">Discord username is managed automatically and cannot be changed manually.</p>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-white">Current Rank & Weight</Label>
-                <div className="flex items-center gap-2">
+            <div className="space-y-6">
+              {/* Basic User Info Section */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-white border-b border-slate-600 pb-2">Basic Information</h3>
+                
+                <div className="space-y-2">
+                  <Label className="text-white">Discord Username</Label>
                   <Input
-                    value={`${editingUser?.current_rank || 'Unranked'} (Weight: ${editingUser?.weight_rating || 150})`}
+                    value={editingUser?.discord_username || ''}
                     disabled
-                    className="bg-slate-600 border-slate-500 text-slate-400 flex-1"
+                    className="bg-slate-600 border-slate-500 text-slate-400"
+                    placeholder="Cannot be edited - managed by Discord OAuth"
                   />
-                  {editingUser?.riot_id && (
-                    <Button
-                      onClick={() => editingUser && handleRefreshRank(editingUser)}
-                      size="sm"
-                      disabled={refreshingRank === editingUser?.id}
-                      className="bg-blue-600 hover:bg-blue-700"
-                    >
-                      <RefreshCw className={`w-4 h-4 mr-1 ${refreshingRank === editingUser?.id ? 'animate-spin' : ''}`} />
-                      Refresh
-                    </Button>
-                  )}
+                  <p className="text-xs text-slate-400">Discord username is managed automatically and cannot be changed manually.</p>
                 </div>
-                <p className="text-xs text-slate-400">Rank and weight are updated through the rank scraping system.</p>
+
+                <div className="space-y-2">
+                  <Label className="text-white">Current Rank & Weight</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={`${editingUser?.current_rank || 'Unranked'} (Weight: ${editingUser?.weight_rating || 150})`}
+                      disabled
+                      className="bg-slate-600 border-slate-500 text-slate-400 flex-1"
+                    />
+                    {editingUser?.riot_id && (
+                      <Button
+                        onClick={() => editingUser && handleRefreshRank(editingUser)}
+                        size="sm"
+                        disabled={refreshingRank === editingUser?.id}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        <RefreshCw className={`w-4 h-4 mr-1 ${refreshingRank === editingUser?.id ? 'animate-spin' : ''}`} />
+                        Refresh
+                      </Button>
+                    )}
+                  </div>
+                  <div className="text-xs text-slate-400">
+                    <p>Peak Rank: {editingUser?.peak_rank || 'None'}</p>
+                    <p>Rank and weight are updated through the rank scraping system.</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="role" className="text-white">Role</Label>
+                  <Select
+                    value={editForm.role}
+                    onValueChange={(value: 'admin' | 'player' | 'viewer') => 
+                      setEditForm(prev => ({ ...prev, role: value }))
+                    }
+                  >
+                    <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-700 border-slate-600">
+                      <SelectItem value="player" className="text-white hover:bg-slate-600">Player</SelectItem>
+                      <SelectItem value="admin" className="text-white hover:bg-slate-600">Admin</SelectItem>
+                      <SelectItem value="viewer" className="text-white hover:bg-slate-600">Viewer</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Manual Rank Override Section */}
+              <ManualRankOverrideSection
+                userData={{
+                  manual_rank_override: editingUser?.manual_rank_override,
+                  manual_weight_override: editingUser?.manual_weight_override,
+                  use_manual_override: editingUser?.use_manual_override,
+                  rank_override_reason: editingUser?.rank_override_reason,
+                  rank_override_set_by: editingUser?.rank_override_set_by,
+                  current_rank: editingUser?.current_rank,
+                  peak_rank: editingUser?.peak_rank,
+                  weight_rating: editingUser?.weight_rating
+                }}
+                onOverrideChange={(overrideData) => setManualOverrideForm(overrideData)}
+              />
+
+              {/* Profile Section */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-white border-b border-slate-600 pb-2">Profile Information</h3>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="bio" className="text-white">Bio</Label>
+                  <Textarea
+                    id="bio"
+                    value={editForm.bio}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, bio: e.target.value }))}
+                    className="bg-slate-700 border-slate-600 text-white"
+                    placeholder="User biography..."
+                    rows={3}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="twitter_handle" className="text-white">Twitter Handle</Label>
+                    <Input
+                      id="twitter_handle"
+                      value={editForm.twitter_handle}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, twitter_handle: e.target.value }))}
+                      className="bg-slate-700 border-slate-600 text-white"
+                      placeholder="username (without @)"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="twitch_handle" className="text-white">Twitch Handle</Label>
+                    <Input
+                      id="twitch_handle"
+                      value={editForm.twitch_handle}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, twitch_handle: e.target.value }))}
+                      className="bg-slate-700 border-slate-600 text-white"
+                      placeholder="username"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="profile_visibility" className="text-white">Profile Visibility</Label>
+                  <Select
+                    value={editForm.profile_visibility}
+                    onValueChange={(value) => 
+                      setEditForm(prev => ({ ...prev, profile_visibility: value }))
+                    }
+                  >
+                    <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-700 border-slate-600">
+                      <SelectItem value="public" className="text-white hover:bg-slate-600">Public</SelectItem>
+                      <SelectItem value="private" className="text-white hover:bg-slate-600">Private</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               
-              <div className="space-y-2">
-                <Label htmlFor="role" className="text-white">Role</Label>
-                <Select
-                  value={editForm.role}
-                  onValueChange={(value: 'admin' | 'player' | 'viewer') => 
-                    setEditForm(prev => ({ ...prev, role: value }))
-                  }
-                >
-                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-slate-700 border-slate-600">
-                    <SelectItem value="player" className="text-white hover:bg-slate-600">Player</SelectItem>
-                    <SelectItem value="admin" className="text-white hover:bg-slate-600">Admin</SelectItem>
-                    <SelectItem value="viewer" className="text-white hover:bg-slate-600">Viewer</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="bio" className="text-white">Bio</Label>
-                <Textarea
-                  id="bio"
-                  value={editForm.bio}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, bio: e.target.value }))}
-                  className="bg-slate-700 border-slate-600 text-white"
-                  placeholder="User biography..."
-                  rows={3}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="twitter_handle" className="text-white">Twitter Handle</Label>
-                  <Input
-                    id="twitter_handle"
-                    value={editForm.twitter_handle}
-                    onChange={(e) => setEditForm(prev => ({ ...prev, twitter_handle: e.target.value }))}
-                    className="bg-slate-700 border-slate-600 text-white"
-                    placeholder="username (without @)"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="twitch_handle" className="text-white">Twitch Handle</Label>
-                  <Input
-                    id="twitch_handle"
-                    value={editForm.twitch_handle}
-                    onChange={(e) => setEditForm(prev => ({ ...prev, twitch_handle: e.target.value }))}
-                    className="bg-slate-700 border-slate-600 text-white"
-                    placeholder="username"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="profile_visibility" className="text-white">Profile Visibility</Label>
-                <Select
-                  value={editForm.profile_visibility}
-                  onValueChange={(value) => 
-                    setEditForm(prev => ({ ...prev, profile_visibility: value }))
-                  }
-                >
-                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-slate-700 border-slate-600">
-                    <SelectItem value="public" className="text-white hover:bg-slate-600">Public</SelectItem>
-                    <SelectItem value="private" className="text-white hover:bg-slate-600">Private</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="flex justify-end gap-2 pt-4">
+              <div className="flex justify-end gap-2 pt-4 border-t border-slate-600">
                 <Button
                   variant="outline"
                   onClick={() => setEditDialogOpen(false)}

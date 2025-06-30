@@ -7,212 +7,154 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// TGH Skirmish Rank-to-Point System for weight_rating
-const RANK_WEIGHT_MAPPING: Record<string, number> = {
-  // Iron
-  'Iron 1': 10,
-  'Iron 2': 15,
-  'Iron 3': 20,
-  
-  // Bronze
-  'Bronze 1': 25,
-  'Bronze 2': 30,
-  'Bronze 3': 35,
-  
-  // Silver
-  'Silver 1': 40,
-  'Silver 2': 50,
-  'Silver 3': 60,
-  
-  // Gold
-  'Gold 1': 70,
-  'Gold 2': 80,
-  'Gold 3': 90,
-  
-  // Platinum
-  'Platinum 1': 100,
-  'Platinum 2': 115,
-  'Platinum 3': 130,
-  
-  // Diamond
-  'Diamond 1': 150,
-  'Diamond 2': 170,
-  'Diamond 3': 190,
-  
-  // Ascendant
-  'Ascendant 1': 215,
-  'Ascendant 2': 240,
-  'Ascendant 3': 265,
-  
-  // Immortal
-  'Immortal 1': 300,
-  'Immortal 2': 350,
-  'Immortal 3': 400,
-  
-  // Radiant
+const RANK_POINT_MAPPING: Record<string, number> = {
+  'Iron 1': 10, 'Iron 2': 15, 'Iron 3': 20,
+  'Bronze 1': 25, 'Bronze 2': 30, 'Bronze 3': 35,
+  'Silver 1': 40, 'Silver 2': 50, 'Silver 3': 60,
+  'Gold 1': 70, 'Gold 2': 80, 'Gold 3': 90,
+  'Platinum 1': 100, 'Platinum 2': 115, 'Platinum 3': 130,
+  'Diamond 1': 150, 'Diamond 2': 170, 'Diamond 3': 190,
+  'Ascendant 1': 215, 'Ascendant 2': 240, 'Ascendant 3': 265,
+  'Immortal 1': 300, 'Immortal 2': 350, 'Immortal 3': 400,
   'Radiant': 500,
-  
-  // Default/Unknown
-  'Unranked': 150,
-  'Phantom': 150
-};
-
-const getWeightRating = (rank: string): number => {
-  return RANK_WEIGHT_MAPPING[rank] || 150;
+  'Unrated': 150, 'Unranked': 150
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const { riot_id, user_id } = await req.json();
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+
+    const { riot_id, user_id } = await req.json()
+    console.log(`Getting rank for Riot ID: ${riot_id}`)
 
     if (!riot_id || !user_id) {
-      return new Response(
-        JSON.stringify({ error: 'Missing riot_id or user_id' }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
+      throw new Error('Missing riot_id or user_id')
     }
 
-    console.log(`Getting rank for Riot ID: ${riot_id}`);
-
-    // Parse Riot ID (format: username#tag)
-    const riotIdParts = riot_id.split('#');
-    if (riotIdParts.length !== 2) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid Riot ID format. Expected format: username#tag' }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
+    // Parse the Riot ID
+    const [username, tag] = riot_id.split('#')
+    if (!username || !tag) {
+      throw new Error('Invalid Riot ID format. Expected format: username#tag')
     }
 
-    const [username, tag] = riotIdParts;
-    
-    // URL encode the username and tag
-    const encodedUsername = encodeURIComponent(username);
-    const encodedTag = encodeURIComponent(tag);
-    
-    // Build Vaccie API URL (defaulting to EU region)
-    const vaccieUrl = `https://vaccie.pythonanywhere.com/mmr/${encodedUsername}/${encodedTag}/eu`;
-    
-    console.log(`Original Riot ID: ${riot_id}`);
-    console.log(`Username: ${username}, Tag: ${tag}`);
-    console.log(`Vaccie API URL: ${vaccieUrl}`);
+    console.log(`Original Riot ID: ${riot_id}`)
+    console.log(`Username: ${username}, Tag: ${tag}`)
 
-    // Call Vaccie API
-    const response = await fetch(vaccieUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-      }
-    });
+    // Encode username for URL
+    const encodedUsername = encodeURIComponent(username)
+    const apiUrl = `https://vaccie.pythonanywhere.com/mmr/${encodedUsername}/${tag}/eu`
+    
+    console.log(`Vaccie API URL: ${apiUrl}`)
 
+    const response = await fetch(apiUrl)
     if (!response.ok) {
-      console.error(`Vaccie API failed: ${response.status} ${response.statusText}`);
-      
-      if (response.status === 404) {
-        throw new Error(`Player not found. Please verify the Riot ID is correct: ${riot_id}`);
-      }
-      
-      if (response.status === 429) {
-        throw new Error(`Rate limit exceeded. Please try again later.`);
-      }
-      
-      throw new Error(`Failed to fetch rank data. Status: ${response.status}`);
+      throw new Error(`API request failed: ${response.status} ${response.statusText}`)
     }
 
-    const rankText = await response.text();
-    console.log(`Vaccie API response: ${rankText}`);
+    const rankData = await response.text()
+    console.log(`Vaccie API response: ${rankData}`)
 
-    // Parse the response (format: "Immortal 1, RR: 10 (18) (🛡️ 2)")
-    let currentRank = null;
-    let rankPoints = null;
+    // Parse the rank from the response
+    let currentRank = 'Unrated'
+    let rr = 0
 
-    if (rankText && rankText.trim() !== '') {
-      // Extract rank (everything before the first comma or "RR:")
-      const rankMatch = rankText.match(/^([^,]+?)(?:,|\s*RR:|$)/);
-      if (rankMatch) {
-        currentRank = rankMatch[1].trim();
+    // Extract rank and RR from the response string
+    const rankMatch = rankData.match(/(Iron|Bronze|Silver|Gold|Platinum|Diamond|Ascendant|Immortal|Radiant)(?:\s+(\d+))/)
+    const rrMatch = rankData.match(/RR:\s*(\d+)/)
+    const unratedMatch = rankData.match(/Unrated/)
+
+    if (unratedMatch) {
+      currentRank = 'Unrated'
+      rr = 0
+    } else if (rankMatch) {
+      const [_, rankTier, rankLevel] = rankMatch
+      if (rankTier === 'Radiant') {
+        currentRank = 'Radiant'
+      } else if (rankLevel) {
+        currentRank = `${rankTier} ${rankLevel}`
+      } else {
+        currentRank = rankTier
       }
-
-      // Extract RR points if available
-      const rrMatch = rankText.match(/RR:\s*(\d+)/);
+      
       if (rrMatch) {
-        rankPoints = parseInt(rrMatch[1]);
+        rr = parseInt(rrMatch[1])
       }
     }
 
-    console.log(`Parsed rank: ${currentRank}, RR: ${rankPoints}`);
+    console.log(`Parsed rank: ${currentRank}, RR: ${rr}`)
 
-    // Calculate weight_rating based on rank
-    const weightRating = currentRank ? getWeightRating(currentRank) : 150;
-    console.log(`Calculated weight_rating: ${weightRating} for rank: ${currentRank}`);
+    // Calculate weight rating
+    const weightRating = RANK_POINT_MAPPING[currentRank] || 150
+    console.log(`Calculated weight_rating: ${weightRating} for rank: ${currentRank}`)
 
-    // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // Get current user data to check peak rank
+    const { data: currentUser } = await supabaseClient
+      .from('users')
+      .select('current_rank, peak_rank')
+      .eq('id', user_id)
+      .single()
 
-    // Update user's rank data including weight_rating
+    // Update user with new rank data and potentially peak rank
     const updateData: any = {
-      last_rank_update: new Date().toISOString(),
-      weight_rating: weightRating
-    };
-
-    if (currentRank) {
-      updateData.current_rank = currentRank;
+      current_rank: currentRank,
+      weight_rating: weightRating,
+      last_rank_update: new Date().toISOString()
     }
 
-    if (rankPoints !== null) {
-      updateData.rank_points = rankPoints;
+    // Update peak rank if this rank is higher than current peak
+    const newRankPoints = RANK_POINT_MAPPING[currentRank] || 150
+    const currentPeakPoints = currentUser?.peak_rank ? (RANK_POINT_MAPPING[currentUser.peak_rank] || 150) : 0
+
+    let peakRankUpdated = false
+    if (currentRank !== 'Unrated' && currentRank !== 'Unranked' && newRankPoints > currentPeakPoints) {
+      updateData.peak_rank = currentRank
+      peakRankUpdated = true
+      console.log(`Peak rank updated to: ${currentRank}`)
     }
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await supabaseClient
       .from('users')
       .update(updateData)
-      .eq('id', user_id);
+      .eq('id', user_id)
 
     if (updateError) {
-      console.error('Database update error:', updateError);
-      throw updateError;
+      throw updateError
     }
 
-    console.log(`Successfully updated rank for user ${user_id}: rank=${currentRank}, weight_rating=${weightRating}, rr=${rankPoints}`);
+    console.log(`Successfully updated rank for user ${user_id}: rank=${currentRank}, weight_rating=${weightRating}, rr=${rr}`)
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         current_rank: currentRank, 
-        rank_points: rankPoints,
-        weight_rating: weightRating,
-        raw_response: rankText,
-        message: currentRank ? 'Rank data retrieved successfully' : 'No rank data found'
+        weight_rating: weightRating, 
+        rr: rr,
+        peak_rank_updated: peakRankUpdated
       }),
       { 
-        status: 200, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200 
       }
-    );
+    )
 
   } catch (error) {
-    console.error('Error in scrape-rank function:', error);
-    
+    console.error('Error in scrape-rank function:', error)
     return new Response(
       JSON.stringify({ 
-        error: error.message,
-        details: 'Check the edge function logs for more information'
+        success: false, 
+        error: error.message 
       }),
       { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400 
       }
-    );
+    )
   }
-});
+})

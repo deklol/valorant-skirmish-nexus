@@ -1,7 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
-import { getRankPointsWithFallback } from "@/utils/rankingSystem";
+import { getRankPointsWithManualOverride } from "@/utils/rankingSystemWithOverrides";
 
 interface UseTeamBalancingProps {
   tournamentId: string;
@@ -25,7 +25,7 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
     const teamSize = tournament.team_size || 5; // Default to 5v5 if not set
     console.log(`Tournament team size: ${teamSize}v${teamSize}`);
 
-    // Get all signups with user details including peak_rank (including checked-in players)
+    // Get all signups with user details including manual override fields
     const { data: signups } = await supabase
       .from('tournament_signups')
       .select(`
@@ -36,7 +36,11 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
           rank_points,
           current_rank,
           peak_rank,
-          weight_rating
+          weight_rating,
+          manual_rank_override,
+          manual_weight_override,
+          use_manual_override,
+          rank_override_reason
         )
       `)
       .eq('tournament_id', tournamentId)
@@ -72,15 +76,13 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
     // Clear existing teams
     await clearExistingTeams();
 
-    // Sort players by weight_rating (descending) with enhanced peak rank fallback
+    // Sort players by enhanced ranking system (manual override > current > peak > default)
     const sortedPlayers = signups
       .filter(signup => signup.users)
       .sort((a, b) => {
-        const aRankResult = getRankPointsWithFallback(a.users?.current_rank, a.users?.peak_rank);
-        const bRankResult = getRankPointsWithFallback(b.users?.current_rank, b.users?.peak_rank);
-        const aWeight = a.users?.weight_rating || aRankResult.points;
-        const bWeight = b.users?.weight_rating || bRankResult.points;
-        return bWeight - aWeight;
+        const aRankResult = getRankPointsWithManualOverride(a.users);
+        const bRankResult = getRankPointsWithManualOverride(b.users);
+        return bRankResult.points - aRankResult.points;
       });
 
     if (teamSize === 1) {
@@ -114,8 +116,7 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
     for (let i = 0; i < sortedPlayers.length; i++) {
       const player = sortedPlayers[i];
       const teamName = `${player.users?.discord_username || 'Player'} (Solo)`;
-      const rankResult = getRankPointsWithFallback(player.users?.current_rank, player.users?.peak_rank);
-      const playerWeight = player.users?.weight_rating || rankResult.points;
+      const rankResult = getRankPointsWithManualOverride(player.users);
       
       // Create team
       const { data: newTeam, error: teamError } = await supabase
@@ -123,7 +124,7 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
         .insert({
           name: teamName,
           tournament_id: tournamentId,
-          total_rank_points: playerWeight,
+          total_rank_points: rankResult.points,
           seed: i + 1
         })
         .select()
@@ -202,11 +203,10 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
       }
       usedNames.add(teamName);
 
-      // Calculate total weight_rating for the team using enhanced ranking system
+      // Calculate total weight using enhanced ranking system
       const totalWeight = teams[i].reduce((sum, player) => {
-        const rankResult = getRankPointsWithFallback(player.users?.current_rank, player.users?.peak_rank);
-        const weight = player.users?.weight_rating || rankResult.points;
-        return sum + weight;
+        const rankResult = getRankPointsWithManualOverride(player.users);
+        return sum + rankResult.points;
       }, 0);
 
       // Create team

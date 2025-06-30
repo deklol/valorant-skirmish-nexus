@@ -1,313 +1,137 @@
-import { useState, useEffect } from 'react';
-import { DndContext, closestCenter, DragEndEvent, DragOverlay, useDraggable, useDroppable } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Users, Shuffle, Save, Plus, GripVertical, Zap, TrendingUp } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { Users, Shuffle, AlertTriangle, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { getRankPointsWithFallback, calculateTeamBalance } from "@/utils/rankingSystem";
-import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
-import PeakRankFallbackAlert from "@/components/team-balancing/PeakRankFallbackAlert";
+import { supabase } from "@/integrations/supabase/client";
+import { useTeamBalancingLogic } from "./team-balancing/TeamBalancingLogic";
+import EnhancedRankFallbackAlert from "./team-balancing/EnhancedRankFallbackAlert";
+import { calculateTeamBalance } from "@/utils/rankingSystem";
 
 interface TeamBalancingInterfaceProps {
   tournamentId: string;
   maxTeams: number;
   teamSize: number;
-  onTeamsUpdated?: () => void;
+  onTeamsUpdated: () => void;
 }
-
-interface Player {
-  id: string;
-  discord_username: string;
-  rank_points: number;
-  weight_rating: number;
-  current_rank: string;
-  peak_rank?: string;
-  riot_id?: string;
-}
-
-interface Team {
-  id: string;
-  name: string;
-  members: Player[];
-  totalWeight: number;
-  isPlaceholder?: boolean;
-}
-
-// Enhanced Draggable Player Component with peak rank indicator
-const DraggablePlayer = ({ player }: { player: Player }) => {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: player.id,
-  });
-
-  const style = transform ? {
-    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-  } : undefined;
-
-  const rankResult = getRankPointsWithFallback(player.current_rank, player.peak_rank);
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      {...listeners}
-      {...attributes}
-      className={`flex items-center justify-between p-2 bg-slate-700 rounded cursor-move transition-opacity ${
-        isDragging ? 'opacity-50' : ''
-      }`}
-    >
-      <div className="flex items-center gap-2">
-        <GripVertical className="w-4 h-4 text-slate-400" />
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-white font-medium">{player.discord_username}</span>
-            {rankResult.usingPeakRank && (
-              <Badge className="bg-amber-600 text-white text-xs flex items-center gap-1">
-                <TrendingUp className="w-3 h-3" />
-                Peak: {rankResult.peakRank}
-              </Badge>
-            )}
-          </div>
-          <div className="text-xs text-slate-400">
-            {rankResult.usingPeakRank ? (
-              <span>
-                {player.current_rank || 'Unrated'} → Using {rankResult.peakRank} ({rankResult.points} pts)
-              </span>
-            ) : (
-              <span>
-                {player.current_rank} • {player.weight_rating || rankResult.points} pts
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Droppable Team Component
-const DroppableTeam = ({ team, teamSize }: { team: Team; teamSize: number }) => {
-  const { isOver, setNodeRef } = useDroppable({
-    id: team.isPlaceholder ? `placeholder-${team.id}` : `team-${team.id}`,
-  });
-
-  return (
-    <Card className="bg-slate-800 border-slate-700">
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-white text-lg flex items-center gap-2">
-            {team.name}
-            {team.isPlaceholder && (
-              <Badge variant="outline" className="text-xs text-slate-400 border-slate-600">
-                Placeholder
-              </Badge>
-            )}
-          </CardTitle>
-          <Badge className="bg-indigo-600 text-white">
-            {team.totalWeight} pts
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div 
-          ref={setNodeRef}
-          className={`space-y-2 min-h-[100px] border-2 border-dashed rounded-lg p-4 transition-colors ${
-            isOver ? 'border-blue-400 bg-blue-900/20' : 'border-slate-600'
-          }`}
-        >
-          {team.members.length === 0 ? (
-            <p className="text-slate-400 text-center py-4">
-              Drop players here
-              {teamSize > 1 && ` (max ${teamSize} players)`}
-            </p>
-          ) : (
-            team.members.map((player, playerIndex) => (
-              <DraggablePlayer key={player.id} player={player} />
-            ))
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
-
-// Droppable Unassigned Area
-const DroppableUnassigned = ({ players }: { players: Player[] }) => {
-  const { isOver, setNodeRef } = useDroppable({
-    id: 'unassigned',
-  });
-
-  return (
-    <Card className="bg-slate-800 border-slate-700 min-h-[200px]">
-      <CardContent className="p-4">
-        <div 
-          ref={setNodeRef}
-          className={`space-y-2 min-h-[150px] border-2 border-dashed rounded-lg p-4 transition-colors ${
-            isOver ? 'border-blue-400 bg-blue-900/20' : 'border-slate-600'
-          }`}
-        >
-          {players.length === 0 ? (
-            <p className="text-slate-400 text-center py-8">
-              All players assigned to teams
-            </p>
-          ) : (
-            players.map(player => (
-              <DraggablePlayer key={player.id} player={player} />
-            ))
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
 
 const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdated }: TeamBalancingInterfaceProps) => {
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [unassignedPlayers, setUnassignedPlayers] = useState<Player[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [creatingTeams, setCreatingTeams] = useState(false);
-  const [autobalancing, setAutobalancing] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [players, setPlayers] = useState<any[]>([]);
+  const [teams, setTeams] = useState<any[]>([]);
+  const [balanceStatus, setBalanceStatus] = useState<any>(null);
   const { toast } = useToast();
-  const notifications = useEnhancedNotifications();
-  const [tournamentName, setTournamentName] = useState<string>("");
+  const { balanceTeams } = useTeamBalancingLogic({
+    tournamentId,
+    maxTeams,
+    onTeamsBalanced: () => {
+      fetchTeamsAndPlayers();
+      onTeamsUpdated();
+    }
+  });
 
   useEffect(() => {
     fetchTeamsAndPlayers();
-    fetchTournamentName();
-    // eslint-disable-next-line
   }, [tournamentId]);
 
-  const fetchTournamentName = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('tournaments')
-        .select('name')
-        .eq('id', tournamentId)
-        .single();
-      if (!error && data?.name) {
-        setTournamentName(data.name);
-      }
-    } catch (e) {
-      // Fallback: just blank
-      setTournamentName("");
-    }
-  };
-
   const fetchTeamsAndPlayers = async () => {
-    setLoading(true);
     try {
-      console.log('Fetching teams and players for tournament:', tournamentId);
-      
-      // Fetch teams with their members including peak_rank
-      const { data: teamsData, error: teamsError } = await supabase
+      // Fetch checked-in players with enhanced rank data
+      const { data: signupsData } = await supabase
+        .from('tournament_signups')
+        .select(`
+          user_id,
+          users:user_id (
+            id,
+            discord_username,
+            current_rank,
+            peak_rank,
+            weight_rating,
+            manual_rank_override,
+            manual_weight_override,
+            use_manual_override,
+            rank_override_reason
+          )
+        `)
+        .eq('tournament_id', tournamentId)
+        .eq('is_checked_in', true);
+
+      const playersData = signupsData?.map(signup => ({
+        id: signup.users?.id,
+        discord_username: signup.users?.discord_username,
+        current_rank: signup.users?.current_rank,
+        peak_rank: signup.users?.peak_rank,
+        weight_rating: signup.users?.weight_rating,
+        manual_rank_override: signup.users?.manual_rank_override,
+        manual_weight_override: signup.users?.manual_weight_override,
+        use_manual_override: signup.users?.use_manual_override,
+        rank_override_reason: signup.users?.rank_override_reason
+      })).filter(player => player.id) || [];
+
+      setPlayers(playersData);
+
+      // Fetch existing teams
+      const { data: teamsData } = await supabase
         .from('teams')
         .select(`
           id,
           name,
+          total_rank_points,
+          seed,
           team_members (
             user_id,
+            is_captain,
             users (
-              id,
               discord_username,
-              rank_points,
-              weight_rating,
               current_rank,
               peak_rank,
-              riot_id
+              weight_rating,
+              manual_rank_override,
+              manual_weight_override,
+              use_manual_override
             )
           )
         `)
-        .eq('tournament_id', tournamentId);
+        .eq('tournament_id', tournamentId)
+        .order('seed', { ascending: true });
 
-      if (teamsError) throw teamsError;
+      setTeams(teamsData || []);
 
-      // Fetch tournament participants to find unassigned players including peak_rank
-      const { data: participantsData, error: participantsError } = await supabase
-        .from('tournament_signups')
-        .select(`
-          user_id,
-          users (
-            id,
-            discord_username,
-            rank_points,
-            weight_rating,
-            current_rank,
-            peak_rank,
-            riot_id
-          )
-        `)
-        .eq('tournament_id', tournamentId);
-
-      if (participantsError) throw participantsError;
-
-      // Process teams
-      const processedTeams: Team[] = (teamsData || []).map(team => {
-        const members = team.team_members
-          .map(member => member.users)
-          .filter(user => user)
-          .map(user => {
-            const rankResult = getRankPointsWithFallback(user.current_rank, user.peak_rank);
-            return {
-              id: user.id,
-              discord_username: user.discord_username || 'Unknown',
-              rank_points: user.rank_points || 0,
-              weight_rating: user.weight_rating || rankResult.points,
-              current_rank: user.current_rank || 'Unranked',
-              peak_rank: user.peak_rank,
-              riot_id: user.riot_id
-            };
-          });
-
-        const totalWeight = members.reduce((sum, member) => {
-          const rankResult = getRankPointsWithFallback(member.current_rank, member.peak_rank);
-          return sum + (member.weight_rating || rankResult.points);
-        }, 0);
-
-        return {
-          id: team.id,
-          name: team.name,
-          members,
-          totalWeight
-        };
-      });
-
-      // Find unassigned players
-      const allAssignedUserIds = new Set(
-        processedTeams.flatMap(team => team.members.map(member => member.id))
-      );
-
-      const unassigned = (participantsData || [])
-        .map(participant => participant.users)
-        .filter(user => user && !allAssignedUserIds.has(user.id))
-        .map(user => {
-          const rankResult = getRankPointsWithFallback(user.current_rank, user.peak_rank);
-          return {
-            id: user.id,
-            discord_username: user.discord_username || 'Unknown',
-            rank_points: user.rank_points || 0,
-            weight_rating: user.weight_rating || rankResult.points,
-            current_rank: user.current_rank || 'Unranked',
-            peak_rank: user.peak_rank,
-            riot_id: user.riot_id
-          };
-        });
-
-      // If no teams exist, create placeholder teams
-      let finalTeams = processedTeams;
-      if (processedTeams.length === 0) {
-        finalTeams = createPlaceholderTeams();
+      // Calculate balance status if teams exist
+      if (teamsData && teamsData.length >= 2) {
+        const team1Points = teamsData[0]?.total_rank_points || 0;
+        const team2Points = teamsData[1]?.total_rank_points || 0;
+        const balance = calculateTeamBalance(team1Points, team2Points);
+        setBalanceStatus(balance);
+      } else {
+        setBalanceStatus(null);
       }
 
-      setTeams(finalTeams);
-      setUnassignedPlayers(unassigned);
-    } catch (error: any) {
-      console.error('Error fetching teams and players:', error);
+    } catch (error) {
+      console.error('Error fetching data:', error);
       toast({
         title: "Error",
-        description: "Failed to load teams and players",
+        description: "Failed to load tournament data",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleBalanceTeams = async () => {
+    if (loading) return;
+    
+    setLoading(true);
+    try {
+      await balanceTeams();
+      toast({
+        title: "Teams Balanced",
+        description: "Teams have been automatically balanced based on player rankings",
+      });
+    } catch (error: any) {
+      console.error('Error balancing teams:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to balance teams",
         variant: "destructive",
       });
     } finally {
@@ -315,533 +139,99 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
     }
   };
 
-  const createPlaceholderTeams = (): Team[] => {
-    const placeholderTeams: Team[] = [];
-    
-    for (let i = 0; i < maxTeams; i++) {
-      const teamName = `Team ${String.fromCharCode(65 + i)}`; // Team A, Team B, etc.
-      placeholderTeams.push({
-        id: `placeholder-${i}`,
-        name: teamName,
-        members: [],
-        totalWeight: 0,
-        isPlaceholder: true
-      });
-    }
-    
-    return placeholderTeams;
-  };
+  return (
+    <div className="space-y-6">
+      {/* Enhanced Rank Fallback Alert */}
+      <EnhancedRankFallbackAlert players={players} />
 
-  const createEmptyTeams = async () => {
-    setCreatingTeams(true);
-    try {
-      const teamsToCreate = [];
-      
-      for (let i = 0; i < maxTeams; i++) {
-        const teamName = `Team ${String.fromCharCode(65 + i)}`;
-        teamsToCreate.push({
-          name: teamName,
-          tournament_id: tournamentId,
-          total_rank_points: 0,
-          seed: i + 1
-        });
-      }
-
-      const { data: createdTeams, error } = await supabase
-        .from('teams')
-        .insert(teamsToCreate)
-        .select();
-
-      if (error) throw error;
-
-      toast({
-        title: "Teams Created",
-        description: `Created ${maxTeams} empty teams for manual balancing`,
-      });
-
-      // Refresh the data
-      await fetchTeamsAndPlayers();
-      onTeamsUpdated?.();
-    } catch (error: any) {
-      console.error('Error creating teams:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create teams",
-        variant: "destructive",
-      });
-    } finally {
-      setCreatingTeams(false);
-    }
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    
-    if (!over || active.id === over.id) return;
-
-    const playerId = active.id as string;
-    const targetId = over.id as string;
-
-    // Find the player being moved
-    let player: Player | null = null;
-    let sourceTeamId: string | null = null;
-
-    // Check unassigned players
-    const unassignedIndex = unassignedPlayers.findIndex(p => p.id === playerId);
-    if (unassignedIndex !== -1) {
-      player = unassignedPlayers[unassignedIndex];
-    } else {
-      // Check teams
-      for (const team of teams) {
-        const memberIndex = team.members.findIndex(p => p.id === playerId);
-        if (memberIndex !== -1) {
-          player = team.members[memberIndex];
-          sourceTeamId = team.id;
-          break;
-        }
-      }
-    }
-
-    if (!player) return;
-
-    // Handle movement
-    if (targetId === 'unassigned') {
-      movePlayerToUnassigned(player, sourceTeamId);
-    } else if (targetId.startsWith('team-') || targetId.startsWith('placeholder-')) {
-      const teamId = targetId.replace('team-', '').replace('placeholder-', '');
-      const targetTeam = teams.find(t => t.id === teamId || t.id === `placeholder-${teamId}`);
-      
-      if (targetTeam) {
-        // Check team capacity
-        if (targetTeam.members.length >= teamSize) {
-          toast({
-            title: "Team Full",
-            description: `Team ${targetTeam.name} is already at maximum capacity (${teamSize} players)`,
-            variant: "destructive",
-          });
-          return;
-        }
-        
-        movePlayerToTeam(player, targetTeam.id, sourceTeamId);
-      }
-    }
-  };
-
-  const movePlayerToUnassigned = (player: Player, sourceTeamId: string | null) => {
-    if (sourceTeamId) {
-      setTeams(prevTeams => 
-        prevTeams.map(team => {
-          if (team.id === sourceTeamId) {
-            const newMembers = team.members.filter(p => p.id !== player.id);
-            const totalWeight = newMembers.reduce((sum, member) => {
-              const rankResult = getRankPointsWithFallback(member.current_rank, member.peak_rank);
-              return sum + (member.weight_rating || rankResult.points);
-            }, 0);
-            return { ...team, members: newMembers, totalWeight };
-          }
-          return team;
-        })
-      );
-    }
-    
-    setUnassignedPlayers(prev => {
-      if (prev.some(p => p.id === player.id)) return prev;
-      return [...prev, player];
-    });
-  };
-
-  const movePlayerToTeam = (player: Player, targetTeamId: string, sourceTeamId: string | null) => {
-    // Remove from source
-    if (sourceTeamId) {
-      setTeams(prevTeams => 
-        prevTeams.map(team => {
-          if (team.id === sourceTeamId) {
-            const newMembers = team.members.filter(p => p.id !== player.id);
-            const totalWeight = newMembers.reduce((sum, member) => {
-              const rankResult = getRankPointsWithFallback(member.current_rank, member.peak_rank);
-              return sum + (member.weight_rating || rankResult.points);
-            }, 0);
-            return { ...team, members: newMembers, totalWeight };
-          }
-          return team;
-        })
-      );
-    } else {
-      setUnassignedPlayers(prev => prev.filter(p => p.id !== player.id));
-    }
-
-    // Add to target team
-    setTeams(prevTeams => 
-      prevTeams.map(team => {
-        if (team.id === targetTeamId) {
-          const newMembers = [...team.members, player];
-          const totalWeight = newMembers.reduce((sum, member) => {
-            const rankResult = getRankPointsWithFallback(member.current_rank, member.peak_rank);
-            return sum + (member.weight_rating || rankResult.points);
-          }, 0);
-          return { ...team, members: newMembers, totalWeight };
-        }
-        return team;
-      })
-    );
-  };
-
-  // 🧠 Enhanced Autobalance Algorithm with peak rank support
-  function autobalanceUnassignedPlayers() {
-    setAutobalancing(true);
-    try {
-      // Copy current teams and unassigned lists (deep enough for logic)
-      const teamsCopy: Team[] = teams.map(team => ({ ...team, members: [...team.members] }));
-      let unassignedCopy: Player[] = [...unassignedPlayers];
-
-      // Sort unassigned players by weight_rating DESC (highest first) with peak rank fallback
-      unassignedCopy.sort((a, b) => {
-        const aRankResult = getRankPointsWithFallback(a.current_rank, a.peak_rank);
-        const bRankResult = getRankPointsWithFallback(b.current_rank, b.peak_rank);
-        const aWeight = a.weight_rating || aRankResult.points;
-        const bWeight = b.weight_rating || bRankResult.points;
-        return bWeight - aWeight;
-      });
-
-      while (unassignedCopy.length > 0) {
-        // Pick the next strongest player
-        const player = unassignedCopy.shift();
-        if (!player) break;
-
-        let bestTeamIndex = -1;
-        let bestDelta = Infinity; // Track lowest possible team delta after placement
-
-        // Try this player on every team that has open slot
-        for (let i = 0; i < teamsCopy.length; i++) {
-          if (teamsCopy[i].members.length >= teamSize) continue;
-
-          // Simulate adding to this team
-          const rankResult = getRankPointsWithFallback(player.current_rank, player.peak_rank);
-          const playerWeight = player.weight_rating || rankResult.points;
-          
-          const simulatedTeams = teamsCopy.map((t, idx) =>
-            idx === i
-              ? { ...t, members: [...t.members, player], totalWeight: t.totalWeight + playerWeight }
-              : t
-          );
-
-          // Only consider teams that will have >0 members after this operation (skip empty if phantom)
-          const teamWeights = simulatedTeams
-            .filter(t => t.members.length > 0)
-            .map(t => t.members.reduce((sum, m) => {
-              const mRankResult = getRankPointsWithFallback(m.current_rank, m.peak_rank);
-              return sum + (m.weight_rating || mRankResult.points);
-            }, 0));
-
-          const maxW = Math.max(...teamWeights, 0);
-          const minW = Math.min(...teamWeights, 0);
-          const delta = maxW - minW;
-
-          if (delta < bestDelta) {
-            bestDelta = delta;
-            bestTeamIndex = i;
-          }
-        }
-
-        // Fallback: if all teams are full, break
-        if (bestTeamIndex === -1) break;
-
-        // Assign the player to the best team found
-        const rankResult = getRankPointsWithFallback(player.current_rank, player.peak_rank);
-        const playerWeight = player.weight_rating || rankResult.points;
-        teamsCopy[bestTeamIndex].members.push(player);
-        teamsCopy[bestTeamIndex].totalWeight = 
-          (teamsCopy[bestTeamIndex].totalWeight || 0) + playerWeight;
-      }
-
-      setUnassignedPlayers([]);
-      setTeams(
-        teamsCopy.map(team => ({
-          ...team,
-          totalWeight: team.members.reduce((sum, m) => {
-            const mRankResult = getRankPointsWithFallback(m.current_rank, m.peak_rank);
-            return sum + (m.weight_rating || mRankResult.points);
-          }, 0),
-        }))
-      );
-
-      toast({
-        title: "Suggestion Complete",
-        description: "Players distributed to teams for best possible balance. Review before saving.",
-      });
-    } catch (e) {
-      toast({
-        title: "Autobalance Error",
-        description: "Something went wrong during autobalance.",
-        variant: "destructive",
-      });
-    }
-    setAutobalancing(false);
-  }
-
-  // Helper to generate team name based on captain for use in saveTeamChanges
-  function getCaptainBasedTeamName(members: Player[], fallback: string = "Team Unknown") {
-    if (members.length === 0) return fallback;
-    // Captain is highest weight_rating (if equal, first in list wins)
-    let sorted = [...members].sort((a, b) => {
-      const aRankResult = getRankPointsWithFallback(a.current_rank, a.peak_rank);
-      const bRankResult = getRankPointsWithFallback(b.current_rank, b.peak_rank);
-      const aWeight = a.weight_rating || aRankResult.points;
-      const bWeight = b.weight_rating || bRankResult.points;
-      return bWeight - aWeight;
-    });
-    let captain = sorted[0];
-    if (!captain || !captain.discord_username) return fallback;
-    return teamSize === 1
-      ? `${captain.discord_username} (Solo)`
-      : `Team ${captain.discord_username}`;
-  }
-
-  // Sort team members by highest weight before saving (captain = first player highest rating)
-  const saveTeamChanges = async () => {
-    setSaving(true);
-    try {
-      const usedNames = new Set<string>();
-      let reorderedTeams = teams.map(team => {
-        const sortedMembers = [...team.members].sort((a, b) => {
-          const aRankResult = getRankPointsWithFallback(a.current_rank, a.peak_rank);
-          const bRankResult = getRankPointsWithFallback(b.current_rank, b.peak_rank);
-          const aWeight = a.weight_rating || aRankResult.points;
-          const bWeight = b.weight_rating || bRankResult.points;
-          return bWeight - aWeight;
-        });
-        let teamName = getCaptainBasedTeamName(sortedMembers, team.name);
-        let uniqueName = teamName;
-        let count = 2;
-        while (usedNames.has(uniqueName)) {
-          uniqueName = `${teamName} (${count})`;
-          count++;
-        }
-        usedNames.add(uniqueName);
-        return { ...team, members: sortedMembers, name: team.members.length ? uniqueName : team.name };
-      });
-      const teamsWithMembers = reorderedTeams.filter(team => team.members.length > 0);
-
-      for (const team of teamsWithMembers) {
-        if (team.isPlaceholder) {
-          const { data: newTeam, error: createError } = await supabase
-            .from('teams')
-            .insert({
-              name: team.name,
-              tournament_id: tournamentId,
-              total_rank_points: team.totalWeight,
-              seed: reorderedTeams.indexOf(team) + 1
-            })
-            .select()
-            .single();
-          if (createError) throw createError;
-          const membersToInsert = team.members.map((member, index) => ({
-            team_id: newTeam.id,
-            user_id: member.id,
-            is_captain: index === 0
-          }));
-          const { error: membersError } = await supabase
-            .from('team_members')
-            .insert(membersToInsert);
-          if (membersError) throw membersError;
-
-          // --- Notification for new team assignment ---
-          await notifications.notifyTeamAssigned(
-            newTeam.id,
-            team.name,
-            team.members.map(m => m.id),
-            tournamentName
-          );
-        } else {
-          await supabase
-            .from('teams')
-            .update({
-              total_rank_points: team.totalWeight,
-              name: team.name
-            })
-            .eq('id', team.id);
-          await supabase
-            .from('team_members')
-            .delete()
-            .eq('team_id', team.id);
-          if (team.members.length > 0) {
-            const membersToInsert = team.members.map((member, index) => ({
-              team_id: team.id,
-              user_id: member.id,
-              is_captain: index === 0
-            }));
-            await supabase
-              .from('team_members')
-              .insert(membersToInsert);
-          }
-
-          // --- Notification for edited team assignment ---
-          await notifications.notifyTeamAssigned(
-            team.id,
-            team.name,
-            team.members.map(m => m.id),
-            tournamentName
-          );
-        }
-      }
-
-      toast({
-        title: "Teams Updated",
-        description: "Team assignments have been saved successfully, captains and names updated with enhanced rank balancing.",
-      });
-
-      // Refresh the data
-      await fetchTeamsAndPlayers();
-      onTeamsUpdated?.();
-    } catch (error: any) {
-      console.error('Error saving team changes:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save team changes",
-        variant: "destructive",
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const getBalanceAnalysis = () => {
-    const teamsWithMembers = teams.filter(team => team.members.length > 0);
-    if (teamsWithMembers.length < 2) return null;
-
-    const teamWeights = teamsWithMembers.map(team => team.totalWeight);
-    const maxWeight = Math.max(...teamWeights);
-    const minWeight = Math.min(...teamWeights);
-    
-    return calculateTeamBalance(maxWeight, minWeight);
-  };
-
-  if (loading) {
-    return (
+      {/* Team Balancing Controls */}
       <Card className="bg-slate-800 border-slate-700">
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
-            <Users className="w-5 h-5" />
+            <Users className="w-5 h-5 text-blue-400" />
             Team Balancing
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="flex justify-center items-center h-40">
-            <p className="text-slate-400">Loading teams...</p>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-slate-300">
+              <p><strong>Checked-in Players:</strong> {players.length}</p>
+              <p><strong>Format:</strong> {teamSize}v{teamSize}</p>
+              <p><strong>Max Teams:</strong> {maxTeams}</p>
+            </div>
+            <Button 
+              onClick={handleBalanceTeams}
+              disabled={loading || players.length === 0}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Shuffle className="w-4 h-4 mr-2" />
+              {loading ? 'Balancing...' : 'Balance Teams'}
+            </Button>
           </div>
+
+          {balanceStatus && (
+            <div className="p-3 rounded-lg bg-slate-700/50 border border-slate-600">
+              <div className="flex items-center gap-2 mb-2">
+                {balanceStatus.balanceStatus === 'ideal' || balanceStatus.balanceStatus === 'good' 
+                  ? <CheckCircle className="w-4 h-4 text-green-400" />
+                  : <AlertTriangle className="w-4 h-4 text-yellow-400" />
+                }
+                <span className={`font-medium ${balanceStatus.statusColor}`}>
+                  Team Balance Status
+                </span>
+              </div>
+              <p className="text-sm text-slate-300 mb-2">{balanceStatus.statusMessage}</p>
+              <div className="text-xs text-slate-400">
+                Team 1: {balanceStatus.team1Points} points • Team 2: {balanceStatus.team2Points} points • 
+                Difference: {balanceStatus.delta} points
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
-    );
-  }
 
-  const balance = getBalanceAnalysis();
-  const hasPlaceholderTeams = teams.some(team => team.isPlaceholder);
-  const allPlayers = [...unassignedPlayers, ...teams.flatMap(team => team.members)];
-
-  return (
-    <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-      <div className="space-y-6">
-        {/* Peak Rank Fallback Alert */}
-        <PeakRankFallbackAlert players={allPlayers} />
-
-        <Card className="bg-slate-800 border-slate-700">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              Manual Team Balancing
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="text-slate-300 text-sm">
-              <p>Drag and drop players between teams to manually balance them.</p>
-              <p className="mt-1">
-                Tournament setup: {maxTeams} teams, {teamSize}v{teamSize} format
-                {teamSize === 1 ? ' (1v1 - each player gets their own team)' : ` (${teamSize} players per team)`}
-              </p>
-            </div>
-
-            {balance && (
-              <div className="flex items-center justify-between p-3 bg-slate-700 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-yellow-400" />
-                  <span className="text-white text-sm">Balance Status:</span>
-                  <Badge className={`${balance.statusColor} bg-slate-600 border-slate-500`}>
-                    {balance.balanceStatus.toUpperCase()}
-                  </Badge>
+      {/* Teams Display */}
+      {teams.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {teams.map((team) => (
+            <Card key={team.id} className="bg-slate-800 border-slate-700">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-white text-lg">{team.name}</CardTitle>
+                <div className="text-sm text-slate-400">
+                  Total Points: {team.total_rank_points} • Seed: {team.seed}
                 </div>
-                <div className="text-right">
-                  <span className="text-slate-300 text-sm">
-                    Weight difference: {balance.delta} points
-                  </span>
-                  <p className={`text-xs ${balance.statusColor} mt-1`}>
-                    {balance.statusMessage}
-                  </p>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {team.team_members?.map((member: any) => (
+                    <div key={member.user_id} className="flex items-center justify-between p-2 rounded bg-slate-700/50">
+                      <div className="flex items-center gap-2">
+                        <span className="text-white font-medium">
+                          {member.users?.discord_username || 'Unknown'}
+                        </span>
+                        {member.is_captain && (
+                          <span className="text-xs bg-yellow-600 text-white px-2 py-1 rounded">
+                            Captain
+                          </span>
+                        )}
+                        {member.users?.use_manual_override && (
+                          <span className="text-xs bg-purple-600 text-white px-2 py-1 rounded">
+                            Override
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-slate-400">
+                        {member.users?.current_rank || 'Unranked'}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </div>
-            )}
-
-            <div className="flex gap-2">
-              {/* 🟨 Autobalance Button Start */}
-              <Button
-                onClick={autobalanceUnassignedPlayers}
-                disabled={autobalancing || hasPlaceholderTeams || unassignedPlayers.length === 0}
-                variant="secondary"
-                className="bg-yellow-600 hover:bg-yellow-700 text-white"
-              >
-                <Zap className="w-4 h-4 mr-2" />
-                {autobalancing ? "Suggesting..." : "Autobalance"}
-              </Button>
-              {/* 🟨 Autobalance Button End */}
-              
-              {hasPlaceholderTeams && (
-                <Button
-                  onClick={createEmptyTeams}
-                  disabled={creatingTeams}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  {creatingTeams ? 'Creating...' : 'Create Team Slots'}
-                </Button>
-              )}
-              
-              <Button
-                onClick={saveTeamChanges}
-                disabled={saving || hasPlaceholderTeams}
-                className="bg-green-600 hover:bg-green-700 text-white"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                {saving ? 'Saving...' : 'Save Changes'}
-              </Button>
-            </div>
-
-            {hasPlaceholderTeams && (
-              <div className="p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg">
-                <p className="text-blue-400 text-sm">
-                  Click "Create Team Slots" to create {maxTeams} empty teams for manual player assignment.
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <h3 className="text-white font-medium flex items-center gap-2">
-              <Shuffle className="w-4 h-4" />
-              Teams ({teams.length}/{maxTeams})
-            </h3>
-            {teams.map((team) => (
-              <DroppableTeam key={team.id} team={team} teamSize={teamSize} />
-            ))}
-          </div>
-
-          <div className="space-y-4">
-            <h3 className="text-white font-medium">Unassigned Players ({unassignedPlayers.length})</h3>
-            <DroppableUnassigned players={unassignedPlayers} />
-          </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
-      </div>
-    </DndContext>
+      )}
+    </div>
   );
 };
 
