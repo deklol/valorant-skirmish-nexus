@@ -67,6 +67,7 @@ const Players = () => {
         <div className="flex items-center gap-3 mb-8">
           <Users className="w-8 h-8 text-blue-500" />
           <h1 className="text-3xl font-bold text-white">Players</h1>
+          <p class="text-slate-400">Q: Balancing Weight? A: Number represents rank, used for balancing purposes.</p>
         </div>
 
         {players.length === 0 ? (
