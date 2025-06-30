@@ -95,7 +95,7 @@ export default function TopPlayersDisplay() {
                 className="font-medium text-white"
               />
               <Badge variant="outline" className="ml-auto">{player.current_rank || "Unranked"}</Badge>
-              <span className="text-slate-400 text-xs ml-2">{player.rank_points ?? 0} pts</span>
+              <span className="text-slate-400 text-xs ml-2">{player.rank_points ?? 0} rr</span>
             </li>
           ))}
         </ul>
