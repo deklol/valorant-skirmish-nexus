@@ -78,7 +78,8 @@ const Players = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+<p class="text-slate-400">Browse and join upcoming Valorant tournaments</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {players.map((player) => (
               <Card key={player.id} className="bg-slate-800/90 border-slate-700 hover:bg-slate-800 transition-colors">
                 <CardHeader className="pb-3">
