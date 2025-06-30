@@ -62,7 +62,6 @@ const DraggablePlayer = ({ player }: { player: Player }) => {
       <div className="flex items-center gap-2">
         <GripVertical className="w-4 h-4 text-slate-400" />
         <div>
-          <EnhancedRankFallbackAlert players={players} />
           <div className="flex items-center gap-2">
             <span className="text-white font-medium">{player.discord_username}</span>
             {rankResult.usingPeakRank && (
