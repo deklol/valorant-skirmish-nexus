@@ -464,7 +464,7 @@ const UserManagement = () => {
           </Table>
         </div>
 
-        {/* Edit User Dialog */}
+        {/* Edit User Dialog with Enhanced Manual Override Section */}
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
           <DialogContent className="bg-slate-800 border-slate-700 max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>

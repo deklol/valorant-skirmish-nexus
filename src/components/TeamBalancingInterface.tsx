@@ -4,10 +4,11 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Users, Shuffle, Save, Plus, GripVertical, Zap, TrendingUp } from "lucide-react";
+import { AlertTriangle, Users, Shuffle, Save, Plus, GripVertical, Zap, TrendingUp, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { getRankPointsWithFallback, calculateTeamBalance } from "@/utils/rankingSystem";
+import { getRankPointsWithManualOverride } from "@/utils/rankingSystemWithOverrides";
 import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
 import PeakRankFallbackAlert from "@/components/team-balancing/PeakRankFallbackAlert";
 import EnhancedRankFallbackAlert from "@/components/team-balancing/EnhancedRankFallbackAlert";
@@ -27,6 +28,10 @@ interface Player {
   current_rank: string;
   peak_rank?: string;
   riot_id?: string;
+  manual_rank_override?: string | null;
+  manual_weight_override?: number | null;
+  use_manual_override?: boolean;
+  rank_override_reason?: string | null;
 }
 
 interface Team {
@@ -37,7 +42,7 @@ interface Team {
   isPlaceholder?: boolean;
 }
 
-// Enhanced Draggable Player Component with peak rank indicator
+// Enhanced Draggable Player Component with manual override and peak rank indicators
 const DraggablePlayer = ({ player }: { player: Player }) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: player.id,
@@ -47,7 +52,9 @@ const DraggablePlayer = ({ player }: { player: Player }) => {
     transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
   } : undefined;
 
-  const rankResult = getRankPointsWithFallback(player.current_rank, player.peak_rank);
+  // Use enhanced ranking system that supports manual overrides
+  const rankResult = getRankPointsWithManualOverride(player);
+  const fallbackResult = getRankPointsWithFallback(player.current_rank, player.peak_rank);
 
   return (
     <div
@@ -64,17 +71,27 @@ const DraggablePlayer = ({ player }: { player: Player }) => {
         <div>
           <div className="flex items-center gap-2">
             <span className="text-white font-medium">{player.discord_username}</span>
-            {rankResult.usingPeakRank && (
+            {rankResult.source === 'manual_override' && (
+              <Badge className="bg-purple-600 text-white text-xs flex items-center gap-1">
+                <Settings className="w-3 h-3" />
+                Override: {rankResult.rank}
+              </Badge>
+            )}
+            {rankResult.source === 'peak_rank' && (
               <Badge className="bg-amber-600 text-white text-xs flex items-center gap-1">
                 <TrendingUp className="w-3 h-3" />
-                Peak: {rankResult.peakRank}
+                Peak: {rankResult.rank}
               </Badge>
             )}
           </div>
           <div className="text-xs text-slate-400">
-            {rankResult.usingPeakRank ? (
+            {rankResult.source === 'manual_override' ? (
               <span>
-                {player.current_rank || 'Unrated'} → Using {rankResult.peakRank} ({rankResult.points} pts)
+                Override: {rankResult.rank} ({rankResult.points} pts) • {rankResult.overrideReason || 'Admin set'}
+              </span>
+            ) : rankResult.source === 'peak_rank' ? (
+              <span>
+                {player.current_rank || 'Unrated'} → Using {rankResult.rank} ({rankResult.points} pts)
               </span>
             ) : (
               <span>
@@ -202,7 +219,7 @@ const fetchTeamsAndPlayers = async () => {
 try {
       console.log('Fetching teams and players for tournament:', tournamentId);
       
-      // Fetch teams with their members including peak_rank
+      // Fetch teams with their members including manual override fields
       const { data: teamsData, error: teamsError } = await supabase
 .from('teams')
 .select(`
@@ -217,7 +234,11 @@ try {
               weight_rating,
              current_rank,
              peak_rank,
-              riot_id
+              riot_id,
+              manual_rank_override,
+              manual_weight_override,
+              use_manual_override,
+              rank_override_reason
            )
          )
        `)
@@ -225,7 +246,7 @@ try {
 
       if (teamsError) throw teamsError;
 
-      // Fetch tournament participants to find unassigned players including peak_rank
+      // Fetch tournament participants to find unassigned players including manual override fields
       const { data: participantsData, error: participantsError } = await supabase
         .from('tournament_signups')
         .select(`
@@ -237,20 +258,24 @@ try {
             weight_rating,
             current_rank,
             peak_rank,
-            riot_id
+            riot_id,
+            manual_rank_override,
+            manual_weight_override,
+            use_manual_override,
+            rank_override_reason
           )
         `)
         .eq('tournament_id', tournamentId);
 
       if (participantsError) throw participantsError;
 
-      // Process teams
+      // Process teams with enhanced ranking
       const processedTeams: Team[] = (teamsData || []).map(team => {
         const members = team.team_members
           .map(member => member.users)
           .filter(user => user)
           .map(user => {
-            const rankResult = getRankPointsWithFallback(user.current_rank, user.peak_rank);
+            const rankResult = getRankPointsWithManualOverride(user);
             return {
               id: user.id,
               discord_username: user.discord_username || 'Unknown',
@@ -258,13 +283,17 @@ try {
               weight_rating: user.weight_rating || rankResult.points,
               current_rank: user.current_rank || 'Unranked',
               peak_rank: user.peak_rank,
-              riot_id: user.riot_id
+              riot_id: user.riot_id,
+              manual_rank_override: user.manual_rank_override,
+              manual_weight_override: user.manual_weight_override,
+              use_manual_override: user.use_manual_override,
+              rank_override_reason: user.rank_override_reason
             };
           });
 
         const totalWeight = members.reduce((sum, member) => {
-          const rankResult = getRankPointsWithFallback(member.current_rank, member.peak_rank);
-          return sum + (member.weight_rating || rankResult.points);
+          const rankResult = getRankPointsWithManualOverride(member);
+          return sum + rankResult.points;
         }, 0);
 
         return {
@@ -275,7 +304,7 @@ try {
         };
       });
 
-      // Find unassigned players
+      // Find unassigned players with enhanced ranking
       const allAssignedUserIds = new Set(
         processedTeams.flatMap(team => team.members.map(member => member.id))
       );
@@ -284,7 +313,7 @@ try {
         .map(participant => participant.users)
         .filter(user => user && !allAssignedUserIds.has(user.id))
         .map(user => {
-          const rankResult = getRankPointsWithFallback(user.current_rank, user.peak_rank);
+          const rankResult = getRankPointsWithManualOverride(user);
           return {
             id: user.id,
             discord_username: user.discord_username || 'Unknown',
@@ -292,7 +321,11 @@ try {
             weight_rating: user.weight_rating || rankResult.points,
             current_rank: user.current_rank || 'Unranked',
             peak_rank: user.peak_rank,
-            riot_id: user.riot_id
+            riot_id: user.riot_id,
+            manual_rank_override: user.manual_rank_override,
+            manual_weight_override: user.manual_weight_override,
+            use_manual_override: user.use_manual_override,
+            rank_override_reason: user.rank_override_reason
           };
         });
 
@@ -435,8 +468,8 @@ variant: "destructive",
           if (team.id === sourceTeamId) {
             const newMembers = team.members.filter(p => p.id !== player.id);
             const totalWeight = newMembers.reduce((sum, member) => {
-              const rankResult = getRankPointsWithFallback(member.current_rank, member.peak_rank);
-              return sum + (member.weight_rating || rankResult.points);
+              const rankResult = getRankPointsWithManualOverride(member);
+              return sum + rankResult.points;
             }, 0);
             return { ...team, members: newMembers, totalWeight };
           }
@@ -459,8 +492,8 @@ variant: "destructive",
           if (team.id === sourceTeamId) {
             const newMembers = team.members.filter(p => p.id !== player.id);
             const totalWeight = newMembers.reduce((sum, member) => {
-              const rankResult = getRankPointsWithFallback(member.current_rank, member.peak_rank);
-              return sum + (member.weight_rating || rankResult.points);
+              const rankResult = getRankPointsWithManualOverride(member);
+              return sum + rankResult.points;
             }, 0);
             return { ...team, members: newMembers, totalWeight };
           }
@@ -477,8 +510,8 @@ variant: "destructive",
         if (team.id === targetTeamId) {
           const newMembers = [...team.members, player];
           const totalWeight = newMembers.reduce((sum, member) => {
-            const rankResult = getRankPointsWithFallback(member.current_rank, member.peak_rank);
-            return sum + (member.weight_rating || rankResult.points);
+            const rankResult = getRankPointsWithManualOverride(member);
+            return sum + rankResult.points;
           }, 0);
           return { ...team, members: newMembers, totalWeight };
         }
@@ -487,21 +520,19 @@ variant: "destructive",
     );
   };
 
-  // 🧠 Enhanced Autobalance Algorithm with peak rank support
+  // Enhanced Autobalance Algorithm with manual override support
   function autobalanceUnassignedPlayers() {
     setAutobalancing(true);
     try {
-      // Copy current teams and unassigned lists (deep enough for logic)
+      // Copy current teams and unassigned lists
       const teamsCopy: Team[] = teams.map(team => ({ ...team, members: [...team.members] }));
       let unassignedCopy: Player[] = [...unassignedPlayers];
 
-      // Sort unassigned players by weight_rating DESC (highest first) with peak rank fallback
+      // Sort unassigned players by enhanced ranking system (highest first)
       unassignedCopy.sort((a, b) => {
-        const aRankResult = getRankPointsWithFallback(a.current_rank, a.peak_rank);
-        const bRankResult = getRankPointsWithFallback(b.current_rank, b.peak_rank);
-        const aWeight = a.weight_rating || aRankResult.points;
-        const bWeight = b.weight_rating || bRankResult.points;
-        return bWeight - aWeight;
+        const aRankResult = getRankPointsWithManualOverride(a);
+        const bRankResult = getRankPointsWithManualOverride(b);
+        return bRankResult.points - aRankResult.points;
       });
 
       while (unassignedCopy.length > 0) {
@@ -510,15 +541,15 @@ variant: "destructive",
         if (!player) break;
 
         let bestTeamIndex = -1;
-        let bestDelta = Infinity; // Track lowest possible team delta after placement
+        let bestDelta = Infinity;
 
         // Try this player on every team that has open slot
         for (let i = 0; i < teamsCopy.length; i++) {
           if (teamsCopy[i].members.length >= teamSize) continue;
 
           // Simulate adding to this team
-          const rankResult = getRankPointsWithFallback(player.current_rank, player.peak_rank);
-          const playerWeight = player.weight_rating || rankResult.points;
+          const rankResult = getRankPointsWithManualOverride(player);
+          const playerWeight = rankResult.points;
           
           const simulatedTeams = teamsCopy.map((t, idx) =>
             idx === i
@@ -526,12 +557,12 @@ variant: "destructive",
               : t
           );
 
-          // Only consider teams that will have >0 members after this operation (skip empty if phantom)
+          // Calculate balance delta
           const teamWeights = simulatedTeams
             .filter(t => t.members.length > 0)
             .map(t => t.members.reduce((sum, m) => {
-              const mRankResult = getRankPointsWithFallback(m.current_rank, m.peak_rank);
-              return sum + (m.weight_rating || mRankResult.points);
+              const mRankResult = getRankPointsWithManualOverride(m);
+              return sum + mRankResult.points;
             }, 0));
 
           const maxW = Math.max(...teamWeights, 0);
@@ -548,8 +579,8 @@ variant: "destructive",
         if (bestTeamIndex === -1) break;
 
         // Assign the player to the best team found
-        const rankResult = getRankPointsWithFallback(player.current_rank, player.peak_rank);
-        const playerWeight = player.weight_rating || rankResult.points;
+        const rankResult = getRankPointsWithManualOverride(player);
+        const playerWeight = rankResult.points;
         teamsCopy[bestTeamIndex].members.push(player);
         teamsCopy[bestTeamIndex].totalWeight = 
           (teamsCopy[bestTeamIndex].totalWeight || 0) + playerWeight;
@@ -560,15 +591,15 @@ variant: "destructive",
         teamsCopy.map(team => ({
           ...team,
           totalWeight: team.members.reduce((sum, m) => {
-            const mRankResult = getRankPointsWithFallback(m.current_rank, m.peak_rank);
-            return sum + (m.weight_rating || mRankResult.points);
+            const mRankResult = getRankPointsWithManualOverride(m);
+            return sum + mRankResult.points;
           }, 0),
         }))
       );
 
       toast({
         title: "Suggestion Complete",
-        description: "Players distributed to teams for best possible balance. Review before saving.",
+        description: "Players distributed to teams for best possible balance using enhanced ranking system. Review before saving.",
       });
     } catch (e) {
       toast({
@@ -585,11 +616,9 @@ variant: "destructive",
     if (members.length === 0) return fallback;
     // Captain is highest weight_rating (if equal, first in list wins)
     let sorted = [...members].sort((a, b) => {
-      const aRankResult = getRankPointsWithFallback(a.current_rank, a.peak_rank);
-      const bRankResult = getRankPointsWithFallback(b.current_rank, b.peak_rank);
-      const aWeight = a.weight_rating || aRankResult.points;
-      const bWeight = b.weight_rating || bRankResult.points;
-      return bWeight - aWeight;
+      const aRankResult = getRankPointsWithManualOverride(a);
+      const bRankResult = getRankPointsWithManualOverride(b);
+      return bRankResult.points - aRankResult.points;
     });
     let captain = sorted[0];
     if (!captain || !captain.discord_username) return fallback;
@@ -605,11 +634,9 @@ try {
       const usedNames = new Set<string>();
       let reorderedTeams = teams.map(team => {
         const sortedMembers = [...team.members].sort((a, b) => {
-          const aRankResult = getRankPointsWithFallback(a.current_rank, a.peak_rank);
-          const bRankResult = getRankPointsWithFallback(b.current_rank, b.peak_rank);
-          const aWeight = a.weight_rating || aRankResult.points;
-          const bWeight = b.weight_rating || bRankResult.points;
-          return bWeight - aWeight;
+          const aRankResult = getRankPointsWithManualOverride(a);
+          const bRankResult = getRankPointsWithManualOverride(b);
+          return bRankResult.points - aRankResult.points;
         });
         let teamName = getCaptainBasedTeamName(sortedMembers, team.name);
         let uniqueName = teamName;
@@ -646,7 +673,6 @@ try {
             .insert(membersToInsert);
           if (membersError) throw membersError;
 
-          // --- Notification for new team assignment ---
           await notifications.notifyTeamAssigned(
             newTeam.id,
             team.name,
@@ -676,7 +702,6 @@ try {
               .insert(membersToInsert);
           }
 
-          // --- Notification for edited team assignment ---
           await notifications.notifyTeamAssigned(
             team.id,
             team.name,
@@ -688,7 +713,7 @@ try {
 
 toast({
         title: "Teams Updated",
-        description: "Team assignments have been saved successfully, captains and names updated with enhanced rank balancing.",
+        description: "Team assignments have been saved successfully with enhanced rank balancing including manual overrides.",
 });
 
       // Refresh the data
@@ -742,8 +767,8 @@ Team Balancing
   return (
     <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <div className="space-y-6">
-        {/* Peak Rank Fallback Alert */}
-        <PeakRankFallbackAlert players={allPlayers} />
+        {/* Enhanced Rank Fallback Alert */}
+        <EnhancedRankFallbackAlert players={allPlayers} />
 
         <Card className="bg-slate-800 border-slate-700">
           <CardHeader>
@@ -782,7 +807,6 @@ Team Balancing
             )}
 
             <div className="flex gap-2">
-              {/* 🟨 Autobalance Button Start */}
               <Button
                 onClick={autobalanceUnassignedPlayers}
                 disabled={autobalancing || hasPlaceholderTeams || unassignedPlayers.length === 0}
@@ -792,7 +816,6 @@ Team Balancing
                 <Zap className="w-4 h-4 mr-2" />
                 {autobalancing ? "Suggesting..." : "Autobalance"}
               </Button>
-              {/* 🟨 Autobalance Button End */}
               
               {hasPlaceholderTeams && (
                 <Button
