@@ -57,6 +57,78 @@ const TournamentStatusManager = ({ tournamentId, currentStatus, onStatusChange }
     }
   };
 
+  const clearTournamentData = async () => {
+    try {
+      // Get all teams for this tournament
+      const { data: teams } = await supabase
+        .from('teams')
+        .select('id')
+        .eq('tournament_id', tournamentId);
+
+      if (teams && teams.length > 0) {
+        const teamIds = teams.map(t => t.id);
+
+        // Delete team members
+        await supabase
+          .from('team_members')
+          .delete()
+          .in('team_id', teamIds);
+
+        // Delete teams
+        await supabase
+          .from('teams')
+          .delete()
+          .eq('tournament_id', tournamentId);
+      }
+
+      // Delete any matches
+      await supabase
+        .from('matches')
+        .delete()
+        .eq('tournament_id', tournamentId);
+
+      console.log('Tournament data cleared successfully');
+    } catch (error) {
+      console.error('Error clearing tournament data:', error);
+      throw error;
+    }
+  };
+
+  const validateStatusTransition = async (targetStatus: TournamentStatus) => {
+    try {
+      // Get tournament and related data counts
+      const [
+        { data: signups, count: signupCount },
+        { data: teams, count: teamCount },
+        { data: matches, count: matchCount }
+      ] = await Promise.all([
+        supabase.from('tournament_signups').select('*', { count: 'exact' }).eq('tournament_id', tournamentId),
+        supabase.from('teams').select('*', { count: 'exact' }).eq('tournament_id', tournamentId),
+        supabase.from('matches').select('*', { count: 'exact' }).eq('tournament_id', tournamentId)
+      ]);
+
+      const issues = [];
+
+      // Validate transition rules
+      if (targetStatus === 'live' && (!teamCount || teamCount < 2)) {
+        issues.push('Need at least 2 teams to go live');
+      }
+
+      if (targetStatus === 'live' && (!matchCount || matchCount === 0)) {
+        issues.push('Need bracket/matches generated to go live');
+      }
+
+      if (targetStatus === 'balancing' && (!signupCount || signupCount < 2)) {
+        issues.push('Need at least 2 signups to balance teams');
+      }
+
+      return issues;
+    } catch (error) {
+      console.error('Error validating status transition:', error);
+      return ['Failed to validate transition'];
+    }
+  };
+
   const startFirstRoundMatches = async () => {
     const { data, error } = await supabase
       .from('matches')
@@ -92,6 +164,32 @@ const TournamentStatusManager = ({ tournamentId, currentStatus, onStatusChange }
     setLoading(true);
 
     try {
+      // Validate the transition
+      const validationIssues = await validateStatusTransition(targetStatus);
+      if (validationIssues.length > 0) {
+        toast({
+          title: "Cannot Change Status",
+          description: validationIssues.join(', '),
+          variant: "destructive"
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Handle data cleanup for rollbacks
+      const isRollback = getStatusIndex(targetStatus) < getStatusIndex(currentStatus);
+      
+      if (isRollback) {
+        if ((currentStatus === 'balancing' || currentStatus === 'live') && 
+            (targetStatus === 'draft' || targetStatus === 'open')) {
+          await clearTournamentData();
+          toast({
+            title: "Tournament Reset",
+            description: "Teams and matches have been cleared due to status rollback.",
+          });
+        }
+      }
+
       if (targetStatus === 'completed') {
         // Get all matches to find the final match
         const { data: matches, error: fetchMatchesError } = await supabase
@@ -208,6 +306,12 @@ const TournamentStatusManager = ({ tournamentId, currentStatus, onStatusChange }
               <AlertDialogTitle className="text-white">Confirm Status Rollback</AlertDialogTitle>
               <AlertDialogDescription className="text-slate-400">
                 You are about to roll back the tournament status from "{getCurrentStatusInfo().label}" to "{statusOptions.find(s => s.value === pendingStatus)?.label}". 
+                {((currentStatus === 'balancing' || currentStatus === 'live') && 
+                  (pendingStatus === 'draft' || pendingStatus === 'open')) && (
+                  <span className="block mt-2 text-yellow-400 font-semibold">
+                    ⚠️ This will DELETE all teams and matches for this tournament!
+                  </span>
+                )}
                 This may affect tournament data and participant experience. Are you sure?
               </AlertDialogDescription>
             </AlertDialogHeader>
