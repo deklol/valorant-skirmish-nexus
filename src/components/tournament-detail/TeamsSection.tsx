@@ -27,7 +27,7 @@ export default function TeamsSection({ teams }: { teams: Team[] }) {
                   {/* --- Team heading row --- */}
                   <div className="flex flex-row items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-lg text-white">Team {team.name}</span>
+                      <span className="font-bold text-lg text-white">{team.name}</span>
                       {team.team_members?.some(m => m.is_captain) && (
                         <span title="Captain">
                           <Crown className="w-5 h-5 text-yellow-400" />
