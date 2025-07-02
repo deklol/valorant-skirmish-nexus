@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Users, Trophy, MessageSquare, Map, ShieldAlert, Wrench, BookOpen, FileText, Stethoscope } from "lucide-react";
+import { Settings, Users, Trophy, MessageSquare, Map, ShieldAlert, Wrench, BookOpen, FileText, Stethoscope, Play } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import DiscordWebhookManager from "@/components/DiscordWebhookManager";
 import CreateTournamentDialog from "@/components/CreateTournamentDialog";
@@ -156,6 +156,41 @@ const Admin = () => {
                 <AdminLogoutAll />
                 <SendNotificationTestButton />
                 <SchemaExportButton />
+                
+                <Card className="bg-slate-800 border-slate-700">
+                  <CardHeader>
+                    <CardTitle className="text-white">Onboarding Preview</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <p className="text-slate-400 text-sm mb-4">Preview the user onboarding systems as an admin</p>
+                    <div className="space-y-2">
+                      <Button
+                        onClick={() => {
+                          // Reset tutorial state and show
+                          localStorage.removeItem('tutorial_completed');
+                          localStorage.removeItem('tutorial_skipped');
+                          window.location.reload();
+                        }}
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                      >
+                        <Play className="w-4 h-4 mr-2" />
+                        Preview Tutorial
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          // Reset checklist state and show
+                          localStorage.removeItem('checklist_dismissed');
+                          const event = new CustomEvent('show-onboarding-checklist');
+                          window.dispatchEvent(event);
+                        }}
+                        className="w-full bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        <Users className="w-4 h-4 mr-2" />
+                        Preview Checklist
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
                 
                 <Card className="bg-slate-800 border-slate-700">
                   <CardHeader>

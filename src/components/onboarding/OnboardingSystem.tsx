@@ -59,6 +59,13 @@ const OnboardingSystem = ({ children }: OnboardingSystemProps) => {
   useEffect(() => {
     if (!user) return;
 
+    // Listen for admin preview events
+    const handleShowChecklist = () => {
+      setShowChecklist(true);
+    };
+
+    window.addEventListener('show-onboarding-checklist', handleShowChecklist);
+
     const checkOnboardingStatus = async () => {
       try {
         // Check if user has completed onboarding
