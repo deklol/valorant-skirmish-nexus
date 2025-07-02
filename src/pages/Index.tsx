@@ -176,7 +176,7 @@ const Index = () => {
                 {user && (
                   <Link to="/tournaments">
                     <Button className="bg-red-600 hover:bg-red-700">
-                      Create Tournament
+                      Browse Tournaments
                     </Button>
                   </Link>
                 )}
