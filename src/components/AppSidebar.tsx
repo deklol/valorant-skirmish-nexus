@@ -32,7 +32,11 @@ interface Tournament {
 
 interface LatestResult {
   tournament_name: string;
-  winner_team_name: string;
+  team1_name: string;
+  team2_name: string;
+  winner_name: string;
+  score_team1: number;
+  score_team2: number;
   completed_at: string;
 }
 
@@ -107,7 +111,11 @@ export function AppSidebar() {
           .from('matches')
           .select(`
             tournaments(name),
-            teams!winner_id(name),
+            team1:teams!team1_id(name),
+            team2:teams!team2_id(name),
+            winner:teams!winner_id(name),
+            score_team1,
+            score_team2,
             completed_at
           `)
           .not('winner_id', 'is', null)
@@ -117,7 +125,11 @@ export function AppSidebar() {
 
         const formattedResults = resultsData?.map(match => ({
           tournament_name: match.tournaments?.name || 'Unknown Tournament',
-          winner_team_name: match.teams?.name || 'Unknown Team',
+          team1_name: match.team1?.name || 'Unknown Team',
+          team2_name: match.team2?.name || 'Unknown Team',
+          winner_name: match.winner?.name || 'Unknown Team',
+          score_team1: match.score_team1 || 0,
+          score_team2: match.score_team2 || 0,
           completed_at: match.completed_at
         })) || [];
 
@@ -308,17 +320,25 @@ export function AppSidebar() {
           <SidebarGroup>
             <SidebarGroupLabel className="text-sidebar-foreground/70 font-medium">Latest Results</SidebarGroupLabel>
             <SidebarGroupContent>
-              <div className="space-y-2">
+                <div className="space-y-2">
                 {latestResults.slice(0, 2).map((result, index) => (
                   <Card key={index} className="bg-sidebar-accent border-sidebar-border">
                     <CardContent className="p-3">
-                      <div className="space-y-1">
+                      <div className="space-y-2">
                         <div className="flex items-center gap-2 text-xs text-sidebar-foreground/70">
                           <Crown className="w-3 h-3 text-yellow-500" />
                           <span className="truncate">{result.tournament_name}</span>
                         </div>
-                        <div className="text-sm text-sidebar-foreground font-medium truncate">
-                          {result.winner_team_name}
+                        <div className="text-xs text-sidebar-foreground font-medium">
+                          <div className="flex items-center justify-between">
+                            <span className={result.winner_name === result.team1_name ? "text-green-400" : "text-sidebar-foreground/70"}>
+                              {result.team1_name}
+                            </span>
+                            <span className="text-sidebar-foreground">{result.score_team1} - {result.score_team2}</span>
+                            <span className={result.winner_name === result.team2_name ? "text-green-400" : "text-sidebar-foreground/70"}>
+                              {result.team2_name}
+                            </span>
+                          </div>
                         </div>
                         <div className="text-xs text-sidebar-foreground/50">
                           {formatDate(result.completed_at)}
