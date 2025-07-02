@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import OnboardingSystem from "@/components/onboarding/OnboardingSystem";
 import { ThemeProvider } from "next-themes";
 import { useAuth } from "@/hooks/useAuth";
 import Header from "./components/Header";
@@ -41,7 +42,8 @@ const AppContent = () => {
 
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <OnboardingSystem>
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
         <Header />
         <RiotIdSetupManager />
         <Routes>
@@ -60,7 +62,9 @@ const AppContent = () => {
           <Route path="/match/:id" element={<MatchDetails />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
-      </div>
+        </div>
+        <Toaster />
+      </OnboardingSystem>
     </BrowserRouter>
   );
 };

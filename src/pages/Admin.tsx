@@ -166,10 +166,9 @@ const Admin = () => {
                     <div className="space-y-2">
                       <Button
                         onClick={() => {
-                          // Reset tutorial state and show
-                          localStorage.removeItem('tutorial_completed');
-                          localStorage.removeItem('tutorial_skipped');
-                          window.location.reload();
+                          // Trigger tutorial preview event
+                          const event = new CustomEvent('preview-tutorial');
+                          window.dispatchEvent(event);
                         }}
                         className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                       >
@@ -178,9 +177,8 @@ const Admin = () => {
                       </Button>
                       <Button
                         onClick={() => {
-                          // Reset checklist state and show
-                          localStorage.removeItem('checklist_dismissed');
-                          const event = new CustomEvent('show-onboarding-checklist');
+                          // Trigger checklist preview event
+                          const event = new CustomEvent('preview-checklist');
                           window.dispatchEvent(event);
                         }}
                         className="w-full bg-green-600 hover:bg-green-700 text-white"

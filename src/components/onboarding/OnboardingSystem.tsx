@@ -60,11 +60,17 @@ const OnboardingSystem = ({ children }: OnboardingSystemProps) => {
     if (!user) return;
 
     // Listen for admin preview events
-    const handleShowChecklist = () => {
+    const handlePreviewTutorial = () => {
+      setCurrentStep(0);
+      setShowTutorial(true);
+    };
+
+    const handlePreviewChecklist = () => {
       setShowChecklist(true);
     };
 
-    window.addEventListener('show-onboarding-checklist', handleShowChecklist);
+    window.addEventListener('preview-tutorial', handlePreviewTutorial);
+    window.addEventListener('preview-checklist', handlePreviewChecklist);
 
     const checkOnboardingStatus = async () => {
       try {
@@ -108,6 +114,11 @@ const OnboardingSystem = ({ children }: OnboardingSystemProps) => {
     };
 
     checkOnboardingStatus();
+
+    return () => {
+      window.removeEventListener('preview-tutorial', handlePreviewTutorial);
+      window.removeEventListener('preview-checklist', handlePreviewChecklist);
+    };
   }, [user]);
 
   const completeStep = async (stepId: string) => {
