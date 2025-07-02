@@ -764,6 +764,89 @@ export type Database = {
           },
         ]
       }
+      tournament_analytics: {
+        Row: {
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          metric_type: string
+          metric_value: number | null
+          recorded_at: string | null
+          tournament_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          metric_type: string
+          metric_value?: number | null
+          recorded_at?: string | null
+          tournament_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          metric_type?: string
+          metric_value?: number | null
+          recorded_at?: string | null
+          tournament_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_analytics_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tournament_page_views: {
+        Row: {
+          created_at: string | null
+          id: string
+          ip_address: unknown | null
+          referrer: string | null
+          tournament_id: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          referrer?: string | null
+          tournament_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          referrer?: string | null
+          tournament_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_page_views_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_page_views_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tournament_signups: {
         Row: {
           available: boolean | null
@@ -958,6 +1041,41 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      user_onboarding_progress: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          step_id: string
+          user_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          step_id: string
+          user_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          step_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_onboarding_progress_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       users: {
         Row: {
@@ -1261,6 +1379,15 @@ export type Database = {
         Args: { p_tournament_id: string; p_substitute_user_id: string }
         Returns: Json
       }
+      record_tournament_metric: {
+        Args: {
+          p_tournament_id: string
+          p_metric_type: string
+          p_metric_value?: number
+          p_metadata?: Json
+        }
+        Returns: string
+      }
       safe_delete_tournament: {
         Args: { p_tournament_id: string }
         Returns: Json
@@ -1272,6 +1399,20 @@ export type Database = {
           p_side_choice: string
         }
         Returns: string
+      }
+      track_tournament_page_view: {
+        Args: {
+          p_tournament_id: string
+          p_user_id?: string
+          p_ip_address?: unknown
+          p_user_agent?: string
+          p_referrer?: string
+        }
+        Returns: string
+      }
+      update_onboarding_progress: {
+        Args: { p_user_id: string; p_step_id: string; p_metadata?: Json }
+        Returns: undefined
       }
       user_has_notification_enabled: {
         Args: { p_user_id: string; p_notification_type: string }
