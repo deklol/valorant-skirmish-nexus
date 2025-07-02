@@ -24,6 +24,7 @@ const Index = () => {
   const [upcomingTournaments, setUpcomingTournaments] = useState([]);
   const [liveTournaments, setLiveTournaments] = useState([]);
   const [recentTournaments, setRecentTournaments] = useState([]);
+  const [activeTab, setActiveTab] = useState('live');
   const [currentPage, setCurrentPage] = useState(0);
   const [loading, setLoading] = useState(true);
 
@@ -107,9 +108,27 @@ const Index = () => {
     });
   };
 
-  const allActivityTournaments = [...liveTournaments, ...recentTournaments];
-  const totalPages = Math.ceil(allActivityTournaments.length / 3);
-  const currentTournaments = allActivityTournaments.slice(currentPage * 3, (currentPage + 1) * 3);
+  const getCurrentTabTournaments = () => {
+    switch (activeTab) {
+      case 'live':
+        return liveTournaments;
+      case 'recent':
+        return recentTournaments;
+      case 'upcoming':
+        return upcomingTournaments;
+      default:
+        return liveTournaments;
+    }
+  };
+
+  const currentTabTournaments = getCurrentTabTournaments();
+  const totalPages = Math.ceil(currentTabTournaments.length / 3);
+  const currentTournaments = currentTabTournaments.slice(currentPage * 3, (currentPage + 1) * 3);
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    setCurrentPage(0);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
@@ -176,78 +195,15 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Upcoming Tournaments Quick View */}
-      <section className="container mx-auto px-4 pb-8">
-        <Card className="bg-slate-800 border-slate-700">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-white flex items-center gap-2">
-                <Clock className="w-5 h-5 text-yellow-500" />
-                Upcoming Tournaments
-              </CardTitle>
-              <Link to="/tournaments">
-                <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white">
-                  View All <ChevronRight className="w-4 h-4 ml-1" />
-                </Button>
-              </Link>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="text-center py-4 text-slate-400">Loading tournaments...</div>
-            ) : upcomingTournaments.length === 0 ? (
-              <div className="text-center py-8">
-                <Trophy className="w-12 h-12 text-slate-500 mx-auto mb-4" />
-                <p className="text-slate-400 mb-4">No upcoming tournaments scheduled</p>
-                {user && (
-                  <Link to="/tournaments">
-                    <Button className="bg-red-600 hover:bg-red-700">
-                      Browse Tournaments
-                    </Button>
-                  </Link>
-                )}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {upcomingTournaments.map((tournament: any) => (
-                  <Link key={tournament.id} to={`/tournament/${tournament.id}`}>
-                    <Card className="bg-slate-700 border-slate-600 hover:border-red-500 transition-colors cursor-pointer">
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between mb-2">
-                          <h4 className="font-medium text-white truncate">{tournament.name}</h4>
-                          <Badge variant="secondary" className="bg-green-600/20 text-green-400 ml-2">
-                            {tournament.status}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center gap-4 text-sm text-slate-400">
-                          <div className="flex items-center gap-1">
-                            <Calendar className="w-4 h-4" />
-                            {formatDate(tournament.start_time)}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Users className="w-4 h-4" />
-                            {tournament.tournament_signups?.[0]?.count || 0}/{tournament.max_players}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </section>
-
-      {/* Live & Recent Tournament Activity */}
-      {allActivityTournaments.length > 0 && (
+      {/* Tournament Activity with Tabs */}
+      {(liveTournaments.length > 0 || recentTournaments.length > 0 || upcomingTournaments.length > 0) && (
         <section className="container mx-auto px-4 pb-8">
           <Card className="bg-slate-800 border-slate-700">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-white flex items-center gap-2">
                   <Activity className="w-5 h-5 text-green-500" />
-                  Live & Recent Activity
+                  Tournament Activity
                 </CardTitle>
                 {totalPages > 1 && (
                   <div className="flex items-center gap-2">
@@ -275,40 +231,86 @@ const Index = () => {
                   </div>
                 )}
               </div>
+              {/* Tabs */}
+              <div className="flex space-x-1 bg-slate-900/50 p-1 rounded-lg mt-4">
+                <Button
+                  onClick={() => handleTabChange('live')}
+                  variant={activeTab === 'live' ? 'default' : 'ghost'}
+                  size="sm"
+                  className={`flex-1 ${activeTab === 'live' ? 'bg-red-600 hover:bg-red-700 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700'}`}
+                >
+                  Live ({liveTournaments.length})
+                </Button>
+                <Button
+                  onClick={() => handleTabChange('upcoming')}
+                  variant={activeTab === 'upcoming' ? 'default' : 'ghost'}
+                  size="sm"
+                  className={`flex-1 ${activeTab === 'upcoming' ? 'bg-yellow-600 hover:bg-yellow-700 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700'}`}
+                >
+                  Upcoming ({upcomingTournaments.length})
+                </Button>
+                <Button
+                  onClick={() => handleTabChange('recent')}
+                  variant={activeTab === 'recent' ? 'default' : 'ghost'}
+                  size="sm"
+                  className={`flex-1 ${activeTab === 'recent' ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700'}`}
+                >
+                  Recent ({recentTournaments.length})
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {currentTournaments.map((tournament: any) => (
-                  <Link key={tournament.id} to={`/tournament/${tournament.id}`}>
-                    <Card className="bg-slate-700 border-slate-600 hover:border-red-500 transition-colors cursor-pointer">
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between mb-2">
-                          <h4 className="font-medium text-white truncate">{tournament.name}</h4>
-                          <Badge 
-                            variant="secondary" 
-                            className={tournament.status === 'live' 
-                              ? "bg-red-600/20 text-red-400 ml-2" 
-                              : "bg-blue-600/20 text-blue-400 ml-2"
-                            }
-                          >
-                            {tournament.status === 'live' ? 'LIVE' : 'Completed'}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center gap-4 text-sm text-slate-400">
-                          <div className="flex items-center gap-1">
-                            <Calendar className="w-4 h-4" />
-                            {formatDate(tournament.start_time)}
+              {currentTournaments.length === 0 ? (
+                <div className="text-center py-8">
+                  <Trophy className="w-12 h-12 text-slate-500 mx-auto mb-4" />
+                  <p className="text-slate-400 mb-4">
+                    No {activeTab} tournaments {activeTab === 'upcoming' ? 'scheduled' : 'found'}
+                  </p>
+                  {user && activeTab === 'upcoming' && (
+                    <Link to="/tournaments">
+                      <Button className="bg-red-600 hover:bg-red-700">
+                        Browse Tournaments
+                      </Button>
+                    </Link>
+                  )}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {currentTournaments.map((tournament: any) => (
+                    <Link key={tournament.id} to={`/tournament/${tournament.id}`}>
+                      <Card className="bg-slate-700 border-slate-600 hover:border-red-500 transition-colors cursor-pointer">
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between mb-2">
+                            <h4 className="font-medium text-white truncate">{tournament.name}</h4>
+                            <Badge 
+                              variant="secondary" 
+                              className={
+                                tournament.status === 'live' 
+                                  ? "bg-red-600/20 text-red-400 ml-2" 
+                                  : tournament.status === 'completed'
+                                  ? "bg-blue-600/20 text-blue-400 ml-2"
+                                  : "bg-green-600/20 text-green-400 ml-2"
+                              }
+                            >
+                              {tournament.status === 'live' ? 'LIVE' : tournament.status}
+                            </Badge>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <Users className="w-4 h-4" />
-                            {tournament.tournament_signups?.[0]?.count || 0}/{tournament.max_players}
+                          <div className="flex items-center gap-4 text-sm text-slate-400">
+                            <div className="flex items-center gap-1">
+                              <Calendar className="w-4 h-4" />
+                              {formatDate(tournament.start_time)}
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Users className="w-4 h-4" />
+                              {tournament.tournament_signups?.[0]?.count || 0}/{tournament.max_players}
+                            </div>
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                ))}
-              </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </section>
