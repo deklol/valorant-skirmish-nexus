@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import OnboardingSystem from "@/components/onboarding/OnboardingSystem";
 import { ThemeProvider } from "next-themes";
 import { useAuth } from "@/hooks/useAuth";
+import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/AppSidebar";
 import Header from "./components/Header";
 import RiotIdSetupManager from "./components/RiotIdSetupManager";
 import Index from "./pages/Index";
@@ -43,27 +45,36 @@ const AppContent = () => {
   return (
     <BrowserRouter>
       <OnboardingSystem>
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        <Header />
-        <RiotIdSetupManager />
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/admin" element={<Admin />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/profile/:userId" element={<PublicProfile />} />
-          <Route path="/tournaments" element={<Tournaments />} />
-          <Route path="/tournament/:id" element={<TournamentDetail />} />
-          <Route path="/players" element={<Players />} />
-          <Route path="/leaderboard" element={<Leaderboard />} />
-          <Route path="/brackets" element={<Brackets />} />
-          <Route path="/bracket/:id" element={<BracketView />} />
-          <Route path="/archive" element={<Archive />} />
-          <Route path="/match/:id" element={<MatchDetails />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-        </div>
-        <Toaster />
+        <SidebarProvider>
+          <div className="min-h-screen flex w-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+            <AppSidebar />
+            <SidebarInset className="flex-1">
+              <div className="flex flex-col min-h-screen">
+                <Header />
+                <RiotIdSetupManager />
+                <main className="flex-1">
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/admin" element={<Admin />} />
+                    <Route path="/profile" element={<Profile />} />
+                    <Route path="/profile/:userId" element={<PublicProfile />} />
+                    <Route path="/tournaments" element={<Tournaments />} />
+                    <Route path="/tournament/:id" element={<TournamentDetail />} />
+                    <Route path="/players" element={<Players />} />
+                    <Route path="/leaderboard" element={<Leaderboard />} />
+                    <Route path="/brackets" element={<Brackets />} />
+                    <Route path="/bracket/:id" element={<BracketView />} />
+                    <Route path="/archive" element={<Archive />} />
+                    <Route path="/match/:id" element={<MatchDetails />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </main>
+              </div>
+            </SidebarInset>
+          </div>
+          <Toaster />
+        </SidebarProvider>
       </OnboardingSystem>
     </BrowserRouter>
   );

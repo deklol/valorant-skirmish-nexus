@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Trophy, Users, Calendar, Menu, X, LogOut, User, Settings, Shield, Youtube } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,11 +26,14 @@ const Header = () => {
     <header className="bg-slate-900 border-b border-slate-700 sticky top-0 z-40">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2">
-            <Trophy className="h-8 w-8 text-red-500" />
-            <span className="text-xl font-bold text-white">{appName}</span>
-          </Link>
+          {/* Sidebar Trigger + Logo */}
+          <div className="flex items-center space-x-3">
+            <SidebarTrigger className="text-slate-300 hover:text-white" />
+            <Link to="/" className="flex items-center space-x-2">
+              <Trophy className="h-8 w-8 text-red-500" />
+              <span className="text-xl font-bold text-white">{appName}</span>
+            </Link>
+          </div>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6">
