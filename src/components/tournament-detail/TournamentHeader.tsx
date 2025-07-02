@@ -1,5 +1,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import LivePageViewCounter from "@/components/LivePageViewCounter";
 import { getStatusBadge } from "@/hooks/useTournamentUtils";
 
 type Props = {
@@ -17,7 +18,10 @@ export default function TournamentHeader({ tournament }: Props) {
               <p className="text-slate-300 mt-2">{tournament.description}</p>
             )}
           </div>
-          {getStatusBadge(tournament.status)}
+          <div className="flex items-center gap-3">
+            <LivePageViewCounter tournamentId={tournament.id} />
+            {getStatusBadge(tournament.status)}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="text-slate-300">

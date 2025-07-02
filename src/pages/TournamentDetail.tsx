@@ -7,7 +7,7 @@ import TournamentHeader from "@/components/tournament-detail/TournamentHeader";
 import TeamsSection from "@/components/tournament-detail/TeamsSection";
 import TournamentTabs from "@/components/tournament-detail/TournamentTabs";
 import { TournamentLoading, TournamentNotFound } from "@/components/tournament-detail/LoadingStates";
-import LivePageViewCounter from "@/components/LivePageViewCounter";
+
 import { useTournamentPageTracking } from "@/hooks/useAnalytics";
 
 const TournamentDetail = () => {
@@ -29,7 +29,6 @@ const TournamentDetail = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
-      <LivePageViewCounter tournamentId={tournament.id} />
       <div className="container mx-auto px-4 py-8 space-y-8">
         {tournament.status === "completed" && (
           <TournamentWinnerDisplay

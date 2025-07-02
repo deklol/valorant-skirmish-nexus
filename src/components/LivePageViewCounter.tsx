@@ -48,13 +48,11 @@ const LivePageViewCounter = ({ tournamentId }: LivePageViewCounterProps) => {
   }, [tournamentId]);
 
   return (
-    <div className="fixed top-4 right-4 z-50 bg-slate-800/90 backdrop-blur-sm border border-slate-700 rounded-lg px-3 py-2 shadow-lg">
-      <div className="flex items-center gap-2 text-sm">
-        <Eye className="h-4 w-4 text-red-500" />
-        <span className="text-slate-300">Views:</span>
-        <span className="text-white font-semibold animate-pulse">{pageViews}</span>
-        <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-      </div>
+    <div className="inline-flex items-center gap-2 bg-slate-800/50 border border-slate-700 rounded-lg px-3 py-1.5 text-sm">
+      <Eye className="h-4 w-4 text-red-500" />
+      <span className="text-slate-300">Views:</span>
+      <span className="text-white font-semibold">{pageViews}</span>
+      <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
     </div>
   );
 };
