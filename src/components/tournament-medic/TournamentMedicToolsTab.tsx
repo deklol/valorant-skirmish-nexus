@@ -7,6 +7,7 @@ import { completeTournament } from "@/utils/completeTournament";
 import TournamentWinnerDisplay from "@/components/TournamentWinnerDisplay";
 import TournamentDeletionTool from "./TournamentDeletionTool";
 import TournamentHealthDashboard from "./TournamentHealthDashboard";
+import TeamCleanupTools from "@/components/team-balancing/TeamCleanupTools";
 import { logApplicationError, auditActions } from "@/utils/auditLogger";
 
 // Returns problems or [] if ok
@@ -76,9 +77,22 @@ async function doHealthCheck(tournamentId: string): Promise<string[]> {
   }
 }
 
-export default function TournamentMedicToolsTab({ tournament, onRefresh }: {
+export default function TournamentMedicToolsTab({ 
+  tournament, 
+  onRefresh,
+  teams = [],
+  onTeamsUpdated 
+}: {
   tournament: { id: string, status?: string, name?: string };
   onRefresh: () => void;
+  teams?: Array<{
+    id: string;
+    name: string;
+    members: Array<{ id: string; discord_username: string }>;
+    totalWeight: number;
+    isPlaceholder?: boolean;
+  }>;
+  onTeamsUpdated?: () => void;
 }) {
   const [running, setRunning] = useState(false);
   const [completing, setCompleting] = useState(false);
@@ -229,6 +243,15 @@ export default function TournamentMedicToolsTab({ tournament, onRefresh }: {
           }}
           onTournamentDeleted={onRefresh}
         />
+
+        {/* Team Management Tools - moved from Bracket Medic */}
+        {teams.length > 0 && onTeamsUpdated && (
+          <TeamCleanupTools
+            tournamentId={tournament.id}
+            teams={teams}
+            onTeamsUpdated={onTeamsUpdated}
+          />
+        )}
       </div>
     </div>
   );

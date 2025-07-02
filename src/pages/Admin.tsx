@@ -52,6 +52,7 @@ const Admin = () => {
             <h1 className="text-3xl font-bold text-white mb-2">Admin Dashboard</h1>
             <p className="text-slate-400">Manage tournaments, users, maps, and system settings</p>
           </div>
+          {/* Single Create Tournament Button */}
           <Button 
             className="bg-red-600 hover:bg-red-700 text-white"
             onClick={() => setCreateTournamentOpen(true)}
@@ -62,55 +63,43 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="tournaments" className="space-y-6">
-          <TabsList className="bg-slate-800 border-slate-700">
+          <TabsList className="bg-slate-800 border-slate-700 grid grid-cols-4 lg:grid-cols-8 w-full">
+            {/* Core Management */}
             <TabsTrigger value="tournaments" className="text-white data-[state=active]:bg-red-600">
               <Trophy className="w-4 h-4 mr-2" />
-              Tournaments
+              <span className="hidden sm:inline">Tournaments</span>
             </TabsTrigger>
             <TabsTrigger value="users" className="text-white data-[state=active]:bg-red-600">
               <Users className="w-4 h-4 mr-2" />
-              Users
+              <span className="hidden sm:inline">Users</span>
             </TabsTrigger>
             <TabsTrigger value="maps" className="text-white data-[state=active]:bg-red-600">
               <Map className="w-4 h-4 mr-2" />
-              Maps
+              <span className="hidden sm:inline">Maps</span>
             </TabsTrigger>
 
-            {/* --- MEDIC TABS GROUP --- */}
-            <TabsTrigger value="veto-medic" className="text-white data-[state=active]:bg-yellow-600">
-              <ShieldAlert className="w-4 h-4 mr-2" />
-              Veto Medic
+            {/* Medical Tools - Consolidated */}
+            <TabsTrigger value="tournament-medic" className="text-white data-[state=active]:bg-yellow-600">
+              <Wrench className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Tournament Medic</span>
             </TabsTrigger>
             <TabsTrigger value="match-medic" className="text-white data-[state=active]:bg-amber-600">
               <ShieldAlert className="w-4 h-4 mr-2" />
-              Match Medic
+              <span className="hidden sm:inline">Match Medic</span>
             </TabsTrigger>
-            <TabsTrigger value="tournament-medic" className="text-white data-[state=active]:bg-yellow-700">
-              <Wrench className="w-4 h-4 mr-2" />
-              Tournament Medic
-            </TabsTrigger>
-            {/* Bracket Medic closely follows other medics */}
-            <TabsTrigger value="bracket-medic" className="text-white data-[state=active]:bg-cyan-600">
-              <ShieldAlert className="w-4 h-4 mr-2" />
-              Bracket Medic
-            </TabsTrigger>
-            {/* --- END MEDIC GROUP --- */}
 
+            {/* System & Logs */}
             <TabsTrigger value="audit-log" className="text-white data-[state=active]:bg-purple-600">
               <FileText className="w-4 h-4 mr-2" />
-              Audit Log
+              <span className="hidden sm:inline">Audit Logs</span>
             </TabsTrigger>
-            <TabsTrigger value="announcements" className="text-white data-[state=active]:bg-red-600">
-              <MessageSquare className="w-4 h-4 mr-2" />
-              Announcements
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="text-white data-[state=active]:bg-red-600">
+            <TabsTrigger value="settings" className="text-white data-[state=active]:bg-slate-600">
               <Settings className="w-4 h-4 mr-2" />
-              Settings
+              <span className="hidden sm:inline">Settings</span>
             </TabsTrigger>
-            <TabsTrigger value="help" className="text-white data-[state=active]:bg-blue-700">
+            <TabsTrigger value="help" className="text-white data-[state=active]:bg-blue-600">
               <BookOpen className="w-4 h-4 mr-2" />
-              Help
+              <span className="hidden sm:inline">Help</span>
             </TabsTrigger>
           </TabsList>
 
@@ -126,47 +115,52 @@ const Admin = () => {
             <MapManager />
           </TabsContent>
 
-          <TabsContent value="veto-medic">
-            <VetoMedicManager />
+          <TabsContent value="tournament-medic">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Main Tournament Medic */}
+              <div className="lg:col-span-2">
+                <TournamentMedicManager />
+              </div>
+              
+              {/* Related Tools Sidebar */}
+              <div className="space-y-4">
+                <VetoMedicManager />
+                <BracketMedicManager />
+              </div>
+            </div>
           </TabsContent>
 
           <TabsContent value="match-medic">
             <MatchMedicManager />
           </TabsContent>
 
-          <TabsContent value="tournament-medic">
-            <TournamentMedicManager />
-          </TabsContent>
-
-          {/* ADD BRACKET MEDIC TAB CONTENT */}
-          <TabsContent value="bracket-medic">
-            <BracketMedicManager />
-          </TabsContent>
-          {/* END BRACKET MEDIC */}
-
           <TabsContent value="audit-log">
             <AuditLogManager />
           </TabsContent>
 
-          <TabsContent value="announcements">
-            <DiscordWebhookManager />
-          </TabsContent>
-
           <TabsContent value="settings">
-            <div className="space-y-6">
-              <AdminLogoutAll />
-              <SendNotificationTestButton />
-              {/* God Hub: Editable Settings Card */}
-              <AppSettingsManager />
-              <SchemaExportButton />
-              <Card className="bg-slate-800 border-slate-700">
-                <CardHeader>
-                  <CardTitle className="text-white">System Settings</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-slate-400">Additional system settings panel coming soon...</p>
-                </CardContent>
-              </Card>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Main Settings */}
+              <div className="space-y-6">
+                <AppSettingsManager />
+                <DiscordWebhookManager />
+              </div>
+              
+              {/* System Tools */}
+              <div className="space-y-6">
+                <AdminLogoutAll />
+                <SendNotificationTestButton />
+                <SchemaExportButton />
+                
+                <Card className="bg-slate-800 border-slate-700">
+                  <CardHeader>
+                    <CardTitle className="text-white">System Settings</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-slate-400">Additional system settings panel coming soon...</p>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </TabsContent>
           <TabsContent value="help">
