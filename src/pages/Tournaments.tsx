@@ -11,12 +11,13 @@ import CreateTournamentDialog from "@/components/CreateTournamentDialog";
 import { Tournament } from "@/types/tournament";
 
 // Extend the Tournament type for display purposes
-interface DisplayTournament extends Tournament {
+interface DisplayTournament extends Omit<Tournament, 'map_pool'> {
   currentSignups: number;
   startTime: Date;
   format: "BO1" | "BO3";
   maxPlayers: number; // Map from max_players
   prizePool: string; // Map from prize_pool
+  map_pool?: string[] | null; // Override with correct type
 }
 
 const Tournaments = () => {
@@ -58,8 +59,11 @@ const Tournaments = () => {
             startTime: new Date(tournament.start_time || Date.now()),
             format: (tournament.match_format === 'BO5' ? 'BO3' : tournament.match_format) as "BO1" | "BO3",
             maxPlayers: tournament.max_players,
-            prizePool: tournament.prize_pool || 'TBD'
-          };
+            prizePool: tournament.prize_pool || 'TBD',
+            map_pool: Array.isArray(tournament.map_pool) 
+              ? tournament.map_pool.filter((item): item is string => typeof item === 'string')
+              : null
+          } as DisplayTournament;
         })
       );
 

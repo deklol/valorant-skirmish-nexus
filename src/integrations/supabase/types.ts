@@ -766,28 +766,37 @@ export type Database = {
       }
       tournament_signups: {
         Row: {
+          available: boolean | null
           checked_in_at: string | null
           id: string
           is_checked_in: boolean | null
           is_substitute: boolean | null
+          notes: string | null
+          priority: number | null
           signed_up_at: string | null
           tournament_id: string | null
           user_id: string | null
         }
         Insert: {
+          available?: boolean | null
           checked_in_at?: string | null
           id?: string
           is_checked_in?: boolean | null
           is_substitute?: boolean | null
+          notes?: string | null
+          priority?: number | null
           signed_up_at?: string | null
           tournament_id?: string | null
           user_id?: string | null
         }
         Update: {
+          available?: boolean | null
           checked_in_at?: string | null
           id?: string
           is_checked_in?: boolean | null
           is_substitute?: boolean | null
+          notes?: string | null
+          priority?: number | null
           signed_up_at?: string | null
           tournament_id?: string | null
           user_id?: string | null
@@ -1108,6 +1117,17 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
+      get_next_substitute: {
+        Args: { p_tournament_id: string }
+        Returns: {
+          user_id: string
+          discord_username: string
+          current_rank: string
+          riot_id: string
+          rank_points: number
+          priority: number
+        }[]
+      }
       get_tournament_map_pool: {
         Args: { p_tournament_id: string }
         Returns: {
@@ -1236,6 +1256,10 @@ export type Database = {
           p_map_id: string
         }
         Returns: string
+      }
+      promote_substitute_to_player: {
+        Args: { p_tournament_id: string; p_substitute_user_id: string }
+        Returns: Json
       }
       safe_delete_tournament: {
         Args: { p_tournament_id: string }

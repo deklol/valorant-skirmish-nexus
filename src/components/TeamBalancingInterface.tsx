@@ -12,6 +12,8 @@ import { getRankPointsWithManualOverride } from "@/utils/rankingSystemWithOverri
 import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
 import PeakRankFallbackAlert from "@/components/team-balancing/PeakRankFallbackAlert";
 import EnhancedRankFallbackAlert from "@/components/team-balancing/EnhancedRankFallbackAlert";
+import TeamCleanupTools from "@/components/team-balancing/TeamCleanupTools";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 interface TeamBalancingInterfaceProps {
 tournamentId: string;
@@ -627,6 +629,18 @@ variant: "destructive",
       : `Team ${captain.discord_username}`;
   }
 
+  // Check for duplicate team names and prevent creation
+  function checkForDuplicateNames(teamsToCheck: Team[]): boolean {
+    const nameMap = new Map<string, number>();
+    
+    teamsToCheck.forEach(team => {
+      const normalizedName = team.name.toLowerCase().trim();
+      nameMap.set(normalizedName, (nameMap.get(normalizedName) || 0) + 1);
+    });
+    
+    return Array.from(nameMap.values()).some(count => count > 1);
+  }
+
   // Sort team members by highest weight before saving (captain = first player highest rating)
   const saveTeamChanges = async () => {
     setSaving(true);
@@ -648,6 +662,18 @@ try {
         usedNames.add(uniqueName);
         return { ...team, members: sortedMembers, name: team.members.length ? uniqueName : team.name };
       });
+      
+      // Check for duplicates before saving
+      if (checkForDuplicateNames(reorderedTeams.filter(team => team.members.length > 0))) {
+        toast({
+          title: "Duplicate Team Names Detected",
+          description: "Multiple teams have the same name. Please use the cleanup tools to resolve this.",
+          variant: "destructive"
+        });
+        setSaving(false);
+        return;
+      }
+      
       const teamsWithMembers = reorderedTeams.filter(team => team.members.length > 0);
 
       for (const team of teamsWithMembers) {
@@ -765,108 +791,117 @@ Team Balancing
   const allPlayers = [...unassignedPlayers, ...teams.flatMap(team => team.members)];
 
   return (
-    <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-      <div className="space-y-6">
-        {/* Enhanced Rank Fallback Alert */}
-        <EnhancedRankFallbackAlert players={allPlayers} />
+    <ErrorBoundary componentName="TeamBalancingInterface">
+      <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <div className="space-y-6">
+          {/* Enhanced Rank Fallback Alert */}
+          <EnhancedRankFallbackAlert players={allPlayers} />
 
-        <Card className="bg-slate-800 border-slate-700">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              Manual Team Balancing
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="text-slate-300 text-sm">
-              <p>Drag and drop players between teams to manually balance them.</p>
-              <p className="mt-1">
-                Tournament setup: {maxTeams} teams, {teamSize}v{teamSize} format
-                {teamSize === 1 ? ' (1v1 - each player gets their own team)' : ` (${teamSize} players per team)`}
-              </p>
-</div>
+          {/* Team Cleanup Tools */}
+          <TeamCleanupTools 
+            tournamentId={tournamentId}
+            teams={teams}
+            onTeamsUpdated={fetchTeamsAndPlayers}
+          />
 
-            {balance && (
-              <div className="flex items-center justify-between p-3 bg-slate-700 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-yellow-400" />
-                  <span className="text-white text-sm">Balance Status:</span>
-                  <Badge className={`${balance.statusColor} bg-slate-600 border-slate-500`}>
-                    {balance.balanceStatus.toUpperCase()}
-                  </Badge>
-</div>
-                <div className="text-right">
-                  <span className="text-slate-300 text-sm">
-                    Weight difference: {balance.delta} points
-                  </span>
-                  <p className={`text-xs ${balance.statusColor} mt-1`}>
-                    {balance.statusMessage}
-                  </p>
-</div>
-              </div>
-            )}
-
-            <div className="flex gap-2">
-              <Button
-                onClick={autobalanceUnassignedPlayers}
-                disabled={autobalancing || hasPlaceholderTeams || unassignedPlayers.length === 0}
-                variant="secondary"
-                className="bg-yellow-600 hover:bg-yellow-700 text-white"
-              >
-                <Zap className="w-4 h-4 mr-2" />
-                {autobalancing ? "Suggesting..." : "Autobalance"}
-              </Button>
-              
-              {hasPlaceholderTeams && (
-                <Button
-                  onClick={createEmptyTeams}
-                  disabled={creatingTeams}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  {creatingTeams ? 'Creating...' : 'Create Team Slots'}
-                </Button>
-              )}
-              
-              <Button
-                onClick={saveTeamChanges}
-                disabled={saving || hasPlaceholderTeams}
-                className="bg-green-600 hover:bg-green-700 text-white"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                {saving ? 'Saving...' : 'Save Changes'}
-              </Button>
-            </div>
-
-            {hasPlaceholderTeams && (
-              <div className="p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg">
-                <p className="text-blue-400 text-sm">
-                  Click "Create Team Slots" to create {maxTeams} empty teams for manual player assignment.
+          <Card className="bg-slate-800 border-slate-700">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                Manual Team Balancing
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="text-slate-300 text-sm">
+                <p>Drag and drop players between teams to manually balance them.</p>
+                <p className="mt-1">
+                  Tournament setup: {maxTeams} teams, {teamSize}v{teamSize} format
+                  {teamSize === 1 ? ' (1v1 - each player gets their own team)' : ` (${teamSize} players per team)`}
                 </p>
+  </div>
+  
+              {balance && (
+                <div className="flex items-center justify-between p-3 bg-slate-700 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-yellow-400" />
+                    <span className="text-white text-sm">Balance Status:</span>
+                    <Badge className={`${balance.statusColor} bg-slate-600 border-slate-500`}>
+                      {balance.balanceStatus.toUpperCase()}
+                    </Badge>
+  </div>
+                  <div className="text-right">
+                    <span className="text-slate-300 text-sm">
+                      Weight difference: {balance.delta} points
+                    </span>
+                    <p className={`text-xs ${balance.statusColor} mt-1`}>
+                      {balance.statusMessage}
+                    </p>
+  </div>
+                </div>
+              )}
+  
+              <div className="flex gap-2">
+                <Button
+                  onClick={autobalanceUnassignedPlayers}
+                  disabled={autobalancing || hasPlaceholderTeams || unassignedPlayers.length === 0}
+                  variant="secondary"
+                  className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                >
+                  <Zap className="w-4 h-4 mr-2" />
+                  {autobalancing ? "Suggesting..." : "Autobalance"}
+                </Button>
+                
+                {hasPlaceholderTeams && (
+                  <Button
+                    onClick={createEmptyTeams}
+                    disabled={creatingTeams}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    {creatingTeams ? 'Creating...' : 'Create Team Slots'}
+                  </Button>
+                )}
+                
+                <Button
+                  onClick={saveTeamChanges}
+                  disabled={saving || hasPlaceholderTeams}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </Button>
               </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <h3 className="text-white font-medium flex items-center gap-2">
-              <Shuffle className="w-4 h-4" />
-              Teams ({teams.length}/{maxTeams})
-            </h3>
-            {teams.map((team) => (
-              <DroppableTeam key={team.id} team={team} teamSize={teamSize} />
-            ))}
-          </div>
-
-          <div className="space-y-4">
-            <h3 className="text-white font-medium">Unassigned Players ({unassignedPlayers.length})</h3>
-            <DroppableUnassigned players={unassignedPlayers} />
-          </div>
-</div>
-      </div>
-    </DndContext>
-);
+  
+              {hasPlaceholderTeams && (
+                <div className="p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg">
+                  <p className="text-blue-400 text-sm">
+                    Click "Create Team Slots" to create {maxTeams} empty teams for manual player assignment.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+  
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <h3 className="text-white font-medium flex items-center gap-2">
+                <Shuffle className="w-4 h-4" />
+                Teams ({teams.length}/{maxTeams})
+              </h3>
+              {teams.map((team) => (
+                <DroppableTeam key={team.id} team={team} teamSize={teamSize} />
+              ))}
+            </div>
+  
+            <div className="space-y-4">
+              <h3 className="text-white font-medium">Unassigned Players ({unassignedPlayers.length})</h3>
+              <DroppableUnassigned players={unassignedPlayers} />
+            </div>
+  </div>
+        </div>
+      </DndContext>
+    </ErrorBoundary>
+  );
 };
 
 export default TeamBalancingInterface;

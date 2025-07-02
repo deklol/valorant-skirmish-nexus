@@ -10,7 +10,7 @@ export type Team = {
   seed?: number;
   total_rank_points: number;
   team_members: TeamMember[];
-  status?: "pending" | "active" | "eliminated" | "winner" | "disqualified" | "withdrawn" | "forfeited";
+  status?: "pending" | "active" | "eliminated" | "winner" | "disqualified" | "withdrawn" | "forfeited" | "confirmed";
   created_at?: string;
   updated_at?: string;
   captain_id?: string | null;
