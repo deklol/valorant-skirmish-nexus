@@ -9,7 +9,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import Header from "./components/Header";
-import RiotIdSetupManager from "./components/RiotIdSetupManager";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Admin from "./pages/Admin";
@@ -51,7 +50,6 @@ const AppContent = () => {
             <SidebarInset className="flex-1">
               <div className="flex flex-col min-h-screen">
                 <Header />
-                <RiotIdSetupManager />
                 <main className="flex-1">
                   <Routes>
                     <Route path="/" element={<Index />} />

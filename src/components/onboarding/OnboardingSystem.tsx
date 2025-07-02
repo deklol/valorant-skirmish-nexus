@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import TutorialOverlay from './TutorialOverlay';
 import OnboardingChecklist from './OnboardingChecklist';
+import OnboardingModal from './OnboardingModal';
 import { useToast } from '@/hooks/use-toast';
 
 export interface OnboardingStep {
@@ -23,6 +24,7 @@ const OnboardingSystem = ({ children }: OnboardingSystemProps) => {
   const { toast } = useToast();
   const [showTutorial, setShowTutorial] = useState(false);
   const [showChecklist, setShowChecklist] = useState(false);
+  const [showOnboardingModal, setShowOnboardingModal] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
   const [isNewUser, setIsNewUser] = useState(false);
@@ -98,13 +100,13 @@ const OnboardingSystem = ({ children }: OnboardingSystemProps) => {
           const isNewUserCheck = hoursSinceCreation < 24 && completed.length === 0;
           setIsNewUser(isNewUserCheck);
 
-          // Show tutorial for new users automatically
-          if (isNewUserCheck && !completed.includes('tutorial_completed')) {
-            setShowTutorial(true);
+          // Show onboarding modal for new users automatically
+          if (isNewUserCheck && !completed.includes('onboarding_completed')) {
+            setShowOnboardingModal(true);
           }
 
           // Show checklist if user has started but not completed onboarding
-          if (completed.length > 0 && completed.length < 3) {
+          if (completed.length > 0 && completed.length < 3 && !isNewUserCheck) {
             setShowChecklist(true);
           }
         }
@@ -144,6 +146,18 @@ const OnboardingSystem = ({ children }: OnboardingSystemProps) => {
     }
   };
 
+  const handleOnboardingComplete = async () => {
+    await completeStep('onboarding_completed');
+    setShowOnboardingModal(false);
+    setShowChecklist(true);
+  };
+
+  const handleSkipOnboarding = async () => {
+    await completeStep('onboarding_skipped');
+    setShowOnboardingModal(false);
+    setShowChecklist(true);
+  };
+
   const handleTutorialComplete = async () => {
     await completeStep('tutorial_completed');
     setShowTutorial(false);
@@ -164,6 +178,14 @@ const OnboardingSystem = ({ children }: OnboardingSystemProps) => {
   return (
     <div className="relative">
       {children}
+      
+      {/* Onboarding Modal */}
+      {showOnboardingModal && (
+        <OnboardingModal
+          onComplete={handleOnboardingComplete}
+          onSkip={handleSkipOnboarding}
+        />
+      )}
       
       {/* Tutorial Overlay */}
       {showTutorial && (
