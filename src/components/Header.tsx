@@ -26,10 +26,8 @@ const Header = () => {
     <header className="bg-slate-900 border-b border-slate-700 sticky top-0 z-40">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          {/* Sidebar Trigger */}
-          <div className="flex items-center">
-            <SidebarTrigger className="text-slate-300 hover:text-white" />
-          </div>
+          {/* Empty left side for sidebar */}
+          <div></div>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6">

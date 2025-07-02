@@ -162,33 +162,39 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar className="border-r border-sidebar-border bg-sidebar" collapsible="offcanvas">
-      <SidebarHeader className={`border-b border-sidebar-border ${isCollapsed ? 'p-2' : 'p-4'}`}>
+    <Sidebar className="border-r border-sidebar-border bg-sidebar" collapsible="icon">
+      <SidebarHeader className="p-4 border-b border-sidebar-border">
         <div className="flex items-center justify-between">
-          {!isCollapsed && (
-            <div className="flex items-center space-x-2">
-              <Trophy className="h-6 w-6 text-red-500" />
-              <span className="font-bold text-sidebar-foreground">TLR Hub</span>
+          {!isCollapsed ? (
+            <>
+              <div className="flex items-center space-x-2">
+                <Trophy className="h-6 w-6 text-red-500" />
+                <span className="font-bold text-sidebar-foreground">TLR Hub</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                {canGoBack && (
+                  <Button
+                    onClick={handleGoBack}
+                    variant="ghost"
+                    size="sm"
+                    className="text-sidebar-foreground hover:text-red-400 hover:bg-sidebar-accent"
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back
+                  </Button>
+                )}
+                <SidebarTrigger className="text-sidebar-foreground hover:text-red-400" />
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center justify-center w-full">
+              <SidebarTrigger className="text-sidebar-foreground hover:text-red-400" />
             </div>
           )}
-          <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-2'}`}>
-            {!isCollapsed && canGoBack && (
-              <Button
-                onClick={handleGoBack}
-                variant="ghost"
-                size="sm"
-                className="text-sidebar-foreground hover:text-red-400 hover:bg-sidebar-accent"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
-              </Button>
-            )}
-            <SidebarTrigger className="text-sidebar-foreground hover:text-red-400" />
-          </div>
         </div>
       </SidebarHeader>
 
-      <SidebarContent className={`p-2 ${isCollapsed ? 'hidden' : ''}`}>
+      <SidebarContent className="p-2">
         {/* Main Navigation */}
         <SidebarGroup>
           <SidebarGroupLabel className="text-sidebar-foreground/70 font-medium">Navigation</SidebarGroupLabel>
@@ -388,17 +394,29 @@ export function AppSidebar() {
       </SidebarContent>
 
       {/* Footer with sign out */}
-      {user && !isCollapsed && (
+      {user && (
         <SidebarFooter className="p-4 border-t border-sidebar-border">
-          <Button
-            onClick={handleSignOut}
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start text-sidebar-foreground hover:text-red-400 hover:bg-sidebar-accent"
-          >
-            <LogOut className="w-4 h-4 mr-2" />
-            Sign Out
-          </Button>
+          {!isCollapsed ? (
+            <Button
+              onClick={handleSignOut}
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start text-sidebar-foreground hover:text-red-400 hover:bg-sidebar-accent"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Sign Out
+            </Button>
+          ) : (
+            <Button
+              onClick={handleSignOut}
+              variant="ghost"
+              size="sm"
+              className="w-full p-2"
+              title="Sign Out"
+            >
+              <LogOut className="w-4 h-4" />
+            </Button>
+          )}
         </SidebarFooter>
       )}
     </Sidebar>
