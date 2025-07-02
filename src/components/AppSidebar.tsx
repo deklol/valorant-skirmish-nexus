@@ -199,7 +199,8 @@ export function AppSidebar() {
               </div>
             </>
           ) : (
-            <div className="flex items-center justify-center w-full">
+            <div className="flex flex-col items-center justify-center w-full space-y-3">
+              <Trophy className="h-6 w-6 text-red-500" />
               <SidebarTrigger className="text-sidebar-foreground hover:text-red-400" />
             </div>
           )}
