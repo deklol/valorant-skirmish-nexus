@@ -145,14 +145,12 @@ const TournamentManagement = () => {
               <Trophy className="w-5 h-5 text-yellow-500" />
               Tournament Management
             </CardTitle>
-            <CreateTournamentDialog onTournamentCreated={fetchTournaments} />
           </div>
         </CardHeader>
         <CardContent>
           {tournaments.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-slate-400 mb-4">No tournaments created yet.</p>
-              <CreateTournamentDialog onTournamentCreated={fetchTournaments} />
+              <p className="text-slate-400 mb-4">No tournaments created yet. Use the Create Tournament button above.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">

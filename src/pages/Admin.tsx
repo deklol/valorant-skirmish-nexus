@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Users, Trophy, MessageSquare, Map, ShieldAlert, Wrench, BookOpen, FileText } from "lucide-react";
+import { Settings, Users, Trophy, MessageSquare, Map, ShieldAlert, Wrench, BookOpen, FileText, Stethoscope } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import DiscordWebhookManager from "@/components/DiscordWebhookManager";
 import CreateTournamentDialog from "@/components/CreateTournamentDialog";
@@ -63,7 +63,7 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="tournaments" className="space-y-6">
-          <TabsList className="bg-slate-800 border-slate-700 grid grid-cols-4 lg:grid-cols-9 w-full">
+          <TabsList className="bg-slate-800 border-slate-700 grid grid-cols-3 lg:grid-cols-9 w-full max-w-7xl mx-auto overflow-x-auto" style={{scrollbarWidth: 'none', msOverflowStyle: 'none'}}>
             {/* Core Management */}
             <TabsTrigger value="tournaments" className="text-white data-[state=active]:bg-red-600">
               <Trophy className="w-4 h-4 mr-2" />
@@ -80,7 +80,7 @@ const Admin = () => {
 
             {/* Medical Tools - Individual Tabs */}
             <TabsTrigger value="tournament-medic" className="text-white data-[state=active]:bg-yellow-600">
-              <Wrench className="w-4 h-4 mr-2" />
+              <Stethoscope className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Tournament Medic</span>
             </TabsTrigger>
             <TabsTrigger value="veto-medic" className="text-white data-[state=active]:bg-orange-600">
@@ -88,7 +88,7 @@ const Admin = () => {
               <span className="hidden sm:inline">Veto Medic</span>
             </TabsTrigger>
             <TabsTrigger value="bracket-medic" className="text-white data-[state=active]:bg-cyan-600">
-              <ShieldAlert className="w-4 h-4 mr-2" />
+              <Wrench className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Bracket Medic</span>
             </TabsTrigger>
             <TabsTrigger value="match-medic" className="text-white data-[state=active]:bg-amber-600">
