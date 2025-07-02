@@ -79,7 +79,6 @@ export function AppSidebar() {
     { title: "Tournaments", url: "/tournaments", icon: Calendar },
     { title: "Leaderboard", url: "/leaderboard", icon: Trophy },
     { title: "Players", url: "/players", icon: Users },
-    { title: "Archive", url: "/archive", icon: Archive },
   ];
 
   // Admin navigation items

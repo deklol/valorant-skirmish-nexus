@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Users, Calendar, Zap, Target, Shield, Activity, Clock, Award, TrendingUp, Play, ChevronRight } from "lucide-react";
+import { Trophy, Users, Calendar, Zap, Target, Shield, Activity, Clock, Award, TrendingUp, Play, ChevronRight, ChevronLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,6 +22,9 @@ const Index = () => {
     completedMatches: 0
   });
   const [upcomingTournaments, setUpcomingTournaments] = useState([]);
+  const [liveTournaments, setLiveTournaments] = useState([]);
+  const [recentTournaments, setRecentTournaments] = useState([]);
+  const [currentPage, setCurrentPage] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -58,6 +61,23 @@ const Index = () => {
           .order('start_time', { ascending: true })
           .limit(3);
 
+        // Get live tournaments (live status)
+        const { data: liveData } = await supabase
+          .from('tournaments')
+          .select('id, name, start_time, status, max_players, (tournament_signups:count)')
+          .eq('status', 'live')
+          .order('start_time', { ascending: false })
+          .limit(10);
+
+        // Get recently completed tournaments (last 7 days)
+        const { data: recentData } = await supabase
+          .from('tournaments')
+          .select('id, name, start_time, status, max_players, (tournament_signups:count)')
+          .eq('status', 'completed')
+          .gte('start_time', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+          .order('start_time', { ascending: false })
+          .limit(10);
+
         setStats({
           totalTournaments: tournamentCount || 0,
           activePlayers: playerCount || 0,
@@ -66,6 +86,8 @@ const Index = () => {
         });
 
         setUpcomingTournaments(upcomingData || []);
+        setLiveTournaments(liveData || []);
+        setRecentTournaments(recentData || []);
       } catch (error) {
         console.error('Error fetching stats:', error);
       } finally {
@@ -84,6 +106,10 @@ const Index = () => {
       minute: "2-digit"
     });
   };
+
+  const allActivityTournaments = [...liveTournaments, ...recentTournaments];
+  const totalPages = Math.ceil(allActivityTournaments.length / 3);
+  const currentTournaments = allActivityTournaments.slice(currentPage * 3, (currentPage + 1) * 3);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
@@ -212,6 +238,81 @@ const Index = () => {
           </CardContent>
         </Card>
       </section>
+
+      {/* Live & Recent Tournament Activity */}
+      {allActivityTournaments.length > 0 && (
+        <section className="container mx-auto px-4 pb-8">
+          <Card className="bg-slate-800 border-slate-700">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-green-500" />
+                  Live & Recent Activity
+                </CardTitle>
+                {totalPages > 1 && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+                      disabled={currentPage === 0}
+                      variant="ghost"
+                      size="sm"
+                      className="text-slate-400 hover:text-white disabled:opacity-50"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </Button>
+                    <span className="text-slate-400 text-sm">
+                      {currentPage + 1} / {totalPages}
+                    </span>
+                    <Button
+                      onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
+                      disabled={currentPage === totalPages - 1}
+                      variant="ghost"
+                      size="sm"
+                      className="text-slate-400 hover:text-white disabled:opacity-50"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {currentTournaments.map((tournament: any) => (
+                  <Link key={tournament.id} to={`/tournament/${tournament.id}`}>
+                    <Card className="bg-slate-700 border-slate-600 hover:border-red-500 transition-colors cursor-pointer">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <h4 className="font-medium text-white truncate">{tournament.name}</h4>
+                          <Badge 
+                            variant="secondary" 
+                            className={tournament.status === 'live' 
+                              ? "bg-red-600/20 text-red-400 ml-2" 
+                              : "bg-blue-600/20 text-blue-400 ml-2"
+                            }
+                          >
+                            {tournament.status === 'live' ? 'LIVE' : 'Completed'}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-4 text-sm text-slate-400">
+                          <div className="flex items-center gap-1">
+                            <Calendar className="w-4 h-4" />
+                            {formatDate(tournament.start_time)}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Users className="w-4 h-4" />
+                            {tournament.tournament_signups?.[0]?.count || 0}/{tournament.max_players}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+      )}
 
       {/* Enhanced 3-col grid: L=Top Players | M=Tournaments | R=Recent Winner */}
       <section className="container mx-auto px-4 pb-8">
