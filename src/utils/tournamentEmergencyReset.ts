@@ -159,10 +159,10 @@ export async function performEmergencyReset(
         action: 'EMERGENCY_RESET',
         record_id: tournamentId,
         new_values: {
-          reset_options: options,
+          reset_options: options as any,
           items_reset: result.itemsReset,
           timestamp: new Date().toISOString()
-        }
+        } as any
       });
 
     result.success = true;
