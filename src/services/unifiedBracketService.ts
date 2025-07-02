@@ -101,7 +101,7 @@ export class UnifiedBracketService {
       if (isTournamentFinal(currentMatch, bracketStructure)) {
         console.log('🎉 Tournament final completed! Winner:', winnerId);
         
-        // Mark winner and loser
+        // Mark winner and loser teams with proper status
         await supabase.from('teams').update({ status: 'winner' }).eq('id', winnerId);
         await supabase.from('teams').update({ status: 'eliminated' }).eq('id', loserId);
         
@@ -154,6 +154,7 @@ export class UnifiedBracketService {
 
         if (advanceError) throw advanceError;
 
+        // Eliminate loser team when auto-creating next match
         await supabase.from('teams').update({ status: 'eliminated' }).eq('id', loserId);
 
         return {
@@ -193,7 +194,7 @@ export class UnifiedBracketService {
         }
       }
 
-      // Step 8: Eliminate loser
+      // Step 8: Eliminate loser team with proper status
       await supabase.from('teams').update({ status: 'eliminated' }).eq('id', loserId);
 
       console.log('✅ Match winner advanced successfully');
