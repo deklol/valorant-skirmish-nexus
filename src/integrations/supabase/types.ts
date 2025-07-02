@@ -1231,6 +1231,14 @@ export type Database = {
         Args: { p_team_id: string; p_reason?: string }
         Returns: Json
       }
+      fix_missing_match_statistics: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          matches_processed: number
+          wins_added: number
+          losses_added: number
+        }[]
+      }
       fix_missing_tournament_wins: {
         Args: Record<PropertyKey, never>
         Returns: number

@@ -20,6 +20,7 @@ import AppSettingsManager from "@/components/admin/AppSettingsManager";
 import SchemaExportButton from "@/components/admin/SchemaExportButton";
 import BracketMedicManager from "@/components/BracketMedicManager";
 import AuditLogManager from "@/components/admin/AuditLogManager";
+import StatisticsManager from "@/components/admin/StatisticsManager";
 
 const Admin = () => {
   const { isAdmin } = useAuth();
@@ -156,6 +157,7 @@ const Admin = () => {
                 <AdminLogoutAll />
                 <SendNotificationTestButton />
                 <SchemaExportButton />
+                <StatisticsManager />
                 
                 <Card className="bg-slate-800 border-slate-700">
                   <CardHeader>
