@@ -146,18 +146,42 @@ export async function validateTournamentHealth(tournamentId: string): Promise<To
     const hasErrors = issues.some(issue => issue.severity === 'error');
     const canGoLive = !hasErrors && (teamCount || 0) >= 2 && (matchCount || 0) > 0;
     
-    // For completion, check if there's a final match winner
+    // Enhanced completion check using proper final match detection
     let canComplete = false;
-    if (matchCount && matchCount > 0) {
-      const { data: finalMatch } = await supabase
-        .from('matches')
-        .select('winner_id, status')
-        .eq('tournament_id', tournamentId)
-        .order('round_number', { ascending: false })
-        .limit(1)
-        .single();
+    if (matchCount && matchCount > 0 && teamCount && teamCount >= 2) {
+      const { calculateBracketStructure, findTournamentFinal } = await import("./bracketCalculations");
+      
+      try {
+        const bracketStructure = calculateBracketStructure(teamCount);
+        const { data: allMatches } = await supabase
+          .from('matches')
+          .select('id, winner_id, status, round_number, match_number')
+          .eq('tournament_id', tournamentId);
 
-      canComplete = finalMatch?.status === 'completed' && !!finalMatch.winner_id;
+        if (allMatches) {
+          const finalMatch = findTournamentFinal(allMatches, teamCount);
+          canComplete = finalMatch?.status === 'completed' && !!finalMatch.winner_id;
+          
+          // Add specific check for 2-team tournaments
+          if (teamCount === 2 && !canComplete) {
+            const r1m1 = allMatches.find(m => m.round_number === 1 && m.match_number === 1);
+            if (r1m1 && r1m1.status !== 'completed') {
+              issues.push({
+                severity: 'info',
+                message: '2-team tournament: Round 1 Match 1 is the final - complete it to finish tournament',
+                category: 'matches'
+              });
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error checking tournament completion:', error);
+        issues.push({
+          severity: 'warning',
+          message: 'Could not validate tournament completion status',
+          category: 'bracket'
+        });
+      }
     }
 
     return {

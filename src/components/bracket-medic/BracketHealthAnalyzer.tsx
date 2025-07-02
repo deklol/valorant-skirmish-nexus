@@ -31,8 +31,12 @@ export default function BracketHealthAnalyzer({
   }
 
   const bracketStructure = calculateBracketStructure(teamCount);
-  const validation = validateBracketProgression(matches, teamCount); // FIX: Pass teamCount instead of bracketStructure
+  const validation = validateBracketProgression(matches, teamCount);
   const healthy = validation.isValid;
+
+  // Enhanced diagnostics for small tournaments
+  const isSmallTournament = teamCount <= 4;
+  const finalMatchInfo = teamCount === 2 ? "Round 1, Match 1 IS the final" : `Round ${bracketStructure.totalRounds}, Match 1 is the final`;
 
   return (
     <div className="mb-4 flex flex-col md:flex-row gap-3 md:items-center">
@@ -64,6 +68,9 @@ export default function BracketHealthAnalyzer({
           {teamCount} teams • {bracketStructure.totalRounds} rounds • {bracketStructure.totalMatches} total matches
           {!bracketStructure.isPowerOfTwo && (
             <span className="text-yellow-400 ml-2">⚠️ Non-power-of-2 bracket</span>
+          )}
+          {isSmallTournament && (
+            <span className="text-blue-400 ml-2">📋 Final: {finalMatchInfo}</span>
           )}
         </div>
 

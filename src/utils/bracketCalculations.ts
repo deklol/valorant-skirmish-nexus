@@ -232,12 +232,60 @@ export function validateBracketProgression(
 
 /**
  * Check if a specific match is the tournament final
+ * ENHANCED: Properly handles small tournaments (2-4 teams)
  */
 export function isTournamentFinal(
   match: any,
   bracketStructure: BracketStructure
 ): boolean {
+  // For 2-team tournaments: Round 1, Match 1 IS the final
+  if (bracketStructure.teamCount === 2) {
+    return match.round_number === 1 && match.match_number === 1;
+  }
+  
+  // For all other tournaments: final round, match 1
   return match.round_number === bracketStructure.totalRounds && match.match_number === 1;
+}
+
+/**
+ * Enhanced final match detection with fallback logic
+ * Returns the actual tournament final match based on bracket structure
+ */
+export function findTournamentFinal(matches: any[], originalTeamCount: number): any | null {
+  if (!matches || matches.length === 0) return null;
+  
+  try {
+    const bracketStructure = calculateBracketStructure(originalTeamCount);
+    
+    // For 2-team tournaments: Round 1, Match 1 is the final
+    if (originalTeamCount === 2) {
+      return matches.find(m => m.round_number === 1 && m.match_number === 1) || null;
+    }
+    
+    // For larger tournaments: highest round, match 1
+    const finalRound = bracketStructure.totalRounds;
+    let finalMatch = matches.find(m => m.round_number === finalRound && m.match_number === 1);
+    
+    // Fallback: if expected final doesn't exist, find the highest completed match
+    if (!finalMatch) {
+      console.warn(`Expected final match (R${finalRound}M1) not found, using fallback logic`);
+      const completedMatches = matches.filter(m => m.status === 'completed' && m.winner_id);
+      if (completedMatches.length > 0) {
+        // Sort by round desc, then by match number desc to get the "most final" match
+        completedMatches.sort((a, b) => {
+          if (a.round_number !== b.round_number) return b.round_number - a.round_number;
+          return b.match_number - a.match_number;
+        });
+        finalMatch = completedMatches[0];
+        console.warn(`Using fallback final match: R${finalMatch.round_number}M${finalMatch.match_number}`);
+      }
+    }
+    
+    return finalMatch || null;
+  } catch (error) {
+    console.error('Error finding tournament final:', error);
+    return null;
+  }
 }
 
 /**

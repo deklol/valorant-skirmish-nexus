@@ -191,33 +191,57 @@ const TournamentStatusManager = ({ tournamentId, currentStatus, onStatusChange }
       }
 
       if (targetStatus === 'completed') {
-        // Get all matches to find the final match
-        const { data: matches, error: fetchMatchesError } = await supabase
-          .from('matches')
-          .select('id, winner_id, round_number, status, team1_id, team2_id')
-          .eq('tournament_id', tournamentId)
-          .order('round_number', { ascending: false });
+        // Get all matches and team count for proper final detection
+        const [matchesResult, teamsResult] = await Promise.all([
+          supabase
+            .from('matches')
+            .select('id, winner_id, round_number, status, team1_id, team2_id, match_number')
+            .eq('tournament_id', tournamentId),
+          supabase
+            .from('teams')
+            .select('id')
+            .eq('tournament_id', tournamentId)
+        ]);
 
-        if (fetchMatchesError || !matches || matches.length === 0) {
+        if (matchesResult.error || !matchesResult.data || matchesResult.data.length === 0) {
           throw new Error("Cannot fetch matches to determine winner");
         }
         
-        const highestRound = Math.max(...matches.map(m => m.round_number));
-        const finalMatch = matches.find(m => m.round_number === highestRound && m.status === 'completed');
-        const winnerId = finalMatch?.winner_id;
+        if (teamsResult.error || !teamsResult.data) {
+          throw new Error("Cannot fetch team count for bracket validation");
+        }
 
-        if (!winnerId) {
+        const matches = matchesResult.data;
+        const teamCount = teamsResult.data.length;
+        
+        // Use enhanced final match detection
+        const { findTournamentFinal } = await import("@/utils/bracketCalculations");
+        const finalMatch = findTournamentFinal(matches, teamCount);
+        
+        if (!finalMatch) {
           toast({
             title: "Cannot Complete Tournament",
-            description: "No winner detected in the final match. Please finish the final match or mark a winner team.",
+            description: "No final match found. Please ensure the bracket is properly set up.",
             variant: "destructive"
           });
           setLoading(false);
           return;
         }
 
+        if (finalMatch.status !== 'completed' || !finalMatch.winner_id) {
+          toast({
+            title: "Cannot Complete Tournament",
+            description: `Final match (Round ${finalMatch.round_number}, Match ${finalMatch.match_number}) is not completed or has no winner.`,
+            variant: "destructive"
+          });
+          setLoading(false);
+          return;
+        }
+
+        console.log(`🏆 Tournament completion: Final match R${finalMatch.round_number}M${finalMatch.match_number}, winner: ${finalMatch.winner_id}`);
+
         // Use completeTournament utility
-        const result = await completeTournament(tournamentId, winnerId);
+        const result = await completeTournament(tournamentId, finalMatch.winner_id);
         if (result) {
           toast({
             title: "Tournament Completed!",
