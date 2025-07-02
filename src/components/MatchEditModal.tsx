@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Activity } from "lucide-react";
+import ScoreValidationDialog from "./ScoreValidationDialog";
 
 type TeamInfo = {
   id: string;
@@ -43,10 +44,38 @@ export default function MatchEditModal({
   onCancel,
   onSave,
 }: MatchEditModalProps) {
+  const [showValidationDialog, setShowValidationDialog] = useState(false);
+  const [pendingSaveArgs, setPendingSaveArgs] = useState<any>(null);
+
   if (!open || !match) return null;
   // Generate team label with fallback
   const team1Label = match.team1?.name ? `Score (${match.team1.name}):` : "Score (Team 1):";
   const team2Label = match.team2?.name ? `Score (${match.team2.name}):` : "Score (Team 2):";
+
+  const handleSaveClick = (args: { status: any; score_team1: number; score_team2: number; winner_id: string | null }) => {
+    // Check for score inconsistencies (only for admin overrides with completed status)
+    if (args.status === 'completed' && args.score_team1 !== args.score_team2 && match.team1 && match.team2) {
+      const expectedWinnerId = args.score_team1 > args.score_team2 ? match.team1.id : match.team2.id;
+      const hasInconsistency = args.winner_id && args.winner_id !== expectedWinnerId;
+      
+      if (hasInconsistency) {
+        setPendingSaveArgs(args);
+        setShowValidationDialog(true);
+        return;
+      }
+    }
+    
+    // No inconsistency, proceed directly
+    onSave(args);
+  };
+
+  const handleConfirmSave = () => {
+    if (pendingSaveArgs) {
+      onSave(pendingSaveArgs);
+      setPendingSaveArgs(null);
+    }
+    setShowValidationDialog(false);
+  };
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-slate-900 p-6 rounded-lg shadow border border-amber-700 w-full max-w-md">
@@ -135,7 +164,7 @@ export default function MatchEditModal({
           </Button>
           <Button
             onClick={() =>
-              onSave({
+              handleSaveClick({
                 status: match.status,
                 score_team1: match.score_team1,
                 score_team2: match.score_team2,
@@ -150,6 +179,20 @@ export default function MatchEditModal({
           </Button>
         </div>
       </div>
+      
+      {/* Score Validation Dialog */}
+      <ScoreValidationDialog
+        open={showValidationDialog}
+        onOpenChange={setShowValidationDialog}
+        onConfirm={handleConfirmSave}
+        team1Name={match.team1?.name || "Team 1"}
+        team2Name={match.team2?.name || "Team 2"}
+        score1={pendingSaveArgs?.score_team1 || 0}
+        score2={pendingSaveArgs?.score_team2 || 0}
+        selectedWinnerId={pendingSaveArgs?.winner_id || null}
+        team1Id={match.team1?.id || ""}
+        team2Id={match.team2?.id || ""}
+      />
     </div>
   );
 }

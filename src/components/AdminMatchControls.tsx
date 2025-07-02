@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { AlertTriangle, Settings, Calendar, Trophy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import ScoreValidationDialog from "./ScoreValidationDialog";
 
 interface AdminMatchControlsProps {
   match: any;
@@ -23,6 +24,7 @@ const AdminMatchControls = ({ match, onMatchUpdate }: AdminMatchControlsProps) =
   const [overrideScore1, setOverrideScore1] = useState(match.score_team1 || 0);
   const [overrideScore2, setOverrideScore2] = useState(match.score_team2 || 0);
   const [overrideWinner, setOverrideWinner] = useState(match.winner_id || '');
+  const [showValidationDialog, setShowValidationDialog] = useState(false);
   const { toast } = useToast();
 
   const forceStatusChange = async () => {
@@ -81,6 +83,22 @@ const AdminMatchControls = ({ match, onMatchUpdate }: AdminMatchControlsProps) =
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleOverrideClick = () => {
+    // Check for score inconsistencies before proceeding
+    if (overrideScore1 !== overrideScore2 && match.team1 && match.team2) {
+      const expectedWinnerId = overrideScore1 > overrideScore2 ? match.team1_id : match.team2_id;
+      const hasInconsistency = overrideWinner && overrideWinner !== expectedWinnerId;
+      
+      if (hasInconsistency) {
+        setShowValidationDialog(true);
+        return;
+      }
+    }
+    
+    // No inconsistency, proceed directly
+    overrideResults();
   };
 
   const overrideResults = async () => {
@@ -264,7 +282,7 @@ const AdminMatchControls = ({ match, onMatchUpdate }: AdminMatchControlsProps) =
             </SelectContent>
           </Select>
           <Button
-            onClick={overrideResults}
+            onClick={handleOverrideClick}
             disabled={loading}
             className="w-full bg-red-600 hover:bg-red-700 text-white border-red-500"
           >
@@ -284,6 +302,23 @@ const AdminMatchControls = ({ match, onMatchUpdate }: AdminMatchControlsProps) =
           </Button>
         </div>
       </CardContent>
+      
+      {/* Score Validation Dialog */}
+      <ScoreValidationDialog
+        open={showValidationDialog}
+        onOpenChange={setShowValidationDialog}
+        onConfirm={() => {
+          setShowValidationDialog(false);
+          overrideResults();
+        }}
+        team1Name={match.team1?.name || "Team 1"}
+        team2Name={match.team2?.name || "Team 2"}
+        score1={overrideScore1}
+        score2={overrideScore2}
+        selectedWinnerId={overrideWinner || null}
+        team1Id={match.team1_id || ""}
+        team2Id={match.team2_id || ""}
+      />
     </Card>
   );
 };
