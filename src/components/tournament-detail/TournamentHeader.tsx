@@ -18,7 +18,7 @@ export default function TournamentHeader({ tournament }: Props) {
               <p className="text-slate-300 mt-2">{tournament.description}</p>
             )}
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col items-end gap-2">
             <LivePageViewCounter tournamentId={tournament.id} />
             {getStatusBadge(tournament.status)}
           </div>
