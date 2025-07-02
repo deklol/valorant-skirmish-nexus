@@ -1213,6 +1213,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      create_missing_user_profile: {
+        Args: { user_id: string }
+        Returns: boolean
+      }
       create_notification: {
         Args: {
           p_user_id: string
