@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { Calendar, Trophy, Users, Shield, User, LogOut, Home, Archive, ChevronRight, PlayCircle } from "lucide-react";
-import { NavLink, useLocation } from "react-router-dom";
+import { Calendar, Trophy, Users, Shield, User, LogOut, Home, Archive, ChevronRight, PlayCircle, ArrowLeft, Crown, Medal, Target } from "lucide-react";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import {
   SidebarMenuItem,
   SidebarHeader,
   SidebarFooter,
+  SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
 
@@ -29,15 +30,33 @@ interface Tournament {
   tournament_signups: { count: number }[];
 }
 
+interface LatestResult {
+  tournament_name: string;
+  winner_team_name: string;
+  completed_at: string;
+}
+
+interface UserProfile {
+  discord_username: string;
+  current_rank: string;
+  wins: number;
+  losses: number;
+  tournaments_won: number;
+}
+
 export function AppSidebar() {
   const { state } = useSidebar();
   const location = useLocation();
+  const navigate = useNavigate();
   const { user, isAdmin, signOut } = useAuth();
   const [latestTournament, setLatestTournament] = useState<Tournament | null>(null);
+  const [latestResults, setLatestResults] = useState<LatestResult[]>([]);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   const isCollapsed = state === "collapsed";
   const currentPath = location.pathname;
+  const canGoBack = currentPath !== "/";
 
   const isActive = (path: string) => {
     if (path === "/" && currentPath === "/") return true;
@@ -47,8 +66,8 @@ export function AppSidebar() {
 
   const getNavClasses = (path: string) => 
     isActive(path) 
-      ? "bg-red-600/20 text-red-400 border-r-2 border-red-500" 
-      : "text-slate-300 hover:text-white hover:bg-slate-800/50";
+      ? "bg-red-500/20 text-red-400 border-r-2 border-red-500 font-medium" 
+      : "text-sidebar-foreground hover:text-red-400 hover:bg-sidebar-accent";
 
   // Main navigation items
   const mainNavItems = [
@@ -70,9 +89,10 @@ export function AppSidebar() {
   ] : [];
 
   useEffect(() => {
-    const fetchLatestTournament = async () => {
+    const fetchData = async () => {
       try {
-        const { data } = await supabase
+        // Get latest tournament
+        const { data: tournamentData } = await supabase
           .from('tournaments')
           .select('id, name, start_time, status, max_players, tournament_signups(count)')
           .in('status', ['open'])
@@ -80,16 +100,48 @@ export function AppSidebar() {
           .limit(1)
           .single();
 
-        setLatestTournament(data);
+        setLatestTournament(tournamentData);
+
+        // Get latest results - using matches to find completed tournaments
+        const { data: resultsData } = await supabase
+          .from('matches')
+          .select(`
+            tournaments(name),
+            teams!winner_id(name),
+            completed_at
+          `)
+          .not('winner_id', 'is', null)
+          .not('completed_at', 'is', null)
+          .order('completed_at', { ascending: false })
+          .limit(3);
+
+        const formattedResults = resultsData?.map(match => ({
+          tournament_name: match.tournaments?.name || 'Unknown Tournament',
+          winner_team_name: match.teams?.name || 'Unknown Team',
+          completed_at: match.completed_at
+        })) || [];
+
+        setLatestResults(formattedResults);
+
+        // Get user profile if logged in
+        if (user) {
+          const { data: profileData } = await supabase
+            .from('users')
+            .select('discord_username, current_rank, wins, losses, tournaments_won')
+            .eq('id', user.id)
+            .single();
+
+          setUserProfile(profileData);
+        }
       } catch (error) {
-        console.log('No active tournaments found');
+        console.log('Error fetching sidebar data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchLatestTournament();
-  }, []);
+    fetchData();
+  }, [user]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-GB", {
@@ -105,29 +157,49 @@ export function AppSidebar() {
     window.location.href = '/';
   };
 
+  const handleGoBack = () => {
+    navigate(-1);
+  };
+
   return (
-    <Sidebar className="border-r border-slate-700 bg-slate-900">
-      <SidebarHeader className="p-4">
-        {!isCollapsed && (
+    <Sidebar className="border-r border-sidebar-border bg-sidebar">
+      <SidebarHeader className="p-4 border-b border-sidebar-border">
+        <div className="flex items-center justify-between">
+          {!isCollapsed && (
+            <div className="flex items-center space-x-2">
+              <Trophy className="h-6 w-6 text-red-500" />
+              <span className="font-bold text-sidebar-foreground">TLR Hub</span>
+            </div>
+          )}
           <div className="flex items-center space-x-2">
-            <Trophy className="h-6 w-6 text-red-500" />
-            <span className="font-bold text-white">TLR Hub</span>
+            {canGoBack && (
+              <Button
+                onClick={handleGoBack}
+                variant="ghost"
+                size="sm"
+                className="text-sidebar-foreground hover:text-red-400 hover:bg-sidebar-accent"
+              >
+                <ArrowLeft className={`h-4 w-4 ${isCollapsed ? 'mx-auto' : 'mr-2'}`} />
+                {!isCollapsed && "Back"}
+              </Button>
+            )}
+            <SidebarTrigger className="text-sidebar-foreground hover:text-red-400" />
           </div>
-        )}
+        </div>
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className="p-2">
         {/* Main Navigation */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-slate-400">Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-sidebar-foreground/70 font-medium">Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {mainNavItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink to={item.url} className={getNavClasses(item.url)}>
-                      <item.icon className={`h-4 w-4 ${isCollapsed ? 'mx-auto' : 'mr-2'}`} />
-                      {!isCollapsed && <span>{item.title}</span>}
+                  <SidebarMenuButton asChild size="lg">
+                    <NavLink to={item.url} className={`py-3 px-4 ${getNavClasses(item.url)}`}>
+                      <item.icon className={`h-5 w-5 ${isCollapsed ? 'mx-auto' : 'mr-3'}`} />
+                      {!isCollapsed && <span className="text-base">{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -139,15 +211,15 @@ export function AppSidebar() {
         {/* Admin Navigation */}
         {isAdmin && (
           <SidebarGroup>
-            <SidebarGroupLabel className="text-slate-400">Admin</SidebarGroupLabel>
+            <SidebarGroupLabel className="text-sidebar-foreground/70 font-medium">Admin</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {adminNavItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild>
-                      <NavLink to={item.url} className={getNavClasses(item.url)}>
-                        <item.icon className={`h-4 w-4 ${isCollapsed ? 'mx-auto' : 'mr-2'}`} />
-                        {!isCollapsed && <span>{item.title}</span>}
+                    <SidebarMenuButton asChild size="lg">
+                      <NavLink to={item.url} className={`py-3 px-4 ${getNavClasses(item.url)}`}>
+                        <item.icon className={`h-5 w-5 ${isCollapsed ? 'mx-auto' : 'mr-3'}`} />
+                        {!isCollapsed && <span className="text-base">{item.title}</span>}
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -160,15 +232,15 @@ export function AppSidebar() {
         {/* User Navigation */}
         {user && (
           <SidebarGroup>
-            <SidebarGroupLabel className="text-slate-400">Account</SidebarGroupLabel>
+            <SidebarGroupLabel className="text-sidebar-foreground/70 font-medium">Account</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {userNavItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild>
-                      <NavLink to={item.url} className={getNavClasses(item.url)}>
-                        <item.icon className={`h-4 w-4 ${isCollapsed ? 'mx-auto' : 'mr-2'}`} />
-                        {!isCollapsed && <span>{item.title}</span>}
+                    <SidebarMenuButton asChild size="lg">
+                      <NavLink to={item.url} className={`py-3 px-4 ${getNavClasses(item.url)}`}>
+                        <item.icon className={`h-5 w-5 ${isCollapsed ? 'mx-auto' : 'mr-3'}`} />
+                        {!isCollapsed && <span className="text-base">{item.title}</span>}
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -181,20 +253,20 @@ export function AppSidebar() {
         {/* Latest Tournament - Only show when expanded */}
         {!isCollapsed && (
           <SidebarGroup>
-            <SidebarGroupLabel className="text-slate-400">Latest Tournament</SidebarGroupLabel>
+            <SidebarGroupLabel className="text-sidebar-foreground/70 font-medium">Latest Tournament</SidebarGroupLabel>
             <SidebarGroupContent>
               {loading ? (
-                <div className="p-4 text-center text-slate-500">Loading...</div>
+                <div className="p-4 text-center text-sidebar-foreground/50">Loading...</div>
               ) : latestTournament ? (
-                <Card className="bg-slate-800 border-slate-600">
+                <Card className="bg-sidebar-accent border-sidebar-border">
                   <CardHeader className="p-3">
-                    <CardTitle className="text-sm text-white flex items-center gap-2">
-                      <PlayCircle className="w-4 h-4 text-red-400" />
+                    <CardTitle className="text-sm text-sidebar-foreground flex items-center gap-2">
+                      <PlayCircle className="w-4 h-4 text-red-500" />
                       {latestTournament.name}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-3 pt-0 space-y-3">
-                    <div className="space-y-2 text-xs text-slate-400">
+                    <div className="space-y-2 text-xs text-sidebar-foreground/70">
                       <div className="flex items-center gap-2">
                         <Calendar className="w-3 h-3" />
                         {formatDate(latestTournament.start_time)}
@@ -203,12 +275,12 @@ export function AppSidebar() {
                         <Users className="w-3 h-3" />
                         {latestTournament.tournament_signups?.[0]?.count || 0}/{latestTournament.max_players}
                       </div>
-                      <Badge variant="secondary" className="bg-green-600/20 text-green-400 text-xs">
+                      <Badge variant="secondary" className="bg-green-500/20 text-green-400 text-xs">
                         {latestTournament.status}
                       </Badge>
                     </div>
                     <NavLink to={`/tournament/${latestTournament.id}`}>
-                      <Button size="sm" className="w-full bg-red-600 hover:bg-red-700 text-xs">
+                      <Button size="sm" className="w-full bg-red-500 hover:bg-red-600 text-white text-xs">
                         Join Tournament
                         <ChevronRight className="w-3 h-3 ml-1" />
                       </Button>
@@ -217,27 +289,94 @@ export function AppSidebar() {
                 </Card>
               ) : (
                 <div className="p-4 text-center">
-                  <Trophy className="w-8 h-8 text-slate-600 mx-auto mb-2" />
-                  <p className="text-xs text-slate-500">No active tournaments</p>
+                  <Trophy className="w-8 h-8 text-sidebar-foreground/30 mx-auto mb-2" />
+                  <p className="text-xs text-sidebar-foreground/50">No active tournaments</p>
                 </div>
               )}
             </SidebarGroupContent>
           </SidebarGroup>
         )}
 
-        {/* Quick Stats - Only show when expanded */}
+        {/* Latest Results - Only show when expanded */}
+        {!isCollapsed && latestResults.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-sidebar-foreground/70 font-medium">Latest Results</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <div className="space-y-2">
+                {latestResults.slice(0, 2).map((result, index) => (
+                  <Card key={index} className="bg-sidebar-accent border-sidebar-border">
+                    <CardContent className="p-3">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-xs text-sidebar-foreground/70">
+                          <Crown className="w-3 h-3 text-yellow-500" />
+                          <span className="truncate">{result.tournament_name}</span>
+                        </div>
+                        <div className="text-sm text-sidebar-foreground font-medium truncate">
+                          {result.winner_team_name}
+                        </div>
+                        <div className="text-xs text-sidebar-foreground/50">
+                          {formatDate(result.completed_at)}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {/* User Profile Info - Only show when expanded and logged in */}
+        {!isCollapsed && user && userProfile && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-sidebar-foreground/70 font-medium">Your Stats</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <Card className="bg-sidebar-accent border-sidebar-border">
+                <CardContent className="p-3 space-y-3">
+                  <div className="text-sm text-sidebar-foreground font-medium truncate">
+                    {userProfile.discord_username || user.email}
+                  </div>
+                  {userProfile.current_rank && (
+                    <div className="flex items-center gap-2 text-xs text-sidebar-foreground/70">
+                      <Medal className="w-3 h-3 text-blue-400" />
+                      {userProfile.current_rank}
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="text-center">
+                      <div className="text-green-400 font-medium">{userProfile.wins}</div>
+                      <div className="text-sidebar-foreground/50">Wins</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-red-400 font-medium">{userProfile.losses}</div>
+                      <div className="text-sidebar-foreground/50">Losses</div>
+                    </div>
+                  </div>
+                  {userProfile.tournaments_won > 0 && (
+                    <div className="flex items-center justify-center gap-2 text-xs text-yellow-400">
+                      <Trophy className="w-3 h-3" />
+                      {userProfile.tournaments_won} Tournament{userProfile.tournaments_won !== 1 ? 's' : ''}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {/* Discord Link - Only show when expanded */}
         {!isCollapsed && (
           <SidebarGroup>
-            <SidebarGroupLabel className="text-slate-400">Quick Info</SidebarGroupLabel>
+            <SidebarGroupLabel className="text-sidebar-foreground/70 font-medium">Community</SidebarGroupLabel>
             <SidebarGroupContent>
-              <div className="p-3 space-y-2">
+              <div className="p-1">
                 <a
                   href="https://discord.gg/TLR"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="block"
                 >
-                  <Button variant="outline" size="sm" className="w-full border-blue-600/30 text-blue-400 hover:bg-blue-600/20">
+                  <Button variant="outline" size="sm" className="w-full border-blue-500/30 text-blue-400 hover:bg-blue-500/20">
                     Join Discord
                     <ChevronRight className="w-3 h-3 ml-1" />
                   </Button>
@@ -248,24 +387,19 @@ export function AppSidebar() {
         )}
       </SidebarContent>
 
-      {/* Footer with user info and sign out */}
+      {/* Footer with sign out */}
       {user && (
-        <SidebarFooter className="p-4">
+        <SidebarFooter className="p-4 border-t border-sidebar-border">
           {!isCollapsed ? (
-            <div className="space-y-2">
-              <div className="text-xs text-slate-400 truncate">
-                {user.email || 'User'}
-              </div>
-              <Button
-                onClick={handleSignOut}
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-800"
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                Sign Out
-              </Button>
-            </div>
+            <Button
+              onClick={handleSignOut}
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start text-sidebar-foreground hover:text-red-400 hover:bg-sidebar-accent"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Sign Out
+            </Button>
           ) : (
             <Button
               onClick={handleSignOut}

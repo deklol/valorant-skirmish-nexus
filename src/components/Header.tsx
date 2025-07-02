@@ -26,13 +26,9 @@ const Header = () => {
     <header className="bg-slate-900 border-b border-slate-700 sticky top-0 z-40">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          {/* Sidebar Trigger + Logo */}
-          <div className="flex items-center space-x-3">
+          {/* Sidebar Trigger */}
+          <div className="flex items-center">
             <SidebarTrigger className="text-slate-300 hover:text-white" />
-            <Link to="/" className="flex items-center space-x-2">
-              <Trophy className="h-8 w-8 text-red-500" />
-              <span className="text-xl font-bold text-white">{appName}</span>
-            </Link>
           </div>
 
           {/* Desktop Navigation */}
