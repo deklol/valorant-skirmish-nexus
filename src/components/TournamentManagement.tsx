@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Users, Calendar, Trophy, Settings, Eye, BarChart3 } from "lucide-react";
+import { Users, Calendar, Trophy, Settings, Eye, BarChart3, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Link } from "react-router-dom";
 import CreateTournamentDialog from "./CreateTournamentDialog";
+import TournamentStatsModal from "./TournamentStatsModal";
 
 interface Tournament {
   id: string;
@@ -26,6 +28,8 @@ interface Tournament {
 const TournamentManagement = () => {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
+  const [statsModalOpen, setStatsModalOpen] = useState(false);
+  const [selectedTournament, setSelectedTournament] = useState<{ id: string; name: string } | null>(null);
   const { toast } = useToast();
 
   const fetchTournaments = async () => {
@@ -126,6 +130,16 @@ const TournamentManagement = () => {
     });
   };
 
+  const handleViewStats = (tournamentId: string, tournamentName: string) => {
+    setSelectedTournament({ id: tournamentId, name: tournamentName });
+    setStatsModalOpen(true);
+  };
+
+  const handleEditTournament = (tournamentId: string) => {
+    // For now, navigate to tournament detail page's admin tab
+    window.open(`/tournament/${tournamentId}?tab=admin`, '_blank');
+  };
+
   if (loading) {
     return (
       <Card className="bg-slate-800 border-slate-700">
@@ -215,13 +229,32 @@ const TournamentManagement = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <Button size="sm" variant="outline" className="border-slate-600 text-white">
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          <Button size="sm" variant="outline" className="border-slate-600 text-white">
+                          <Link to={`/tournament/${tournament.id}`}>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="border-slate-600 text-white hover:bg-slate-700"
+                              title="View Tournament Details"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                          </Link>
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="border-slate-600 text-white hover:bg-slate-700"
+                            onClick={() => handleViewStats(tournament.id, tournament.name)}
+                            title="View Tournament Statistics"
+                          >
                             <BarChart3 className="w-4 h-4" />
                           </Button>
-                          <Button size="sm" variant="outline" className="border-slate-600 text-white">
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="border-slate-600 text-white hover:bg-slate-700"
+                            onClick={() => handleEditTournament(tournament.id)}
+                            title="Tournament Settings"
+                          >
                             <Settings className="w-4 h-4" />
                           </Button>
                         </div>
@@ -234,6 +267,12 @@ const TournamentManagement = () => {
           )}
         </CardContent>
       </Card>
+
+      <TournamentStatsModal
+        open={statsModalOpen}
+        onOpenChange={setStatsModalOpen}
+        tournament={selectedTournament}
+      />
     </div>
   );
 };
