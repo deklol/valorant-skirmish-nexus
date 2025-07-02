@@ -214,12 +214,12 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {mainNavItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild size="lg">
-                     <NavLink to={item.url} className={`${isCollapsed ? 'py-3 px-0 flex justify-center' : 'py-3 px-4'} ${getNavClasses(item.url)}`}>
+                 <SidebarMenuItem key={item.title}>
+                   <SidebarMenuButton asChild size={isCollapsed ? "sm" : "lg"} className={isCollapsed ? "justify-center" : ""}>
+                     <NavLink to={item.url} className={`${isCollapsed ? 'py-3 flex items-center justify-center w-full' : 'py-3 px-4'} ${getNavClasses(item.url)}`}>
                        <item.icon className={`${isCollapsed ? 'h-6 w-6' : 'h-5 w-5 mr-3'}`} />
                        {!isCollapsed && <span className="text-base">{item.title}</span>}
-                    </NavLink>
+                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -234,9 +234,9 @@ export function AppSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 {adminNavItems.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild size="lg">
-                       <NavLink to={item.url} className={`${isCollapsed ? 'py-3 px-0 flex justify-center' : 'py-3 px-4'} ${getNavClasses(item.url)}`}>
+                   <SidebarMenuItem key={item.title}>
+                     <SidebarMenuButton asChild size={isCollapsed ? "sm" : "lg"} className={isCollapsed ? "justify-center" : ""}>
+                       <NavLink to={item.url} className={`${isCollapsed ? 'py-3 flex items-center justify-center w-full' : 'py-3 px-4'} ${getNavClasses(item.url)}`}>
                          <item.icon className={`${isCollapsed ? 'h-6 w-6' : 'h-5 w-5 mr-3'}`} />
                          {!isCollapsed && <span className="text-base">{item.title}</span>}
                        </NavLink>
@@ -256,11 +256,11 @@ export function AppSidebar() {
                <SidebarMenu>
                  {userNavItems.map((item) => (
                    <SidebarMenuItem key={item.title}>
-                     <SidebarMenuButton asChild size="lg">
-                        <NavLink to={item.url} className={`${isCollapsed ? 'py-3 px-0 flex justify-center' : 'py-3 px-4'} ${getNavClasses(item.url)}`}>
-                          <item.icon className={`${isCollapsed ? 'h-6 w-6' : 'h-5 w-5 mr-3'}`} />
-                          {!isCollapsed && <span className="text-base">{item.title}</span>}
-                      </NavLink>
+                     <SidebarMenuButton asChild size={isCollapsed ? "sm" : "lg"} className={isCollapsed ? "justify-center" : ""}>
+                       <NavLink to={item.url} className={`${isCollapsed ? 'py-3 flex items-center justify-center w-full' : 'py-3 px-4'} ${getNavClasses(item.url)}`}>
+                         <item.icon className={`${isCollapsed ? 'h-6 w-6' : 'h-5 w-5 mr-3'}`} />
+                         {!isCollapsed && <span className="text-base">{item.title}</span>}
+                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
