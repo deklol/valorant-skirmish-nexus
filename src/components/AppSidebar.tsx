@@ -162,8 +162,8 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar className="border-r border-sidebar-border bg-sidebar">
-      <SidebarHeader className="p-4 border-b border-sidebar-border">
+    <Sidebar className="border-r border-sidebar-border bg-sidebar" collapsible="offcanvas">
+      <SidebarHeader className={`border-b border-sidebar-border ${isCollapsed ? 'p-2' : 'p-4'}`}>
         <div className="flex items-center justify-between">
           {!isCollapsed && (
             <div className="flex items-center space-x-2">
@@ -171,16 +171,16 @@ export function AppSidebar() {
               <span className="font-bold text-sidebar-foreground">TLR Hub</span>
             </div>
           )}
-          <div className="flex items-center space-x-2">
-            {canGoBack && (
+          <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-2'}`}>
+            {!isCollapsed && canGoBack && (
               <Button
                 onClick={handleGoBack}
                 variant="ghost"
                 size="sm"
                 className="text-sidebar-foreground hover:text-red-400 hover:bg-sidebar-accent"
               >
-                <ArrowLeft className={`h-4 w-4 ${isCollapsed ? 'mx-auto' : 'mr-2'}`} />
-                {!isCollapsed && "Back"}
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
               </Button>
             )}
             <SidebarTrigger className="text-sidebar-foreground hover:text-red-400" />
@@ -188,7 +188,7 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="p-2">
+      <SidebarContent className={`p-2 ${isCollapsed ? 'hidden' : ''}`}>
         {/* Main Navigation */}
         <SidebarGroup>
           <SidebarGroupLabel className="text-sidebar-foreground/70 font-medium">Navigation</SidebarGroupLabel>
@@ -388,28 +388,17 @@ export function AppSidebar() {
       </SidebarContent>
 
       {/* Footer with sign out */}
-      {user && (
+      {user && !isCollapsed && (
         <SidebarFooter className="p-4 border-t border-sidebar-border">
-          {!isCollapsed ? (
-            <Button
-              onClick={handleSignOut}
-              variant="ghost"
-              size="sm"
-              className="w-full justify-start text-sidebar-foreground hover:text-red-400 hover:bg-sidebar-accent"
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              Sign Out
-            </Button>
-          ) : (
-            <Button
-              onClick={handleSignOut}
-              variant="ghost"
-              size="sm"
-              className="w-full p-2"
-            >
-              <LogOut className="w-4 h-4" />
-            </Button>
-          )}
+          <Button
+            onClick={handleSignOut}
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start text-sidebar-foreground hover:text-red-400 hover:bg-sidebar-accent"
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Sign Out
+          </Button>
         </SidebarFooter>
       )}
     </Sidebar>

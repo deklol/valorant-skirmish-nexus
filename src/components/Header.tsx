@@ -33,18 +33,43 @@ const Header = () => {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6">
-            <Link to="/tournaments" className="text-slate-300 hover:text-white transition-colors">
-              <Calendar className="w-4 h-4 inline mr-2" />
-              Tournaments
-            </Link>
-            <Link to="/leaderboard" className="text-slate-300 hover:text-white transition-colors">
-              <Trophy className="w-4 h-4 inline mr-2" />
-              Leaderboard
-            </Link>
-            <Link to="/players" className="text-slate-300 hover:text-white transition-colors">
-              <Users className="w-4 h-4 inline mr-2" />
-              Players
-            </Link>
+            {!isAdmin ? (
+              // Regular user navigation
+              <>
+                <Link to="/tournaments" className="text-slate-300 hover:text-white transition-colors">
+                  <Calendar className="w-4 h-4 inline mr-2" />
+                  Tournaments
+                </Link>
+                <Link to="/leaderboard" className="text-slate-300 hover:text-white transition-colors">
+                  <Trophy className="w-4 h-4 inline mr-2" />
+                  Leaderboard
+                </Link>
+                <Link to="/players" className="text-slate-300 hover:text-white transition-colors">
+                  <Users className="w-4 h-4 inline mr-2" />
+                  Players
+                </Link>
+              </>
+            ) : (
+              // Admin navigation with tool tabs
+              <>
+                <Link to="/admin" className="text-slate-300 hover:text-red-400 transition-colors border-b-2 border-transparent hover:border-red-400">
+                  <Trophy className="w-4 h-4 inline mr-2" />
+                  Tournaments
+                </Link>
+                <Link to="/admin" className="text-slate-300 hover:text-red-400 transition-colors border-b-2 border-transparent hover:border-red-400">
+                  <Users className="w-4 h-4 inline mr-2" />
+                  Users
+                </Link>
+                <Link to="/admin" className="text-slate-300 hover:text-red-400 transition-colors border-b-2 border-transparent hover:border-red-400">
+                  <Settings className="w-4 h-4 inline mr-2" />
+                  Settings
+                </Link>
+                <Link to="/admin" className="text-slate-300 hover:text-yellow-400 transition-colors border-b-2 border-transparent hover:border-yellow-400">
+                  <Shield className="w-4 h-4 inline mr-2" />
+                  Medic Tools
+                </Link>
+              </>
+            )}
             {/* Discord link for desktop without icon */}
             <a
               href="https://discord.gg/TLR"
