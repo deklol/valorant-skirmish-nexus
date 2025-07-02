@@ -1,9 +1,11 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, Users, Map, Trophy, Clock } from "lucide-react";
+import { Calendar, Users, Map, Trophy, Clock, Eye } from "lucide-react";
 import { formatDate } from "@/hooks/useTournamentUtils";
+import { useTournamentPageViews } from "@/hooks/useTournamentPageViews";
 
 export default function TournamentInfoCards({ tournament, parsedMapVetoRounds }: { tournament: any, parsedMapVetoRounds: number[] }) {
+  const { pageViews } = useTournamentPageViews(tournament?.id);
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
       {/* Tournament Information Card */}
@@ -28,6 +30,15 @@ export default function TournamentInfoCards({ tournament, parsedMapVetoRounds }:
             <div>
               <div className="text-sm text-slate-400">Max Players</div>
               <div className="text-white">{tournament.max_players}</div>
+            </div>
+          </div>
+          <div className="border-t border-slate-700 pt-4">
+            <div className="flex items-center gap-2">
+              <Eye className="w-4 h-4 text-slate-400" />
+              <div>
+                <div className="text-sm text-slate-400">Page Views</div>
+                <div className="text-white font-semibold">{pageViews.toLocaleString()}</div>
+              </div>
             </div>
           </div>
           {tournament.enable_map_veto && (

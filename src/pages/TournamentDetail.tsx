@@ -7,6 +7,7 @@ import TournamentHeader from "@/components/tournament-detail/TournamentHeader";
 import TeamsSection from "@/components/tournament-detail/TeamsSection";
 import TournamentTabs from "@/components/tournament-detail/TournamentTabs";
 import { TournamentLoading, TournamentNotFound } from "@/components/tournament-detail/LoadingStates";
+import { useTournamentPageTracking } from "@/hooks/useAnalytics";
 
 const TournamentDetail = () => {
   const { isAdmin } = useAuth();
@@ -18,6 +19,9 @@ const TournamentDetail = () => {
     loading,
     handleRefresh,
   } = useTournamentData();
+
+  // Track tournament page views
+  useTournamentPageTracking(tournament?.id);
 
   if (loading) return <TournamentLoading />;
   if (!tournament) return <TournamentNotFound />;
