@@ -174,7 +174,7 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar className="border-r border-sidebar-border bg-sidebar" collapsible="icon">
+    <Sidebar className="border-r border-sidebar-border bg-sidebar data-[state=collapsed]:w-20" collapsible="icon">
       <SidebarHeader className="p-4 border-b border-sidebar-border">
         <div className="flex items-center justify-between">
           {!isCollapsed ? (
@@ -216,7 +216,7 @@ export function AppSidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild size="lg">
                     <NavLink to={item.url} className={`py-3 px-4 ${getNavClasses(item.url)}`}>
-                      <item.icon className={`h-5 w-5 ${isCollapsed ? 'mx-auto' : 'mr-3'}`} />
+                      <item.icon className={`${isCollapsed ? 'h-6 w-6 mx-auto' : 'h-5 w-5 mr-3'}`} />
                       {!isCollapsed && <span className="text-base">{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
@@ -236,7 +236,7 @@ export function AppSidebar() {
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild size="lg">
                       <NavLink to={item.url} className={`py-3 px-4 ${getNavClasses(item.url)}`}>
-                        <item.icon className={`h-5 w-5 ${isCollapsed ? 'mx-auto' : 'mr-3'}`} />
+                        <item.icon className={`${isCollapsed ? 'h-6 w-6 mx-auto' : 'h-5 w-5 mr-3'}`} />
                         {!isCollapsed && <span className="text-base">{item.title}</span>}
                       </NavLink>
                     </SidebarMenuButton>
@@ -257,7 +257,7 @@ export function AppSidebar() {
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild size="lg">
                       <NavLink to={item.url} className={`py-3 px-4 ${getNavClasses(item.url)}`}>
-                        <item.icon className={`h-5 w-5 ${isCollapsed ? 'mx-auto' : 'mr-3'}`} />
+                        <item.icon className={`${isCollapsed ? 'h-6 w-6 mx-auto' : 'h-5 w-5 mr-3'}`} />
                         {!isCollapsed && <span className="text-base">{item.title}</span>}
                       </NavLink>
                     </SidebarMenuButton>
