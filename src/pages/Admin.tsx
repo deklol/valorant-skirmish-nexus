@@ -63,7 +63,7 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="tournaments" className="space-y-6">
-          <TabsList className="bg-slate-800 border-slate-700 grid grid-cols-4 lg:grid-cols-8 w-full">
+          <TabsList className="bg-slate-800 border-slate-700 grid grid-cols-4 lg:grid-cols-9 w-full">
             {/* Core Management */}
             <TabsTrigger value="tournaments" className="text-white data-[state=active]:bg-red-600">
               <Trophy className="w-4 h-4 mr-2" />
@@ -78,10 +78,18 @@ const Admin = () => {
               <span className="hidden sm:inline">Maps</span>
             </TabsTrigger>
 
-            {/* Medical Tools - Consolidated */}
+            {/* Medical Tools - Individual Tabs */}
             <TabsTrigger value="tournament-medic" className="text-white data-[state=active]:bg-yellow-600">
               <Wrench className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Tournament Medic</span>
+            </TabsTrigger>
+            <TabsTrigger value="veto-medic" className="text-white data-[state=active]:bg-orange-600">
+              <MessageSquare className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Veto Medic</span>
+            </TabsTrigger>
+            <TabsTrigger value="bracket-medic" className="text-white data-[state=active]:bg-cyan-600">
+              <ShieldAlert className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Bracket Medic</span>
             </TabsTrigger>
             <TabsTrigger value="match-medic" className="text-white data-[state=active]:bg-amber-600">
               <ShieldAlert className="w-4 h-4 mr-2" />
@@ -116,18 +124,15 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="tournament-medic">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Main Tournament Medic */}
-              <div className="lg:col-span-2">
-                <TournamentMedicManager />
-              </div>
-              
-              {/* Related Tools Sidebar */}
-              <div className="space-y-4">
-                <VetoMedicManager />
-                <BracketMedicManager />
-              </div>
-            </div>
+            <TournamentMedicManager />
+          </TabsContent>
+
+          <TabsContent value="veto-medic">
+            <VetoMedicManager />
+          </TabsContent>
+
+          <TabsContent value="bracket-medic">
+            <BracketMedicManager />
           </TabsContent>
 
           <TabsContent value="match-medic">

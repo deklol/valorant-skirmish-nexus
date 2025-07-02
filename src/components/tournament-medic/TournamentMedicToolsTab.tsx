@@ -8,6 +8,7 @@ import TournamentWinnerDisplay from "@/components/TournamentWinnerDisplay";
 import TournamentDeletionTool from "./TournamentDeletionTool";
 import TournamentHealthDashboard from "./TournamentHealthDashboard";
 import TeamCleanupTools from "@/components/team-balancing/TeamCleanupTools";
+import TeamManagementTools from "@/components/bracket-medic/TeamManagementTools";
 import { logApplicationError, auditActions } from "@/utils/auditLogger";
 
 // Returns problems or [] if ok
@@ -81,6 +82,7 @@ export default function TournamentMedicToolsTab({
   tournament, 
   onRefresh,
   teams = [],
+  matches = [],
   onTeamsUpdated 
 }: {
   tournament: { id: string, status?: string, name?: string };
@@ -92,6 +94,7 @@ export default function TournamentMedicToolsTab({
     totalWeight: number;
     isPlaceholder?: boolean;
   }>;
+  matches?: Array<{ id: string; round_number: number; match_number: number; team1_id: string | null; team2_id: string | null; status: string }>;
   onTeamsUpdated?: () => void;
 }) {
   const [running, setRunning] = useState(false);
@@ -245,6 +248,17 @@ export default function TournamentMedicToolsTab({
         />
 
         {/* Team Management Tools - moved from Bracket Medic */}
+        {teams.length > 0 && matches.length > 0 && (
+          <TeamManagementTools
+            tournamentId={tournament.id}
+            teams={teams.map(t => ({ id: t.id, name: t.name, status: 'active' }))}
+            matches={matches}
+            onUpdate={onRefresh}
+            loading={false}
+          />
+        )}
+
+        {/* Team Cleanup Tools */}
         {teams.length > 0 && onTeamsUpdated && (
           <TeamCleanupTools
             tournamentId={tournament.id}

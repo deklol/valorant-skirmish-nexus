@@ -8,7 +8,7 @@ import BracketOverview from "./BracketOverview";
 import BracketMedicTournamentList from "./BracketMedicTournamentList";
 import BracketHealthAnalyzer from "./bracket-medic/BracketHealthAnalyzer";
 import BracketMedicActions from "./bracket-medic/BracketMedicActions";
-import TeamManagementTools from "./bracket-medic/TeamManagementTools";
+
 import { UnifiedBracketService } from "@/services/unifiedBracketService";
 import { getOriginalTeamCount } from "@/utils/bracketCalculations";
 
@@ -364,13 +364,6 @@ export default function BracketMedicManager() {
               onRebuildBracket={handleRebuildBracket}
             />
 
-            <TeamManagementTools
-              tournamentId={selectedTournament.id}
-              teams={teams}
-              matches={matches}
-              onUpdate={() => loadBracket(selectedTournament.id)}
-              loading={loading}
-            />
 
             <div className="text-xs text-slate-500 mt-4">
               <p>Unified Bracket System uses original team count ({originalTeamCount} teams) for all calculations and fixes progression issues.<br/>
