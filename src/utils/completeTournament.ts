@@ -26,40 +26,11 @@ export const completeTournament = async (tournamentId: string, winnerTeamId: str
       .eq('tournament_id', tournamentId)
       .neq('id', winnerTeamId);
 
-    // Award all winner team members with tournament win
-    const { data: winnerMembers } = await supabase
-      .from('team_members')
-      .select('user_id')
-      .eq('team_id', winnerTeamId);
-
-    if (winnerMembers) {
-      for (const w of winnerMembers) {
-        await supabase.rpc('increment_user_tournament_wins', { user_id: w.user_id });
-      }
-    }
-
-    // All participants in teams get tournaments_played incremented (fix: not just signups table)
-    const { data: allTeamMembers } = await supabase
-      .from('team_members')
-      .select('user_id, team_id')
-      .in('team_id', [
-        winnerTeamId,
-        // Get all team ids for this tournament except null
-        ...(await (async () => {
-          const { data: otherTeams } = await supabase
-            .from('teams')
-            .select('id')
-            .eq('tournament_id', tournamentId)
-            .neq('id', winnerTeamId);
-          return otherTeams ? otherTeams.map(t => t.id) : [];
-        })())
-      ]);
-
-    if (allTeamMembers) {
-      for (const s of allTeamMembers) {
-        await supabase.rpc('increment_user_tournaments_played', { user_id: s.user_id });
-      }
-    }
+    // Tournament statistics are now handled automatically by database triggers
+    // The handle_tournament_completion() trigger will automatically:
+    // - Award tournament wins to all winning team members
+    // - Increment tournaments_played for all participants
+    console.log('📊 Tournament statistics will be updated automatically by database triggers');
 
     return true;
   } catch (err) {

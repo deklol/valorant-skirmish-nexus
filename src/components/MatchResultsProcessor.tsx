@@ -63,9 +63,8 @@ export async function processMatchResults(
       throw new Error(result.error || 'Failed to advance match winner');
     }
 
-    // Update player statistics
-    console.log('📈 Updating player statistics...');
-    await updatePlayerStatistics(winnerId, loserId);
+    // Statistics are now handled automatically by database triggers
+    console.log('📈 Player statistics will be updated automatically by database triggers');
 
     // Send notifications based on result
     await safeNotifyMatchComplete(matchId, winnerId, loserId);
@@ -106,33 +105,8 @@ export async function processMatchResults(
   }
 }
 
-async function updatePlayerStatistics(winnerTeamId: string, loserTeamId: string) {
-  try {
-    const { data: winnerMembers } = await supabase
-      .from('team_members')
-      .select('user_id')
-      .eq('team_id', winnerTeamId);
-
-    const { data: loserMembers } = await supabase
-      .from('team_members')
-      .select('user_id')
-      .eq('team_id', loserTeamId);
-
-    if (winnerMembers) {
-      for (const w of winnerMembers) {
-        await supabase.rpc('increment_user_wins', { user_id: w.user_id });
-      }
-      console.log(`📊 Updated wins for ${winnerMembers.length} players`);
-    }
-    if (loserMembers) {
-      for (const l of loserMembers) {
-        await supabase.rpc('increment_user_losses', { user_id: l.user_id });
-      }
-      console.log(`📊 Updated losses for ${loserMembers.length} players`);
-    }
-  } catch (err) {
-    console.error('📊 Player Stats Update Error', err);
-  }
-}
+// REMOVED: Statistics are now handled automatically by database triggers
+// This function is no longer needed as the handle_match_completion() trigger
+// automatically updates wins/losses for all team members when a match is completed
 
 export default processMatchResults;
