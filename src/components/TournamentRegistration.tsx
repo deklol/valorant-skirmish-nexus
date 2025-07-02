@@ -149,6 +149,9 @@ const TournamentRegistration = ({ tournamentId, tournament, onRegistrationChange
         setIsRegistered(true);
         setIsSubstitute(isFull);
         
+        // Refresh rank after successful signup (non-blocking)
+        refreshPlayerRank();
+        
         if (isFull) {
           setSubstituteCount(prev => prev + 1);
           toast({
@@ -174,6 +177,56 @@ const TournamentRegistration = ({ tournamentId, tournament, onRegistrationChange
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Non-blocking rank refresh function
+  const refreshPlayerRank = async () => {
+    if (!user?.id) {
+      console.log('No user ID found, skipping rank refresh');
+      return;
+    }
+
+    try {
+      // Get user's riot_id from database
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('riot_id')
+        .eq('id', user.id)
+        .single();
+
+      if (userError || !userData?.riot_id) {
+        console.log('No Riot ID found for user, skipping rank refresh');
+        return;
+      }
+
+      console.log('Refreshing rank for user after tournament signup...');
+      
+      const { data, error } = await supabase.functions.invoke('scrape-rank', {
+        body: { 
+          riot_id: userData.riot_id, 
+          user_id: user.id 
+        }
+      });
+
+      if (error) {
+        console.warn('Rank refresh failed (non-critical):', error);
+        return;
+      }
+
+      if (data?.success) {
+        console.log('Rank successfully updated:', data);
+        
+        // Show success toast for rank update
+        toast({
+          title: "Rank Updated",
+          description: `Your rank has been refreshed to ${data.current_rank}`,
+          duration: 3000,
+        });
+      }
+    } catch (error) {
+      // Log but don't show error to user since this is a background enhancement
+      console.warn('Background rank refresh failed:', error);
     }
   };
 
