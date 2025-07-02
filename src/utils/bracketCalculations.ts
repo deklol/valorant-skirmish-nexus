@@ -360,10 +360,11 @@ export function getMatchesNeedingProgression(
 /**
  * Get original team count for a tournament
  * CRITICAL: This function must return the ORIGINAL team count when bracket was created
+ * NOW INCLUDES: All teams regardless of status (including disqualified, withdrawn, etc.)
  */
 export async function getOriginalTeamCount(tournamentId: string): Promise<number> {
-  // For now, we'll count all teams in the tournament (including eliminated)
-  // TODO: Add initial_team_count column to tournaments table
+  // Count ALL teams in the tournament (including eliminated, disqualified, withdrawn)
+  // This represents the original bracket size
   const { supabase } = await import("@/integrations/supabase/client");
   
   const { data: teams, error } = await supabase
@@ -377,6 +378,28 @@ export async function getOriginalTeamCount(tournamentId: string): Promise<number
   }
   
   const count = teams.length;
-  console.log(`📊 Original team count for tournament ${tournamentId}: ${count}`);
+  console.log(`📊 Original team count for tournament ${tournamentId}: ${count} (includes all statuses)`);
+  return count;
+}
+
+/**
+ * Get currently active teams (not eliminated, disqualified, or withdrawn)
+ */
+export async function getActiveTeamCount(tournamentId: string): Promise<number> {
+  const { supabase } = await import("@/integrations/supabase/client");
+  
+  const { data: teams, error } = await supabase
+    .from('teams')
+    .select('id')
+    .eq('tournament_id', tournamentId)
+    .not('status', 'in', '(eliminated,disqualified,withdrawn,forfeited)');
+    
+  if (error || !teams) {
+    console.error('Failed to get active team count:', error);
+    return 0;
+  }
+  
+  const count = teams.length;
+  console.log(`📊 Active team count for tournament ${tournamentId}: ${count}`);
   return count;
 }

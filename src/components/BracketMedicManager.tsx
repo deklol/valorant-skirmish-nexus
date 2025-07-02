@@ -8,6 +8,7 @@ import BracketOverview from "./BracketOverview";
 import BracketMedicTournamentList from "./BracketMedicTournamentList";
 import BracketHealthAnalyzer from "./bracket-medic/BracketHealthAnalyzer";
 import BracketMedicActions from "./bracket-medic/BracketMedicActions";
+import TeamManagementTools from "./bracket-medic/TeamManagementTools";
 import { UnifiedBracketService } from "@/services/unifiedBracketService";
 import { getOriginalTeamCount } from "@/utils/bracketCalculations";
 
@@ -24,12 +25,18 @@ type MatchInfo = {
   score_team1: number | null;
   score_team2: number | null;
 };
+type TeamInfo = {
+  id: string;
+  name: string;
+  status: string;
+};
 
 export default function BracketMedicManager() {
   const { toast } = useToast();
   const [tournaments, setTournaments] = useState<TournamentInfo[]>([]);
   const [selectedTournament, setSelectedTournament] = useState<TournamentInfo | null>(null);
   const [matches, setMatches] = useState<MatchInfo[]>([]);
+  const [teams, setTeams] = useState<TeamInfo[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
   const [eliminatedTeamIds, setEliminatedTeamIds] = useState<string[]>([]);
@@ -52,20 +59,28 @@ export default function BracketMedicManager() {
   const loadBracket = useCallback(async (tournamentId: string) => {
     setLoading(true);
     
-    const { data: matchesRaw } = await supabase
-      .from("matches")
-      .select("id, round_number, match_number, status, team1_id, team2_id, winner_id, score_team1, score_team2")
-      .eq("tournament_id", tournamentId)
-      .order("round_number", { ascending: true })
-      .order("match_number", { ascending: true });
-    setMatches(matchesRaw ?? []);
+    const [matchesResult, teamsResult, eliminatedResult] = await Promise.all([
+      supabase
+        .from("matches")
+        .select("id, round_number, match_number, status, team1_id, team2_id, winner_id, score_team1, score_team2")
+        .eq("tournament_id", tournamentId)
+        .order("round_number", { ascending: true })
+        .order("match_number", { ascending: true }),
+      supabase
+        .from("teams")
+        .select("id, name, status")
+        .eq("tournament_id", tournamentId)
+        .order("name", { ascending: true }),
+      supabase
+        .from("teams")
+        .select("id")
+        .eq("tournament_id", tournamentId)
+        .eq("status", "eliminated")
+    ]);
 
-    const { data: eliminatedTeams } = await supabase
-      .from("teams")
-      .select("id")
-      .eq("tournament_id", tournamentId)
-      .eq("status", "eliminated");
-    setEliminatedTeamIds(eliminatedTeams?.map(t => t.id) ?? []);
+    setMatches(matchesResult.data ?? []);
+    setTeams(teamsResult.data ?? []);
+    setEliminatedTeamIds(eliminatedResult.data?.map(t => t.id) ?? []);
 
     // CRITICAL FIX: Get original team count for proper bracket validation
     const originalCount = await getOriginalTeamCount(tournamentId);
@@ -84,6 +99,7 @@ export default function BracketMedicManager() {
       loadBracket(t.id);
     } else {
       setMatches([]);
+      setTeams([]);
       setOriginalTeamCount(0);
     }
   };
@@ -249,8 +265,7 @@ export default function BracketMedicManager() {
         .from("teams")
         .select("id")
         .eq("tournament_id", selectedTournament.id)
-        .neq("status", "eliminated")
-        .neq("status", "winner");
+        .not("status", "in", "(eliminated,winner,disqualified,withdrawn,forfeited)");
 
       if (teamErr) throw teamErr;
       const teams = teamsRaw?.map(t => t.id);
@@ -347,6 +362,14 @@ export default function BracketMedicManager() {
               onResetMatch={handleResetMatch}
               onSwapTeams={handleSwapTeams}
               onRebuildBracket={handleRebuildBracket}
+            />
+
+            <TeamManagementTools
+              tournamentId={selectedTournament.id}
+              teams={teams}
+              matches={matches}
+              onUpdate={() => loadBracket(selectedTournament.id)}
+              loading={loading}
             />
 
             <div className="text-xs text-slate-500 mt-4">

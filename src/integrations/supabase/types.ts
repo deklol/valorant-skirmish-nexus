@@ -1100,6 +1100,10 @@ export type Database = {
         }
         Returns: string
       }
+      disqualify_team: {
+        Args: { p_team_id: string; p_reason?: string }
+        Returns: Json
+      }
       fix_missing_tournament_wins: {
         Args: Record<PropertyKey, never>
         Returns: number
@@ -1215,6 +1219,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      manually_advance_team: {
+        Args: {
+          p_team_id: string
+          p_to_round: number
+          p_to_match_number: number
+          p_reason?: string
+        }
+        Returns: Json
+      }
       perform_veto_action: {
         Args: {
           p_veto_session_id: string
@@ -1240,13 +1253,24 @@ export type Database = {
         Args: { p_user_id: string; p_notification_type: string }
         Returns: boolean
       }
+      withdraw_team: {
+        Args: { p_team_id: string; p_reason?: string }
+        Returns: Json
+      }
     }
     Enums: {
       map_veto_action: "ban" | "pick"
       map_veto_status: "pending" | "in_progress" | "completed"
       match_format: "BO1" | "BO3" | "BO5"
       match_status: "pending" | "live" | "completed"
-      team_status: "pending" | "confirmed" | "eliminated" | "winner"
+      team_status:
+        | "pending"
+        | "confirmed"
+        | "eliminated"
+        | "winner"
+        | "disqualified"
+        | "withdrawn"
+        | "forfeited"
       tournament_status:
         | "draft"
         | "open"
@@ -1374,7 +1398,15 @@ export const Constants = {
       map_veto_status: ["pending", "in_progress", "completed"],
       match_format: ["BO1", "BO3", "BO5"],
       match_status: ["pending", "live", "completed"],
-      team_status: ["pending", "confirmed", "eliminated", "winner"],
+      team_status: [
+        "pending",
+        "confirmed",
+        "eliminated",
+        "winner",
+        "disqualified",
+        "withdrawn",
+        "forfeited",
+      ],
       tournament_status: [
         "draft",
         "open",
