@@ -1,7 +1,8 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Trophy } from "lucide-react";
+import { Trophy, Eye } from "lucide-react";
+import { useTournamentPageViews } from "@/hooks/useTournamentPageViews";
 
 interface MatchInformationProps {
   scheduledTime: string | null;
@@ -13,6 +14,7 @@ interface MatchInformationProps {
   team2Id: string | null;
   team1Name: string;
   team2Name: string;
+  tournamentId?: string;
 }
 
 const MatchInformation = ({
@@ -24,8 +26,10 @@ const MatchInformation = ({
   team1Id,
   team2Id,
   team1Name,
-  team2Name
+  team2Name,
+  tournamentId
 }: MatchInformationProps) => {
+  const { pageViews } = useTournamentPageViews(tournamentId);
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
@@ -58,6 +62,13 @@ const MatchInformation = ({
           <div>
             <div className="text-sm text-slate-400">Status</div>
             <div className="text-white">{getStatusBadge(status)}</div>
+          </div>
+          <div>
+            <div className="text-sm text-slate-400 flex items-center gap-1">
+              <Eye className="w-3 h-3" />
+              Tournament Views
+            </div>
+            <div className="text-white">{pageViews.toLocaleString()}</div>
           </div>
           {startedAt && (
             <div>

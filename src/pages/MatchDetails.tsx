@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import MatchHeader from "@/components/match-details/MatchHeader";
 import MatchTabs from "@/components/match-details/MatchTabs";
 import { useMatchData } from "@/components/match-details/useMatchData";
+import { useTournamentPageTracking } from "@/hooks/useAnalytics";
 
 const MatchDetails = () => {
   // React Router
@@ -37,6 +38,9 @@ const MatchDetails = () => {
     isAdmin,
     fetchMatch
   } = useMatchData(id, user?.id);
+
+  // Track tournament page views
+  useTournamentPageTracking(match?.tournament_id);
 
   // Defensive logging for debugging
   if (typeof window !== "undefined") {

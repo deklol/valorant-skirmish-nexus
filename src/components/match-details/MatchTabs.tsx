@@ -110,6 +110,7 @@ const MatchTabs = ({
           team2Id={match.team2_id}
           team1Name={match.team1?.name || 'Team 1'}
           team2Name={match.team2?.name || 'Team 2'}
+          tournamentId={match.tournament_id}
         />
 
         {match.status !== 'completed' && (userTeamId || isAdmin) && (
