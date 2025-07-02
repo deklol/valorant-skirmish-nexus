@@ -1359,9 +1359,9 @@ export type Database = {
               p_table_name: string
               p_action: string
               p_record_id: string
-              p_old_values?: Json
-              p_new_values?: Json
-              p_description?: string
+              p_old_values: Json
+              p_new_values: Json
+              p_description: string
             }
           | {
               p_table_name: string
