@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
-import { useVetoState } from "@/hooks/useVetoState";
+import { useRealtimeVeto } from "@/hooks/useRealtimeVeto";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import MapVetoMapGrid from "./MapVetoMapGrid";
@@ -47,8 +47,8 @@ export default function MapVetoDialogNew({
   const { toast } = useToast();
   const [sidePickMode, setSidePickMode] = useState(false);
 
-  // Use the centralized veto state service with the match team ID
-  const { state: vetoState, loading, error, performAction, fixTurnSync } = useVetoState(
+  // Use the realtime veto system with optimistic updates
+  const { state: vetoState, loading, error, performAction, fixTurnSync } = useRealtimeVeto(
     vetoSessionId,
     userTeamId || null // Use the match team ID from props
   );
@@ -167,7 +167,7 @@ export default function MapVetoDialogNew({
         <DialogHeader>
           <DialogTitle>Map Veto - {team1Name} vs {team2Name}</DialogTitle>
           <DialogDescription>
-            Centralized veto state management - Turn sequence guaranteed
+            Real-time veto system with instant updates - No refreshes needed
             {vetoState.turnError && (
               <div className="text-red-400 mt-1 text-sm">⚠️ {vetoState.turnError}</div>
             )}

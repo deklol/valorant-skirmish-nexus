@@ -110,8 +110,8 @@ export default function MapVetoManager({
         }
       }
 
-      // Check if user is captain of their team (only once)
-      if (userTeamId && !isUserCaptain) {
+      // Check if user is captain of their team
+      if (userTeamId) {
         const { data: captainData } = await supabase
           .from('team_members')
           .select('is_captain')
@@ -152,9 +152,9 @@ export default function MapVetoManager({
     } finally {
       setLoading(false);
     }
-  }, [matchId, toast]); // Removed userTeamId dependency to prevent infinite loop
+  }, [matchId, userTeamId, toast]);
 
-  const checkVetoSession = useCallback(() => {
+  const refreshData = useCallback(() => {
     loadMatchAndSession();
   }, [loadMatchAndSession]);
 
@@ -186,7 +186,7 @@ export default function MapVetoManager({
         description: "Map veto session has been initialized",
       });
       
-      loadMatchAndSession();
+      refreshData();
       onVetoComplete?.();
     } catch (error: any) {
       console.error("MapVeto: Failed to initialize:", error);
@@ -218,7 +218,7 @@ export default function MapVetoManager({
         description: "Map veto session has been force completed",
       });
       
-      loadMatchAndSession();
+      refreshData();
       onVetoComplete?.();
     } catch (error: any) {
       console.error("MapVeto: Failed to force complete:", error);
@@ -232,10 +232,10 @@ export default function MapVetoManager({
     }
   };
 
-  // Load initial data once, no polling here
+  // Load initial data once, no polling - realtime handles updates
   useEffect(() => {
     loadMatchAndSession();
-  }, [matchId]); // Only depend on matchId, not the callback
+  }, [loadMatchAndSession]);
 
   if (loading) {
     return <div className="text-center py-4">Loading map veto...</div>;
@@ -289,7 +289,7 @@ export default function MapVetoManager({
           <AdminVetoControls
             matchId={matchId}
             onVetoAction={() => {
-              loadMatchAndSession();
+              refreshData();
               onVetoComplete?.();
             }}
             vetoSession={vetoSession}
@@ -316,7 +316,7 @@ export default function MapVetoManager({
                   team2Id={team2Id!}
                   isCaptain={!!isUserCaptain}
                   onComplete={() => {
-                    checkVetoSession();
+                    refreshData();
                   }}
                 />
               ) : (
@@ -464,7 +464,7 @@ export default function MapVetoManager({
               awayTeamId={vetoSession.away_team_id}
               tournamentMapPool={tournamentMapPool}
               onVetoComplete={() => {
-                loadMatchAndSession();
+                refreshData();
                 onVetoComplete?.();
               }}
             />
