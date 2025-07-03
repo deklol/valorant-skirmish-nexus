@@ -48,7 +48,7 @@ export default function MapVetoDialogNew({
   const [sidePickMode, setSidePickMode] = useState(false);
 
   // Use the centralized veto state service
-  const { state: vetoState, loading, error, performAction } = useVetoState(
+  const { state: vetoState, loading, error, performAction, fixTurnSync } = useVetoState(
     vetoSessionId,
     userTeam?.id || null
   );
@@ -195,6 +195,15 @@ export default function MapVetoDialogNew({
                   <Badge className="bg-green-900/50 text-green-200 border-green-600 ml-2">
                     Your Turn
                   </Badge>
+                )}
+                {vetoState.turnError && (
+                  <Button
+                    onClick={fixTurnSync}
+                    size="sm"
+                    className="bg-yellow-600 hover:bg-yellow-700 ml-2"
+                  >
+                    Fix Sync
+                  </Button>
                 )}
               </>
             )}

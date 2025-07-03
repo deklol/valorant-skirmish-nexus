@@ -104,11 +104,32 @@ export function useVetoState(sessionId: string, userTeamId: string | null) {
     };
   }, [sessionId, loadState]);
 
+  // Fix turn sync issues
+  const fixTurnSync = useCallback(async () => {
+    const result = await vetoService.fixTurnSync();
+    
+    if (!result.success) {
+      toast({
+        title: "Fix Failed",
+        description: result.error,
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    toast({
+      title: "Turn Sync Fixed",
+      description: "Database turn updated to match sequence",
+    });
+    return true;
+  }, [toast]);
+
   return {
     state,
     loading,
     error,
     performAction,
+    fixTurnSync,
     refreshState: loadState
   };
 }
