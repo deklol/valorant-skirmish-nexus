@@ -126,25 +126,15 @@ export const useMatchData = (matchId: string | undefined, userId: string | undef
   useEffect(() => {
     if (matchId) {
       fetchMatch();
-      if (userId) {
-        checkUserTeam();
-        checkAdminStatus();
-      }
     }
-  }, [matchId, userId]);
-
-  // Polling for match updates instead of realtime
-  useEffect(() => {
-    if (!matchId) return;
-
-    const pollInterval = setInterval(() => {
-      if (document.visibilityState === 'visible') {
-        fetchMatch();
-      }
-    }, 3000); // Poll every 3 seconds for match updates
-
-    return () => clearInterval(pollInterval);
   }, [matchId]);
+
+  useEffect(() => {
+    if (userId && matchId) {
+      checkUserTeam();
+      checkAdminStatus();
+    }
+  }, [userId, matchId]);
 
   return {
     match,
