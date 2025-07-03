@@ -121,8 +121,29 @@ export function useRealtimeVeto(sessionId: string, userTeamId: string | null) {
 
     console.log('🔄 Setting up realtime subscription for session:', sessionId.slice(0, 8));
 
-    // Load initial state
-    loadState();
+    // Load initial state immediately
+    const loadInitialState = async () => {
+      try {
+        setError(null);
+        const newState = await vetoService.loadState(sessionId, userTeamId);
+        setState(newState);
+        setOptimisticActions(prev => 
+          prev.filter(opt => !newState.actions.some(real => real.mapId === opt.mapId))
+        );
+      } catch (err: any) {
+        console.error('Failed to load veto state:', err);
+        setError(err.message);
+        toast({
+          title: "Failed to load veto state",
+          description: err.message,
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadInitialState();
 
     // Check if realtime is available
     if (!isRealtimeAvailable()) {
@@ -147,7 +168,8 @@ export function useRealtimeVeto(sessionId: string, userTeamId: string | null) {
         },
         (payload) => {
           console.log('🎯 Realtime: New veto action inserted:', payload.new);
-          loadState(); // Refresh state when new action is added
+          // Refresh state when new action is added - use direct call to avoid dependency issues
+          loadInitialState();
         }
       )
       .on(
@@ -160,7 +182,8 @@ export function useRealtimeVeto(sessionId: string, userTeamId: string | null) {
         },
         (payload) => {
           console.log('🔄 Realtime: Veto session updated:', payload.new);
-          loadState(); // Refresh state when session is updated
+          // Refresh state when session is updated - use direct call to avoid dependency issues  
+          loadInitialState();
         }
       )
       .subscribe((status) => {
@@ -180,7 +203,7 @@ export function useRealtimeVeto(sessionId: string, userTeamId: string | null) {
         channelRef.current = null;
       }
     };
-  }, [sessionId, loadState]);
+  }, [sessionId, userTeamId, toast]); // Removed loadState dependency to prevent loops
 
   // Combine real actions with optimistic actions for UI
   const combinedState = state ? {

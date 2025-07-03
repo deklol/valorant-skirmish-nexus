@@ -232,10 +232,10 @@ export default function MapVetoManager({
     }
   };
 
-  // Load initial data once, no polling - realtime handles updates
+  // Load initial data once - stable dependency to prevent loops
   useEffect(() => {
     loadMatchAndSession();
-  }, [loadMatchAndSession]);
+  }, [matchId]); // Only matchId dependency
 
   if (loading) {
     return <div className="text-center py-4">Loading map veto...</div>;
