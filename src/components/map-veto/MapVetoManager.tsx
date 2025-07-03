@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import MapVetoDialog from "../MapVetoDialog";
+import MapVetoDialogNew from "./MapVetoDialogNew";
 import MapVetoHistory from "./MapVetoHistory";
 import AdminVetoControls from "./AdminVetoControls";
 import RollDiceButton from "./RollDiceButton";
@@ -152,7 +152,7 @@ export default function MapVetoManager({
     } finally {
       setLoading(false);
     }
-  }, [matchId, toast, userTeamId, team1Id, team2Id, team1Name, team2Name]);
+  }, [matchId, toast, userTeamId]);
 
   const checkVetoSession = useCallback(() => {
     loadMatchAndSession();
@@ -445,7 +445,7 @@ export default function MapVetoManager({
         team1Id && team2Id && mapVetoAvailable &&
         vetoSession.home_team_id && vetoSession.away_team_id && (
           <ErrorBoundary>
-            <MapVetoDialog
+            <MapVetoDialogNew
               open={vetoDialogOpen}
               onOpenChange={setVetoDialogOpen}
               matchId={matchId}
