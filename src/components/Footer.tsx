@@ -114,48 +114,30 @@ const Footer = () => {
           </DialogHeader>
 
           <div className="space-y-6">
-            {/* Interactive Technology Stack */}
+            {/* Technology Stack */}
             <Card className="bg-slate-700 border-slate-600 hover:bg-slate-700/80 transition-colors">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Code className="w-5 h-5 text-blue-400" />
                   Technology Stack
-                  <Badge variant="outline" className="ml-2">Interactive</Badge>
                 </CardTitle>
-                <CardDescription>Hover over each technology to learn more</CardDescription>
+                <CardDescription>Modern web technologies powering the platform</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {Object.entries(techDetails).map(([key, tech]) => (
-                    <div
+                    <Badge 
                       key={key}
-                      className="relative cursor-pointer"
-                      onMouseEnter={() => setHoveredTech(key)}
-                      onMouseLeave={() => setHoveredTech(null)}
+                      variant="secondary" 
+                      className="w-full justify-center"
                     >
-                      <Badge 
-                        variant="secondary" 
-                        className="w-full justify-center hover:bg-slate-600 transition-all duration-200 hover:scale-105"
-                      >
-                        {tech.name}
-                      </Badge>
-                    </div>
+                      {tech.name}
+                    </Badge>
                   ))}
                 </div>
-                
-                {hoveredTech && (
-                  <div className="mt-4 p-4 bg-slate-600 rounded-lg border border-slate-500 animate-fade-in">
-                    <h4 className="font-semibold text-white mb-2">
-                      {techDetails[hoveredTech as keyof typeof techDetails].name}
-                    </h4>
-                    <p className="text-sm text-slate-300 mb-2">
-                      {techDetails[hoveredTech as keyof typeof techDetails].description}
-                    </p>
-                    <p className="text-xs text-slate-400">
-                      {techDetails[hoveredTech as keyof typeof techDetails].details}
-                    </p>
-                  </div>
-                )}
+                <p className="text-sm text-muted-foreground">
+                  Built on Lovable.dev using modern web technologies with real-time database capabilities.
+                </p>
               </CardContent>
             </Card>
 
