@@ -289,67 +289,6 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Enhanced Stats Section with real data */}
-      <section className="container mx-auto px-4 py-16">
-        <div className="bg-gradient-to-r from-slate-800 to-slate-900 rounded-2xl p-8 border border-slate-700">
-          <h3 className="text-2xl font-bold text-white text-center mb-8">Platform Statistics</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-            <div>
-              <div className="text-3xl font-bold text-red-500 mb-2">{loading ? '...' : stats.totalTournaments}+</div>
-              <div className="text-slate-400">Tournaments Hosted</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-blue-500 mb-2">{loading ? '...' : stats.activePlayers}+</div>
-              <div className="text-slate-400">Active Players</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-green-500 mb-2">{loading ? '...' : stats.completedMatches}+</div>
-              <div className="text-slate-400">Matches Played</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-purple-500 mb-2">{stats.liveMatches > 0 ? stats.liveMatches : '24/7'}</div>
-              <div className="text-slate-400">{stats.liveMatches > 0 ? 'Live Matches' : 'Available'}</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Enhanced CTA Section */}
-      <section className="container mx-auto px-4 py-16">
-        <div className="text-center space-y-6">
-          <h2 className="text-4xl font-bold text-white">
-            Ready to Host Your Tournament?
-          </h2>
-          <p className="text-xl text-slate-300 max-w-2xl mx-auto">
-            Join hundreds of tournament organizers who trust our platform 
-            for their competitive gaming events.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            {user ? (
-              <>
-                <Link to="/tournaments">
-                  <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white px-8 py-4 text-lg">
-                    <Play className="w-5 h-5 mr-2" />
-                    Join Tournament
-                  </Button>
-                </Link>
-                <Link to="/leaderboard">
-                  <Button size="lg" variant="outline" className="border-slate-600 hover:bg-slate-700 px-8 py-4 text-lg">
-                    <Award className="w-5 h-5 mr-2" />
-                    View Rankings
-                  </Button>
-                </Link>
-              </>
-            ) : (
-              <Link to="/login">
-                <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white px-8 py-4 text-lg">
-                  Get Started Today
-                </Button>
-              </Link>
-            )}
-          </div>
-        </div>
-      </section>
     </div>
   );
 };
