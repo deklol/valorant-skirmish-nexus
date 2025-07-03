@@ -242,9 +242,10 @@ const TournamentRegistration = ({ tournamentId, tournament, onRegistrationChange
     const opensAt = new Date(tournament.registration_opens_at);
     const closesAt = new Date(tournament.registration_closes_at);
 
-    if (now < opensAt) return 'not_open';
-    if (now > closesAt) return 'closed';
+    // If tournament status is 'open', registration is available regardless of timestamp
     if (tournament.status !== 'open') return 'tournament_closed';
+    if (now > closesAt) return 'closed';
+    if (now < opensAt) return 'not_open';
     return 'open';
   };
 
