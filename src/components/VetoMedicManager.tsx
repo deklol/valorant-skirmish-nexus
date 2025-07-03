@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertTriangle, RefreshCw, RotateCcw, MapPin, CheckCircle, XCircle, Clock, Users, Undo, Play, Settings } from "lucide-react";
+import { checkVetoSessionHealth } from "@/components/map-veto/vetoHealthUtils";
 
 interface VetoSession {
   id: string;
@@ -49,6 +50,10 @@ interface HealthStatus {
   actionCount: number;
   expectedActions: number;
   lastActivity: string;
+}
+
+interface VetoSessionWithHealth extends VetoSession {
+  healthStatus?: HealthStatus;
 }
 
 export default function VetoMedicManager() {
@@ -118,27 +123,101 @@ export default function VetoMedicManager() {
   const runHealthChecks = async (sessions: VetoSession[]) => {
     console.log("🔄 VetoMedic: Running health checks on all sessions");
     for (const session of sessions) {
-      const health = analyzeSessionHealth(session);
-      console.log(`🔍 VetoMedic: Checking health for session ${session.id.slice(0, 8)}`);
-      console.log(`📊 VetoMedic: Session ${session.id.slice(0, 8)} health details:`, {
-        status: session.status,
-        issues: health.issues,
-        isStuck: health.isStuck,
-        actionCount: health.actionCount,
-        expectedActions: health.expectedActions,
-        lastActivity: health.lastActivity
-      });
+      try {
+        const health = await analyzeSessionHealthAsync(session);
+        console.log(`🔍 VetoMedic: Checking health for session ${session.id.slice(0, 8)}`);
+        console.log(`📊 VetoMedic: Session ${session.id.slice(0, 8)} health details:`, {
+          status: session.status,
+          issues: health.issues,
+          isStuck: health.isStuck,
+          actionCount: health.actionCount,
+          expectedActions: health.expectedActions,
+          lastActivity: health.lastActivity
+        });
+      } catch (error) {
+        console.error(`❌ VetoMedic: Health check failed for ${session.id.slice(0, 8)}:`, error);
+      }
     }
     console.log("✅ VetoMedic: Completed health checks for", sessions.length, "sessions");
   };
 
-  const analyzeSessionHealth = (session: VetoSession): HealthStatus => {
-    const issues: string[] = [];
+  // Async version for background health checks
+  const analyzeSessionHealthAsync = async (session: VetoSession): Promise<HealthStatus> => {
     const actionCount = session.actions?.length || 0;
-    
-    // Determine expected actions based on tournament map pool
     const mapPoolSize = 7; // Default assumption
     const expectedActions = session.match?.tournament ? mapPoolSize - 1 : 8;
+    
+    // Basic legacy checks first
+    const basicIssues: string[] = [];
+    
+    // Check for missing team assignments
+    if (!session.match?.team1_id || !session.match?.team2_id) {
+      basicIssues.push("Missing team assignments");
+    }
+
+    // Check for invalid home/away assignments
+    if (session.home_team_id && session.away_team_id && session.home_team_id === session.away_team_id) {
+      basicIssues.push("Home and away teams are the same");
+    }
+
+    // Check for stale sessions
+    const lastActivity = session.completed_at || session.started_at || session.created_at;
+    const isStale = lastActivity && (Date.now() - new Date(lastActivity).getTime()) > 24 * 60 * 60 * 1000;
+    if (isStale && session.status === 'in_progress') {
+      basicIssues.push("Session appears stale (>24h old)");
+    }
+
+    // Check for incomplete dice rolls
+    if (session.status === 'in_progress' && (!session.home_team_id || !session.away_team_id)) {
+      basicIssues.push("Incomplete dice roll data");
+    }
+
+    // NEW: Use enhanced health check for turn sequence validation
+    let enhancedIssues: string[] = [];
+    
+    try {
+      // Get tournament map pool for proper validation
+      const maps = tournamentMaps.length > 0 ? tournamentMaps : [
+        { id: '1', name: 'Ascent' }, { id: '2', name: 'Bind' }, { id: '3', name: 'Haven' },
+        { id: '4', name: 'Split' }, { id: '5', name: 'Icebox' }, { id: '6', name: 'Breeze' }, { id: '7', name: 'Fracture' }
+      ];
+
+      const healthCheck = await checkVetoSessionHealth({
+        session,
+        actions: session.actions || [],
+        maps
+      });
+      
+      enhancedIssues = healthCheck.warnings;
+      
+      console.log(`🔍 VetoMedic Enhanced: Session ${session.id.slice(0, 8)} health check:`, {
+        basicIssues: basicIssues.length,
+        enhancedIssues: enhancedIssues.length,
+        allIssues: [...basicIssues, ...enhancedIssues]
+      });
+      
+    } catch (error) {
+      console.warn(`⚠️ VetoMedic: Enhanced health check failed for ${session.id.slice(0, 8)}:`, error);
+    }
+
+    const allIssues = [...basicIssues, ...enhancedIssues];
+
+    return {
+      issues: allIssues,
+      isStuck: allIssues.length > 0 && session.status === 'in_progress',
+      actionCount,
+      expectedActions,
+      lastActivity: lastActivity || 'never'
+    };
+  };
+
+  // Sync version for UI rendering
+  const analyzeSessionHealthSync = (session: VetoSession): HealthStatus => {
+    const actionCount = session.actions?.length || 0;
+    const mapPoolSize = 7; // Default assumption
+    const expectedActions = session.match?.tournament ? mapPoolSize - 1 : 8;
+    
+    const issues: string[] = [];
     
     // Check for missing team assignments
     if (!session.match?.team1_id || !session.match?.team2_id) {
@@ -493,7 +572,7 @@ export default function VetoMedicManager() {
         ) : (
           <div className="space-y-4">
             {vetoSessions.map((session) => {
-              const health = analyzeSessionHealth(session);
+              const health = analyzeSessionHealthSync(session);
               const shortId = session.id.slice(0, 8);
               const isProcessing = actionInProgress === session.id;
               

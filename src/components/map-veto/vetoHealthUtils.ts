@@ -61,8 +61,8 @@ export async function checkVetoSessionHealth({
     fixable = true;
   }
 
-  // Check expected flow for BO1
-  if (session.match && session.home_team_id && session.away_team_id) {
+  // CRITICAL: Check turn sequence validation for BO1 (the missing logic!)
+  if (session.match && session.home_team_id && session.away_team_id && session.status === 'in_progress') {
     const expectedFlow = generateBO1VetoFlow({
       homeTeamId: session.home_team_id,
       awayTeamId: session.away_team_id,
@@ -81,6 +81,40 @@ export async function checkVetoSessionHealth({
     
     if (actualPickCount > expectedPickCount) {
       warnings.push(`Too many picks: expected ${expectedPickCount}, found ${actualPickCount}`);
+    }
+
+    // NEW: Validate each action follows the expected team sequence
+    const banActions = actions.filter(a => a.action === "ban").sort((a, b) => a.order_number - b.order_number);
+    const expectedBanSequence = expectedFlow.filter(step => step.action === "ban");
+    
+    for (let i = 0; i < banActions.length; i++) {
+      const actualAction = banActions[i];
+      const expectedStep = expectedBanSequence[i];
+      
+      if (expectedStep && actualAction.team_id !== expectedStep.teamId) {
+        warnings.push(`Ban #${i + 1}: Expected team ${expectedStep.teamId?.slice(0, 8)}, got ${actualAction.team_id?.slice(0, 8)}`);
+        fixable = true;
+      }
+    }
+
+    // NEW: Check if current turn matches expected next team
+    if (session.current_turn_team_id && actualBanCount < expectedBanCount) {
+      const nextExpectedStep = expectedBanSequence[actualBanCount];
+      if (nextExpectedStep && session.current_turn_team_id !== nextExpectedStep.teamId) {
+        const homeLabel = session.current_turn_team_id === session.home_team_id ? 'Home' : 'Away';
+        const expectedLabel = nextExpectedStep.teamId === session.home_team_id ? 'Home' : 'Away';
+        warnings.push(`TURN SEQUENCE ERROR: Current turn is ${homeLabel} team (${session.current_turn_team_id?.slice(0, 8)}), but ${expectedLabel} team (${nextExpectedStep.teamId?.slice(0, 8)}) should be acting for ban #${actualBanCount + 1}`);
+        fixable = true;
+      }
+    }
+
+    // NEW: Check for side choice requirements
+    const pickActions = actions.filter(a => a.action === "pick");
+    if (pickActions.length > 0 && !pickActions.some(a => a.side_choice)) {
+      if (session.current_turn_team_id === session.home_team_id) {
+        warnings.push("Home team should choose starting side");
+        fixable = false; // This is a user action, not fixable by medic
+      }
     }
   }
 
