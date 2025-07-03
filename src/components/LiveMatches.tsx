@@ -115,8 +115,14 @@ const LiveMatches = () => {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          {liveMatches.map((match) => (
+        <div className={`grid gap-4 ${
+          liveMatches.length === 1 
+            ? 'grid-cols-1' 
+            : liveMatches.length === 2 
+            ? 'grid-cols-1 md:grid-cols-2' 
+            : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+        }`}>
+          {liveMatches.slice(0, 3).map((match) => (
             <div
               key={match.id}
               role="button"

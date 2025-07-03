@@ -95,16 +95,6 @@ const Index = () => {
         <HomePageAnnouncement />
       </section>
 
-      {/* Twitch embed full width (if enabled) */}
-      <section className="container mx-auto px-4 pb-8">
-        <TwitchEmbed />
-      </section>
-
-      {/* Live Matches Section (moved here, right after Twitch) */}
-      <section className="container mx-auto px-4 pt-4 pb-8">
-        <LiveMatches />
-      </section>
-
       {/* Live Platform Statistics */}
       <section className="container mx-auto px-4 pb-8">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -139,6 +129,16 @@ const Index = () => {
         </div>
       </section>
 
+
+      {/* Twitch embed full width (if enabled) */}
+      <section className="container mx-auto px-4 pb-8">
+        <TwitchEmbed />
+      </section>
+
+      {/* Live Matches Section */}
+      <section className="container mx-auto px-4 pt-4 pb-8">
+        <LiveMatches />
+      </section>
 
       {/* Enhanced 3-col grid: L=Top Players | M=Tournaments | R=Recent Winner */}
       <section className="container mx-auto px-4 pb-8">
