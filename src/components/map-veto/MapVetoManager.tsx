@@ -289,13 +289,13 @@ export default function MapVetoManager({
     return <div className="text-center py-4 text-red-400">Match not found</div>;
   }
 
-  // Allow admins to bypass tournament veto settings
-  if (!isAdmin && !match.tournament?.enable_map_veto) {
+  // Allow admins to bypass tournament veto settings, or if match-level veto is explicitly enabled
+  if (!isAdmin && !match.tournament?.enable_map_veto && match.map_veto_enabled !== true) {
     return <div className="text-center py-4 text-slate-400">Map veto is not enabled for this tournament</div>;
   }
 
-  // Derived state
-  const mapVetoAvailable = isAdmin || (match.tournament?.enable_map_veto && match.map_veto_enabled !== false);
+  // Derived state - prioritize match-level setting over tournament-level
+  const mapVetoAvailable = isAdmin || match.map_veto_enabled === true || (match.tournament?.enable_map_veto && match.map_veto_enabled !== false);
   const showStartVeto = !vetoSession;
   const showVetoFlow = vetoSession;
   const isVetoActive = vetoSession?.status === 'in_progress';
