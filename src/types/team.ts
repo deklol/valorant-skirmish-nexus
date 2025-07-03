@@ -13,6 +13,12 @@ export interface PersistentTeam {
   max_members: number;
   created_at: string;
   updated_at: string;
+  wins?: number;
+  losses?: number;
+  tournaments_played?: number;
+  tournaments_won?: number;
+  total_rank_points?: number;
+  avg_rank_points?: number;
 }
 
 export interface PersistentTeamMember {

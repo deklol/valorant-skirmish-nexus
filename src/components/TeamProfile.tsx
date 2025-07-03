@@ -33,6 +33,12 @@ const TeamProfile = () => {
           updated_at,
           max_members,
           is_active,
+          wins,
+          losses,
+          tournaments_played,
+          tournaments_won,
+          total_rank_points,
+          avg_rank_points,
           persistent_team_members (
             id,
             is_captain,
@@ -42,10 +48,7 @@ const TeamProfile = () => {
               discord_username,
               current_rank,
               riot_id,
-              rank_points,
-              wins,
-              losses,
-              tournaments_won
+              rank_points
             )
           )
         `)
@@ -111,12 +114,13 @@ const TeamProfile = () => {
   };
 
   const captain = team?.members.find(m => m.is_captain);
-  const totalWins = team?.members.reduce((sum, member) => sum + (member.users.wins || 0), 0) || 0;
-  const totalLosses = team?.members.reduce((sum, member) => sum + (member.users.losses || 0), 0) || 0;
-  const tournamentWins = team?.members.reduce((sum, member) => sum + (member.users.tournaments_won || 0), 0) || 0;
-  const avgRankPoints = team?.members.length > 0 
-    ? Math.round(team.members.reduce((sum, member) => sum + (member.users.rank_points || 0), 0) / team.members.length)
-    : 0;
+  
+  // Use team-specific statistics instead of combined user stats
+  const teamWins = team?.wins || 0;
+  const teamLosses = team?.losses || 0;
+  const teamTournamentWins = team?.tournaments_won || 0;
+  const teamTournamentsPlayed = team?.tournaments_played || 0;
+  const teamAvgRankPoints = team?.avg_rank_points || 0;
 
   if (loading) {
     return (
@@ -273,12 +277,12 @@ const TeamProfile = () => {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4 text-center">
                 <div>
-                  <div className="text-2xl font-bold text-green-400">{totalWins}</div>
-                  <div className="text-sm text-slate-400">Total Wins</div>
+                  <div className="text-2xl font-bold text-green-400">{teamWins}</div>
+                  <div className="text-sm text-slate-400">Team Wins</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-red-400">{totalLosses}</div>
-                  <div className="text-sm text-slate-400">Total Losses</div>
+                  <div className="text-2xl font-bold text-red-400">{teamLosses}</div>
+                  <div className="text-sm text-slate-400">Team Losses</div>
                 </div>
               </div>
               
@@ -288,23 +292,23 @@ const TeamProfile = () => {
                 <div className="flex justify-between">
                   <span className="text-slate-400">Win Rate</span>
                   <span className="font-medium">
-                    {totalWins + totalLosses > 0 
-                      ? `${Math.round((totalWins / (totalWins + totalLosses)) * 100)}%`
+                    {teamWins + teamLosses > 0 
+                      ? `${Math.round((teamWins / (teamWins + teamLosses)) * 100)}%`
                       : 'N/A'
                     }
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Tournament Wins</span>
-                  <span className="font-medium text-yellow-400">{tournamentWins}</span>
+                  <span className="font-medium text-yellow-400">{teamTournamentWins}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Avg. Rank Points</span>
-                  <span className="font-medium">{avgRankPoints}</span>
+                  <span className="font-medium">{teamAvgRankPoints}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Tournaments Played</span>
-                  <span className="font-medium">{tournaments.length}</span>
+                  <span className="font-medium">{teamTournamentsPlayed}</span>
                 </div>
               </div>
             </CardContent>

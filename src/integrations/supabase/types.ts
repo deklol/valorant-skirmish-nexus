@@ -674,37 +674,55 @@ export type Database = {
       }
       persistent_teams: {
         Row: {
+          avg_rank_points: number | null
           captain_id: string
           created_at: string | null
           description: string | null
           id: string
           invite_code: string | null
           is_active: boolean | null
+          losses: number | null
           max_members: number | null
           name: string
+          total_rank_points: number | null
+          tournaments_played: number | null
+          tournaments_won: number | null
           updated_at: string | null
+          wins: number | null
         }
         Insert: {
+          avg_rank_points?: number | null
           captain_id: string
           created_at?: string | null
           description?: string | null
           id?: string
           invite_code?: string | null
           is_active?: boolean | null
+          losses?: number | null
           max_members?: number | null
           name: string
+          total_rank_points?: number | null
+          tournaments_played?: number | null
+          tournaments_won?: number | null
           updated_at?: string | null
+          wins?: number | null
         }
         Update: {
+          avg_rank_points?: number | null
           captain_id?: string
           created_at?: string | null
           description?: string | null
           id?: string
           invite_code?: string | null
           is_active?: boolean | null
+          losses?: number | null
           max_members?: number | null
           name?: string
+          total_rank_points?: number | null
+          tournaments_played?: number | null
+          tournaments_won?: number | null
           updated_at?: string | null
+          wins?: number | null
         }
         Relationships: [
           {
@@ -1500,6 +1518,22 @@ export type Database = {
           placement: string
         }[]
       }
+      increment_team_losses: {
+        Args: { p_team_id: string }
+        Returns: undefined
+      }
+      increment_team_tournament_wins: {
+        Args: { p_team_id: string }
+        Returns: undefined
+      }
+      increment_team_tournaments_played: {
+        Args: { p_team_id: string }
+        Returns: undefined
+      }
+      increment_team_wins: {
+        Args: { p_team_id: string }
+        Returns: undefined
+      }
       increment_user_losses: {
         Args: { user_id: string }
         Returns: undefined
@@ -1601,6 +1635,10 @@ export type Database = {
       }
       update_onboarding_progress: {
         Args: { p_user_id: string; p_step_id: string; p_metadata?: Json }
+        Returns: undefined
+      }
+      update_team_avg_rank_points: {
+        Args: { p_team_id: string }
         Returns: undefined
       }
       user_has_notification_enabled: {

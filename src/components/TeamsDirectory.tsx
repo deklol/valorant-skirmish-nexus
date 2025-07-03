@@ -30,6 +30,12 @@ const TeamsDirectory = () => {
           updated_at,
           max_members,
           is_active,
+          wins,
+          losses,
+          tournaments_played,
+          tournaments_won,
+          total_rank_points,
+          avg_rank_points,
           persistent_team_members (
             id,
             is_captain,
