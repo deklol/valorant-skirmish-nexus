@@ -131,6 +131,10 @@
   .animate-scale-in {
     animation: scale-in 0.2s ease-out;
   }
+
+  .animate-matrix-fall {
+    animation: matrix-fall linear infinite;
+  }
 }
 
 @keyframes fade-in {
@@ -152,5 +156,22 @@
   100% {
     transform: scale(1);
     opacity: 1;
+  }
+}
+
+@keyframes matrix-fall {
+  0% {
+    transform: translateY(-100vh);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh);
+    opacity: 0;
   }
 }
