@@ -238,14 +238,15 @@ const TournamentRegistration = ({ tournamentId, tournament, onRegistrationChange
   };
 
   const getRegistrationStatus = () => {
-    const now = new Date();
-    const opensAt = new Date(tournament.registration_opens_at);
-    const closesAt = new Date(tournament.registration_closes_at);
-
-    // If tournament status is 'open', registration is available regardless of timestamp
+    // If tournament status is not 'open', registration is closed
     if (tournament.status !== 'open') return 'tournament_closed';
+    
+    // If tournament status is 'open', registration is available
+    // Only check close time to prevent registration after tournament ends
+    const now = new Date();
+    const closesAt = new Date(tournament.registration_closes_at);
+    
     if (now > closesAt) return 'closed';
-    if (now < opensAt) return 'not_open';
     return 'open';
   };
 
@@ -306,7 +307,6 @@ const TournamentRegistration = ({ tournamentId, tournament, onRegistrationChange
 
             <div className="text-right">
               <div className="text-sm text-slate-400">
-                {status === 'not_open' && 'Registration opens soon'}
                 {status === 'closed' && 'Registration closed'}
                 {status === 'tournament_closed' && 'Tournament no longer accepting registrations'}
                 {status === 'open' && registrationCount >= tournament.max_players && 'Tournament full - joining substitute list'}
@@ -339,12 +339,6 @@ const TournamentRegistration = ({ tournamentId, tournament, onRegistrationChange
               </Button>
             )}
 
-            {status === 'not_open' && (
-              <div className="flex items-center gap-2 text-slate-400">
-                <Clock className="w-4 h-4" />
-                <span>Opens: {new Date(tournament.registration_opens_at).toLocaleDateString()}</span>
-              </div>
-            )}
 
             {status === 'closed' && (
               <div className="text-center text-slate-400">
