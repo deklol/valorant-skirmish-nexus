@@ -303,10 +303,6 @@ const TeamProfile = () => {
                   <span className="font-medium text-yellow-400">{teamTournamentWins}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Avg. Rank Points</span>
-                  <span className="font-medium">{teamAvgRankPoints}</span>
-                </div>
-                <div className="flex justify-between">
                   <span className="text-slate-400">Tournaments Played</span>
                   <span className="font-medium">{teamTournamentsPlayed}</span>
                 </div>
