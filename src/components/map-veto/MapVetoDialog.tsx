@@ -12,7 +12,7 @@ import { useVetoMapAction } from "./useVetoMapAction";
 import { isMapAvailable, getRemainingMaps } from "./mapVetoUtils";
 import { Button } from "@/components/ui/button";
 import { getVctVetoFlow } from "./vetoFlowUtils";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRealtimeMapVeto } from "@/hooks/useRealtimeMapVeto";
 
 interface MapVetoDialogProps {
   open: boolean;
@@ -54,7 +54,6 @@ const MapVetoDialog = ({
   onVetoComplete,
 }: MapVetoDialogProps) => {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
 
   const [sidePickModal, setSidePickModal] = useState<null | { mapId: string, onPick: (side: "attack" | "defend") => void }>(null);
   const [loading, setLoading] = useState(false);
@@ -80,71 +79,30 @@ const MapVetoDialog = ({
   // Use tournament map pool directly
   const maps = tournamentMapPool;
 
-  // Veto Actions with more stable refetching
+  // Use realtime hook for instant updates
   const {
-    data: vetoActions = [],
-    isLoading: vetoActionsLoading,
-    refetch: refetchVetoActions,
-    isFetching: vetoActionsFetching,
-  } = useQuery({
-    queryKey: ['map-veto-actions', vetoSessionId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("map_veto_actions")
-        .select(
-          "*,maps:map_id (*),users:performed_by (discord_username)"
-        )
-        .eq("veto_session_id", vetoSessionId)
-        .order("order_number");
-      if (error) throw error;
-      return (data || []).map((a: any) => ({
-        ...a,
-        side_choice:
-          a.side_choice === "attack" || a.side_choice === "defend"
-            ? a.side_choice
-            : null,
-      })) as VetoAction[];
-    },
-    refetchInterval: open ? 3000 : false, // Slower polling to reduce flicker
-    refetchOnMount: true,
-    refetchOnWindowFocus: false, // Disable to prevent unwanted refetches
-    enabled: open && !!vetoSessionId,
-    staleTime: 2000, // Keep data fresh longer
+    vetoActions,
+    sessionData,
+    loading: realtimeLoading,
+    error: realtimeError,
+    refetch
+  } = useRealtimeMapVeto({
+    vetoSessionId,
+    enabled: open && !!vetoSessionId
   });
 
-  // Session data with more stable refetching
-  const {
-    data: sessionData,
-    isLoading: sessionLoading,
-    refetch: refetchSession,
-  } = useQuery({
-    queryKey: ['map-veto-session', vetoSessionId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("map_veto_sessions")
-        .select("*")
-        .eq("id", vetoSessionId)
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    refetchInterval: open ? 3000 : false, // Slower polling
-    refetchOnMount: true,
-    refetchOnWindowFocus: false, // Disable to prevent unwanted refetches
-    enabled: open && !!vetoSessionId,
-    staleTime: 2000,
-  });
+  const loadingAny = realtimeLoading || loading;
 
-  const loadingAny = vetoActionsLoading || sessionLoading || vetoActionsFetching || loading;
-
-  // Manual refresh button handler
-  const handleManualRefresh = async () => {
-    await Promise.all([
-      refetchSession(),
-      refetchVetoActions(),
-    ]);
-    toast({ title: "Refreshed", description: "Latest data loaded." });
-  };
+  // Error handling for realtime
+  useEffect(() => {
+    if (realtimeError) {
+      toast({
+        title: "Connection Error",
+        description: realtimeError,
+        variant: "destructive"
+      });
+    }
+  }, [realtimeError, toast]);
 
   // Pull current turn from session (DB is source of truth)
   const currentTurnTeamId = sessionData?.current_turn_team_id ?? currentTeamTurn;
@@ -176,17 +134,14 @@ const MapVetoDialog = ({
     vetoActions,
     maps,
     onActionComplete: () => {
-      // Don't call onVetoComplete immediately - let the queries update first
+      // With realtime updates, we don't need to manually refetch
+      // Just check completion status after a short delay
       setTimeout(() => {
-        refetchVetoActions();
-        refetchSession();
-        
-        // Only call onVetoComplete for actual completion, not every action
         const isActuallyComplete = sessionData?.status === 'completed';
         if (isActuallyComplete) {
           onVetoComplete();
         }
-      }, 500); // Small delay to ensure DB updates are processed
+      }, 100); // Short delay for UI smoothness
     },
     checkPermissions: () => {
       const result = explainPermissions();
@@ -275,7 +230,7 @@ const MapVetoDialog = ({
                 p_side_choice: side,
               });
               setSidePickModal(null);
-              await refetchVetoActions();
+              // Realtime will handle the update automatically
               if (error) {
                 toast({ title: "Error", description: error.message, variant: "destructive" });
               } else if (data === "OK") {
@@ -296,7 +251,7 @@ const MapVetoDialog = ({
     } else {
       setSidePickModal(null);
     }
-  }, [bestOf, maps, bansMade, pickMade, sideChosen, vetoActions, currentStep, isUserCaptain, userTeamId, homeTeamId, toast, vetoSessionId, refetchVetoActions, onVetoComplete]);
+  }, [bestOf, maps, bansMade, pickMade, sideChosen, vetoActions, currentStep, isUserCaptain, userTeamId, homeTeamId, toast, vetoSessionId, onVetoComplete]);
 
   const safeCurrentAction: "ban" | "pick" =
     currentStep && (currentStep.action === "ban" || currentStep.action === "pick")
@@ -337,14 +292,7 @@ const MapVetoDialog = ({
         <DialogHeader>
           <DialogTitle>{dialogTitle}</DialogTitle>
           <DialogDescription id="map-veto-dialog-description">
-            Participate in map bans and picks. All team members see this in real time.
-            <Button
-              variant="link"
-              className="text-blue-300 underline text-xs p-0 h-auto font-medium hover:text-blue-400 ml-2"
-              onClick={handleManualRefresh}
-            >
-              Refresh
-            </Button>
+            Participate in map bans and picks. Updates automatically in real time.
             {loadingAny && (
               <span className="ml-2 text-yellow-200 text-xs">Loading latest data...</span>
             )}

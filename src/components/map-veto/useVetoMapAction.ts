@@ -60,6 +60,12 @@ export function useVetoMapAction({
 
     setLoading(true);
 
+    // Show optimistic feedback immediately
+    toast({
+      title: `${action === 'ban' ? 'Banning' : 'Picking'} Map...`,
+      description: "Processing your action",
+    });
+
     try {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) throw new Error("User not authenticated");
