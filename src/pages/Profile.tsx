@@ -19,6 +19,9 @@ import ProfileMatchHistory from '@/components/profile/ProfileMatchHistory';
 import ProfileTournamentHistory from '@/components/profile/ProfileTournamentHistory';
 import ProfileRankHistory from '@/components/profile/ProfileRankHistory';
 import { getTrackerGGUrl } from "@/utils/getTrackerGGUrl";
+import { useUserTeam } from "@/hooks/useUserTeam";
+import ClickableTeamName from "@/components/ClickableTeamName";
+import { Users } from "lucide-react";
 
 interface UserProfile {
   id: string;
@@ -53,6 +56,7 @@ const Profile = () => {
   });
   const { user } = useAuth();
   const { toast } = useToast();
+  const { userTeam, loading: teamLoading } = useUserTeam(user?.id);
 
   useEffect(() => {
     if (user) {
@@ -364,6 +368,38 @@ const Profile = () => {
               </div>
             )}
           </div>
+
+          {/* Team Information */}
+          {userTeam && (
+            <div className="mt-6 p-4 bg-slate-700 rounded-lg">
+              <h3 className="text-lg font-semibold text-white mb-2 flex items-center gap-2">
+                <Users className="w-5 h-5 text-blue-400" />
+                Current Team
+              </h3>
+              <div className="flex items-center justify-between">
+                <div>
+                  <ClickableTeamName 
+                    teamId={userTeam.id} 
+                    teamName={userTeam.name}
+                    className="text-blue-400 hover:text-blue-300 font-medium"
+                  />
+                  {userTeam.description && (
+                    <p className="text-slate-400 text-sm mt-1">{userTeam.description}</p>
+                  )}
+                  <p className="text-slate-500 text-xs mt-1">
+                    {userTeam.member_count}/{userTeam.max_members} members
+                    {userTeam.is_user_captain && " • You are the captain"}
+                  </p>
+                </div>
+                <div className="text-right text-sm">
+                  <div className="text-slate-400">Team Record</div>
+                  <div className="text-white font-medium">
+                    {userTeam.wins || 0}W - {userTeam.losses || 0}L
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
