@@ -494,6 +494,89 @@ export default function VetoMedicManager() {
     }
   };
 
+  const fixSyncIssue = async (sessionId: string) => {
+    const shortId = sessionId.slice(0, 8);
+    console.log(`🔧 VetoMedic: Fixing sync issue for session ${shortId}`);
+    setActionInProgress(sessionId);
+
+    try {
+      // Get session and actions for analysis
+      const { data: session, error: sessionError } = await supabase
+        .from('map_veto_sessions')
+        .select('*')
+        .eq('id', sessionId)
+        .single();
+
+      if (sessionError || !session) {
+        throw new Error('Failed to fetch session data');
+      }
+
+      const { data: actions, error: actionsError } = await supabase
+        .from('map_veto_actions')
+        .select('*')
+        .eq('veto_session_id', sessionId)
+        .order('order_number');
+
+      if (actionsError) {
+        throw new Error('Failed to fetch actions data');
+      }
+
+      const banCount = actions?.filter(a => a.action === 'ban').length || 0;
+      
+      // For BO1, determine correct next team based on ban count
+      let correctNextTeam: string | null = null;
+      if (banCount === 1) {
+        // After ban 1 (home), next should be away team for ban 2
+        correctNextTeam = session.away_team_id;
+      } else if (banCount === 2) {
+        // After ban 2 (away), next should be away team for ban 3 (double ban)
+        correctNextTeam = session.away_team_id;
+      } else if (banCount === 3) {
+        // After ban 3 (away), next should be home team for ban 4
+        correctNextTeam = session.home_team_id;
+      } else if (banCount === 4) {
+        // After ban 4 (home), next should be away team for ban 5
+        correctNextTeam = session.away_team_id;
+      } else if (banCount === 5) {
+        // After ban 5 (away), next should be home team for ban 6
+        correctNextTeam = session.home_team_id;
+      }
+
+      if (correctNextTeam && correctNextTeam !== session.current_turn_team_id) {
+        console.log(`🔧 VetoMedic: Correcting turn from ${session.current_turn_team_id?.slice(0, 8)} to ${correctNextTeam.slice(0, 8)}`);
+        
+        const { error: updateError } = await supabase
+          .from('map_veto_sessions')
+          .update({ current_turn_team_id: correctNextTeam })
+          .eq('id', sessionId);
+
+        if (updateError) throw updateError;
+
+        console.log(`✅ VetoMedic: Fixed sync issue for session ${shortId}`);
+        toast({
+          title: "Sync Issue Fixed",
+          description: `Corrected turn sequence for session ${shortId}`,
+        });
+      } else {
+        toast({
+          title: "No Sync Issue Found",
+          description: `Session ${shortId} appears to be in correct state`,
+        });
+      }
+
+      await loadVetoSessions();
+    } catch (error: any) {
+      console.error(`❌ VetoMedic: Sync fix failed for ${shortId}:`, error);
+      toast({
+        title: "Sync Fix Failed",
+        description: error.message || "Failed to fix sync issue",
+        variant: "destructive",
+      });
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
   useEffect(() => {
     loadVetoSessions();
   }, [loadVetoSessions]);
@@ -719,6 +802,19 @@ export default function VetoMedicManager() {
                         >
                           <Undo className="w-4 h-4 mr-1" />
                           Rollback Last
+                        </Button>
+                      )}
+
+                      {/* Fix Sync Issue */}
+                      {health.issues.some(issue => issue.includes('SYNC ERROR') || issue.includes('TURN SEQUENCE ERROR')) && (
+                        <Button
+                          onClick={() => fixSyncIssue(session.id)}
+                          disabled={isProcessing}
+                          size="sm"
+                          className="bg-cyan-600/20 hover:bg-cyan-600/30 border-cyan-600/30 text-cyan-400"
+                        >
+                          <Settings className="w-4 h-4 mr-1" />
+                          Fix Sync
                         </Button>
                       )}
 

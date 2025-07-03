@@ -97,14 +97,32 @@ export async function checkVetoSessionHealth({
       }
     }
 
-    // NEW: Check if current turn matches expected next team
+    // ENHANCED: Check if current turn matches expected next team with detailed context
     if (session.current_turn_team_id && actualBanCount < expectedBanCount) {
       const nextExpectedStep = expectedBanSequence[actualBanCount];
       if (nextExpectedStep && session.current_turn_team_id !== nextExpectedStep.teamId) {
-        const homeLabel = session.current_turn_team_id === session.home_team_id ? 'Home' : 'Away';
-        const expectedLabel = nextExpectedStep.teamId === session.home_team_id ? 'Home' : 'Away';
-        warnings.push(`TURN SEQUENCE ERROR: Current turn is ${homeLabel} team (${session.current_turn_team_id?.slice(0, 8)}), but ${expectedLabel} team (${nextExpectedStep.teamId?.slice(0, 8)}) should be acting for ban #${actualBanCount + 1}`);
+        const currentTeamLabel = session.current_turn_team_id === session.home_team_id ? 'Home' : 'Away';
+        const expectedTeamLabel = nextExpectedStep.teamId === session.home_team_id ? 'Home' : 'Away';
+        warnings.push(`🚨 CRITICAL SYNC ERROR: Database shows ${currentTeamLabel} team (${session.current_turn_team_id?.slice(0, 8)}) turn, but BO1 sequence expects ${expectedTeamLabel} team (${nextExpectedStep.teamId?.slice(0, 8)}) for ban #${actualBanCount + 1}`);
+        warnings.push(`Expected BO1 sequence: [Home, Away, Away, Home, Away, Home...] - Currently at position ${actualBanCount + 1}`);
         fixable = true;
+      }
+    }
+
+    // NEW: Check for completed actions but session still in_progress
+    if (session.status === 'in_progress' && actualBanCount === expectedBanCount && actualPickCount === expectedPickCount) {
+      warnings.push(`Session should be completed but status is still 'in_progress' - ${actualBanCount} bans and ${actualPickCount} picks completed`);
+      fixable = true;
+    }
+
+    // NEW: Validate last action order numbers are sequential
+    if (actions.length > 1) {
+      const sortedActions = actions.slice().sort((a, b) => a.order_number - b.order_number);
+      for (let i = 0; i < sortedActions.length - 1; i++) {
+        if (sortedActions[i + 1].order_number !== sortedActions[i].order_number + 1) {
+          warnings.push(`Non-sequential order numbers detected: ${sortedActions[i].order_number} -> ${sortedActions[i + 1].order_number}`);
+          fixable = true;
+        }
       }
     }
 
