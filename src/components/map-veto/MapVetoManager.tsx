@@ -110,17 +110,20 @@ export default function MapVetoManager({
         }
       }
 
-      // Check if user is captain of their team (tournament teams use teams.captain_id)
+      // Check if user is captain of their team (tournament teams use team_members.is_captain)
       if (userTeamId) {
-        const { data: teamData } = await supabase
-          .from('teams')
-          .select('captain_id')
-          .eq('id', userTeamId)
-          .maybeSingle();
-        
         const currentUser = (await supabase.auth.getUser()).data.user;
-        const isCaptain = teamData?.captain_id === currentUser?.id;
-        setIsUserCaptain(isCaptain);
+        if (currentUser?.id) {
+          const { data: memberData } = await supabase
+            .from('team_members')
+            .select('is_captain')
+            .eq('team_id', userTeamId)
+            .eq('user_id', currentUser.id)
+            .maybeSingle();
+          
+          const isCaptain = memberData?.is_captain === true;
+          setIsUserCaptain(isCaptain);
+        }
       }
 
       // Load veto session
