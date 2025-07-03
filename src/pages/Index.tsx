@@ -21,11 +21,6 @@ const Index = () => {
     liveMatches: 0,
     completedMatches: 0
   });
-  const [upcomingTournaments, setUpcomingTournaments] = useState([]);
-  const [liveTournaments, setLiveTournaments] = useState([]);
-  const [recentTournaments, setRecentTournaments] = useState([]);
-  const [activeTab, setActiveTab] = useState('live');
-  const [currentPage, setCurrentPage] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -54,41 +49,12 @@ const Index = () => {
           .select('*', { count: 'exact' })
           .eq('status', 'completed');
 
-        // Get upcoming tournaments
-        const { data: upcomingData } = await supabase
-          .from('tournaments')
-          .select('id, name, start_time, status, max_players, (tournament_signups:count)')
-          .in('status', ['open', 'draft'])
-          .order('start_time', { ascending: true })
-          .limit(3);
-
-        // Get live tournaments (live status)
-        const { data: liveData } = await supabase
-          .from('tournaments')
-          .select('id, name, start_time, status, max_players, (tournament_signups:count)')
-          .eq('status', 'live')
-          .order('start_time', { ascending: false })
-          .limit(10);
-
-        // Get recently completed tournaments (last 7 days)
-        const { data: recentData } = await supabase
-          .from('tournaments')
-          .select('id, name, start_time, status, max_players, (tournament_signups:count)')
-          .eq('status', 'completed')
-          .gte('start_time', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
-          .order('start_time', { ascending: false })
-          .limit(10);
-
         setStats({
           totalTournaments: tournamentCount || 0,
           activePlayers: playerCount || 0,
           liveMatches: liveMatchCount || 0,
           completedMatches: completedMatchCount || 0
         });
-
-        setUpcomingTournaments(upcomingData || []);
-        setLiveTournaments(liveData || []);
-        setRecentTournaments(recentData || []);
       } catch (error) {
         console.error('Error fetching stats:', error);
       } finally {
@@ -106,28 +72,6 @@ const Index = () => {
       hour: "2-digit",
       minute: "2-digit"
     });
-  };
-
-  const getCurrentTabTournaments = () => {
-    switch (activeTab) {
-      case 'live':
-        return liveTournaments;
-      case 'recent':
-        return recentTournaments;
-      case 'upcoming':
-        return upcomingTournaments;
-      default:
-        return liveTournaments;
-    }
-  };
-
-  const currentTabTournaments = getCurrentTabTournaments();
-  const totalPages = Math.ceil(currentTabTournaments.length / 3);
-  const currentTournaments = currentTabTournaments.slice(currentPage * 3, (currentPage + 1) * 3);
-
-  const handleTabChange = (tab: string) => {
-    setActiveTab(tab);
-    setCurrentPage(0);
   };
 
   return (
@@ -195,126 +139,6 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Tournament Activity with Tabs */}
-      {(liveTournaments.length > 0 || recentTournaments.length > 0 || upcomingTournaments.length > 0) && (
-        <section className="container mx-auto px-4 pb-8">
-          <Card className="bg-slate-800 border-slate-700">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Activity className="w-5 h-5 text-green-500" />
-                  Tournament Activity
-                </CardTitle>
-                {totalPages > 1 && (
-                  <div className="flex items-center gap-2">
-                    <Button
-                      onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
-                      disabled={currentPage === 0}
-                      variant="ghost"
-                      size="sm"
-                      className="text-slate-400 hover:text-white disabled:opacity-50"
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                    </Button>
-                    <span className="text-slate-400 text-sm">
-                      {currentPage + 1} / {totalPages}
-                    </span>
-                    <Button
-                      onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
-                      disabled={currentPage === totalPages - 1}
-                      variant="ghost"
-                      size="sm"
-                      className="text-slate-400 hover:text-white disabled:opacity-50"
-                    >
-                      <ChevronRight className="w-4 h-4" />
-                    </Button>
-                  </div>
-                )}
-              </div>
-              {/* Tabs */}
-              <div className="flex space-x-1 bg-slate-900/50 p-1 rounded-lg mt-4">
-                <Button
-                  onClick={() => handleTabChange('live')}
-                  variant={activeTab === 'live' ? 'default' : 'ghost'}
-                  size="sm"
-                  className={`flex-1 ${activeTab === 'live' ? 'bg-red-600 hover:bg-red-700 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700'}`}
-                >
-                  Live ({liveTournaments.length})
-                </Button>
-                <Button
-                  onClick={() => handleTabChange('upcoming')}
-                  variant={activeTab === 'upcoming' ? 'default' : 'ghost'}
-                  size="sm"
-                  className={`flex-1 ${activeTab === 'upcoming' ? 'bg-yellow-600 hover:bg-yellow-700 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700'}`}
-                >
-                  Upcoming ({upcomingTournaments.length})
-                </Button>
-                <Button
-                  onClick={() => handleTabChange('recent')}
-                  variant={activeTab === 'recent' ? 'default' : 'ghost'}
-                  size="sm"
-                  className={`flex-1 ${activeTab === 'recent' ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700'}`}
-                >
-                  Recent ({recentTournaments.length})
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {currentTournaments.length === 0 ? (
-                <div className="text-center py-8">
-                  <Trophy className="w-12 h-12 text-slate-500 mx-auto mb-4" />
-                  <p className="text-slate-400 mb-4">
-                    No {activeTab} tournaments {activeTab === 'upcoming' ? 'scheduled' : 'found'}
-                  </p>
-                  {user && activeTab === 'upcoming' && (
-                    <Link to="/tournaments">
-                      <Button className="bg-red-600 hover:bg-red-700">
-                        Browse Tournaments
-                      </Button>
-                    </Link>
-                  )}
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {currentTournaments.map((tournament: any) => (
-                    <Link key={tournament.id} to={`/tournament/${tournament.id}`}>
-                      <Card className="bg-slate-700 border-slate-600 hover:border-red-500 transition-colors cursor-pointer">
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between mb-2">
-                            <h4 className="font-medium text-white truncate">{tournament.name}</h4>
-                            <Badge 
-                              variant="secondary" 
-                              className={
-                                tournament.status === 'live' 
-                                  ? "bg-red-600/20 text-red-400 ml-2" 
-                                  : tournament.status === 'completed'
-                                  ? "bg-blue-600/20 text-blue-400 ml-2"
-                                  : "bg-green-600/20 text-green-400 ml-2"
-                              }
-                            >
-                              {tournament.status === 'live' ? 'LIVE' : tournament.status}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center gap-4 text-sm text-slate-400">
-                            <div className="flex items-center gap-1">
-                              <Calendar className="w-4 h-4" />
-                              {formatDate(tournament.start_time)}
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Users className="w-4 h-4" />
-                              {tournament.tournament_signups?.[0]?.count || 0}/{tournament.max_players}
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </section>
-      )}
 
       {/* Enhanced 3-col grid: L=Top Players | M=Tournaments | R=Recent Winner */}
       <section className="container mx-auto px-4 pb-8">

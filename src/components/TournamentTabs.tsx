@@ -23,17 +23,25 @@ function getStatusColor(status: string) {
 
 export default function TournamentTabs() {
   const [live, setLive] = useState<Tournament[]>([]);
+  const [upcoming, setUpcoming] = useState<Tournament[]>([]);
   const [past, setPast] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchTournaments() {
       setLoading(true);
-      // Live (status: 'live', 'balancing', 'open')
+      // Live (status: 'live', 'balancing')
       const { data: liveData } = await supabase
         .from("tournaments")
         .select("id,name,start_time,status,prize_pool")
-        .in("status", ["live", "balancing", "open"])
+        .in("status", ["live", "balancing"])
+        .order("start_time", { ascending: true });
+
+      // Upcoming (status: 'open', 'draft')
+      const { data: upcomingData } = await supabase
+        .from("tournaments")
+        .select("id,name,start_time,status,prize_pool")
+        .in("status", ["open", "draft"])
         .order("start_time", { ascending: true });
 
       // Past (status: 'completed')
@@ -44,6 +52,7 @@ export default function TournamentTabs() {
         .order("start_time", { ascending: false });
 
       setLive(liveData || []);
+      setUpcoming(upcomingData || []);
       setPast(pastData || []);
       setLoading(false);
     }
@@ -87,10 +96,14 @@ export default function TournamentTabs() {
         <Tabs defaultValue="live" className="w-full">
           <TabsList className="bg-slate-700 mt-2">
             <TabsTrigger value="live">Live</TabsTrigger>
+            <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
             <TabsTrigger value="past">Past</TabsTrigger>
           </TabsList>
           <TabsContent value="live" className="pt-4">
             {loading ? <div className="text-slate-400 text-sm text-center">Loading...</div> : <List tournaments={live} />}
+          </TabsContent>
+          <TabsContent value="upcoming" className="pt-4">
+            {loading ? <div className="text-slate-400 text-sm text-center">Loading...</div> : <List tournaments={upcoming} />}
           </TabsContent>
           <TabsContent value="past" className="pt-4">
             {loading ? <div className="text-slate-400 text-sm text-center">Loading...</div> : <List tournaments={past} />}
