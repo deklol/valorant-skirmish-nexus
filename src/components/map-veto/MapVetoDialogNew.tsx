@@ -41,16 +41,17 @@ export default function MapVetoDialogNew({
   team2Name,
   tournamentMapPool,
   onVetoComplete,
+  // Legacy props for backward compatibility
+  userTeamId, // Use this instead of useUserTeam
 }: MapVetoDialogProps) {
   const { user } = useAuth();
-  const { userTeam } = useUserTeam(matchId);
   const { toast } = useToast();
   const [sidePickMode, setSidePickMode] = useState(false);
 
-  // Use the centralized veto state service
+  // Use the centralized veto state service with the match team ID
   const { state: vetoState, loading, error, performAction, fixTurnSync } = useVetoState(
     vetoSessionId,
-    userTeam?.id || null
+    userTeamId || null // Use the match team ID from props
   );
 
   // Handle side choice for BO1
@@ -105,7 +106,7 @@ export default function MapVetoDialogNew({
       // Check if we need side selection for BO1
       if (vetoState.currentPosition === vetoState.banSequence.length + 1) {
         // All bans done, final map picked, now need side choice
-        if (vetoState.homeTeamId === userTeam?.id) {
+        if (vetoState.homeTeamId === userTeamId) {
           setSidePickMode(true);
         }
       }
@@ -152,8 +153,8 @@ export default function MapVetoDialogNew({
     );
   }
 
-  const homeTeamName = vetoState.homeTeamId === userTeam?.id ? 'Your Team' : 'Opponent';
-  const awayTeamName = vetoState.awayTeamId === userTeam?.id ? 'Your Team' : 'Opponent';
+  const homeTeamName = vetoState.homeTeamId === userTeamId ? 'Your Team' : 'Opponent';
+  const awayTeamName = vetoState.awayTeamId === userTeamId ? 'Your Team' : 'Opponent';
   
   const currentTeamName = vetoState.expectedTurnTeamId === vetoState.homeTeamId ? homeTeamName : awayTeamName;
   const actionType = vetoState.currentPosition <= vetoState.banSequence.length ? 'ban' : 'pick';
@@ -254,7 +255,7 @@ export default function MapVetoDialogNew({
           )}
 
           {/* Side Choice Mode */}
-          {sidePickMode && vetoState.homeTeamId === userTeam?.id && (
+          {sidePickMode && vetoState.homeTeamId === userTeamId && (
             <div className="text-center p-6 bg-blue-900/20 border border-blue-700 rounded-lg">
               <div className="text-lg font-semibold mb-4">Choose Starting Side</div>
               <div className="flex gap-4 justify-center">
@@ -299,7 +300,7 @@ export default function MapVetoDialogNew({
                 if (!action) return null;
                 return {
                   action: action.action,
-                  team: action.teamId === userTeam?.id ? "Your Team" : "Opponent"
+                  team: action.teamId === userTeamId ? "Your Team" : "Opponent"
                 };
               }}
               isMapAvailable={(mapId) => !vetoState.actions.some(a => a.mapId === mapId)}
