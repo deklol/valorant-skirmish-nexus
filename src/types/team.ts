@@ -27,6 +27,9 @@ export interface PersistentTeamMember {
     current_rank: string;
     riot_id: string;
     rank_points: number;
+    wins?: number;
+    losses?: number;
+    tournaments_won?: number;
   };
 }
 

@@ -77,8 +77,9 @@ export function AppSidebar() {
   const mainNavItems = [
     { title: "Home", url: "/", icon: Home },
     { title: "Tournaments", url: "/tournaments", icon: Calendar },
+    { title: "Teams", url: "/teams-directory", icon: Users },
     { title: "Leaderboard", url: "/leaderboard", icon: Trophy },
-    { title: "Players", url: "/players", icon: Users },
+    { title: "Players", url: "/players", icon: User },
   ];
 
   // Admin navigation items

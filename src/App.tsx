@@ -25,6 +25,8 @@ import Archive from "./pages/Archive";
 import MatchDetails from "./pages/MatchDetails";
 import NotFound from "./pages/NotFound";
 import TeamManagementPage from "./components/TeamManagementPage";
+import TeamsDirectory from "./components/TeamsDirectory";
+import TeamProfile from "./components/TeamProfile";
 import { AppSettingsProvider } from "./contexts/AppSettingsContext";
 
 const queryClient = new QueryClient();
@@ -68,6 +70,8 @@ const AppContent = () => {
                     <Route path="/archive" element={<Archive />} />
                     <Route path="/match/:id" element={<MatchDetails />} />
                     <Route path="/teams" element={<TeamManagementPage />} />
+                    <Route path="/teams-directory" element={<TeamsDirectory />} />
+                    <Route path="/team/:id" element={<TeamProfile />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </main>
