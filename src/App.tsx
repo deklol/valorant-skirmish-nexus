@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import Header from "./components/Header";
+import Footer from "./components/Footer";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Admin from "./pages/Admin";
@@ -68,6 +69,7 @@ const AppContent = () => {
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </main>
+                <Footer />
               </div>
             </SidebarInset>
           </div>
