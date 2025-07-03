@@ -591,6 +591,131 @@ export type Database = {
           },
         ]
       }
+      persistent_team_invites: {
+        Row: {
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          invite_code: string
+          invited_by: string
+          team_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          invite_code: string
+          invited_by: string
+          team_id: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          invite_code?: string
+          invited_by?: string
+          team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "persistent_team_invites_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "persistent_team_invites_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "persistent_teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      persistent_team_members: {
+        Row: {
+          id: string
+          is_captain: boolean | null
+          joined_at: string | null
+          team_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          is_captain?: boolean | null
+          joined_at?: string | null
+          team_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          is_captain?: boolean | null
+          joined_at?: string | null
+          team_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "persistent_team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "persistent_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "persistent_team_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      persistent_teams: {
+        Row: {
+          captain_id: string
+          created_at: string | null
+          description: string | null
+          id: string
+          invite_code: string | null
+          is_active: boolean | null
+          max_members: number | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          captain_id: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          invite_code?: string | null
+          is_active?: boolean | null
+          max_members?: number | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          captain_id?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          invite_code?: string | null
+          is_active?: boolean | null
+          max_members?: number | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "persistent_teams_captain_id_fkey"
+            columns: ["captain_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       phantom_players: {
         Row: {
           created_at: string | null
@@ -709,6 +834,45 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_tournament_registrations: {
+        Row: {
+          id: string
+          registered_at: string | null
+          status: string | null
+          team_id: string
+          tournament_id: string
+        }
+        Insert: {
+          id?: string
+          registered_at?: string | null
+          status?: string | null
+          team_id: string
+          tournament_id: string
+        }
+        Update: {
+          id?: string
+          registered_at?: string | null
+          status?: string | null
+          team_id?: string
+          tournament_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_tournament_registrations_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "persistent_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_tournament_registrations_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
             referencedColumns: ["id"]
           },
         ]
@@ -922,6 +1086,9 @@ export type Database = {
           prize_pool: string | null
           registration_closes_at: string | null
           registration_opens_at: string | null
+          registration_type:
+            | Database["public"]["Enums"]["registration_type"]
+            | null
           semifinal_match_format:
             | Database["public"]["Enums"]["match_format"]
             | null
@@ -952,6 +1119,9 @@ export type Database = {
           prize_pool?: string | null
           registration_closes_at?: string | null
           registration_opens_at?: string | null
+          registration_type?:
+            | Database["public"]["Enums"]["registration_type"]
+            | null
           semifinal_match_format?:
             | Database["public"]["Enums"]["match_format"]
             | null
@@ -982,6 +1152,9 @@ export type Database = {
           prize_pool?: string | null
           registration_closes_at?: string | null
           registration_opens_at?: string | null
+          registration_type?:
+            | Database["public"]["Enums"]["registration_type"]
+            | null
           semifinal_match_format?:
             | Database["public"]["Enums"]["match_format"]
             | null
@@ -1247,6 +1420,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
+      generate_team_invite_code: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_next_substitute: {
         Args: { p_tournament_id: string }
         Returns: {
@@ -1440,6 +1617,7 @@ export type Database = {
       map_veto_status: "pending" | "in_progress" | "completed"
       match_format: "BO1" | "BO3" | "BO5"
       match_status: "pending" | "live" | "completed"
+      registration_type: "solo" | "team"
       team_status:
         | "pending"
         | "confirmed"
@@ -1575,6 +1753,7 @@ export const Constants = {
       map_veto_status: ["pending", "in_progress", "completed"],
       match_format: ["BO1", "BO3", "BO5"],
       match_status: ["pending", "live", "completed"],
+      registration_type: ["solo", "team"],
       team_status: [
         "pending",
         "confirmed",

@@ -24,6 +24,7 @@ import BracketView from "./pages/BracketView";
 import Archive from "./pages/Archive";
 import MatchDetails from "./pages/MatchDetails";
 import NotFound from "./pages/NotFound";
+import TeamManagementPage from "./components/TeamManagementPage";
 import { AppSettingsProvider } from "./contexts/AppSettingsContext";
 
 const queryClient = new QueryClient();
@@ -66,6 +67,7 @@ const AppContent = () => {
                     <Route path="/bracket/:id" element={<BracketView />} />
                     <Route path="/archive" element={<Archive />} />
                     <Route path="/match/:id" element={<MatchDetails />} />
+                    <Route path="/teams" element={<TeamManagementPage />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </main>

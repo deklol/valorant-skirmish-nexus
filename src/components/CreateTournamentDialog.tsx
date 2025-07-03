@@ -22,6 +22,7 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
   const [formData, setFormData] = useState({
     name: "",
     description: "",
+    registration_type: "solo" as "solo" | "team",
     match_format: "BO3" as "BO1" | "BO3" | "BO5",
     semifinal_match_format: "default" as "default" | "BO1" | "BO3" | "BO5",
     final_match_format: "default" as "default" | "BO1" | "BO3" | "BO5",
@@ -72,6 +73,7 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
       const tournamentData = {
         name: formData.name,
         description: formData.description,
+        registration_type: formData.registration_type,
         match_format: formData.match_format,
         semifinal_match_format: formData.semifinal_match_format === "default" ? null : formData.semifinal_match_format,
         final_match_format: formData.final_match_format === "default" ? null : formData.final_match_format,
@@ -114,6 +116,7 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
       setFormData({
         name: "",
         description: "",
+        registration_type: "solo",
         match_format: "BO3",
         semifinal_match_format: "default",
         final_match_format: "default",
@@ -203,6 +206,28 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
                   className="bg-slate-700 border-slate-600 text-white"
                   rows={3}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="registration_type" className="text-white">Registration Type</Label>
+                <Select
+                  value={formData.registration_type}
+                  onValueChange={(value: "solo" | "team") => setFormData(prev => ({ ...prev, registration_type: value }))}
+                >
+                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="solo">Solo Registration (Admin creates teams)</SelectItem>
+                    <SelectItem value="team">Team Registration (Pre-formed teams)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-slate-400 text-sm">
+                  {formData.registration_type === "solo" 
+                    ? "Players sign up individually and admins create balanced teams"
+                    : "Teams sign up as complete units (requires existing teams)"
+                  }
+                </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
