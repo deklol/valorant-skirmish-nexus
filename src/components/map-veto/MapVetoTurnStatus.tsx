@@ -19,23 +19,7 @@ const MapVetoTurnStatus = ({
   currentAction,
 }: MapVetoTurnStatusProps) => {
   
-  // Detailed logging for turn status debugging
-  console.log(`🎯 MapVetoTurnStatus: Turn status display:`, {
-    canAct,
-    isUserTurn,
-    teamSize,
-    isUserCaptain,
-    currentAction,
-    displayText: isUserTurn
-      ? canAct
-        ? teamSize === 1
-          ? "Your Team"
-          : isUserCaptain
-          ? "Your Team Captain"
-          : "Not Captain"
-        : "Not Captain"
-      : "Opponent"
-  });
+  // Debug logging removed to prevent console spam
 
   return (
     <Card className="bg-slate-800 border-slate-700">
