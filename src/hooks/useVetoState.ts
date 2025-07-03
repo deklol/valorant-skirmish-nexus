@@ -30,7 +30,7 @@ export function useVetoState(sessionId: string, userTeamId: string | null) {
 
   // Perform veto action and refresh state
   const performAction = useCallback(async (mapId: string, userId: string) => {
-    const result = await vetoService.performAction(mapId, userId);
+    const result = await vetoService.performAction(sessionId, userTeamId, mapId, userId);
     
     if (!result.success) {
       toast({
@@ -49,37 +49,31 @@ export function useVetoState(sessionId: string, userTeamId: string | null) {
       description: "Map veto action completed",
     });
     return true;
-  }, [toast, loadState]);
+  }, [sessionId, userTeamId, toast, loadState]);
 
-  // Set up state listener and polling for updates
+  // Set up polling for updates (single source of truth)
   useEffect(() => {
     if (!sessionId) return;
-
-    // Subscribe to veto service state changes
-    const unsubscribeService = vetoService.subscribe((newState) => {
-      setState(newState);
-    });
 
     // Load initial state
     loadState();
 
-    // Set up polling every 2 seconds to check for updates
+    // Set up polling every 3 seconds to check for updates
     const pollInterval = setInterval(() => {
       if (document.visibilityState === 'visible') {
         loadState();
       }
-    }, 2000);
+    }, 3000); // Increased to 3 seconds to reduce load
 
     // Cleanup
     return () => {
-      unsubscribeService();
       clearInterval(pollInterval);
     };
   }, [sessionId, loadState]);
 
   // Fix turn sync issues
   const fixTurnSync = useCallback(async () => {
-    const result = await vetoService.fixTurnSync();
+    const result = await vetoService.fixTurnSync(sessionId, userTeamId);
     
     if (!result.success) {
       toast({
@@ -90,12 +84,15 @@ export function useVetoState(sessionId: string, userTeamId: string | null) {
       return false;
     }
 
+    // Refresh state after fix
+    await loadState();
+
     toast({
       title: "Turn Sync Fixed",
       description: "Database turn updated to match sequence",
     });
     return true;
-  }, [toast]);
+  }, [sessionId, userTeamId, toast, loadState]);
 
   return {
     state,

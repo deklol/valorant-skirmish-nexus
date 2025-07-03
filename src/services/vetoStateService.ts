@@ -24,29 +24,12 @@ export interface VetoState {
 
 export class VetoStateService {
   private static instance: VetoStateService;
-  private currentState: VetoState | null = null;
-  private listeners: Array<(state: VetoState) => void> = [];
 
   static getInstance(): VetoStateService {
     if (!VetoStateService.instance) {
       VetoStateService.instance = new VetoStateService();
     }
     return VetoStateService.instance;
-  }
-
-  // Subscribe to state changes
-  subscribe(listener: (state: VetoState) => void): () => void {
-    this.listeners.push(listener);
-    return () => {
-      this.listeners = this.listeners.filter(l => l !== listener);
-    };
-  }
-
-  // Notify all listeners of state change
-  private notifyListeners() {
-    if (this.currentState) {
-      this.listeners.forEach(listener => listener(this.currentState!));
-    }
   }
 
   // Generate the expected BO1 ban sequence
@@ -130,7 +113,7 @@ export class VetoStateService {
     };
   }
 
-  // Load and calculate initial state
+  // Load and calculate fresh state (stateless)
   async loadState(sessionId: string, userTeamId: string | null): Promise<VetoState> {
     try {
       console.log('🔄 VetoService: Loading state for session', sessionId.slice(0, 8));
@@ -171,111 +154,100 @@ export class VetoStateService {
       const mapPool = sessionData.matches?.tournaments?.map_pool;
       const totalMaps = mapPool ? JSON.parse(JSON.stringify(mapPool)).length : 7;
 
-      // Calculate complete state
-      this.currentState = this.calculateState(sessionData, actions || [], userTeamId, totalMaps);
+      // Calculate complete state (stateless)
+      const state = this.calculateState(sessionData, actions || [], userTeamId, totalMaps);
       
       console.log('✅ VetoService: State calculated', {
-        currentPosition: this.currentState.currentPosition,
-        expectedTurn: this.currentState.expectedTurnTeamId?.slice(0, 8),
-        currentTurn: this.currentState.currentTurnTeamId?.slice(0, 8),
-        isUsersTurn: this.currentState.isUsersTurn,
-        canUserAct: this.currentState.canUserAct,
-        turnError: this.currentState.turnError
+        currentPosition: state.currentPosition,
+        expectedTurn: state.expectedTurnTeamId?.slice(0, 8),
+        currentTurn: state.currentTurnTeamId?.slice(0, 8),
+        isUsersTurn: state.isUsersTurn,
+        canUserAct: state.canUserAct,
+        turnError: state.turnError
       });
 
-      this.notifyListeners();
-      return this.currentState;
+      return state;
     } catch (error) {
       console.error('❌ VetoService: Failed to load state:', error);
       throw error;
     }
   }
 
-  // Get current state (cached)
-  getCurrentState(): VetoState | null {
-    return this.currentState;
-  }
-
-  // Perform a veto action with direct database operations
-  async performAction(mapId: string, userId: string): Promise<{ success: boolean; error?: string }> {
-    if (!this.currentState) {
-      return { success: false, error: 'No veto state loaded' };
-    }
-
-    if (!this.currentState.canUserAct) {
-      return { 
-        success: false, 
-        error: this.currentState.turnError || 'Not your turn to act' 
-      };
-    }
-
+  // Perform a veto action with direct database operations (stateless)
+  async performAction(sessionId: string, userTeamId: string | null, mapId: string, userId: string): Promise<{ success: boolean; error?: string }> {
     try {
+      // Load fresh state to validate action
+      const currentState = await this.loadState(sessionId, userTeamId);
+
+      if (!currentState.canUserAct) {
+        return { 
+          success: false, 
+          error: currentState.turnError || 'Not your turn to act' 
+        };
+      }
+
       console.log('🎯 VetoService: Performing action', {
         mapId: mapId.slice(0, 8),
-        expectedTeam: this.currentState.expectedTurnTeamId?.slice(0, 8),
-        position: this.currentState.currentPosition
+        expectedTeam: currentState.expectedTurnTeamId?.slice(0, 8),
+        position: currentState.currentPosition
       });
 
       // Validate map hasn't been used
-      if (this.currentState.actions.some(a => a.mapId === mapId)) {
+      if (currentState.actions.some(a => a.mapId === mapId)) {
         return { success: false, error: 'Map already banned or picked' };
       }
 
       // Determine action type
-      const actionType = this.currentState.currentPosition <= this.currentState.banSequence.length ? 'ban' : 'pick';
+      const actionType = currentState.currentPosition <= currentState.banSequence.length ? 'ban' : 'pick';
       
       // Perform direct database operations
-      return await this.performDirectAction(mapId, userId, actionType);
+      return await this.performDirectAction(currentState, mapId, userId, actionType);
     } catch (error: any) {
       console.error('❌ VetoService: Action failed:', error);
       return { success: false, error: error.message };
     }
   }
 
-  // Fallback method with individual operations
-  private async performDirectAction(mapId: string, userId: string, actionType: 'ban' | 'pick'): Promise<{ success: boolean; error?: string }> {
-    if (!this.currentState) {
-      return { success: false, error: 'No state' };
-    }
-
+  // Direct action with state parameter (stateless)
+  private async performDirectAction(currentState: VetoState, mapId: string, userId: string, actionType: 'ban' | 'pick'): Promise<{ success: boolean; error?: string }> {
     try {
       // Insert the veto action
       const { error: actionError } = await supabase
         .from('map_veto_actions')
         .insert({
-          veto_session_id: this.currentState.sessionId,
+          veto_session_id: currentState.sessionId,
           map_id: mapId,
-          team_id: this.currentState.expectedTurnTeamId,
+          team_id: currentState.expectedTurnTeamId,
           action: actionType,
-          order_number: this.currentState.currentPosition,
+          order_number: currentState.currentPosition,
           performed_by: userId
         });
 
       if (actionError) throw actionError;
 
       // Update session turn
-      const nextTeamId = this.getNextTeamId();
+      const nextTeamId = this.getNextTeamId(currentState);
       const updates: any = { current_turn_team_id: nextTeamId };
 
       // Check if veto is complete
-      if (this.currentState.currentPosition >= this.currentState.banSequence.length) {
+      if (currentState.currentPosition >= currentState.banSequence.length) {
         // Handle auto-pick and completion
-        const remainingMaps = await this.getRemainingMaps();
+        const remainingMaps = await this.getRemainingMaps(currentState);
         if (remainingMaps.length === 1) {
           // Auto-pick final map
           await supabase
             .from('map_veto_actions')
             .insert({
-              veto_session_id: this.currentState.sessionId,
+              veto_session_id: currentState.sessionId,
               map_id: remainingMaps[0].id,
               team_id: null, // Auto-pick
               action: 'pick',
-              order_number: this.currentState.currentPosition + 1,
+              order_number: currentState.currentPosition + 1,
               performed_by: null
             });
 
           // Set turn to home team for side choice
-          updates.current_turn_team_id = this.currentState.homeTeamId;
+          updates.current_turn_team_id = currentState.homeTeamId;
         } else if (remainingMaps.length === 0) {
           // Veto complete
           updates.status = 'completed';
@@ -286,11 +258,10 @@ export class VetoStateService {
       const { error: sessionError } = await supabase
         .from('map_veto_sessions')
         .update(updates)
-        .eq('id', this.currentState.sessionId);
+        .eq('id', currentState.sessionId);
 
       if (sessionError) throw sessionError;
 
-      // Don't auto-refresh here, let the calling code handle it
       return { success: true };
     } catch (error: any) {
       console.error('❌ VetoService: Direct action failed:', error);
@@ -298,37 +269,33 @@ export class VetoStateService {
     }
   }
 
-  // Calculate next team in sequence
-  private getNextTeamId(): string | null {
-    if (!this.currentState) return null;
-
-    const nextPosition = this.currentState.currentPosition + 1;
+  // Calculate next team in sequence (stateless)
+  private getNextTeamId(currentState: VetoState): string | null {
+    const nextPosition = currentState.currentPosition + 1;
     
-    if (nextPosition <= this.currentState.banSequence.length) {
-      return this.currentState.banSequence[nextPosition - 1];
-    } else if (nextPosition === this.currentState.banSequence.length + 1) {
+    if (nextPosition <= currentState.banSequence.length) {
+      return currentState.banSequence[nextPosition - 1];
+    } else if (nextPosition === currentState.banSequence.length + 1) {
       // Side choice phase - home team chooses
-      return this.currentState.homeTeamId;
+      return currentState.homeTeamId;
     }
     
     return null;
   }
 
-  // Get remaining maps from tournament pool
-  private async getRemainingMaps(): Promise<any[]> {
-    if (!this.currentState) return [];
-
+  // Get remaining maps from tournament pool (stateless)
+  private async getRemainingMaps(currentState: VetoState): Promise<any[]> {
     try {
       const { data: sessionData } = await supabase
         .from('map_veto_sessions')
         .select('matches!inner(tournaments!inner(map_pool))')
-        .eq('id', this.currentState.sessionId)
+        .eq('id', currentState.sessionId)
         .single();
 
       const mapPool = sessionData?.matches?.tournaments?.map_pool;
       if (!mapPool) return [];
 
-      const usedMapIds = this.currentState.actions.map(a => a.mapId);
+      const usedMapIds = currentState.actions.map(a => a.mapId);
       const allMapIds = JSON.parse(JSON.stringify(mapPool));
       
       const { data: maps } = await supabase
@@ -343,63 +310,33 @@ export class VetoStateService {
     }
   }
 
-  // Refresh state from database
-  async refreshState(): Promise<void> {
-    if (!this.currentState) return;
-    
-    // Keep the current userTeamId context
-    const currentUserTeamId = this.currentState.isUsersTurn ? this.currentState.expectedTurnTeamId : 
-                              this.currentState.homeTeamId === this.currentState.expectedTurnTeamId ? this.currentState.homeTeamId : 
-                              this.currentState.awayTeamId;
-    
-    await this.loadState(this.currentState.sessionId, currentUserTeamId);
-  }
-
-  // Trigger state refresh (no longer used for realtime)
-  triggerStateRefresh(): void {
-    if (!this.currentState) return;
-
-    console.log('🔄 VetoService: Triggering state refresh');
-    
-    // Refresh state to ensure consistency
-    this.refreshState();
-  }
-
-  // Fix sync issues by updating database to match expected sequence
-  async fixTurnSync(): Promise<{ success: boolean; error?: string }> {
-    if (!this.currentState) {
-      return { success: false, error: 'No state loaded' };
-    }
-
-    if (!this.currentState.turnError || !this.currentState.expectedTurnTeamId) {
-      return { success: false, error: 'No sync issue to fix' };
-    }
-
+  // Fix sync issues by updating database to match expected sequence (stateless)
+  async fixTurnSync(sessionId: string, userTeamId: string | null): Promise<{ success: boolean; error?: string }> {
     try {
+      // Load fresh state to check for sync issues
+      const currentState = await this.loadState(sessionId, userTeamId);
+
+      if (!currentState.turnError || !currentState.expectedTurnTeamId) {
+        return { success: false, error: 'No sync issue to fix' };
+      }
+
       console.log('🔧 VetoService: Fixing turn sync', {
-        expected: this.currentState.expectedTurnTeamId.slice(0, 8),
-        current: this.currentState.currentTurnTeamId?.slice(0, 8)
+        expected: currentState.expectedTurnTeamId.slice(0, 8),
+        current: currentState.currentTurnTeamId?.slice(0, 8)
       });
 
       const { error } = await supabase
         .from('map_veto_sessions')
-        .update({ current_turn_team_id: this.currentState.expectedTurnTeamId })
-        .eq('id', this.currentState.sessionId);
+        .update({ current_turn_team_id: currentState.expectedTurnTeamId })
+        .eq('id', currentState.sessionId);
 
       if (error) throw error;
 
-      await this.refreshState();
       return { success: true };
     } catch (error: any) {
       console.error('❌ VetoService: Failed to fix sync:', error);
       return { success: false, error: error.message };
     }
-  }
-
-  // Clear state (cleanup)
-  clearState(): void {
-    this.currentState = null;
-    this.listeners = [];
   }
 }
 

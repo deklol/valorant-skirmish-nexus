@@ -110,8 +110,8 @@ export default function MapVetoManager({
         }
       }
 
-      // Check if user is captain of their team
-      if (userTeamId) {
+      // Check if user is captain of their team (only once)
+      if (userTeamId && !isUserCaptain) {
         const { data: captainData } = await supabase
           .from('team_members')
           .select('is_captain')
@@ -152,7 +152,7 @@ export default function MapVetoManager({
     } finally {
       setLoading(false);
     }
-  }, [matchId, toast, userTeamId]);
+  }, [matchId, toast]); // Removed userTeamId dependency to prevent infinite loop
 
   const checkVetoSession = useCallback(() => {
     loadMatchAndSession();
@@ -232,9 +232,10 @@ export default function MapVetoManager({
     }
   };
 
+  // Load initial data once, no polling here
   useEffect(() => {
     loadMatchAndSession();
-  }, [loadMatchAndSession]);
+  }, [matchId]); // Only depend on matchId, not the callback
 
   if (loading) {
     return <div className="text-center py-4">Loading map veto...</div>;
