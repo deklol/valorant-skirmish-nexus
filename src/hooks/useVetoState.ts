@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { vetoService, VetoState } from '@/services/vetoStateService';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 export function useVetoState(sessionId: string, userTeamId: string | null) {
@@ -29,7 +28,7 @@ export function useVetoState(sessionId: string, userTeamId: string | null) {
     }
   }, [sessionId, userTeamId, toast]);
 
-  // Perform veto action
+  // Perform veto action and refresh state
   const performAction = useCallback(async (mapId: string, userId: string) => {
     const result = await vetoService.performAction(mapId, userId);
     
@@ -42,14 +41,17 @@ export function useVetoState(sessionId: string, userTeamId: string | null) {
       return false;
     }
 
+    // Refresh state immediately after successful action
+    await loadState();
+
     toast({
       title: "Action Successful",
       description: "Map veto action completed",
     });
     return true;
-  }, [toast]);
+  }, [toast, loadState]);
 
-  // Set up realtime subscriptions and state listener
+  // Set up state listener and polling for updates
   useEffect(() => {
     if (!sessionId) return;
 
@@ -58,49 +60,20 @@ export function useVetoState(sessionId: string, userTeamId: string | null) {
       setState(newState);
     });
 
-    // Subscribe to realtime database changes
-    const actionsChannel = supabase
-      .channel(`veto-actions-${sessionId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'map_veto_actions',
-          filter: `veto_session_id=eq.${sessionId}`
-        },
-        (payload) => {
-          console.log('🔄 Realtime: Veto action change', payload.eventType);
-          vetoService.handleRealtimeUpdate(payload);
-        }
-      )
-      .subscribe();
-
-    const sessionChannel = supabase
-      .channel(`veto-session-${sessionId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'map_veto_sessions',
-          filter: `id=eq.${sessionId}`
-        },
-        (payload) => {
-          console.log('🔄 Realtime: Session change', payload.eventType);
-          vetoService.handleRealtimeUpdate(payload);
-        }
-      )
-      .subscribe();
-
     // Load initial state
     loadState();
+
+    // Set up polling every 2 seconds to check for updates
+    const pollInterval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        loadState();
+      }
+    }, 2000);
 
     // Cleanup
     return () => {
       unsubscribeService();
-      supabase.removeChannel(actionsChannel);
-      supabase.removeChannel(sessionChannel);
+      clearInterval(pollInterval);
     };
   }, [sessionId, loadState]);
 

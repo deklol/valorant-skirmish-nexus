@@ -74,104 +74,22 @@ export function useRealtimeMapVeto({ vetoSessionId, enabled }: UseRealtimeMapVet
     }
   }, [vetoSessionId, enabled]);
 
-  // Set up realtime subscriptions
+  // Set up polling for updates instead of realtime
   useEffect(() => {
     if (!enabled || !vetoSessionId) return;
 
     fetchInitialData();
 
-    // Subscribe to veto actions changes
-    const actionsChannel = supabase
-      .channel(`veto-actions-${vetoSessionId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'map_veto_actions',
-          filter: `veto_session_id=eq.${vetoSessionId}`
-        },
-        async (payload) => {
-          console.log('🔄 Realtime: Veto action change detected', payload);
-          
-          if (payload.eventType === 'INSERT') {
-            // Fetch the full record with relations
-            const { data: newAction } = await supabase
-              .from("map_veto_actions")
-              .select("*,maps:map_id (*),users:performed_by (discord_username)")
-              .eq("id", payload.new.id)
-              .single();
+    // Poll for updates every 2 seconds
+    const pollInterval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchInitialData();
+      }
+    }, 2000);
 
-            if (newAction) {
-              const formattedAction = {
-                ...newAction,
-                side_choice:
-                  newAction.side_choice === "attack" || newAction.side_choice === "defend"
-                    ? newAction.side_choice
-                    : null,
-              } as VetoAction;
-
-              setVetoActions(prev => {
-                const updated = [...prev, formattedAction].sort((a, b) => a.order_number - b.order_number);
-                console.log('✅ Realtime: Updated veto actions', updated);
-                return updated;
-              });
-            }
-          } else if (payload.eventType === 'UPDATE') {
-            // Handle updates (like side_choice being set)
-            const { data: updatedAction } = await supabase
-              .from("map_veto_actions")
-              .select("*,maps:map_id (*),users:performed_by (discord_username)")
-              .eq("id", payload.new.id)
-              .single();
-
-            if (updatedAction) {
-              const formattedAction = {
-                ...updatedAction,
-                side_choice:
-                  updatedAction.side_choice === "attack" || updatedAction.side_choice === "defend"
-                    ? updatedAction.side_choice
-                    : null,
-              } as VetoAction;
-
-              setVetoActions(prev => 
-                prev.map(action => 
-                  action.id === formattedAction.id ? formattedAction : action
-                )
-              );
-            }
-          }
-        }
-      )
-      .subscribe();
-
-    // Subscribe to session changes
-    const sessionChannel = supabase
-      .channel(`veto-session-${vetoSessionId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'map_veto_sessions',
-          filter: `id=eq.${vetoSessionId}`
-        },
-        (payload) => {
-          console.log('🔄 Realtime: Session change detected', payload);
-          
-          if (payload.eventType === 'UPDATE') {
-            setSessionData(payload.new as MapVetoSession);
-            console.log('✅ Realtime: Updated session data', payload.new);
-          }
-        }
-      )
-      .subscribe();
-
-    // Cleanup subscriptions
     return () => {
-      console.log('🧹 Cleaning up realtime subscriptions');
-      supabase.removeChannel(actionsChannel);
-      supabase.removeChannel(sessionChannel);
+      console.log('🧹 Cleaning up polling interval');
+      clearInterval(pollInterval);
     };
   }, [vetoSessionId, enabled, fetchInitialData]);
 

@@ -290,7 +290,7 @@ export class VetoStateService {
 
       if (sessionError) throw sessionError;
 
-      await this.refreshState();
+      // Don't auto-refresh here, let the calling code handle it
       return { success: true };
     } catch (error: any) {
       console.error('❌ VetoService: Direct action failed:', error);
@@ -347,18 +347,21 @@ export class VetoStateService {
   async refreshState(): Promise<void> {
     if (!this.currentState) return;
     
-    // Re-load with the same session and user team
-    const userTeamId = this.currentState.isUsersTurn ? this.currentState.expectedTurnTeamId : null;
-    await this.loadState(this.currentState.sessionId, userTeamId);
+    // Keep the current userTeamId context
+    const currentUserTeamId = this.currentState.isUsersTurn ? this.currentState.expectedTurnTeamId : 
+                              this.currentState.homeTeamId === this.currentState.expectedTurnTeamId ? this.currentState.homeTeamId : 
+                              this.currentState.awayTeamId;
+    
+    await this.loadState(this.currentState.sessionId, currentUserTeamId);
   }
 
-  // Handle realtime updates
-  handleRealtimeUpdate(payload: any): void {
+  // Trigger state refresh (no longer used for realtime)
+  triggerStateRefresh(): void {
     if (!this.currentState) return;
 
-    console.log('🔄 VetoService: Realtime update received', payload.eventType);
+    console.log('🔄 VetoService: Triggering state refresh');
     
-    // Always refresh state to ensure consistency
+    // Refresh state to ensure consistency
     this.refreshState();
   }
 
