@@ -42,13 +42,7 @@ const MatchDetails = () => {
   // Track tournament page views
   useTournamentPageTracking(match?.tournament_id);
 
-  // Defensive logging for debugging
-  if (typeof window !== "undefined") {
-    console.log("[MatchDetails] Params id:", id);
-    console.log("[MatchDetails] User:", user);
-    console.log("[MatchDetails] Loading:", loading);
-    console.log("[MatchDetails] Data from useMatchData:", { match, userTeamId, isAdmin });
-  }
+  // Debug info available in console if needed
 
   // On Score Report, refetch + toast.
   const handleScoreSubmitted = () => {

@@ -45,7 +45,6 @@ export default function MapVetoManager({
   const { toast } = useToast();
 
   const loadMatchAndSession = useCallback(async () => {
-    console.log(`🔄 MapVetoManager: Loading match and session data for match ${matchId}`);
     setLoading(true);
     try {
       // Load match data with simplified query to avoid table alias conflicts
@@ -92,14 +91,6 @@ export default function MapVetoManager({
         team2: team2Data
       };
       
-      console.log(`✅ MapVetoManager: Loaded match data:`, {
-        matchId,
-        team1: team1Data?.name || team1Name,
-        team2: team2Data?.name || team2Name,
-        tournament: matchData.tournament?.name,
-        mapVetoEnabled: matchData.tournament?.enable_map_veto
-      });
-      
       setMatch(enrichedMatchData);
 
       // Load tournament map pool
@@ -115,7 +106,6 @@ export default function MapVetoManager({
           
           if (mapData) {
             setTournamentMapPool(mapData.sort((a, b) => a.display_name.localeCompare(b.display_name)));
-            console.log(`✅ MapVetoManager: Loaded ${mapData.length} maps in tournament pool`);
           }
         }
       }
@@ -131,14 +121,6 @@ export default function MapVetoManager({
         
         const isCaptain = captainData?.is_captain || false;
         setIsUserCaptain(isCaptain);
-        console.log(`👑 MapVetoManager: User captain status:`, {
-          userTeamId,
-          isCaptain,
-          team1Id,
-          team2Id,
-          isUserOnTeam1: userTeamId === team1Id,
-          isUserOnTeam2: userTeamId === team2Id
-        });
       }
 
       // Load veto session
@@ -147,19 +129,6 @@ export default function MapVetoManager({
         .select("*")
         .eq("match_id", matchId)
         .maybeSingle();
-
-      if (sessionData) {
-        console.log(`🎲 MapVetoManager: Loaded veto session:`, {
-          sessionId: sessionData.id.slice(0, 8),
-          status: sessionData.status,
-          homeTeam: sessionData.home_team_id,
-          awayTeam: sessionData.away_team_id,
-          currentTurn: sessionData.current_turn_team_id,
-          rollSeed: sessionData.roll_seed?.slice(0, 16)
-        });
-      } else {
-        console.log(`ℹ️ MapVetoManager: No veto session found for match ${matchId}`);
-      }
 
       setVetoSession(sessionData);
 
@@ -172,10 +141,9 @@ export default function MapVetoManager({
           .order("order_number");
         
         setVetoActions(actionsData || []);
-        console.log(`📝 MapVetoManager: Loaded ${actionsData?.length || 0} veto actions`);
       }
     } catch (error: any) {
-      console.error("❌ MapVetoManager: Error loading match and veto session:", error);
+      console.error("MapVeto: Error loading data:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to load match data",
@@ -187,12 +155,10 @@ export default function MapVetoManager({
   }, [matchId, toast, userTeamId, team1Id, team2Id, team1Name, team2Name]);
 
   const checkVetoSession = useCallback(() => {
-    console.log(`🔄 MapVetoManager: Refreshing veto session data`);
     loadMatchAndSession();
   }, [loadMatchAndSession]);
 
   const initializeMapVeto = async () => {
-    console.log(`🚀 MapVetoManager: Initializing map veto for match ${matchId}`);
     setLoading(true);
     try {
       const { data: matchData } = await supabase
@@ -202,12 +168,6 @@ export default function MapVetoManager({
         .single();
 
       if (!matchData) throw new Error('Match not found');
-
-      console.log(`🎯 MapVetoManager: Creating veto session with teams:`, {
-        team1Id: matchData.team1_id,
-        team2Id: matchData.team2_id,
-        currentTurn: 'null (will be set after dice roll)'
-      });
 
       // Initialize session without setting current_turn_team_id - it will be set after dice roll
       const { error } = await supabase
@@ -221,8 +181,6 @@ export default function MapVetoManager({
 
       if (error) throw error;
 
-      console.log(`✅ MapVetoManager: Veto session initialized successfully`);
-
       toast({
         title: "Map Veto Started",
         description: "Map veto session has been initialized",
@@ -231,7 +189,7 @@ export default function MapVetoManager({
       loadMatchAndSession();
       onVetoComplete?.();
     } catch (error: any) {
-      console.error(`❌ MapVetoManager: Failed to initialize veto:`, error);
+      console.error("MapVeto: Failed to initialize:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to start veto",
@@ -245,7 +203,6 @@ export default function MapVetoManager({
   const forceCompleteVeto = async () => {
     if (!vetoSession) return;
     
-    console.log(`🏁 MapVetoManager: Force completing veto session ${vetoSession.id.slice(0, 8)}`);
     setLoading(true);
     try {
       await supabase
@@ -256,8 +213,6 @@ export default function MapVetoManager({
         })
         .eq('id', vetoSession.id);
 
-      console.log(`✅ MapVetoManager: Veto session force completed`);
-
       toast({
         title: "Veto Force Completed",
         description: "Map veto session has been force completed",
@@ -266,7 +221,7 @@ export default function MapVetoManager({
       loadMatchAndSession();
       onVetoComplete?.();
     } catch (error: any) {
-      console.error(`❌ MapVetoManager: Failed to force complete veto:`, error);
+      console.error("MapVeto: Failed to force complete:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to force complete veto",
@@ -289,21 +244,13 @@ export default function MapVetoManager({
     return <div className="text-center py-4 text-red-400">Match not found</div>;
   }
 
-  // Debug logging for veto availability
-  console.log(`🔍 MapVetoManager: Veto availability check for match ${matchId}:`, {
-    isAdmin,
-    matchMapVetoEnabled: match.map_veto_enabled,
-    tournamentMapVetoEnabled: match.tournament?.enable_map_veto,
-    vetoSessionExists: !!vetoSession,
-    vetoSessionStatus: vetoSession?.status
-  });
+  // Check veto availability (no console spam)
 
   // If a veto session exists, it means admin has enabled veto for this match - always show it
   const hasActiveVetoSession = vetoSession && (vetoSession.status === 'pending' || vetoSession.status === 'in_progress');
   
   // Allow admins to bypass tournament veto settings, or if match-level veto is explicitly enabled, or if active veto session exists
   if (!isAdmin && !match.tournament?.enable_map_veto && match.map_veto_enabled !== true && !hasActiveVetoSession) {
-    console.log(`❌ MapVetoManager: Veto blocked for non-admin user - no tournament veto, no match override, no active session`);
     return <div className="text-center py-4 text-slate-400">Map veto is not enabled for this tournament</div>;
   }
 
@@ -325,22 +272,7 @@ export default function MapVetoManager({
     roll_initiator_id: vetoSession?.roll_initiator_id
   };
 
-  // Detailed turn logging
-  if (vetoSession && isVetoActive) {
-    console.log(`🎯 MapVetoManager: Turn status analysis:`, {
-      userTeamId,
-      currentTurnTeamId: vetoSession.current_turn_team_id,
-      homeTeamId: vetoSession.home_team_id,
-      awayTeamId: vetoSession.away_team_id,
-      isUserTurn: userTeamId === vetoSession.current_turn_team_id,
-      canUserParticipate: canParticipate,
-      isUserCaptain,
-      team1Id,
-      team2Id,
-      homeLabel,
-      awayLabel
-    });
-  }
+  // Turn status available for debugging if needed
 
   return (
     <Card className="bg-slate-800 border-slate-700">
@@ -383,7 +315,6 @@ export default function MapVetoManager({
                   team2Id={team2Id!}
                   isCaptain={!!isUserCaptain}
                   onComplete={() => {
-                    console.log(`🎲 MapVetoManager: Dice roll completed, refreshing session`);
                     checkVetoSession();
                   }}
                 />
@@ -466,15 +397,7 @@ export default function MapVetoManager({
                 {/* Only allow open dialog if dice roll is complete */}
                 {isVetoActive && canParticipate && vetoSession.home_team_id && vetoSession.away_team_id && (
                   <Button
-                    onClick={() => {
-                      console.log(`🎮 MapVetoManager: Opening veto dialog for user`, {
-                        userTeamId,
-                        isUserCaptain,
-                        currentTurn: vetoSession.current_turn_team_id,
-                        isUserTurn: userTeamId === vetoSession.current_turn_team_id
-                      });
-                      setVetoDialogOpen(true);
-                    }}
+                    onClick={() => setVetoDialogOpen(true)}
                     className="bg-green-600 hover:bg-green-700"
                     disabled={(!isUserCaptain && (teamSize && teamSize > 1))}
                   >
@@ -540,7 +463,6 @@ export default function MapVetoManager({
               awayTeamId={vetoSession.away_team_id}
               tournamentMapPool={tournamentMapPool}
               onVetoComplete={() => {
-                console.log(`✅ MapVetoManager: Veto completed, refreshing data`);
                 loadMatchAndSession();
                 onVetoComplete?.();
               }}

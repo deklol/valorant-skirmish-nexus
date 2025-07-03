@@ -96,11 +96,18 @@ export default function MapVetoDialogNew({
 
     const success = await performAction(mapId, user.id);
     
-    // Check if we need side selection for BO1
-    if (success && vetoState.currentPosition === vetoState.banSequence.length + 1) {
-      // All bans done, final map picked, now need side choice
-      if (vetoState.homeTeamId === userTeam?.id) {
-        setSidePickMode(true);
+    if (success) {
+      toast({
+        title: "Action Successful",
+        description: "Veto action completed",
+      });
+      
+      // Check if we need side selection for BO1
+      if (vetoState.currentPosition === vetoState.banSequence.length + 1) {
+        // All bans done, final map picked, now need side choice
+        if (vetoState.homeTeamId === userTeam?.id) {
+          setSidePickMode(true);
+        }
       }
     }
   };
