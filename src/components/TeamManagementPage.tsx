@@ -380,7 +380,7 @@ const TeamManagementPage = () => {
                       <AlertDialogHeader>
                         <AlertDialogTitle>Delete Team</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Are you sure you want to delete this team? This action cannot be undone and will remove all members.
+                          Are you sure you want to delete this team? This action cannot be undone and will remove all members from the team.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
