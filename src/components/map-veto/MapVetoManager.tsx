@@ -289,8 +289,21 @@ export default function MapVetoManager({
     return <div className="text-center py-4 text-red-400">Match not found</div>;
   }
 
-  // Allow admins to bypass tournament veto settings, or if match-level veto is explicitly enabled
-  if (!isAdmin && !match.tournament?.enable_map_veto && match.map_veto_enabled !== true) {
+  // Debug logging for veto availability
+  console.log(`🔍 MapVetoManager: Veto availability check for match ${matchId}:`, {
+    isAdmin,
+    matchMapVetoEnabled: match.map_veto_enabled,
+    tournamentMapVetoEnabled: match.tournament?.enable_map_veto,
+    vetoSessionExists: !!vetoSession,
+    vetoSessionStatus: vetoSession?.status
+  });
+
+  // If a veto session exists, it means admin has enabled veto for this match - always show it
+  const hasActiveVetoSession = vetoSession && (vetoSession.status === 'pending' || vetoSession.status === 'in_progress');
+  
+  // Allow admins to bypass tournament veto settings, or if match-level veto is explicitly enabled, or if active veto session exists
+  if (!isAdmin && !match.tournament?.enable_map_veto && match.map_veto_enabled !== true && !hasActiveVetoSession) {
+    console.log(`❌ MapVetoManager: Veto blocked for non-admin user - no tournament veto, no match override, no active session`);
     return <div className="text-center py-4 text-slate-400">Map veto is not enabled for this tournament</div>;
   }
 
