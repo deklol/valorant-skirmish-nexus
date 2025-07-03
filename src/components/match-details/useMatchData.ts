@@ -133,36 +133,17 @@ export const useMatchData = (matchId: string | undefined, userId: string | undef
     }
   }, [matchId, userId]);
 
-  // Real-time subscription for match updates
+  // Polling for match updates instead of realtime
   useEffect(() => {
     if (!matchId) return;
-    let channel = null;
-    try {
-      channel = supabase
-        .channel(`match-${matchId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'matches',
-            filter: `id=eq.${matchId}`
-          },
-          () => {
-            fetchMatch();
-          }
-        )
-        .subscribe();
-    } catch (err) {
-      console.error("Realtime subscription error in useMatchData for matchId", matchId, err);
-    }
-    return () => {
-      try {
-        if (channel) supabase.removeChannel(channel);
-      } catch (err) {
-        console.error("Error removing Supabase channel", err);
+
+    const pollInterval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchMatch();
       }
-    };
+    }, 3000); // Poll every 3 seconds for match updates
+
+    return () => clearInterval(pollInterval);
   }, [matchId]);
 
   return {

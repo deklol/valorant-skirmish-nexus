@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { useVetoState } from "@/hooks/useVetoState";
-import { useUserTeam } from "@/hooks/useUserTeam";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import MapVetoMapGrid from "./MapVetoMapGrid";
