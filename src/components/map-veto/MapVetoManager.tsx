@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import MapVetoDialog from "./MapVetoDialog";
+import MapVetoDialog from "../MapVetoDialog";
 import MapVetoHistory from "./MapVetoHistory";
 import AdminVetoControls from "./AdminVetoControls";
 import RollDiceButton from "./RollDiceButton";
