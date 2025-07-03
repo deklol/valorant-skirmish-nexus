@@ -110,16 +110,16 @@ export default function MapVetoManager({
         }
       }
 
-      // Check if user is captain of their team
+      // Check if user is captain of their team (tournament teams use teams.captain_id)
       if (userTeamId) {
-        const { data: captainData } = await supabase
-          .from('team_members')
-          .select('is_captain')
-          .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
-          .eq('team_id', userTeamId)
+        const { data: teamData } = await supabase
+          .from('teams')
+          .select('captain_id')
+          .eq('id', userTeamId)
           .maybeSingle();
         
-        const isCaptain = captainData?.is_captain || false;
+        const currentUser = (await supabase.auth.getUser()).data.user;
+        const isCaptain = teamData?.captain_id === currentUser?.id;
         setIsUserCaptain(isCaptain);
       }
 
