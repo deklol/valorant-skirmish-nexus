@@ -49,9 +49,10 @@ export class VetoStateService {
     
     // Continue alternating: home, away, home, away...
     for (let i = 4; i <= totalBans; i++) {
-      if (i % 2 === 0) { // Even positions after initial 3: home
+      // After initial [home, away, away], continue alternating: home, away, home, away...
+      if ((i - 3) % 2 === 1) { // Odd positions after initial 3: home
         sequence.push(homeTeamId);
-      } else { // Odd positions after initial 3: away
+      } else { // Even positions after initial 3: away
         sequence.push(awayTeamId);
       }
     }
