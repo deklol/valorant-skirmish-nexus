@@ -127,6 +127,10 @@ const TeamsDirectory = () => {
         />
       </div>
 
+       <div className="relative">
+Hello
+      </div>
+
       {filteredTeams.length === 0 ? (
         <Card className="bg-slate-800 border-slate-700">
           <CardContent className="py-12 text-center">
