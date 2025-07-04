@@ -128,7 +128,7 @@ const TeamsDirectory = () => {
       </div>
 
        <div className="relative">
-Hello
+This feature is for later where we'll be positioned to host actual team tournaments.
       </div>
 
       {filteredTeams.length === 0 ? (
