@@ -174,7 +174,7 @@ export class VetoStateService {
     }
   }
 
-  // Perform a veto action with direct database operations (stateless)
+  // Perform a veto action using database function (stateless)
   async performAction(sessionId: string, userTeamId: string | null, mapId: string, userId: string): Promise<{ success: boolean; error?: string }> {
     try {
       // Load fresh state to validate action
@@ -198,11 +198,25 @@ export class VetoStateService {
         return { success: false, error: 'Map already banned or picked' };
       }
 
-      // Determine action type
-      const actionType = currentState.currentPosition <= currentState.banSequence.length ? 'ban' : 'pick';
-      
-      // Perform direct database operations
-      return await this.performDirectAction(currentState, mapId, userId, actionType);
+      // Use the database function directly for perfect synchronization
+      const { data, error } = await supabase.rpc('perform_veto_action', {
+        p_veto_session_id: sessionId,
+        p_user_id: userId,
+        p_team_id: currentState.expectedTurnTeamId,
+        p_map_id: mapId
+      });
+
+      if (error) {
+        console.error('❌ VetoService: Database function error:', error);
+        return { success: false, error: error.message };
+      }
+
+      if (data !== 'OK') {
+        console.error('❌ VetoService: Database function returned:', data);
+        return { success: false, error: data };
+      }
+
+      return { success: true };
     } catch (error: any) {
       console.error('❌ VetoService: Action failed:', error);
       return { success: false, error: error.message };

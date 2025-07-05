@@ -5,6 +5,7 @@ import MapVetoDialogNew from "./MapVetoDialogNew";
 import MapVetoHistory from "./MapVetoHistory";
 import AdminVetoControls from "./AdminVetoControls";
 import RollDiceButton from "./RollDiceButton";
+import SessionRecoveryTools from "./SessionRecoveryTools";
 import { getTournamentMapPool } from "./vetoFlowUtils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -47,13 +48,13 @@ export default function MapVetoManager({
   const loadMatchAndSession = useCallback(async () => {
     setLoading(true);
     try {
-      // Load match data with simplified query to avoid table alias conflicts
+      // Load match data with full tournament details for permission checks
       const { data: matchData, error: matchError } = await supabase
         .from("matches")
         .select(`
           *,
           tournament:tournament_id (
-            id, name, map_pool, enable_map_veto
+            id, name, map_pool, enable_map_veto, team_size, registration_type
           )
         `)
         .eq("id", matchId)
@@ -110,7 +111,7 @@ export default function MapVetoManager({
         }
       }
 
-      // Check if user is captain of their team (tournament teams use team_members.is_captain)
+      // Check if user is a member of their team (allow any member for solo tournaments)
       if (userTeamId) {
         const currentUser = (await supabase.auth.getUser()).data.user;
         if (currentUser?.id) {
@@ -121,8 +122,16 @@ export default function MapVetoManager({
             .eq('user_id', currentUser.id)
             .maybeSingle();
           
+          // For solo tournaments, any team member can perform veto actions
+          // For team tournaments, only captains can act
+          const isTeamMember = memberData !== null;
           const isCaptain = memberData?.is_captain === true;
+          
+          // Set captain status (used for UI display)
           setIsUserCaptain(isCaptain);
+          
+          // For veto permissions: allow captains OR any member in solo tournaments  
+          const canPerformVeto = isCaptain || (isTeamMember && (matchData?.tournament?.team_size === 1 || matchData?.tournament?.registration_type === 'solo'));
         }
       }
 
@@ -144,6 +153,14 @@ export default function MapVetoManager({
           .order("order_number");
         
         setVetoActions(actionsData || []);
+        
+        // Check for inconsistent session state
+        const actionCount = (actionsData || []).length;
+        const isInconsistent = sessionData?.status === 'completed' && actionCount < 6; // Minimum actions for BO1
+        
+        if (isInconsistent && isAdmin) {
+          console.warn('Inconsistent veto session detected:', { sessionId: sessionData.id, status: sessionData.status, actionCount });
+        }
       }
     } catch (error: any) {
       console.error("MapVeto: Error loading data:", error);
@@ -265,7 +282,13 @@ export default function MapVetoManager({
   const isVetoActive = vetoSession?.status === 'in_progress';
   const isVetoComplete = vetoSession?.status === 'completed';
   const canParticipate = userTeamId && (userTeamId === team1Id || userTeamId === team2Id);
-  const teamSize = 5; // Default team size
+  
+  // Get actual team size from tournament data - default to 1 for solo tournaments
+  const teamSize = match?.tournament?.team_size || (match?.tournament?.registration_type === 'solo' ? 1 : 5);
+  
+  // Check for inconsistent session state
+  const actionCount = vetoActions.length;
+  const isInconsistent = vetoSession?.status === 'completed' && actionCount < 6; // Minimum actions for BO1
 
   // Labels for home/away teams - use loaded team data as fallback to passed props
   const homeLabel = vetoSession?.home_team_id === team1Id ? (match.team1?.name || team1Name || 'Team 1') : (match.team2?.name || team2Name || 'Team 2');
@@ -299,6 +322,14 @@ export default function MapVetoManager({
             matchSettings={match}
           />
         )}
+        
+        {/* Session Recovery Tools - only show if session is inconsistent */}
+        {isAdmin && isInconsistent && vetoSession && (
+          <SessionRecoveryTools
+            sessionId={vetoSession.id}
+            onRecovery={refreshData}
+          />
+        )}
 
         {/* Dice roll pre-veto */}
         {vetoSession &&
@@ -317,7 +348,7 @@ export default function MapVetoManager({
                   sessionId={vetoSession.id}
                   team1Id={team1Id!}
                   team2Id={team2Id!}
-                  isCaptain={!!isUserCaptain}
+                  isCaptain={isUserCaptain || (match?.tournament?.team_size === 1 || match?.tournament?.registration_type === 'solo')}
                   onComplete={() => {
                     refreshData();
                   }}
@@ -403,10 +434,10 @@ export default function MapVetoManager({
                   <Button
                     onClick={() => setVetoDialogOpen(true)}
                     className="bg-green-600 hover:bg-green-700"
-                    disabled={(!isUserCaptain && (teamSize && teamSize > 1))}
+                    disabled={!isUserCaptain && teamSize > 1}
                   >
                     <Play className="w-4 h-4 mr-2" />
-                    {(!isUserCaptain && (teamSize && teamSize > 1))
+                    {!isUserCaptain && teamSize > 1
                       ? "Only Captain May Veto"
                       : "Participate"}
                   </Button>
