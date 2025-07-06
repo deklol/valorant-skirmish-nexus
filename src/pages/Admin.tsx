@@ -81,7 +81,7 @@ const Admin = () => {
 
             {/* Medical Tools - Individual Tabs */}
             <TabsTrigger value="tournament-medic" className="text-white data-[state=active]:bg-yellow-600">
-              <Stethoscope className="w-4 h-4 mr-2" />
+              <Trophy className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Tournament Medic</span>
             </TabsTrigger>
             <TabsTrigger value="veto-medic" className="text-white data-[state=active]:bg-orange-600">
