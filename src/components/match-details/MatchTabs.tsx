@@ -3,7 +3,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Settings, Users, User } from "lucide-react";
 import MatchScoreCards from "./MatchScoreCards";
 import MatchInformation from "./MatchInformation";
-import MapVetoManager from "@/components/MapVetoManager";
 import MapVetoResults from "@/components/MapVetoResults";
 import ScoreReporting from "@/components/ScoreReporting";
 import VetoMedicManager from "@/components/VetoMedicManager";
@@ -86,19 +85,7 @@ const MatchTabs = ({
         {/* Show final veto results if veto is completed */}
         <MapVetoResults matchId={match.id} />
 
-        {match.team1_id && match.team2_id && (
-          <MapVetoManager
-            matchId={match.id}
-            team1Id={match.team1_id}
-            team2Id={match.team2_id}
-            team1Name={match.team1?.name}
-            team2Name={match.team2?.name}
-            matchStatus={match.status}
-            userTeamId={userTeamId}
-            isAdmin={isAdmin}
-            onVetoComplete={onScoreSubmitted}
-          />
-        )}
+        {/* Remove MapVetoManager usage - veto system deleted */}
 
         <MatchInformation
           scheduledTime={match.scheduled_time}

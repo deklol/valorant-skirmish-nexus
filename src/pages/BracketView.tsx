@@ -10,7 +10,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import MapVetoDialog from "@/components/MapVetoDialog";
+// Map veto functionality removed
 
 interface Match {
   id: string;
@@ -18,12 +18,10 @@ interface Match {
   team2_id: string;
   team1: { name: string } | null;
   team2: { name: string } | null;
+  winner_id: string | null;
   round_number: number;
   match_number: number;
   status: string;
-  map_veto_enabled: boolean;
-  veto_session_id: string | null;
-  current_turn_team_id: string | null;
 }
 
 interface MapData {
@@ -45,7 +43,6 @@ export default function BracketView() {
   const [loading, setLoading] = useState(true);
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [userTeamId, setUserTeamId] = useState<string | null>(null);
-  const [vetoDialogOpen, setVetoDialogOpen] = useState(false);
 
   useEffect(() => {
     if (!tournamentId) {
@@ -71,12 +68,9 @@ export default function BracketView() {
               team2_id,
               round_number,
               match_number,
-              status,
-              map_veto_enabled,
-              veto_session_id,
-              current_turn_team_id,
-              team1:team1_id (name),
-              team2:team2_id (name)
+            status,
+            team1:team1_id (name),
+            team2:team2_id (name)
             )
           `)
           .eq("id", tournamentId)
@@ -133,8 +127,7 @@ export default function BracketView() {
   }, [tournamentId, user, navigate, toast]);
 
   const handleMatchClick = (match: Match) => {
-    setSelectedMatch(match);
-    setVetoDialogOpen(true);
+    // Match click functionality removed with veto system
   };
 
   const refreshBracketData = async () => {
@@ -152,9 +145,6 @@ export default function BracketView() {
             round_number,
             match_number,
             status,
-            map_veto_enabled,
-            veto_session_id,
-            current_turn_team_id,
             team1:team1_id (name),
             team2:team2_id (name)
           )
@@ -265,25 +255,7 @@ export default function BracketView() {
           ))}
         </div>
         
-        {selectedMatch && vetoDialogOpen && (
-          <MapVetoDialog
-            open={vetoDialogOpen}
-            onOpenChange={setVetoDialogOpen}
-            matchId={selectedMatch.id}
-            vetoSessionId={selectedMatch.veto_session_id || ''}
-            team1Name={selectedMatch.team1?.name || 'Team 1'}
-            team2Name={selectedMatch.team2?.name || 'Team 2'}
-            currentTeamTurn={selectedMatch.current_turn_team_id || selectedMatch.team1_id || ''}
-            userTeamId={userTeamId}
-            team1Id={selectedMatch.team1_id || ''}
-            team2Id={selectedMatch.team2_id || ''}
-            tournamentMapPool={tournamentMapPool}
-            onVetoComplete={() => {
-              setVetoDialogOpen(false);
-              refreshBracketData();
-            }}
-          />
-        )}
+        {/* Map veto dialog removed - veto system deleted */}
       </div>
     </div>
   );
