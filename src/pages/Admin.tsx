@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Users, Trophy, MessageSquare, Map, ShieldAlert, Wrench, BookOpen, FileText, Stethoscope, Play } from "lucide-react";
+import { Settings, Users, Trophy, MessageSquare, Map, ShieldAlert, Wrench, BookOpen, FileText, Stethoscope, Play, TestTube } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import DiscordWebhookManager from "@/components/DiscordWebhookManager";
 import CreateTournamentDialog from "@/components/CreateTournamentDialog";
@@ -21,10 +21,12 @@ import SchemaExportButton from "@/components/admin/SchemaExportButton";
 import BracketMedicManager from "@/components/BracketMedicManager";
 import AuditLogManager from "@/components/admin/AuditLogManager";
 import StatisticsManager from "@/components/admin/StatisticsManager";
+import { VetoDialog } from "@/components/veto/VetoDialog";
 
 const Admin = () => {
   const { isAdmin } = useAuth();
   const [createTournamentOpen, setCreateTournamentOpen] = useState(false);
+  const [vetoTestOpen, setVetoTestOpen] = useState(false);
 
   const handleTournamentCreated = () => {
     setCreateTournamentOpen(false);
@@ -194,10 +196,17 @@ const Admin = () => {
                 
                 <Card className="bg-slate-800 border-slate-700">
                   <CardHeader>
-                    <CardTitle className="text-white">System Settings</CardTitle>
+                    <CardTitle className="text-white">System Testing</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <p className="text-slate-400">Additional system settings panel coming soon...</p>
+                  <CardContent className="space-y-3">
+                    <p className="text-slate-400 text-sm mb-4">Test core system functionality</p>
+                    <Button
+                      onClick={() => setVetoTestOpen(true)}
+                      className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+                    >
+                      <TestTube className="w-4 h-4 mr-2" />
+                      Preview Veto System
+                    </Button>
                   </CardContent>
                 </Card>
               </div>
@@ -214,6 +223,14 @@ const Admin = () => {
         open={createTournamentOpen}
         onOpenChange={setCreateTournamentOpen}
         onTournamentCreated={handleTournamentCreated}
+      />
+      
+      <VetoDialog
+        matchId="test-mock-match-id"
+        open={vetoTestOpen}
+        onOpenChange={setVetoTestOpen}
+        team1Name="Team Alpha"
+        team2Name="Team Beta"
       />
     </div>
   );
