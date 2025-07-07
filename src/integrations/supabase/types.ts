@@ -1404,6 +1404,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      choose_veto_side: {
+        Args: { p_match_id: string; p_user_id: string; p_side_choice: string }
+        Returns: Json
+      }
       create_missing_user_profile: {
         Args: { user_id: string }
         Returns: boolean
@@ -1598,6 +1602,10 @@ export type Database = {
         }
         Returns: string
       }
+      perform_veto_ban: {
+        Args: { p_match_id: string; p_user_id: string; p_map_id: string }
+        Returns: Json
+      }
       promote_substitute_to_player: {
         Args: { p_tournament_id: string; p_substitute_user_id: string }
         Returns: Json
@@ -1610,6 +1618,10 @@ export type Database = {
           p_metadata?: Json
         }
         Returns: string
+      }
+      roll_veto_dice: {
+        Args: { p_match_id: string; p_initiator_user_id: string }
+        Returns: Json
       }
       safe_delete_tournament: {
         Args: { p_tournament_id: string }

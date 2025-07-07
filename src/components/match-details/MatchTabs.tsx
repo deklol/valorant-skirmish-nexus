@@ -1,6 +1,6 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Users, User } from "lucide-react";
+import { Settings, Users, User, Map } from "lucide-react";
 import MatchScoreCards from "./MatchScoreCards";
 import MatchInformation from "./MatchInformation";
 import MapVetoResults from "@/components/MapVetoResults";
@@ -9,7 +9,10 @@ import VetoMedicManager from "@/components/VetoMedicManager";
 import { useTeamPlayers } from "./useTeamPlayers";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import ClickableUsername from "@/components/ClickableUsername";
+import { VetoDialog } from "@/components/veto/VetoDialog";
+import { useState } from "react";
 
 interface Match {
   id: string;
@@ -54,6 +57,7 @@ const MatchTabs = ({
 }: MatchTabsProps) => {
   const { players: team1Players, loading: loadingTeam1 } = useTeamPlayers(match.team1_id);
   const { players: team2Players, loading: loadingTeam2 } = useTeamPlayers(match.team2_id);
+  const [vetoDialogOpen, setVetoDialogOpen] = useState(false);
 
   // Safe fallback: ensure always returning JSX or null
   if (!match) {
@@ -82,10 +86,30 @@ const MatchTabs = ({
           team2Score={match.score_team2}
         />
 
-        {/* Show final veto results if veto is completed */}
-        <MapVetoResults matchId={match.id} />
-
-        {/* Remove MapVetoManager usage - veto system deleted */}
+        {/* Map Veto Section */}
+        <Card className="bg-slate-800 border-slate-700">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center gap-2">
+              <Map className="w-5 h-5" />
+              Map Veto
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Show final veto results if veto is completed */}
+            <MapVetoResults matchId={match.id} />
+            
+            {/* Veto button for participants */}
+            {match.status !== 'completed' && (userTeamId || isAdmin) && (
+              <Button
+                onClick={() => setVetoDialogOpen(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <Map className="w-4 h-4 mr-2" />
+                Open Map Veto
+              </Button>
+            )}
+          </CardContent>
+        </Card>
 
         <MatchInformation
           scheduledTime={match.scheduled_time}
@@ -223,6 +247,15 @@ const MatchTabs = ({
           </div>
         </TabsContent>
       )}
+
+      {/* Veto Dialog */}
+      <VetoDialog
+        matchId={match.id}
+        open={vetoDialogOpen}
+        onOpenChange={setVetoDialogOpen}
+        team1Name={match.team1?.name || 'Team 1'}
+        team2Name={match.team2?.name || 'Team 2'}
+      />
     </Tabs>
   );
 };
