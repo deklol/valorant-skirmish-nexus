@@ -94,6 +94,29 @@ export function useVetoSession(matchId: string): UseVetoSessionReturn {
         
         console.log('VETO DEBUG: Team membership query result', { teamData, teamError });
         setUserTeamId(teamData?.team_id || null);
+      } else if (user) {
+        // If no veto session exists yet, check if user is on either match team
+        console.log('VETO DEBUG: No veto session yet, checking match teams for matchId:', matchId);
+        
+        const { data: matchData } = await supabase
+          .from('matches')
+          .select('team1_id, team2_id')
+          .eq('id', matchId)
+          .single();
+          
+        if (matchData) {
+          console.log('VETO DEBUG: Match teams', matchData);
+          
+          const { data: teamData, error: teamError } = await supabase
+            .from('team_members')
+            .select('team_id')
+            .eq('user_id', user.id)
+            .in('team_id', [matchData.team1_id, matchData.team2_id])
+            .single();
+            
+          console.log('VETO DEBUG: Match team membership query result', { teamData, teamError });
+          setUserTeamId(teamData?.team_id || null);
+        }
       }
     } catch (err: any) {
       console.error('Error fetching veto session:', err);
@@ -153,13 +176,18 @@ export function useVetoSession(matchId: string): UseVetoSessionReturn {
 
   const canAct = Boolean(
     user && userTeamId && 
-    (userTeamId === session?.home_team_id || userTeamId === session?.away_team_id) &&
-    session?.status === 'in_progress'
+    (
+      // If veto session exists, check session teams
+      (session && (userTeamId === session.home_team_id || userTeamId === session.away_team_id)) ||
+      // If no session exists yet (dice roll phase), just need to be on a team
+      (!session && userTeamId)
+    )
   );
 
   console.log('VETO DEBUG: Computed properties', {
     user: !!user,
     userTeamId,
+    sessionExists: !!session,
     sessionHomeTeam: session?.home_team_id,
     sessionAwayTeam: session?.away_team_id,
     sessionStatus: session?.status,
