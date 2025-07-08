@@ -226,11 +226,11 @@ const Admin = () => {
       />
       
       <VetoDialog
-        matchId="test-mock-match-id"
+        matchId="1addf0a5-0f82-4e8f-b7aa-96f9778b491f"
         open={vetoTestOpen}
         onOpenChange={setVetoTestOpen}
-        team1Name="Team Alpha"
-        team2Name="Team Beta"
+        team1Name="Team adum__"
+        team2Name="Team _dek"
       />
     </div>
   );

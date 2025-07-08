@@ -79,13 +79,20 @@ export function useVetoSession(matchId: string): UseVetoSessionReturn {
 
       // Get user's team ID if logged in
       if (user && data) {
-        const { data: teamData } = await supabase
+        console.log('VETO DEBUG: Checking user team membership', {
+          userId: user.id,
+          homeTeamId: data.home_team_id,
+          awayTeamId: data.away_team_id
+        });
+        
+        const { data: teamData, error: teamError } = await supabase
           .from('team_members')
           .select('team_id')
           .eq('user_id', user.id)
           .in('team_id', [data.home_team_id, data.away_team_id])
           .single();
         
+        console.log('VETO DEBUG: Team membership query result', { teamData, teamError });
         setUserTeamId(teamData?.team_id || null);
       }
     } catch (err: any) {
@@ -149,6 +156,16 @@ export function useVetoSession(matchId: string): UseVetoSessionReturn {
     (userTeamId === session?.home_team_id || userTeamId === session?.away_team_id) &&
     session?.status === 'in_progress'
   );
+
+  console.log('VETO DEBUG: Computed properties', {
+    user: !!user,
+    userTeamId,
+    sessionHomeTeam: session?.home_team_id,
+    sessionAwayTeam: session?.away_team_id,
+    sessionStatus: session?.status,
+    isMyTurn,
+    canAct
+  });
 
   // Determine current phase
   const phase: 'dice_roll' | 'banning' | 'side_choice' | 'completed' = (() => {

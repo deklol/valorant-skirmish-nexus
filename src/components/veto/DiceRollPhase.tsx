@@ -18,6 +18,7 @@ export function DiceRollPhase({ matchId, canAct, onRollComplete }: DiceRollPhase
 
   const handleRollDice = async () => {
     if (!user) {
+      console.error('VETO DEBUG: No user logged in');
       toast({
         title: "Error",
         description: "You must be logged in to roll dice",
@@ -26,9 +27,17 @@ export function DiceRollPhase({ matchId, canAct, onRollComplete }: DiceRollPhase
       return;
     }
 
+    console.log('VETO DEBUG: Starting dice roll', {
+      matchId,
+      userId: user.id,
+      userEmail: user.email
+    });
+
     setRolling(true);
     try {
       const result = await VetoService.rollDice(matchId, user.id);
+      
+      console.log('VETO DEBUG: Dice roll result', result);
       
       if (result.success) {
         toast({
@@ -37,6 +46,7 @@ export function DiceRollPhase({ matchId, canAct, onRollComplete }: DiceRollPhase
         });
         onRollComplete();
       } else {
+        console.error('VETO DEBUG: Dice roll failed', result.error);
         toast({
           title: "Error",
           description: result.error || "Failed to roll dice",
@@ -44,6 +54,7 @@ export function DiceRollPhase({ matchId, canAct, onRollComplete }: DiceRollPhase
         });
       }
     } catch (error: any) {
+      console.error('VETO DEBUG: Dice roll exception', error);
       toast({
         title: "Error",
         description: error.message || "Failed to roll dice",
@@ -64,6 +75,11 @@ export function DiceRollPhase({ matchId, canAct, onRollComplete }: DiceRollPhase
         <p className="text-slate-400">
           Any team member can roll the dice to determine which team gets to pick home or away.
         </p>
+        {user && (
+          <p className="text-xs text-slate-500 mt-2">
+            Debug: User ID {user.id} | Can Act: {canAct.toString()}
+          </p>
+        )}
       </div>
 
       <Button

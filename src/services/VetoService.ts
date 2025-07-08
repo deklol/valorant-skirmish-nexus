@@ -12,10 +12,14 @@ export class VetoService {
    */
   static async rollDice(matchId: string, userId: string): Promise<VetoResult> {
     try {
+      console.log('VetoService.rollDice called', { matchId, userId });
+      
       const { data, error } = await supabase.rpc('roll_veto_dice', {
         p_match_id: matchId,
         p_initiator_user_id: userId
       });
+
+      console.log('roll_veto_dice response', { data, error });
 
       if (error) {
         console.error('Roll dice error:', error);
