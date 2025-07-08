@@ -59,9 +59,9 @@ export function VetoDialog({
     );
   }
 
-  // Get team names based on session
-  const homeTeamName = session?.home_team_id === team1Name ? team1Name : team2Name;
-  const awayTeamName = session?.home_team_id === team1Name ? team2Name : team1Name;
+  // Get team names from session data
+  const homeTeamName = session?.home_team?.name || 'Home Team';
+  const awayTeamName = session?.away_team?.name || 'Away Team';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

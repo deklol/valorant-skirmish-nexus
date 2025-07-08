@@ -84,6 +84,8 @@ export class VetoService {
         .from('map_veto_sessions')
         .select(`
           *,
+          home_team:teams!map_veto_sessions_home_team_id_fkey(id, name),
+          away_team:teams!map_veto_sessions_away_team_id_fkey(id, name),
           actions:map_veto_actions(
             *,
             map:maps(id, name, display_name, thumbnail_url),

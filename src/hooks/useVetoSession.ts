@@ -9,6 +9,8 @@ export interface VetoSessionData {
   match_id: string;
   home_team_id: string;
   away_team_id: string;
+  home_team?: { id: string; name: string };
+  away_team?: { id: string; name: string };
   status: 'pending' | 'in_progress' | 'completed';
   current_turn_team_id?: string;
   roll_seed?: string;
