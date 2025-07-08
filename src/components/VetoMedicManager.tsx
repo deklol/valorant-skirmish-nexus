@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertTriangle, RefreshCw, RotateCcw, MapPin, CheckCircle, XCircle, Clock, Users, Undo, Play, Settings } from "lucide-react";
+import { AlertTriangle, RefreshCw, RotateCcw, MapPin, CheckCircle, XCircle, Clock, Users, Undo, Play, Settings, ArrowLeftRight, ChevronLeft, MoreHorizontal } from "lucide-react";
 import { checkVetoSessionHealth } from "@/components/map-veto/vetoHealthUtils";
 
 interface VetoSession {
@@ -30,9 +30,10 @@ interface VetoSession {
     tournament_id: string;
     round_number: number;
     match_number: number;
+    best_of?: number;
     team1?: { name: string };
     team2?: { name: string };
-    tournament?: { name: string };
+    tournament?: { name: string; status?: string };
   };
   actions?: Array<{
     id: string;
@@ -73,13 +74,13 @@ export default function VetoMedicManager() {
         .select(`
           *,
           matches!inner (
-            id, team1_id, team2_id, tournament_id, round_number, match_number,
+            id, team1_id, team2_id, tournament_id, round_number, match_number, best_of,
             team1:team1_id ( name ),
             team2:team2_id ( name ),
-            tournaments:tournament_id ( name )
+            tournament:tournament_id ( name, status )
           ),
           map_veto_actions (
-            id, action, map_id, team_id, order_number,
+            id, action, map_id, team_id, order_number, side_choice,
             maps:map_id ( display_name )
           )
         `)
@@ -494,6 +495,164 @@ export default function VetoMedicManager() {
     }
   };
 
+  const forceSideSwap = async (sessionId: string) => {
+    const shortId = sessionId.slice(0, 8);
+    console.log(`🔄 VetoMedic: Force swapping sides for session ${shortId}`);
+    setActionInProgress(sessionId);
+
+    try {
+      // Get current session data
+      const { data: session, error: sessionError } = await supabase
+        .from('map_veto_sessions')
+        .select('*')
+        .eq('id', sessionId)
+        .single();
+
+      if (sessionError || !session) {
+        throw new Error('Failed to fetch session data');
+      }
+
+      // Swap home and away teams
+      const { error: updateError } = await supabase
+        .from('map_veto_sessions')
+        .update({
+          home_team_id: session.away_team_id,
+          away_team_id: session.home_team_id
+        })
+        .eq('id', sessionId);
+
+      if (updateError) throw updateError;
+
+      console.log(`✅ VetoMedic: Successfully swapped sides for session ${shortId}`);
+      toast({
+        title: "Sides Swapped",
+        description: `Home/Away teams have been swapped for session ${shortId}`,
+      });
+
+      await loadVetoSessions();
+    } catch (error: any) {
+      console.error(`❌ VetoMedic: Side swap failed for ${shortId}:`, error);
+      toast({
+        title: "Side Swap Failed",
+        description: error.message || "Failed to swap sides",
+        variant: "destructive",
+      });
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
+  const rollbackToStep = async (sessionId: string, stepNumber: number) => {
+    const shortId = sessionId.slice(0, 8);
+    console.log(`↩️ VetoMedic: Rolling back session ${shortId} to step ${stepNumber}`);
+    setActionInProgress(sessionId);
+
+    try {
+      // Get all actions for this session
+      const { data: actions, error: fetchError } = await supabase
+        .from('map_veto_actions')
+        .select('*')
+        .eq('veto_session_id', sessionId)
+        .order('order_number');
+
+      if (fetchError) throw fetchError;
+
+      // Delete actions after the specified step
+      if (actions && actions.length > stepNumber) {
+        const actionsToDelete = actions.slice(stepNumber);
+        
+        for (const action of actionsToDelete) {
+          const { error: deleteError } = await supabase
+            .from('map_veto_actions')
+            .delete()
+            .eq('id', action.id);
+
+          if (deleteError) throw deleteError;
+        }
+
+        // Update session status if needed
+        const { error: statusError } = await supabase
+          .from('map_veto_sessions')
+          .update({
+            status: 'in_progress',
+            completed_at: null
+          })
+          .eq('id', sessionId);
+
+        if (statusError) throw statusError;
+
+        console.log(`✅ VetoMedic: Rolled back ${actionsToDelete.length} actions for session ${shortId}`);
+        toast({
+          title: "Rollback Complete",
+          description: `Rolled back to step ${stepNumber} for session ${shortId}`,
+        });
+      } else {
+        toast({
+          title: "Nothing to Rollback",
+          description: `Session ${shortId} has ${actions?.length || 0} actions, cannot rollback to step ${stepNumber}`,
+        });
+      }
+
+      await loadVetoSessions();
+    } catch (error: any) {
+      console.error(`❌ VetoMedic: Step rollback failed for ${shortId}:`, error);
+      toast({
+        title: "Rollback Failed",
+        description: error.message || "Failed to rollback to step",
+        variant: "destructive",
+      });
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
+  const forceChangeFinalMap = async (sessionId: string, newMapId: string) => {
+    const shortId = sessionId.slice(0, 8);
+    console.log(`🗺️ VetoMedic: Force changing final map for session ${shortId} to ${newMapId}`);
+    setActionInProgress(sessionId);
+
+    try {
+      // Get the final pick action
+      const { data: finalAction, error: fetchError } = await supabase
+        .from('map_veto_actions')
+        .select('*')
+        .eq('veto_session_id', sessionId)
+        .eq('action', 'pick')
+        .order('order_number', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (fetchError || !finalAction) {
+        throw new Error('No final pick action found');
+      }
+
+      // Update the final action with new map
+      const { error: updateError } = await supabase
+        .from('map_veto_actions')
+        .update({ map_id: newMapId })
+        .eq('id', finalAction.id);
+
+      if (updateError) throw updateError;
+
+      console.log(`✅ VetoMedic: Changed final map for session ${shortId}`);
+      toast({
+        title: "Final Map Changed",
+        description: `Final map has been changed for session ${shortId}`,
+      });
+
+      await loadVetoSessions();
+    } catch (error: any) {
+      console.error(`❌ VetoMedic: Final map change failed for ${shortId}:`, error);
+      toast({
+        title: "Map Change Failed",
+        description: error.message || "Failed to change final map",
+        variant: "destructive",
+      });
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
   const fixSyncIssue = async (sessionId: string) => {
     const shortId = sessionId.slice(0, 8);
     console.log(`🔧 VetoMedic: Fixing sync issue for session ${shortId}`);
@@ -681,6 +840,9 @@ export default function VetoMedicManager() {
                     {session.match && (
                       <div className="text-sm text-slate-400">
                         <span className="text-amber-300">{session.match.tournament?.name || 'Unknown Tournament'}</span>
+                        {session.match.best_of && (
+                          <span className="text-purple-300"> (BO{session.match.best_of})</span>
+                        )}
                         {' - '}
                         <span>Round {session.match.round_number}, Match #{session.match.match_number}</span>
                         {' - '}
@@ -816,6 +978,70 @@ export default function VetoMedicManager() {
                           <Settings className="w-4 h-4 mr-1" />
                           Fix Sync
                         </Button>
+                      )}
+
+                      {/* Force Side Swap */}
+                      {session.status === 'pending' && session.home_team_id && session.away_team_id && (
+                        <Button
+                          onClick={() => forceSideSwap(session.id)}
+                          disabled={isProcessing}
+                          size="sm"
+                          className="bg-purple-600/20 hover:bg-purple-600/30 border-purple-600/30 text-purple-400"
+                        >
+                          <ArrowLeftRight className="w-4 h-4 mr-1" />
+                          Swap Sides
+                        </Button>
+                      )}
+
+                      {/* Step-by-step Rollback */}
+                      {session.actions && session.actions.length > 1 && (
+                        <div className="flex items-center gap-1">
+                          <Button
+                            onClick={() => rollbackToStep(session.id, Math.max(0, session.actions.length - 2))}
+                            disabled={isProcessing}
+                            size="sm"
+                            className="bg-orange-500/20 hover:bg-orange-500/30 border-orange-500/30 text-orange-300"
+                          >
+                            <ChevronLeft className="w-4 h-4 mr-1" />
+                            -2 Steps
+                          </Button>
+                          <Button
+                            onClick={() => rollbackToStep(session.id, Math.max(0, session.actions.length - 3))}
+                            disabled={isProcessing}
+                            size="sm"
+                            className="bg-orange-400/20 hover:bg-orange-400/30 border-orange-400/30 text-orange-200"
+                          >
+                            <ChevronLeft className="w-4 h-4 mr-1" />
+                            -3 Steps
+                          </Button>
+                        </div>
+                      )}
+
+                      {/* Force Change Final Map */}
+                      {session.status === 'completed' && session.actions?.some(a => a.action === 'pick') && (
+                        <div className="flex items-center gap-2">
+                          <Select value={selectedForceMap} onValueChange={setSelectedForceMap}>
+                            <SelectTrigger className="w-32 h-8 text-xs">
+                              <SelectValue placeholder="New Map" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {tournamentMaps.map((map) => (
+                                <SelectItem key={map.id} value={map.id}>
+                                  {map.display_name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            onClick={() => forceChangeFinalMap(session.id, selectedForceMap)}
+                            disabled={isProcessing || !selectedForceMap}
+                            size="sm"
+                            className="bg-indigo-600/20 hover:bg-indigo-600/30 border-indigo-600/30 text-indigo-400"
+                          >
+                            <MoreHorizontal className="w-4 h-4 mr-1" />
+                            Change Final Map
+                          </Button>
+                        </div>
                       )}
 
                       {/* Health Check (Manual Refresh) */}
