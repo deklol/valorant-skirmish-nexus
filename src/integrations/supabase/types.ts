@@ -257,8 +257,22 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "map_veto_sessions_away_team_id_fkey"
+            columns: ["away_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "map_veto_sessions_current_turn_team_id_fkey"
             columns: ["current_turn_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "map_veto_sessions_home_team_id_fkey"
+            columns: ["home_team_id"]
             isOneToOne: false
             referencedRelation: "teams"
             referencedColumns: ["id"]

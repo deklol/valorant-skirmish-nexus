@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useVetoSession } from "@/hooks/useVetoSession";
 import { VetoProgress } from "./VetoProgress";
 import { DiceRollPhase } from "./DiceRollPhase";
@@ -70,6 +70,9 @@ export function VetoDialog({
           <DialogTitle className="text-white text-xl">
             Map Veto - {team1Name} vs {team2Name}
           </DialogTitle>
+          <DialogDescription className="text-slate-400">
+            Select maps through the competitive veto process
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
