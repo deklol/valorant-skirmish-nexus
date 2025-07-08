@@ -6,6 +6,8 @@ import { BanPhase } from "./BanPhase";
 import { SideChoicePhase } from "./SideChoicePhase";
 import { CompletedPhase } from "./CompletedPhase";
 import { Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface VetoDialogProps {
   matchId: string;
@@ -32,6 +34,29 @@ export function VetoDialog({
     userTeamId,
     refresh 
   } = useVetoSession(matchId);
+  
+  const [bestOf, setBestOf] = useState<number>(1);
+  
+  // Get match format (BO1, BO3, etc.)
+  useEffect(() => {
+    const fetchMatchFormat = async () => {
+      try {
+        const { data } = await supabase
+          .from('matches')
+          .select('best_of')
+          .eq('id', matchId)
+          .single();
+        
+        if (data) {
+          setBestOf(data.best_of);
+        }
+      } catch (error) {
+        console.error('Error fetching match format:', error);
+      }
+    };
+
+    fetchMatchFormat();
+  }, [matchId]);
 
   if (loading) {
     return (
@@ -68,10 +93,15 @@ export function VetoDialog({
       <DialogContent className="max-w-4xl bg-slate-900 border-slate-700">
         <DialogHeader>
           <DialogTitle className="text-white text-xl">
-            Map Veto - {team1Name} vs {team2Name}
+            Map Veto - {team1Name} vs {team2Name} (BO{bestOf})
           </DialogTitle>
           <DialogDescription className="text-slate-400">
-            Select maps through the competitive veto process
+            {bestOf === 1 
+              ? 'Ban maps until one remains for the match'
+              : bestOf === 3
+              ? 'Ban and pick maps for the best-of-3 series'
+              : 'Select maps through the competitive veto process'
+            }
           </DialogDescription>
         </DialogHeader>
 
@@ -102,6 +132,7 @@ export function VetoDialog({
               isMyTurn={isMyTurn}
               canAct={canAct}
               onBanComplete={refresh}
+              bestOf={bestOf}
             />
           )}
 

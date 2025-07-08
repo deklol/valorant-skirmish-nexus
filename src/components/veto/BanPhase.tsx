@@ -5,7 +5,7 @@ import { VetoSessionData } from '@/hooks/useVetoSession';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Ban, Loader2 } from 'lucide-react';
+import { Ban, Loader2, Target } from 'lucide-react';
 
 interface MapData {
   id: string;
@@ -20,17 +20,36 @@ interface BanPhaseProps {
   isMyTurn: boolean;
   canAct: boolean;
   onBanComplete: () => void;
+  bestOf?: number; // Add bestOf prop to determine action type
 }
 
-export function BanPhase({ matchId, session, isMyTurn, canAct, onBanComplete }: BanPhaseProps) {
+export function BanPhase({ matchId, session, isMyTurn, canAct, onBanComplete, bestOf = 1 }: BanPhaseProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [maps, setMaps] = useState<MapData[]>([]);
-  const [banning, setBanning] = useState<string | null>(null);
+  const [processing, setProcessing] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Get tournament ID from session (we'll need to modify this)
   const [tournamentId, setTournamentId] = useState<string | null>(null);
+  
+  // Determine if current action should be pick or ban based on sequence
+  const getCurrentActionType = () => {
+    const actionCount = session.actions.length;
+    
+    if (bestOf === 1) {
+      // BO1: All bans until final auto-pick
+      return 'ban';
+    } else if (bestOf === 3) {
+      // BO3: ban-ban-pick-pick-ban-ban-pick
+      const sequence = ['ban', 'ban', 'pick', 'pick', 'ban', 'ban', 'pick'];
+      return sequence[actionCount] || 'ban';
+    }
+    
+    return 'ban'; // Default fallback
+  };
+  
+  const currentActionType = getCurrentActionType();
 
   useEffect(() => {
     // Get tournament ID from match
@@ -75,34 +94,36 @@ export function BanPhase({ matchId, session, isMyTurn, canAct, onBanComplete }: 
     fetchMaps();
   }, [tournamentId, toast]);
 
-  const handleBanMap = async (mapId: string) => {
+  const handleMapAction = async (mapId: string) => {
     if (!user || !isMyTurn) return;
 
-    setBanning(mapId);
+    setProcessing(mapId);
     try {
       const result = await VetoService.performBan(matchId, user.id, mapId);
       
       if (result.success) {
         toast({
-          title: "Map Banned",
-          description: "Map has been banned successfully",
+          title: currentActionType === 'ban' ? "Map Banned" : "Map Selected",
+          description: currentActionType === 'ban' 
+            ? "Map has been banned successfully" 
+            : "Map has been selected for the match",
         });
         onBanComplete();
       } else {
         toast({
           title: "Error",
-          description: result.error || "Failed to ban map",
+          description: result.error || `Failed to ${currentActionType} map`,
           variant: "destructive"
         });
       }
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "Failed to ban map",
+        description: error.message || `Failed to ${currentActionType} map`,
         variant: "destructive"
       });
     } finally {
-      setBanning(null);
+      setProcessing(null);
     }
   };
 
@@ -130,12 +151,19 @@ export function BanPhase({ matchId, session, isMyTurn, canAct, onBanComplete }: 
   return (
     <div>
       <div className="text-center mb-6">
-        <Ban className="w-12 h-12 mx-auto text-red-400 mb-4" />
+        {currentActionType === 'ban' ? (
+          <Ban className="w-12 h-12 mx-auto text-red-400 mb-4" />
+        ) : (
+          <Target className="w-12 h-12 mx-auto text-green-400 mb-4" />
+        )}
         <h3 className="text-xl font-semibold text-white mb-2">
-          Ban Maps
+          {currentActionType === 'ban' ? 'Ban Maps' : 'Pick Map'}
         </h3>
         <p className="text-slate-400">
-          Click on a map to ban it from the match
+          {currentActionType === 'ban' 
+            ? 'Click on a map to ban it from the match'
+            : 'Click on a map to select it for the match'
+          }
         </p>
       </div>
 
@@ -143,7 +171,7 @@ export function BanPhase({ matchId, session, isMyTurn, canAct, onBanComplete }: 
         {maps.map(map => {
           const banned = isBanned(map.id);
           const picked = isPicked(map.id);
-          const isCurrentlyBanning = banning === map.id;
+          const isCurrentlyProcessing = processing === map.id;
           
           return (
             <div
@@ -154,10 +182,10 @@ export function BanPhase({ matchId, session, isMyTurn, canAct, onBanComplete }: 
                   : picked
                   ? 'border-green-500 bg-green-500/20'
                   : isMyTurn && canAct
-                  ? 'border-slate-600 bg-slate-800 hover:border-red-400 hover:bg-red-500/10 cursor-pointer'
+                  ? `border-slate-600 bg-slate-800 hover:border-${currentActionType === 'ban' ? 'red' : 'green'}-400 hover:bg-${currentActionType === 'ban' ? 'red' : 'green'}-500/10 cursor-pointer`
                   : 'border-slate-700 bg-slate-800'
               }`}
-              onClick={() => !banned && !picked && isMyTurn && canAct && handleBanMap(map.id)}
+              onClick={() => !banned && !picked && isMyTurn && canAct && handleMapAction(map.id)}
             >
               {/* Map thumbnail or placeholder */}
               <div className="aspect-video bg-slate-700 rounded-t-md overflow-hidden">
@@ -182,12 +210,14 @@ export function BanPhase({ matchId, session, isMyTurn, canAct, onBanComplete }: 
               </div>
 
               {/* Status overlay */}
-              {(banned || picked || isCurrentlyBanning) && (
+              {(banned || picked || isCurrentlyProcessing) && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg">
-                  {isCurrentlyBanning ? (
+                  {isCurrentlyProcessing ? (
                     <div className="text-center">
                       <Loader2 className="w-6 h-6 animate-spin text-white mx-auto mb-1" />
-                      <span className="text-white text-sm">Banning...</span>
+                      <span className="text-white text-sm">
+                        {currentActionType === 'ban' ? 'Banning...' : 'Selecting...'}
+                      </span>
                     </div>
                   ) : banned ? (
                     <div className="text-center">
@@ -196,6 +226,7 @@ export function BanPhase({ matchId, session, isMyTurn, canAct, onBanComplete }: 
                     </div>
                   ) : picked ? (
                     <div className="text-center">
+                      <Target className="w-6 h-6 text-green-400 mx-auto mb-1" />
                       <span className="text-green-400 text-sm font-semibold">SELECTED</span>
                     </div>
                   ) : null}
@@ -208,7 +239,7 @@ export function BanPhase({ matchId, session, isMyTurn, canAct, onBanComplete }: 
 
       {!isMyTurn && (
         <p className="text-center text-slate-400 mt-4">
-          Waiting for the other team to ban a map...
+          Waiting for the other team to {currentActionType} a map...
         </p>
       )}
     </div>
