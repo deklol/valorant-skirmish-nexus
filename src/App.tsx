@@ -27,6 +27,8 @@ import NotFound from "./pages/NotFound";
 import TeamManagementPage from "./components/TeamManagementPage";
 import TeamsDirectory from "./components/TeamsDirectory";
 import TeamProfile from "./components/TeamProfile";
+import Statistics from "./pages/Statistics";
+import Help from "./pages/Help";
 import { AppSettingsProvider } from "./contexts/AppSettingsContext";
 
 const queryClient = new QueryClient();
@@ -72,6 +74,8 @@ const AppContent = () => {
                     <Route path="/teams" element={<TeamManagementPage />} />
                     <Route path="/teams-directory" element={<TeamsDirectory />} />
                     <Route path="/team/:id" element={<TeamProfile />} />
+                    <Route path="/statistics" element={<Statistics />} />
+                    <Route path="/help" element={<Help />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </main>

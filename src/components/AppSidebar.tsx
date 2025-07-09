@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Calendar, Trophy, Users, Shield, User, LogOut, Home, Archive, ChevronRight, PlayCircle, ArrowLeft, Crown, Medal, Target, UsersRound } from "lucide-react";
+import { Calendar, Trophy, Users, Shield, User, LogOut, Home, Archive, ChevronRight, PlayCircle, ArrowLeft, Crown, Medal, Target, UsersRound, TrendingUp, HelpCircle } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -80,6 +80,8 @@ export function AppSidebar() {
     { title: "Teams", url: "/teams-directory", icon: Users },
     { title: "Leaderboard", url: "/leaderboard", icon: Trophy },
     { title: "Players", url: "/players", icon: User },
+    { title: "Statistics", url: "/statistics", icon: TrendingUp },
+    { title: "Help", url: "/help", icon: HelpCircle },
   ];
 
   // Admin navigation items

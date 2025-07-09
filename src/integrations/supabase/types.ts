@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          category: string
+          created_at: string
+          description: string
+          icon: string
+          id: string
+          is_active: boolean
+          name: string
+          points: number
+          rarity: string
+          requirement_metadata: Json | null
+          requirement_type: string
+          requirement_value: number
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description: string
+          icon: string
+          id?: string
+          is_active?: boolean
+          name: string
+          points?: number
+          rarity?: string
+          requirement_metadata?: Json | null
+          requirement_type: string
+          requirement_value: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string
+          icon?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          points?: number
+          rarity?: string
+          requirement_metadata?: Json | null
+          requirement_type?: string
+          requirement_value?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       announcements: {
         Row: {
           content: string
@@ -1210,6 +1258,73 @@ export type Database = {
           },
         ]
       }
+      user_achievement_progress: {
+        Row: {
+          achievement_id: string
+          current_value: number
+          id: string
+          last_updated: string
+          metadata: Json | null
+          user_id: string
+        }
+        Insert: {
+          achievement_id: string
+          current_value?: number
+          id?: string
+          last_updated?: string
+          metadata?: Json | null
+          user_id: string
+        }
+        Update: {
+          achievement_id?: string
+          current_value?: number
+          id?: string
+          last_updated?: string
+          metadata?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_achievement_progress_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: false
+            referencedRelation: "achievements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_achievements: {
+        Row: {
+          achievement_id: string
+          earned_at: string
+          id: string
+          progress_data: Json | null
+          user_id: string
+        }
+        Insert: {
+          achievement_id: string
+          earned_at?: string
+          id?: string
+          progress_data?: Json | null
+          user_id: string
+        }
+        Update: {
+          achievement_id?: string
+          earned_at?: string
+          id?: string
+          progress_data?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_achievements_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: false
+            referencedRelation: "achievements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_notification_preferences: {
         Row: {
           created_at: string | null
@@ -1423,6 +1538,13 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      check_and_award_achievements: {
+        Args: { p_user_id: string }
+        Returns: {
+          newly_earned_achievement_id: string
+          achievement_name: string
+        }[]
+      }
       choose_veto_side: {
         Args: { p_match_id: string; p_user_id: string; p_side_choice: string }
         Returns: Json
@@ -1484,6 +1606,16 @@ export type Database = {
           display_name: string
           thumbnail_url: string
           is_active: boolean
+        }[]
+      }
+      get_user_achievement_summary: {
+        Args: { p_user_id: string }
+        Returns: {
+          total_achievements: number
+          total_points: number
+          latest_achievement_name: string
+          latest_achievement_date: string
+          achievement_rank: number
         }[]
       }
       get_user_info_for_audit: {

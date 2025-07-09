@@ -65,6 +65,31 @@ export async function processMatchResults(
 
     // Statistics are now handled automatically by database triggers
     console.log('📈 Player statistics will be updated automatically by database triggers');
+    
+    // Trigger achievement check for both teams
+    try {
+      const { data: team1Members } = await supabase
+        .from('team_members')
+        .select('user_id')
+        .eq('team_id', winnerId);
+        
+      const { data: team2Members } = await supabase
+        .from('team_members')
+        .select('user_id')
+        .eq('team_id', loserId);
+
+      // Check achievements for all players involved
+      const allPlayerIds = [
+        ...(team1Members?.map(m => m.user_id) || []),
+        ...(team2Members?.map(m => m.user_id) || [])
+      ].filter(Boolean);
+
+      for (const playerId of allPlayerIds) {
+        await supabase.rpc('check_and_award_achievements', { p_user_id: playerId });
+      }
+    } catch (error) {
+      console.error('Error checking achievements:', error);
+    }
 
     // Send notifications based on result
     await safeNotifyMatchComplete(matchId, winnerId, loserId);
