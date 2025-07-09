@@ -196,11 +196,11 @@ const Help = () => {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <h4 className="font-semibold text-white">Discord Integration</h4>
-                  <p className="text-slate-400">Most team coordination happens through Discord. Make sure to join your team's Discord server for match coordination.</p>
+                  <p className="text-slate-400">Most team coordination happens through Discord. Make sure to join your team's Discord channel for all matches.</p>
                 </div>
                 <div className="space-y-2">
                   <h4 className="font-semibold text-white">Match Preparation</h4>
-                  <p className="text-slate-400">Captains should coordinate with team members before matches to ensure everyone is available and ready.</p>
+                  <p className="text-slate-400">Captains should coordinate with team members before matches to ensure everyone is available and ready to particpate.</p>
                 </div>
               </CardContent>
             </Card>
