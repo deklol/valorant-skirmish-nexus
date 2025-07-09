@@ -126,16 +126,17 @@ export function useVetoSession(matchId: string): UseVetoSessionReturn {
     }
   }, [matchId, user]);
 
-  // Set up real-time subscriptions
+  // Set up real-time subscriptions for session changes
   useEffect(() => {
     if (!matchId) return;
+
+    console.log('VETO REALTIME: Setting up session subscription for match', matchId);
 
     // Initial fetch
     fetchSession();
 
     // Subscribe to session changes
     const sessionChannel = createRealtimeChannel(`veto-session-${matchId}`);
-    const actionsChannel = createRealtimeChannel(`veto-actions-${matchId}`);
 
     if (sessionChannel) {
       sessionChannel
@@ -144,11 +145,29 @@ export function useVetoSession(matchId: string): UseVetoSessionReturn {
           schema: 'public',
           table: 'map_veto_sessions',
           filter: `match_id=eq.${matchId}`
-        }, () => {
+        }, (payload) => {
+          console.log('VETO REALTIME: Session change detected', payload);
           fetchSession();
         })
         .subscribe();
     }
+
+    return () => {
+      console.log('VETO REALTIME: Cleaning up session subscription');
+      cleanupRealtimeChannel(sessionChannel);
+    };
+  }, [matchId, fetchSession]);
+
+  // Set up real-time subscriptions for veto actions (only when we have a session)
+  useEffect(() => {
+    if (!session?.id) {
+      console.log('VETO REALTIME: No session ID yet, skipping actions subscription');
+      return;
+    }
+
+    console.log('VETO REALTIME: Setting up actions subscription for session', session.id);
+
+    const actionsChannel = createRealtimeChannel(`veto-actions-${session.id}`);
 
     if (actionsChannel) {
       actionsChannel
@@ -156,18 +175,19 @@ export function useVetoSession(matchId: string): UseVetoSessionReturn {
           event: '*',
           schema: 'public',
           table: 'map_veto_actions',
-          filter: `veto_session_id=eq.${session?.id || ''}`
-        }, () => {
+          filter: `veto_session_id=eq.${session.id}`
+        }, (payload) => {
+          console.log('VETO REALTIME: Actions change detected', payload);
           fetchSession();
         })
         .subscribe();
     }
 
     return () => {
-      cleanupRealtimeChannel(sessionChannel);
+      console.log('VETO REALTIME: Cleaning up actions subscription');
       cleanupRealtimeChannel(actionsChannel);
     };
-  }, [matchId, fetchSession, session?.id]);
+  }, [session?.id, fetchSession]);
 
   // Computed properties
   const isMyTurn = Boolean(
