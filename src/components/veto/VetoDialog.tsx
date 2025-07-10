@@ -5,9 +5,11 @@ import { DiceRollPhase } from "./DiceRollPhase";
 import { BanPhase } from "./BanPhase";
 import { SideChoicePhase } from "./SideChoicePhase";
 import { CompletedPhase } from "./CompletedPhase";
-import { Loader2 } from "lucide-react";
+import { Loader2, RefreshCw, Wifi, WifiOff } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 interface VetoDialogProps {
   matchId: string;
@@ -32,7 +34,9 @@ export function VetoDialog({
     isMyTurn, 
     canAct,
     userTeamId,
-    refresh 
+    refresh,
+    connectionStatus,
+    lastUpdate 
   } = useVetoSession(matchId);
   
   const [bestOf, setBestOf] = useState<number>(1);
@@ -92,17 +96,50 @@ export function VetoDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl bg-slate-900 border-slate-700">
         <DialogHeader>
-          <DialogTitle className="text-white text-xl">
-            Map Veto - {team1Name} vs {team2Name} (BO{bestOf})
-          </DialogTitle>
-          <DialogDescription className="text-slate-400">
-            {bestOf === 1 
-              ? 'Ban maps until one remains for the match'
-              : bestOf === 3
-              ? 'Ban and pick maps for the best-of-3 series'
-              : 'Select maps through the competitive veto process'
-            }
-          </DialogDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <DialogTitle className="text-white text-xl">
+                Map Veto - {team1Name} vs {team2Name} (BO{bestOf})
+              </DialogTitle>
+              <DialogDescription className="text-slate-400">
+                {bestOf === 1 
+                  ? 'Ban maps until one remains for the match'
+                  : bestOf === 3
+                  ? 'Ban and pick maps for the best-of-3 series'
+                  : 'Select maps through the competitive veto process'
+                }
+              </DialogDescription>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              {/* Connection Status */}
+              <Badge variant={connectionStatus === 'connected' ? 'default' : 'destructive'} className="flex items-center gap-1">
+                {connectionStatus === 'connected' ? (
+                  <><Wifi className="w-3 h-3" /> Live</>
+                ) : connectionStatus === 'connecting' ? (
+                  <><Loader2 className="w-3 h-3 animate-spin" /> Connecting</>
+                ) : (
+                  <><WifiOff className="w-3 h-3" /> Offline</>
+                )}
+              </Badge>
+              
+              {/* Manual Refresh Button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={refresh}
+                className="bg-slate-800 border-slate-600 text-white hover:bg-slate-700"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+          
+          {lastUpdate && connectionStatus !== 'connected' && (
+            <div className="text-xs text-slate-500 mt-1">
+              Last updated: {lastUpdate.toLocaleTimeString()}
+            </div>
+          )}
         </DialogHeader>
 
         <div className="space-y-6">

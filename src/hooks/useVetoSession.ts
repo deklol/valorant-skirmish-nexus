@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { VetoService } from '@/services/VetoService';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { cleanupRealtimeChannel, createRealtimeChannel } from '@/utils/realtimeUtils';
+import { cleanupRealtimeChannel, createRealtimeChannel, isRealtimeAvailable } from '@/utils/realtimeUtils';
 
 export interface VetoSessionData {
   id: string;
@@ -51,6 +51,8 @@ export interface UseVetoSessionReturn {
   userTeamId: string | null;
   phase: 'dice_roll' | 'banning' | 'side_choice' | 'completed';
   refresh: () => Promise<void>;
+  connectionStatus: 'connecting' | 'connected' | 'disconnected' | 'error';
+  lastUpdate: Date | null;
 }
 
 export function useVetoSession(matchId: string): UseVetoSessionReturn {
@@ -59,8 +61,11 @@ export function useVetoSession(matchId: string): UseVetoSessionReturn {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userTeamId, setUserTeamId] = useState<string | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('connecting');
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const subscriptionsRef = useRef<{ session?: any; actions?: any }>({});
 
-  // Fetch session data
+  // Fetch session data - removed from dependency arrays to prevent circular updates
   const fetchSession = useCallback(async () => {
     if (!matchId) return;
 
@@ -72,10 +77,13 @@ export function useVetoSession(matchId: string): UseVetoSessionReturn {
       
       if (sessionError) {
         setError(sessionError.message);
+        setConnectionStatus('error');
         return;
       }
 
       setSession(data);
+      setLastUpdate(new Date());
+      setConnectionStatus('connected');
 
       // Get user's team ID if logged in
       if (user && data) {
@@ -121,24 +129,51 @@ export function useVetoSession(matchId: string): UseVetoSessionReturn {
     } catch (err: any) {
       console.error('Error fetching veto session:', err);
       setError(err.message || 'Failed to load veto session');
+      setConnectionStatus('error');
     } finally {
       setLoading(false);
     }
   }, [matchId, user]);
 
+  // Cleanup function for subscriptions
+  const cleanupSubscriptions = useCallback(() => {
+    console.log('VETO REALTIME: Cleaning up all subscriptions');
+    if (subscriptionsRef.current.session) {
+      cleanupRealtimeChannel(subscriptionsRef.current.session);
+      subscriptionsRef.current.session = null;
+    }
+    if (subscriptionsRef.current.actions) {
+      cleanupRealtimeChannel(subscriptionsRef.current.actions);
+      subscriptionsRef.current.actions = null;
+    }
+  }, []);
+
   // Set up real-time subscriptions for session changes
   useEffect(() => {
-    if (!matchId) return;
+    if (!matchId || !isRealtimeAvailable()) {
+      console.log('VETO REALTIME: Skipping session subscription - realtime not available');
+      setConnectionStatus('disconnected');
+      return;
+    }
 
     console.log('VETO REALTIME: Setting up session subscription for match', matchId);
 
     // Initial fetch
     fetchSession();
 
+    // Clean up any existing subscription
+    if (subscriptionsRef.current.session) {
+      cleanupRealtimeChannel(subscriptionsRef.current.session);
+    }
+
     // Subscribe to session changes
     const sessionChannel = createRealtimeChannel(`veto-session-${matchId}`);
 
     if (sessionChannel) {
+      setConnectionStatus('connecting');
+      
+      subscriptionsRef.current.session = sessionChannel;
+      
       sessionChannel
         .on('postgres_changes', {
           event: '*',
@@ -147,29 +182,45 @@ export function useVetoSession(matchId: string): UseVetoSessionReturn {
           filter: `match_id=eq.${matchId}`
         }, (payload) => {
           console.log('VETO REALTIME: Session change detected', payload);
+          setLastUpdate(new Date());
+          setConnectionStatus('connected');
           fetchSession();
         })
+        .on('system', {}, (payload) => {
+          console.log('VETO REALTIME: System message', payload);
+          if (payload.status === 'SUBSCRIBED') {
+            setConnectionStatus('connected');
+          } else if (payload.status === 'CHANNEL_ERROR') {
+            setConnectionStatus('error');
+          }
+        })
         .subscribe();
+    } else {
+      setConnectionStatus('error');
     }
 
-    return () => {
-      console.log('VETO REALTIME: Cleaning up session subscription');
-      cleanupRealtimeChannel(sessionChannel);
-    };
-  }, [matchId, fetchSession]);
+    return cleanupSubscriptions;
+  }, [matchId]);
 
   // Set up real-time subscriptions for veto actions (only when we have a session)
   useEffect(() => {
-    if (!session?.id) {
-      console.log('VETO REALTIME: No session ID yet, skipping actions subscription');
+    if (!session?.id || !isRealtimeAvailable()) {
+      console.log('VETO REALTIME: No session ID or realtime not available, skipping actions subscription');
       return;
     }
 
     console.log('VETO REALTIME: Setting up actions subscription for session', session.id);
 
+    // Clean up any existing actions subscription
+    if (subscriptionsRef.current.actions) {
+      cleanupRealtimeChannel(subscriptionsRef.current.actions);
+    }
+
     const actionsChannel = createRealtimeChannel(`veto-actions-${session.id}`);
 
     if (actionsChannel) {
+      subscriptionsRef.current.actions = actionsChannel;
+      
       actionsChannel
         .on('postgres_changes', {
           event: '*',
@@ -178,16 +229,20 @@ export function useVetoSession(matchId: string): UseVetoSessionReturn {
           filter: `veto_session_id=eq.${session.id}`
         }, (payload) => {
           console.log('VETO REALTIME: Actions change detected', payload);
+          setLastUpdate(new Date());
           fetchSession();
         })
         .subscribe();
     }
 
     return () => {
-      console.log('VETO REALTIME: Cleaning up actions subscription');
-      cleanupRealtimeChannel(actionsChannel);
+      if (subscriptionsRef.current.actions) {
+        console.log('VETO REALTIME: Cleaning up actions subscription');
+        cleanupRealtimeChannel(subscriptionsRef.current.actions);
+        subscriptionsRef.current.actions = null;
+      }
     };
-  }, [session?.id, fetchSession]);
+  }, [session?.id]);
 
   // Computed properties
   const isMyTurn = Boolean(
@@ -238,6 +293,8 @@ export function useVetoSession(matchId: string): UseVetoSessionReturn {
     canAct,
     userTeamId,
     phase,
-    refresh: fetchSession
+    refresh: fetchSession,
+    connectionStatus,
+    lastUpdate
   };
 }
