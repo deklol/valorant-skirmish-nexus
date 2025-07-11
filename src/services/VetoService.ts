@@ -64,7 +64,7 @@ export class VetoService {
       const { data, error } = await supabase.rpc('set_side_choice', {
         p_veto_session_id: vetoSessionId,
         p_user_id: userId,
-        p_side_choice: sideChoice
+        p_side_choice: sideChoice.toLowerCase()
       });
 
       if (error) {
