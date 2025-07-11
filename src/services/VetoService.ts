@@ -59,10 +59,10 @@ export class VetoService {
   /**
    * Choose side (Attack/Defense) for the selected map
    */
-  static async chooseSide(matchId: string, userId: string, sideChoice: 'Attack' | 'Defense'): Promise<VetoResult> {
+  static async chooseSide(vetoSessionId: string, userId: string, sideChoice: 'Attack' | 'Defense'): Promise<VetoResult> {
     try {
-      const { data, error } = await supabase.rpc('choose_veto_side', {
-        p_match_id: matchId,
+      const { data, error } = await supabase.rpc('set_side_choice', {
+        p_veto_session_id: vetoSessionId,
         p_user_id: userId,
         p_side_choice: sideChoice
       });
@@ -72,7 +72,7 @@ export class VetoService {
         return { success: false, error: error.message };
       }
 
-      return data as VetoResult;
+      return { success: data === 'OK', error: data !== 'OK' ? data : undefined };
     } catch (error: any) {
       console.error('Choose side exception:', error);
       return { success: false, error: error.message || 'Failed to choose side' };

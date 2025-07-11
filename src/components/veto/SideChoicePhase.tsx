@@ -32,7 +32,7 @@ export function SideChoicePhase({
 
     setChoosing(side);
     try {
-      const result = await VetoService.chooseSide(matchId, user.id, side);
+      const result = await VetoService.chooseSide(session.id, user.id, side);
       
       if (result.success) {
         toast({
