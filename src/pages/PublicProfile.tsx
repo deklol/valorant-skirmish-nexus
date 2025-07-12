@@ -9,6 +9,7 @@ import { User, Calendar, Trophy, Target, Twitter, Twitch, Clock, Lock, Swords, A
 import { formatDistanceToNow } from 'date-fns';
 import ProfileMatchHistory from '@/components/profile/ProfileMatchHistory';
 import ProfileTournamentHistory from '@/components/profile/ProfileTournamentHistory';
+import ProfileAchievements from '@/components/profile/ProfileAchievements';
 import ProfileRankHistory from '@/components/profile/ProfileRankHistory';
 import { getTrackerGGUrl } from '@/utils/getTrackerGGUrl';
 import { useUserTeam } from "@/hooks/useUserTeam";
