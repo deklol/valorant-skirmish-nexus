@@ -249,7 +249,7 @@ const PublicProfile = () => {
               </TabsList>
 
               <TabsContent value="awards" className="mt-6">
-                <ProfileMatchHistory userId={userId!} />
+                <ProfileAchievements userId={userId!} />
               </TabsContent>
               
               <TabsContent value="matches" className="mt-6">
@@ -257,7 +257,6 @@ const PublicProfile = () => {
               </TabsContent>
               
               <TabsContent value="tournaments" className="mt-6">
-              <ProfileAchievements userId={userId!} />
                 <ProfileTournamentHistory userId={userId!} />
               </TabsContent>
               
