@@ -237,6 +237,9 @@ const PublicProfile = () => {
           <CardContent className="p-6">
             <Tabs defaultValue="matches" className="w-full">
               <TabsList className="grid w-full grid-cols-4 bg-slate-700">
+                <TabsTrigger value="awards" className="data-[state=active]:bg-slate-600">
+                  Achievements
+                </TabsTrigger>
                 <TabsTrigger value="matches" className="data-[state=active]:bg-slate-600">
                   Match History
                 </TabsTrigger>
