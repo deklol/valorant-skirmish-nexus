@@ -408,7 +408,7 @@ const Profile = () => {
       <Card className="bg-slate-800 border-slate-700">
         <CardContent className="p-6">
           <Tabs defaultValue="settings" className="w-full">
-            <TabsList className="grid w-full grid-cols-5 bg-slate-700">
+            <TabsList className="grid w-full grid-cols-6 bg-slate-700">
               <TabsTrigger value="settings" className="data-[state=active]:bg-slate-600">
                 <Settings className="w-4 h-4 mr-2" />
                 Settings
