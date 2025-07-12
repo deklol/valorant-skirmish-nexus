@@ -79,11 +79,11 @@ const ACHIEVEMENT_CATEGORIES = [
 ];
 
 const ACHIEVEMENT_RARITIES = [
-  { value: "common", label: "Common", color: "bg-gray-500" },
-  { value: "uncommon", label: "Uncommon", color: "bg-green-500" },
-  { value: "rare", label: "Rare", color: "bg-blue-500" },
-  { value: "epic", label: "Epic", color: "bg-purple-500" },
-  { value: "legendary", label: "Legendary", color: "bg-yellow-500" }
+  { value: "Common", label: "Common", color: "bg-gray-500" },
+  { value: "Uncommon", label: "Uncommon", color: "bg-green-500" },
+  { value: "Rare", label: "Rare", color: "bg-blue-500" },
+  { value: "Epic", label: "Epic", color: "bg-purple-500" },
+  { value: "Legendary", label: "Legendary", color: "bg-yellow-500" }
 ];
 
 const ACHIEVEMENT_ICONS = [
