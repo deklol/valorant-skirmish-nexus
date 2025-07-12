@@ -413,6 +413,9 @@ const Profile = () => {
                 <Settings className="w-4 h-4 mr-2" />
                 Settings
               </TabsTrigger>
+              <TabsTrigger value="awards" className="data-[state=active]:bg-slate-600">
+                Awards
+              </TabsTrigger>
               <TabsTrigger value="matches" className="data-[state=active]:bg-slate-600">
                 Match History
               </TabsTrigger>
@@ -558,6 +561,10 @@ const Profile = () => {
                   </Button>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="awards" className="mt-6">
+              <ProfileAchievements userId={user.id} isOwnProfile={true} />
             </TabsContent>
             
             <TabsContent value="matches" className="mt-6">
