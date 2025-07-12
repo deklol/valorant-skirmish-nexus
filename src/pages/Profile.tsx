@@ -572,7 +572,6 @@ const Profile = () => {
             </TabsContent>
             
             <TabsContent value="tournaments" className="mt-6">
-              <ProfileAchievements userId={user.id} isOwnProfile={true} />
               <ProfileTournamentHistory userId={user.id} />
             </TabsContent>
 
