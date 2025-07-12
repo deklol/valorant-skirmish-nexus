@@ -18,6 +18,7 @@ import RankHistory from "@/components/RankHistory";
 import ProfileMatchHistory from '@/components/profile/ProfileMatchHistory';
 import ProfileTournamentHistory from '@/components/profile/ProfileTournamentHistory';
 import ProfileRankHistory from '@/components/profile/ProfileRankHistory';
+import ProfileAchievements from '@/components/profile/ProfileAchievements';
 import { getTrackerGGUrl } from "@/utils/getTrackerGGUrl";
 import { useUserTeam } from "@/hooks/useUserTeam";
 import ClickableTeamName from "@/components/ClickableTeamName";
@@ -564,6 +565,7 @@ const Profile = () => {
             </TabsContent>
             
             <TabsContent value="tournaments" className="mt-6">
+              <ProfileAchievements userId={user.id} isOwnProfile={true} />
               <ProfileTournamentHistory userId={user.id} />
             </TabsContent>
 

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Users, Trophy, MessageSquare, Map, ShieldAlert, Wrench, BookOpen, FileText, Stethoscope, Play, TestTube } from "lucide-react";
+import { Settings, Users, Trophy, MessageSquare, Map, ShieldAlert, Wrench, BookOpen, FileText, Stethoscope, Play, TestTube, Award } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import DiscordWebhookManager from "@/components/DiscordWebhookManager";
 import CreateTournamentDialog from "@/components/CreateTournamentDialog";
@@ -21,6 +21,7 @@ import SchemaExportButton from "@/components/admin/SchemaExportButton";
 import BracketMedicManager from "@/components/BracketMedicManager";
 import AuditLogManager from "@/components/admin/AuditLogManager";
 import StatisticsManager from "@/components/admin/StatisticsManager";
+import AchievementMedicManager from "@/components/AchievementMedicManager";
 import { VetoDialog } from "@/components/veto/VetoDialog";
 
 const Admin = () => {
@@ -66,7 +67,7 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="tournaments" className="space-y-6">
-          <TabsList className="bg-slate-800 border-slate-700 grid grid-cols-3 lg:grid-cols-9 w-full max-w-7xl mx-auto overflow-x-auto" style={{scrollbarWidth: 'none', msOverflowStyle: 'none'}}>
+          <TabsList className="bg-slate-800 border-slate-700 grid grid-cols-3 lg:grid-cols-10 w-full max-w-7xl mx-auto overflow-x-auto" style={{scrollbarWidth: 'none', msOverflowStyle: 'none'}}>
             {/* Core Management */}
             <TabsTrigger value="tournaments" className="text-white data-[state=active]:bg-red-600">
               <Trophy className="w-4 h-4 mr-2" />
@@ -97,6 +98,10 @@ const Admin = () => {
             <TabsTrigger value="match-medic" className="text-white data-[state=active]:bg-amber-600">
               <ShieldAlert className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Match Medic</span>
+            </TabsTrigger>
+            <TabsTrigger value="achievement-medic" className="text-white data-[state=active]:bg-yellow-600">
+              <Award className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Achievement Medic</span>
             </TabsTrigger>
 
             {/* System & Logs */}
@@ -140,6 +145,10 @@ const Admin = () => {
 
           <TabsContent value="match-medic">
             <MatchMedicManager />
+          </TabsContent>
+
+          <TabsContent value="achievement-medic">
+            <AchievementMedicManager />
           </TabsContent>
 
           <TabsContent value="audit-log">
