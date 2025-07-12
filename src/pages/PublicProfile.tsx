@@ -252,7 +252,7 @@ const PublicProfile = () => {
               </TabsContent>
               
               <TabsContent value="tournaments" className="mt-6">
-              <ProfileAchievements userId={user.id} isOwnProfile={false} />
+              <ProfileAchievements userId={user.id!} />
                 <ProfileTournamentHistory userId={userId!} />
               </TabsContent>
               
