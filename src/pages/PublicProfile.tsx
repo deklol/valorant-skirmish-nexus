@@ -236,7 +236,7 @@ const PublicProfile = () => {
         <Card className="bg-slate-800 border-slate-700">
           <CardContent className="p-6">
             <Tabs defaultValue="matches" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 bg-slate-700">
+              <TabsList className="grid w-full grid-cols-4 bg-slate-700">
                 <TabsTrigger value="matches" className="data-[state=active]:bg-slate-600">
                   Match History
                 </TabsTrigger>
@@ -247,6 +247,10 @@ const PublicProfile = () => {
                   Rank History
                 </TabsTrigger>
               </TabsList>
+
+              <TabsContent value="awards" className="mt-6">
+                <ProfileMatchHistory userId={userId!} />
+              </TabsContent>
               
               <TabsContent value="matches" className="mt-6">
                 <ProfileMatchHistory userId={userId!} />
