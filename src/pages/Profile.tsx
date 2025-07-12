@@ -414,7 +414,7 @@ const Profile = () => {
                 Settings
               </TabsTrigger>
               <TabsTrigger value="awards" className="data-[state=active]:bg-slate-600">
-                Awards
+                Achievements
               </TabsTrigger>
               <TabsTrigger value="matches" className="data-[state=active]:bg-slate-600">
                 Match History
