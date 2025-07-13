@@ -92,54 +92,11 @@ const Statistics = () => {
             .order('tournaments_won', { ascending: false })
             .limit(1)
             .single(),
-          // User with highest achievement points
-          supabase.rpc('get_user_achievement_summary', { p_user_id: user?.id || '00000000-0000-0000-0000-000000000000' }).then(async (result) => {
-            const { data: allUsers } = await supabase.from('user_achievements').select(`
-              user_id,
-              achievements!inner(points)
-            `);
-            
-            const userPoints = (allUsers || []).reduce((acc, curr) => {
-              acc[curr.user_id] = (acc[curr.user_id] || 0) + curr.achievements.points;
-              return acc;
-            }, {} as Record<string, number>);
-            
-            const topUserEntry = Object.entries(userPoints).reduce((max, [userId, points]) => 
-              points > max.points ? { userId, points } : max, { userId: '', points: 0 });
-            
-            if (topUserEntry.userId) {
-              const { data: topUser } = await supabase
-                .from('users')
-                .select('discord_username')
-                .eq('id', topUserEntry.userId)
-                .single();
-              return { data: { ...topUser, achievement_points: topUserEntry.points } };
-            }
-            return { data: null };
-          }),
-          // User with most achievements
-          supabase.from('user_achievements').select(`
-            user_id
-          `).then(async (result) => {
-            const userCounts = (result.data || []).reduce((acc, curr) => {
-              acc[curr.user_id] = (acc[curr.user_id] || 0) + 1;
-              return acc;
-            }, {} as Record<string, number>);
-            
-            const topUserEntry = Object.entries(userCounts).reduce((max, [userId, count]) => 
-              count > max.count ? { userId, count } : max, { userId: '', count: 0 });
-            
-            if (topUserEntry.userId) {
-              const { data: topUser } = await supabase
-                .from('users')
-                .select('discord_username')
-                .eq('id', topUserEntry.userId)
-                .single();
-              return { data: { ...topUser, achievement_count: topUserEntry.count } };
-            }
-            return { data: null };
-          })
+          supabase.rpc('get_achievement_leaders'),
+          supabase.rpc('get_achievement_leaders')
         ]);
+
+        const leaders = (topAchievementUser?.[0] || {}) as any;
 
         setAchievements(achievementsData || []);
         setUserAchievements(userAchievementsData);
@@ -153,12 +110,12 @@ const Statistics = () => {
             wins: topWinner?.tournaments_won || 0
           },
           top_achievement_user: {
-            name: topAchievementUser?.discord_username || "No data",
-            points: topAchievementUser?.achievement_points || 0
+            name: leaders?.top_points_username || "No data",
+            points: leaders?.top_points_total || 0
           },
           most_achievements_user: {
-            name: mostAchievementsUser?.discord_username || "No data",
-            count: mostAchievementsUser?.achievement_count || 0
+            name: leaders?.most_achievements_username || "No data",
+            count: leaders?.most_achievements_count || 0
           }
         });
       } catch (error) {

@@ -1587,6 +1587,17 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_achievement_leaders: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          top_points_user_id: string
+          top_points_username: string
+          top_points_total: number
+          most_achievements_user_id: string
+          most_achievements_username: string
+          most_achievements_count: number
+        }[]
+      }
       get_next_substitute: {
         Args: { p_tournament_id: string }
         Returns: {
