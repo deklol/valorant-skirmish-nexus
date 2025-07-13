@@ -1790,11 +1790,7 @@ export type Database = {
         Returns: Json
       }
       set_side_choice: {
-        Args: {
-          p_veto_session_id: string
-          p_user_id: string
-          p_side_choice: string
-        }
+        Args: { p_match_id: string; p_user_id: string; p_side_choice: string }
         Returns: string
       }
       track_tournament_page_view: {
