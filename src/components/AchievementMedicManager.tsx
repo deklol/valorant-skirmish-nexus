@@ -304,6 +304,23 @@ export default function AchievementMedicManager() {
     if (!selectedAchievement || !selectedUser) return;
 
     try {
+      // Check if user already has this achievement
+      const { data: existing } = await supabase
+        .from("user_achievements")
+        .select("id")
+        .eq("user_id", selectedUser)
+        .eq("achievement_id", selectedAchievement.id)
+        .single();
+
+      if (existing) {
+        toast({
+          title: "Error",
+          description: "User already has this achievement",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from("user_achievements")
         .insert([{

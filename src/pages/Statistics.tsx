@@ -23,6 +23,8 @@ interface GlobalStats {
   total_users: number;
   average_participation: number;
   top_winner: { name: string; wins: number };
+  top_achievement_user: { name: string; points: number };
+  most_achievements_user: { name: string; count: number };
 }
 
 const iconMap: Record<string, any> = {
@@ -77,7 +79,9 @@ const Statistics = () => {
           { count: totalTournaments },
           { count: totalMatches },
           { count: totalUsers },
-          { data: topWinner }
+          { data: topWinner },
+          { data: topAchievementUser },
+          { data: mostAchievementsUser }
         ] = await Promise.all([
           supabase.from('tournaments').select('*', { count: 'exact', head: true }),
           supabase.from('matches').select('*', { count: 'exact', head: true }),
@@ -87,7 +91,54 @@ const Statistics = () => {
             .select('discord_username, tournaments_won')
             .order('tournaments_won', { ascending: false })
             .limit(1)
-            .single()
+            .single(),
+          // User with highest achievement points
+          supabase.rpc('get_user_achievement_summary', { p_user_id: user?.id || '00000000-0000-0000-0000-000000000000' }).then(async (result) => {
+            const { data: allUsers } = await supabase.from('user_achievements').select(`
+              user_id,
+              achievements!inner(points)
+            `);
+            
+            const userPoints = (allUsers || []).reduce((acc, curr) => {
+              acc[curr.user_id] = (acc[curr.user_id] || 0) + curr.achievements.points;
+              return acc;
+            }, {} as Record<string, number>);
+            
+            const topUserEntry = Object.entries(userPoints).reduce((max, [userId, points]) => 
+              points > max.points ? { userId, points } : max, { userId: '', points: 0 });
+            
+            if (topUserEntry.userId) {
+              const { data: topUser } = await supabase
+                .from('users')
+                .select('discord_username')
+                .eq('id', topUserEntry.userId)
+                .single();
+              return { data: { ...topUser, achievement_points: topUserEntry.points } };
+            }
+            return { data: null };
+          }),
+          // User with most achievements
+          supabase.from('user_achievements').select(`
+            user_id
+          `).then(async (result) => {
+            const userCounts = (result.data || []).reduce((acc, curr) => {
+              acc[curr.user_id] = (acc[curr.user_id] || 0) + 1;
+              return acc;
+            }, {} as Record<string, number>);
+            
+            const topUserEntry = Object.entries(userCounts).reduce((max, [userId, count]) => 
+              count > max.count ? { userId, count } : max, { userId: '', count: 0 });
+            
+            if (topUserEntry.userId) {
+              const { data: topUser } = await supabase
+                .from('users')
+                .select('discord_username')
+                .eq('id', topUserEntry.userId)
+                .single();
+              return { data: { ...topUser, achievement_count: topUserEntry.count } };
+            }
+            return { data: null };
+          })
         ]);
 
         setAchievements(achievementsData || []);
@@ -100,6 +151,14 @@ const Statistics = () => {
           top_winner: {
             name: topWinner?.discord_username || "No data",
             wins: topWinner?.tournaments_won || 0
+          },
+          top_achievement_user: {
+            name: topAchievementUser?.discord_username || "No data",
+            points: topAchievementUser?.achievement_points || 0
+          },
+          most_achievements_user: {
+            name: mostAchievementsUser?.discord_username || "No data",
+            count: mostAchievementsUser?.achievement_count || 0
           }
         });
       } catch (error) {
@@ -169,7 +228,7 @@ const Statistics = () => {
           </TabsList>
 
           <TabsContent value="global" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total Tournaments</CardTitle>
@@ -209,6 +268,32 @@ const Statistics = () => {
                   <div className="text-lg font-bold">{globalStats?.top_winner.name}</div>
                   <p className="text-xs text-muted-foreground">
                     {globalStats?.top_winner.wins} tournaments
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Achievement Leader</CardTitle>
+                  <Star className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-lg font-bold">{globalStats?.top_achievement_user.name}</div>
+                  <p className="text-xs text-muted-foreground">
+                    {globalStats?.top_achievement_user.points} points
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Most Achievements</CardTitle>
+                  <Medal className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-lg font-bold">{globalStats?.most_achievements_user.name}</div>
+                  <p className="text-xs text-muted-foreground">
+                    {globalStats?.most_achievements_user.count} achievements
                   </p>
                 </CardContent>
               </Card>
