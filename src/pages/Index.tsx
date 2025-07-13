@@ -12,6 +12,7 @@ import TournamentTabs from "@/components/TournamentTabs";
 import TopPlayersDisplay from "@/components/TopPlayersDisplay";
 import TwitchEmbed from "@/components/TwitchEmbed";
 import RecentWinners from "@/components/RecentWinners";
+import MemberHighlights from "@/components/MemberHighlights";
 
 const Index = () => {
   const { user } = useAuth();
@@ -145,36 +146,7 @@ const Index = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="space-y-6">
             <TopPlayersDisplay />
-            {user && (
-              <Card className="bg-slate-800 border-slate-700">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 text-green-400" />
-                    Quick Actions
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <Link to="/tournaments" className="block">
-                    <Button className="w-full bg-red-600 hover:bg-red-700">
-                      <Trophy className="w-4 h-4 mr-2" />
-                      Join Tournament
-                    </Button>
-                  </Link>
-                  <Link to="/leaderboard" className="block">
-                    <Button variant="outline" className="w-full border-slate-600 hover:bg-slate-700">
-                      <Award className="w-4 h-4 mr-2" />
-                      View Rankings
-                    </Button>
-                  </Link>
-                  <Link to="/players" className="block">
-                    <Button variant="outline" className="w-full border-slate-600 hover:bg-slate-700">
-                      <Users className="w-4 h-4 mr-2" />
-                      Find Players
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            )}
+            <MemberHighlights />
           </div>
           <div>
             <TournamentTabs />
