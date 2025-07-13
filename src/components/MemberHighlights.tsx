@@ -85,7 +85,6 @@ const MemberHighlights = () => {
     <Card className="bg-slate-800 border-slate-700">
       <CardHeader>
         <CardTitle className="text-white flex items-center gap-2">
-          <Trophy className="w-5 h-5 text-yellow-400" />
           Member Highlights
         </CardTitle>
       </CardHeader>
