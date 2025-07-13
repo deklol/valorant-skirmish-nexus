@@ -92,7 +92,7 @@ export default function TournamentTabs() {
   return (
     <Card className="bg-slate-800 border-slate-700 mb-4">
       <CardHeader>
-        <CardTitle className="text-lg text-white">Tournaments</CardTitle>
+        <CardTitle className="text-2xl text-white">Tournaments</CardTitle>
         <Tabs defaultValue="live" className="w-full">
           <TabsList className="bg-slate-700 mt-2">
             <TabsTrigger value="live">Live</TabsTrigger>
