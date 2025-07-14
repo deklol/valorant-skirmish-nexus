@@ -59,10 +59,12 @@ export class VetoService {
   /**
    * Choose side (Attack/Defense) for the selected map
    */
-  static async chooseSide(vetoSessionId: string, userId: string, sideChoice: 'Attack' | 'Defense'): Promise<VetoResult> {
+  static async chooseSide(matchId: string, userId: string, sideChoice: 'Attack' | 'Defense'): Promise<VetoResult> {
     try {
+      console.log('VetoService.chooseSide called', { matchId, userId, sideChoice });
+      
       const { data, error } = await supabase.rpc('set_side_choice', {
-        p_veto_session_id: vetoSessionId,
+        p_match_id: matchId,
         p_user_id: userId,
         p_side_choice: sideChoice.toLowerCase()
       });
