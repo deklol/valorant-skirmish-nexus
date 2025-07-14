@@ -60,20 +60,17 @@ const Players = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center">
-            <p className="text-white">Loading players...</p>
-          </div>
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <p className="text-white">Loading players...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center gap-3 mb-2">
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex items-center gap-3 mb-2">
           <Users className="w-8 h-8 text-blue-500" />
           <h1 className="text-3xl font-bold text-white">Players</h1>
         </div>
@@ -163,7 +160,6 @@ const Players = () => {
             ))}
           </div>
         )}
-      </div>
     </div>
   );
 };
