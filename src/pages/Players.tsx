@@ -73,11 +73,11 @@ const Players = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
       <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center gap-3 mb-8">
+        <div className="flex items-center gap-3 mb-2">
           <Users className="w-8 h-8 text-blue-500" />
           <h1 className="text-3xl font-bold text-white">Players</h1>
-          <p className="text-slate-400">Q: Balancing Weight? A: Number represents rank, used for balancing purposes. <span className="text-orange-400">*</span> indicates manual override.</p>
         </div>
+        <p className="text-slate-400 mb-8">Q: Balancing Weight? A: Number represents rank, used for balancing purposes. <span className="text-orange-400">*</span> indicates manual override.</p>
 
         {players.length === 0 ? (
           <Card className="bg-slate-800/90 border-slate-700">
