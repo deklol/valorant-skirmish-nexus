@@ -61,6 +61,7 @@ export default function PlayerMedicManager() {
   }, [users, searchQuery, filterRole, filterStatus]);
 
   const fetchUsers = async () => {
+    console.log("🔄 PlayerMedic: Fetching users data");
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -70,8 +71,11 @@ export default function PlayerMedicManager() {
         .limit(500);
 
       if (error) throw error;
+      
+      console.log(`✅ PlayerMedic: Loaded ${data?.length || 0} users`);
       setUsers(data || []);
     } catch (error: any) {
+      console.error("❌ PlayerMedic: Failed to fetch users:", error);
       toast({
         title: "Failed to fetch users",
         description: error.message,
@@ -114,6 +118,13 @@ export default function PlayerMedicManager() {
   const handleRankOverride = async () => {
     if (!selectedUser || !rankOverride || !overrideReason.trim()) return;
 
+    console.log(`🔄 PlayerMedic: Applying rank override for ${selectedUser.discord_username}`, {
+      rank: rankOverride,
+      weight: weightOverride,
+      enabled: useOverride,
+      reason: overrideReason
+    });
+
     setLoading(true);
     try {
       const { error } = await supabase
@@ -130,6 +141,8 @@ export default function PlayerMedicManager() {
 
       if (error) throw error;
 
+      console.log(`✅ PlayerMedic: Successfully ${useOverride ? 'applied' : 'reset'} rank override for ${selectedUser.discord_username}`);
+
       toast({
         title: "Rank Override Applied",
         description: `${selectedUser.discord_username}'s rank has been ${useOverride ? 'overridden' : 'reset'}`
@@ -143,6 +156,7 @@ export default function PlayerMedicManager() {
       setUseOverride(false);
       fetchUsers();
     } catch (error: any) {
+      console.error(`❌ PlayerMedic: Failed to apply rank override:`, error);
       toast({
         title: "Failed to apply rank override",
         description: error.message,
@@ -155,6 +169,11 @@ export default function PlayerMedicManager() {
 
   const handleBanUser = async () => {
     if (!selectedUser || !banReason.trim()) return;
+
+    console.log(`🔄 PlayerMedic: Banning user ${selectedUser.discord_username}`, {
+      reason: banReason,
+      duration: banDuration
+    });
 
     setLoading(true);
     try {
@@ -172,6 +191,8 @@ export default function PlayerMedicManager() {
 
       if (error) throw error;
 
+      console.log(`✅ PlayerMedic: Successfully banned ${selectedUser.discord_username} (${banDuration})`);
+
       toast({
         title: "User Banned",
         description: `${selectedUser.discord_username} has been banned`
@@ -183,6 +204,7 @@ export default function PlayerMedicManager() {
       setBanDuration("permanent");
       fetchUsers();
     } catch (error: any) {
+      console.error(`❌ PlayerMedic: Failed to ban user:`, error);
       toast({
         title: "Failed to ban user",
         description: error.message,
@@ -194,6 +216,7 @@ export default function PlayerMedicManager() {
   };
 
   const handleUnbanUser = async (user: User) => {
+    console.log(`🔄 PlayerMedic: Unbanning user ${user.discord_username}`);
     setLoading(true);
     try {
       const { error } = await supabase
@@ -207,6 +230,8 @@ export default function PlayerMedicManager() {
 
       if (error) throw error;
 
+      console.log(`✅ PlayerMedic: Successfully unbanned ${user.discord_username}`);
+
       toast({
         title: "User Unbanned",
         description: `${user.discord_username} has been unbanned`
@@ -214,6 +239,7 @@ export default function PlayerMedicManager() {
 
       fetchUsers();
     } catch (error: any) {
+      console.error(`❌ PlayerMedic: Failed to unban user:`, error);
       toast({
         title: "Failed to unban user",
         description: error.message,
@@ -227,20 +253,97 @@ export default function PlayerMedicManager() {
   const handleAccountMerge = async () => {
     if (!selectedUser || !mergeTargetUserId) return;
 
+    console.log(`🔄 PlayerMedic: Starting account merge for user ${selectedUser.id} -> ${mergeTargetUserId}`);
     setLoading(true);
+    
     try {
-      // This would require a custom database function for proper account merging
-      // For now, we'll show a placeholder implementation
+      // Verify target user exists and get their full data
+      const { data: targetUser, error: targetError } = await supabase
+        .from('users')
+        .select('id, discord_username, wins, losses, tournaments_played, tournaments_won')
+        .eq('id', mergeTargetUserId)
+        .single();
+
+      if (targetError || !targetUser) {
+        throw new Error('Target user not found');
+      }
+
+      console.log(`📝 PlayerMedic: Target user found: ${targetUser.discord_username}`);
+
+      // Start transaction-like operations
+      // 1. Update all team_members records
+      const { error: teamMembersError } = await supabase
+        .from('team_members')
+        .update({ user_id: mergeTargetUserId })
+        .eq('user_id', selectedUser.id);
+
+      if (teamMembersError) {
+        console.error(`❌ PlayerMedic: Failed to update team_members:`, teamMembersError);
+        throw new Error(`Failed to update team memberships: ${teamMembersError.message}`);
+      }
+
+      // 2. Update tournament_signups records
+      const { error: signupsError } = await supabase
+        .from('tournament_signups')
+        .update({ user_id: mergeTargetUserId })
+        .eq('user_id', selectedUser.id);
+
+      if (signupsError) {
+        console.error(`❌ PlayerMedic: Failed to update tournament_signups:`, signupsError);
+        throw new Error(`Failed to update tournament signups: ${signupsError.message}`);
+      }
+
+      // 3. Update user_achievements records
+      const { error: achievementsError } = await supabase
+        .from('user_achievements')
+        .update({ user_id: mergeTargetUserId })
+        .eq('user_id', selectedUser.id);
+
+      if (achievementsError) {
+        console.error(`❌ PlayerMedic: Failed to update user_achievements:`, achievementsError);
+        throw new Error(`Failed to update achievements: ${achievementsError.message}`);
+      }
+
+      // 4. Merge statistics (add to target user)
+      const { error: statsError } = await supabase
+        .from('users')
+        .update({
+          wins: (targetUser.wins || 0) + (selectedUser.wins || 0),
+          losses: (targetUser.losses || 0) + (selectedUser.losses || 0),
+          tournaments_played: (targetUser.tournaments_played || 0) + (selectedUser.tournaments_played || 0),
+          tournaments_won: (targetUser.tournaments_won || 0) + (selectedUser.tournaments_won || 0)
+        })
+        .eq('id', mergeTargetUserId);
+
+      if (statsError) {
+        console.error(`❌ PlayerMedic: Failed to merge statistics:`, statsError);
+        throw new Error(`Failed to merge statistics: ${statsError.message}`);
+      }
+
+      // 5. Delete the source user
+      const { error: deleteError } = await supabase
+        .from('users')
+        .delete()
+        .eq('id', selectedUser.id);
+
+      if (deleteError) {
+        console.error(`❌ PlayerMedic: Failed to delete source user:`, deleteError);
+        throw new Error(`Failed to delete source user: ${deleteError.message}`);
+      }
+
+      console.log(`✅ PlayerMedic: Successfully merged ${selectedUser.discord_username} into ${targetUser.discord_username}`);
+      
       toast({
-        title: "Account Merge",
-        description: "Account merging functionality would be implemented here",
-        variant: "destructive"
+        title: "Account Merge Successful",
+        description: `${selectedUser.discord_username} has been merged into ${targetUser.discord_username}`
       });
 
       setShowMergeDialog(false);
       setSelectedUser(null);
       setMergeTargetUserId("");
+      fetchUsers();
     } catch (error: any) {
+      console.error(`❌ PlayerMedic: Account merge failed:`, error);
       toast({
         title: "Failed to merge accounts",
         description: error.message,

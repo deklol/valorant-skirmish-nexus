@@ -26,6 +26,7 @@ export default function StatisticsMedicManager() {
   const { toast } = useToast();
 
   const runStatisticsScan = async () => {
+    console.log("🔄 StatisticsMedic: Starting comprehensive statistics scan");
     setLoading(true);
     setScanProgress(0);
     setIssues([]);
@@ -34,10 +35,12 @@ export default function StatisticsMedicManager() {
       const foundIssues: StatisticsIssue[] = [];
 
       // Scan 1: Check for missing match statistics
+      console.log("📊 StatisticsMedic: Checking match statistics (25%)");
       setScanProgress(25);
       const { data: missingWinsData, error: winsError } = await supabase.rpc('fix_missing_match_statistics');
       if (!winsError && missingWinsData?.[0]) {
         const stats = missingWinsData[0];
+        console.log("📈 StatisticsMedic: Match statistics scan results:", stats);
         if (stats.wins_added > 0 || stats.losses_added > 0) {
           foundIssues.push({
             type: 'missing_wins',
@@ -46,13 +49,18 @@ export default function StatisticsMedicManager() {
             count: stats.matches_processed,
             canAutoFix: true
           });
+          console.log(`⚠️ StatisticsMedic: Found ${stats.matches_processed} matches with missing statistics`);
         }
+      } else if (winsError) {
+        console.error("❌ StatisticsMedic: Match statistics scan failed:", winsError);
       }
 
       // Scan 2: Check for missing tournament statistics
+      console.log("🏆 StatisticsMedic: Checking tournament statistics (50%)");
       setScanProgress(50);
       const { data: missingTournamentData, error: tournamentError } = await supabase.rpc('fix_missing_tournament_wins');
       if (!tournamentError && missingTournamentData && missingTournamentData > 0) {
+        console.log(`⚠️ StatisticsMedic: Found ${missingTournamentData} users with missing tournament statistics`);
         foundIssues.push({
           type: 'missing_tournament_stats',
           severity: 'warning',
@@ -60,9 +68,12 @@ export default function StatisticsMedicManager() {
           count: missingTournamentData,
           canAutoFix: true
         });
+      } else if (tournamentError) {
+        console.error("❌ StatisticsMedic: Tournament statistics scan failed:", tournamentError);
       }
 
       // Scan 3: Check for rank inconsistencies
+      console.log("⭐ StatisticsMedic: Checking rank consistency (75%)");
       setScanProgress(75);
       const { data: rankData, error: rankError } = await supabase
         .from('users')
@@ -78,6 +89,8 @@ export default function StatisticsMedicManager() {
           return Math.abs(expectedPoints - actualPoints) > 50; // 50 point tolerance
         });
 
+        console.log(`🔍 StatisticsMedic: Checked ${rankData.length} users for rank consistency, found ${rankInconsistencies.length} inconsistencies`);
+
         if (rankInconsistencies.length > 0) {
           foundIssues.push({
             type: 'rank_inconsistency',
@@ -87,9 +100,12 @@ export default function StatisticsMedicManager() {
             canAutoFix: false
           });
         }
+      } else if (rankError) {
+        console.error("❌ StatisticsMedic: Rank consistency scan failed:", rankError);
       }
 
       // Scan 4: Check for general data integrity
+      console.log("🔧 StatisticsMedic: Checking data integrity (90%)");
       setScanProgress(90);
       const { data: integrityData, error: integrityError } = await supabase
         .from('users')
@@ -97,6 +113,7 @@ export default function StatisticsMedicManager() {
         .or('wins.is.null,losses.is.null,tournaments_played.is.null,tournaments_won.is.null');
 
       if (!integrityError && integrityData && integrityData.length > 0) {
+        console.log(`⚠️ StatisticsMedic: Found ${integrityData.length} users with null statistics`);
         foundIssues.push({
           type: 'missing_losses',
           severity: 'info',
@@ -104,10 +121,14 @@ export default function StatisticsMedicManager() {
           count: integrityData.length,
           canAutoFix: true
         });
+      } else if (integrityError) {
+        console.error("❌ StatisticsMedic: Data integrity scan failed:", integrityError);
       }
 
       setScanProgress(100);
       setIssues(foundIssues);
+
+      console.log(`✅ StatisticsMedic: Scan complete - found ${foundIssues.length} types of issues:`, foundIssues.map(i => `${i.type} (${i.count})`));
 
       if (foundIssues.length === 0) {
         toast({
@@ -148,13 +169,16 @@ export default function StatisticsMedicManager() {
   };
 
   const fixIssue = async (issue: StatisticsIssue) => {
+    console.log(`🔧 StatisticsMedic: Fixing issue type ${issue.type} affecting ${issue.count} records`);
     setFixing(true);
     try {
       switch (issue.type) {
         case 'missing_wins':
+          console.log("🔄 StatisticsMedic: Running fix_missing_match_statistics");
           const { data: matchFixData, error: matchFixError } = await supabase.rpc('fix_missing_match_statistics');
           if (matchFixError) throw matchFixError;
           
+          console.log("✅ StatisticsMedic: Match statistics fix completed:", matchFixData);
           toast({
             title: "Match Statistics Fixed",
             description: `Fixed win/loss statistics for ${matchFixData?.[0]?.matches_processed || 0} matches`
@@ -162,9 +186,11 @@ export default function StatisticsMedicManager() {
           break;
 
         case 'missing_tournament_stats':
+          console.log("🔄 StatisticsMedic: Running fix_missing_tournament_wins");
           const { data: tournamentFixData, error: tournamentFixError } = await supabase.rpc('fix_missing_tournament_wins');
           if (tournamentFixError) throw tournamentFixError;
           
+          console.log("✅ StatisticsMedic: Tournament statistics fix completed:", tournamentFixData);
           toast({
             title: "Tournament Statistics Fixed",
             description: `Fixed tournament win statistics for ${tournamentFixData || 0} users`
@@ -172,6 +198,7 @@ export default function StatisticsMedicManager() {
           break;
 
         case 'missing_losses':
+          console.log("🔄 StatisticsMedic: Initializing null statistics to 0");
           const { error: nullFixError } = await supabase
             .from('users')
             .update({
@@ -184,6 +211,7 @@ export default function StatisticsMedicManager() {
           
           if (nullFixError) throw nullFixError;
           
+          console.log("✅ StatisticsMedic: Null statistics initialized successfully");
           toast({
             title: "Null Statistics Fixed",
             description: "Initialized null statistics to 0 for all affected users"
@@ -191,6 +219,7 @@ export default function StatisticsMedicManager() {
           break;
 
         default:
+          console.warn(`⚠️ StatisticsMedic: Cannot auto-fix issue type: ${issue.type}`);
           toast({
             title: "Cannot Auto-Fix",
             description: "This issue type requires manual intervention",
@@ -200,8 +229,10 @@ export default function StatisticsMedicManager() {
       }
 
       // Re-run scan to update issues list
+      console.log("🔄 StatisticsMedic: Re-running scan to verify fixes");
       await runStatisticsScan();
     } catch (error: any) {
+      console.error(`❌ StatisticsMedic: Fix failed for ${issue.type}:`, error);
       toast({
         title: "Fix Failed",
         description: error.message,

@@ -151,6 +151,7 @@ export default function AchievementMedicManager() {
   }, [refreshKey]);
 
   const fetchAchievements = async () => {
+    console.log("🔄 AchievementMedic: Fetching achievements data");
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -159,8 +160,11 @@ export default function AchievementMedicManager() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
+      
+      console.log(`✅ AchievementMedic: Loaded ${data?.length || 0} achievements`);
       setAchievements(data || []);
     } catch (error: any) {
+      console.error("❌ AchievementMedic: Failed to fetch achievements:", error);
       toast({
         title: "Error",
         description: error.message,
@@ -224,6 +228,7 @@ export default function AchievementMedicManager() {
   };
 
   const handleCreateAchievement = async () => {
+    console.log("🔄 AchievementMedic: Creating achievement:", formData);
     try {
       const { error } = await supabase
         .from("achievements")
@@ -231,6 +236,7 @@ export default function AchievementMedicManager() {
 
       if (error) throw error;
 
+      console.log(`✅ AchievementMedic: Successfully created achievement: ${formData.name}`);
       toast({
         title: "Success",
         description: "Achievement created successfully"
@@ -240,6 +246,7 @@ export default function AchievementMedicManager() {
       resetForm();
       setRefreshKey(prev => prev + 1);
     } catch (error: any) {
+      console.error("❌ AchievementMedic: Failed to create achievement:", error);
       toast({
         title: "Error",
         description: error.message,
@@ -303,6 +310,7 @@ export default function AchievementMedicManager() {
   const handleAwardAchievement = async () => {
     if (!selectedAchievement || !selectedUser) return;
 
+    console.log(`🔄 AchievementMedic: Awarding achievement ${selectedAchievement.name} to user ${selectedUser}`);
     try {
       // Check if user already has this achievement
       const { data: existing } = await supabase
@@ -313,6 +321,7 @@ export default function AchievementMedicManager() {
         .single();
 
       if (existing) {
+        console.warn(`⚠️ AchievementMedic: User already has achievement ${selectedAchievement.name}`);
         toast({
           title: "Error",
           description: "User already has this achievement",
@@ -330,6 +339,7 @@ export default function AchievementMedicManager() {
 
       if (error) throw error;
 
+      console.log(`✅ AchievementMedic: Successfully awarded ${selectedAchievement.name} to user`);
       toast({
         title: "Success",
         description: "Achievement awarded successfully"
@@ -339,6 +349,7 @@ export default function AchievementMedicManager() {
       setSelectedUser("");
       setRefreshKey(prev => prev + 1);
     } catch (error: any) {
+      console.error("❌ AchievementMedic: Failed to award achievement:", error);
       toast({
         title: "Error",
         description: error.message,
