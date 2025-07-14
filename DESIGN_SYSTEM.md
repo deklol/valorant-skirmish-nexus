@@ -3,6 +3,95 @@
 ## Overview
 This document defines the consistent design patterns for the tournament platform to ensure UI consistency across all components.
 
+## Reusable Layout Components
+
+To prevent UI inconsistencies, use these pre-built components instead of manually applying styles:
+
+### PageLayout Component
+Automatically applies the gradient background and container styling:
+
+```tsx
+import { PageLayout } from "@/components/ui/page-layout"
+
+export default function MyPage() {
+  return (
+    <PageLayout>
+      {/* Your page content */}
+    </PageLayout>
+  )
+}
+```
+
+### PageCard Component
+Pre-styled card with consistent background and borders:
+
+```tsx
+import { 
+  PageCard, 
+  PageCardHeader, 
+  PageCardTitle, 
+  PageCardDescription,
+  PageCardContent 
+} from "@/components/ui/page-card"
+
+export default function MyComponent() {
+  return (
+    <PageCard>
+      <PageCardHeader>
+        <PageCardTitle>Card Title</PageCardTitle>
+        <PageCardDescription>Card description</PageCardDescription>
+      </PageCardHeader>
+      <PageCardContent>
+        {/* Content */}
+      </PageCardContent>
+    </PageCard>
+  )
+}
+```
+
+### StandardTabs Component
+Pre-configured tabs with consistent styling:
+
+```tsx
+import { 
+  StandardTabs, 
+  StandardTabsList, 
+  StandardTabsTrigger, 
+  StandardTabsContent 
+} from "@/components/ui/standard-tabs"
+
+export default function MyTabs() {
+  return (
+    <StandardTabs defaultValue="tab1">
+      <StandardTabsList>
+        <StandardTabsTrigger value="tab1">Tab 1</StandardTabsTrigger>
+        <StandardTabsTrigger value="tab2">Tab 2</StandardTabsTrigger>
+      </StandardTabsList>
+      <StandardTabsContent value="tab1">
+        Tab 1 content
+      </StandardTabsContent>
+      <StandardTabsContent value="tab2">
+        Tab 2 content
+      </StandardTabsContent>
+    </StandardTabs>
+  )
+}
+```
+
+## Usage Guidelines
+
+### For New Pages/Components
+1. **Always use `PageLayout`** for page-level components
+2. **Always use `PageCard`** instead of raw `Card` components
+3. **Always use `StandardTabs`** for tabbed interfaces
+4. **Test in both light/dark modes** if applicable
+
+### For Existing Pages (Migration Strategy)
+1. Gradually replace `Card` with `PageCard`
+2. Replace `Tabs` implementations with `StandardTabs`
+3. Wrap page content with `PageLayout`
+4. Remove manual background and styling classes
+
 ## Color Palette & Backgrounds
 
 ### Main Application Background
@@ -99,14 +188,24 @@ data-[state=active]:bg-slate-700 data-[state=active]:text-white
 3. **Visual Hierarchy**: Maintain clear distinction between component levels
 4. **Accessibility**: Ensure proper contrast ratios for all text and interactive elements
 
-## Future Development
+## Enforcement Rules
 
-When adding new components or pages:
+### MANDATORY for New Development
+- **NEVER** manually apply gradient backgrounds - use `PageLayout`
+- **NEVER** manually style cards - use `PageCard`
+- **NEVER** manually style tabs - use `StandardTabs`
+- **ALWAYS** import and use the standard components
 
-1. Always start with the gradient background for pages
-2. Use the standard card styling for main containers
-3. Follow the tab pattern for any tabbed interfaces
-4. Test in both light/dark modes if applicable
-5. Refer to this document and existing implementations
+### Benefits
+1. **Zero Configuration** - Components work perfectly out of the box
+2. **Automatic Consistency** - Impossible to create inconsistent UIs
+3. **Future-Proof** - Design changes happen in one place
+4. **Developer Friendly** - Less code, fewer classes to remember
 
-This ensures the application maintains a cohesive, professional appearance that users can navigate intuitively.
+### Migration Path
+Existing pages can be gradually migrated by replacing:
+- `<Card>` → `<PageCard>`
+- `<Tabs>` → `<StandardTabs>`
+- Manual backgrounds → `<PageLayout>`
+
+This ensures the application maintains a cohesive, professional appearance automatically.
