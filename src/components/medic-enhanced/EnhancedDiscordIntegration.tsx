@@ -8,35 +8,45 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogFooter, AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel } from "@/components/ui/alert-dialog";
-import { Bot, Image, Trophy, Users, Calendar, Target, Settings, Download } from "lucide-react";
+import { Bot, Image, Trophy, Users, Calendar, Target, Settings, Download, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
-interface EnhancedDiscordIntegrationProps {
-  tournamentId: string;
-  tournament: {
-    name: string;
-    status: string;
-    start_time: string | null;
-  };
-  matches: Array<{
-    id: string;
-    round_number: number;
-    match_number: number;
-    team1_id: string | null;
-    team2_id: string | null;
-    status: string;
-    winner_id: string | null;
-  }>;
-  teams: Array<{ id: string; name: string; status: string }>;
+interface Tournament {
+  id: string;
+  name: string;
+  status: string;
+  start_time: string | null;
+  description: string | null;
 }
 
-export default function EnhancedDiscordIntegration({
-  tournamentId,
-  tournament,
-  matches,
-  teams
-}: EnhancedDiscordIntegrationProps) {
+interface Match {
+  id: string;
+  round_number: number;
+  match_number: number;
+  team1_id: string | null;
+  team2_id: string | null;
+  status: string;
+  winner_id: string | null;
+  score_team1: number | null;
+  score_team2: number | null;
+}
+
+interface Team {
+  id: string;
+  name: string;
+  status: string;
+  total_rank_points: number | null;
+}
+
+export default function EnhancedDiscordIntegration() {
+  // State for tournament selection and data
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [selectedTournamentId, setSelectedTournamentId] = useState<string>("");
+  const [tournament, setTournament] = useState<Tournament | null>(null);
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [dataLoading, setDataLoading] = useState(false);
   const [webhookUrl, setWebhookUrl] = useState("");
   const [autoPostEnabled, setAutoPostEnabled] = useState(false);
   const [postBracketUpdates, setPostBracketUpdates] = useState(true);
@@ -49,6 +59,85 @@ export default function EnhancedDiscordIntegration({
   const [showPreview, setShowPreview] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { toast } = useToast();
+
+  // Load tournaments on mount
+  useEffect(() => {
+    loadTournaments();
+  }, []);
+
+  // Load tournament data when selected
+  useEffect(() => {
+    if (selectedTournamentId) {
+      loadTournamentData(selectedTournamentId);
+    }
+  }, [selectedTournamentId]);
+
+  const loadTournaments = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('tournaments')
+        .select('id, name, status, start_time, description')
+        .neq('status', 'draft')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setTournaments(data || []);
+    } catch (error: any) {
+      toast({
+        title: "Failed to Load Tournaments",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const loadTournamentData = async (tournamentId: string) => {
+    setDataLoading(true);
+    try {
+      // Load tournament details
+      const { data: tournamentData, error: tournamentError } = await supabase
+        .from('tournaments')
+        .select('id, name, status, start_time, description')
+        .eq('id', tournamentId)
+        .single();
+
+      if (tournamentError) throw tournamentError;
+      setTournament(tournamentData);
+
+      // Load matches
+      const { data: matchesData, error: matchesError } = await supabase
+        .from('matches')
+        .select('id, round_number, match_number, team1_id, team2_id, status, winner_id, score_team1, score_team2')
+        .eq('tournament_id', tournamentId)
+        .order('round_number', { ascending: true })
+        .order('match_number', { ascending: true });
+
+      if (matchesError) throw matchesError;
+      setMatches(matchesData || []);
+
+      // Load teams
+      const { data: teamsData, error: teamsError } = await supabase
+        .from('teams')
+        .select('id, name, status, total_rank_points')
+        .eq('tournament_id', tournamentId)
+        .order('name', { ascending: true });
+
+      if (teamsError) throw teamsError;
+      setTeams(teamsData || []);
+
+    } catch (error: any) {
+      toast({
+        title: "Failed to Load Tournament Data",
+        description: error.message,
+        variant: "destructive"
+      });
+      setTournament(null);
+      setMatches([]);
+      setTeams([]);
+    } finally {
+      setDataLoading(false);
+    }
+  };
 
   // Generate bracket visualization as image
   const generateBracketImage = async (): Promise<string> => {
@@ -70,12 +159,12 @@ export default function EnhancedDiscordIntegration({
     ctx.fillStyle = '#f8fafc';
     ctx.font = 'bold 32px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText(tournament.name, canvas.width / 2, 40);
+    ctx.fillText(tournament?.name || 'No Tournament Selected', canvas.width / 2, 40);
 
     // Tournament status
     ctx.fillStyle = '#94a3b8';
     ctx.font = '18px Arial';
-    ctx.fillText(`Status: ${tournament.status.toUpperCase()}`, canvas.width / 2, 70);
+    ctx.fillText(`Status: ${tournament?.status?.toUpperCase() || 'UNKNOWN'}`, canvas.width / 2, 70);
 
     // Draw bracket structure
     const rounds = Math.max(...matches.map(m => m.round_number), 1);
@@ -157,6 +246,15 @@ export default function EnhancedDiscordIntegration({
         icon_url: "https://cdn.discordapp.com/embed/avatars/0.png"
       }
     };
+
+    if (!tournament) {
+      return {
+        ...baseEmbed,
+        title: "⚠️ No Tournament Selected",
+        description: "Please select a tournament first",
+        color: 0xff0000
+      };
+    }
 
     switch (type) {
       case 'bracket':
@@ -368,6 +466,74 @@ export default function EnhancedDiscordIntegration({
         </CardHeader>
         <CardContent className="space-y-6">
           
+          {/* Tournament Selection */}
+          <div className="border border-orange-600/30 bg-orange-950/20 rounded-lg p-4">
+            <h3 className="text-orange-400 font-medium mb-3 flex items-center gap-2">
+              <Trophy className="w-4 h-4" />
+              Tournament Selection
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <Label className="text-slate-300">Select Tournament</Label>
+                <div className="flex gap-2">
+                  <Select value={selectedTournamentId} onValueChange={setSelectedTournamentId}>
+                    <SelectTrigger className="bg-slate-700 border-slate-600 text-white flex-1">
+                      <SelectValue placeholder="Choose a tournament..." />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-700 border-slate-600">
+                      {tournaments.map((tournament) => (
+                        <SelectItem key={tournament.id} value={tournament.id}>
+                          {tournament.name} ({tournament.status})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    onClick={loadTournaments}
+                    variant="outline"
+                    size="icon"
+                    disabled={dataLoading}
+                  >
+                    <RefreshCw className={`w-4 h-4 ${dataLoading ? 'animate-spin' : ''}`} />
+                  </Button>
+                </div>
+              </div>
+              
+              {tournament && (
+                <div className="bg-slate-900 p-3 rounded border">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div>
+                      <Label className="text-slate-400">Status</Label>
+                      <p className="text-white font-medium">{tournament.status.toUpperCase()}</p>
+                    </div>
+                    <div>
+                      <Label className="text-slate-400">Teams</Label>
+                      <p className="text-white font-medium">{teams.length}</p>
+                    </div>
+                    <div>
+                      <Label className="text-slate-400">Matches</Label>
+                      <p className="text-white font-medium">{matches.length}</p>
+                    </div>
+                    <div>
+                      <Label className="text-slate-400">Completed</Label>
+                      <p className="text-white font-medium">
+                        {matches.filter(m => m.status === 'completed').length}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {!tournament && selectedTournamentId && (
+                <div className="bg-yellow-900/20 border border-yellow-600/30 p-3 rounded">
+                  <p className="text-yellow-400 text-sm">
+                    ⚠️ Please select a tournament to enable Discord integration features
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Webhook Configuration */}
           <div className="border border-purple-600/30 bg-purple-950/20 rounded-lg p-4">
             <h3 className="text-purple-400 font-medium mb-3 flex items-center gap-2">
@@ -464,7 +630,7 @@ export default function EnhancedDiscordIntegration({
               
               <Button
                 onClick={handleGenerateAndPostBracket}
-                disabled={!webhookUrl.trim() || loading}
+                disabled={!webhookUrl.trim() || loading || !tournament}
                 className="w-full bg-blue-600 hover:bg-blue-700"
               >
                 <Image className="w-4 h-4 mr-2" />
@@ -519,7 +685,7 @@ export default function EnhancedDiscordIntegration({
                 
                 <Button
                   onClick={handlePostEmbed}
-                  disabled={!webhookUrl.trim() || loading}
+                  disabled={!webhookUrl.trim() || loading || !tournament}
                   className="bg-green-600 hover:bg-green-700"
                 >
                   Post Embed

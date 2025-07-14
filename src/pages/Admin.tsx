@@ -183,12 +183,7 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="discord-integration">
-            <EnhancedDiscordIntegration
-              tournamentId=""
-              tournament={{ name: "Global", status: "active", start_time: null }}
-              matches={[]}
-              teams={[]}
-            />
+            <EnhancedDiscordIntegration />
           </TabsContent>
 
           <TabsContent value="monitoring">
