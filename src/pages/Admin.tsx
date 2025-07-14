@@ -71,7 +71,7 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="tournaments" className="space-y-6">
-          <TabsList className="bg-slate-800 border-slate-700 grid grid-cols-3 lg:grid-cols-6 xl:grid-cols-13 w-full max-w-7xl mx-auto overflow-x-auto" style={{scrollbarWidth: 'none', msOverflowStyle: 'none'}}>
+          <TabsList className="bg-slate-800 border-slate-700 flex flex-wrap justify-start gap-1 h-auto p-2 w-full max-w-7xl mx-auto overflow-x-auto">{/* Using flex instead of grid for better tab handling */}
             {/* Core Management */}
             <TabsTrigger value="tournaments" className="text-white data-[state=active]:bg-red-600">
               <Trophy className="w-4 h-4 mr-2" />
