@@ -161,21 +161,24 @@ const Statistics = () => {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-center">
-          <div className="text-white">Loading statistics...</div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center">
+            <div className="text-white">Loading statistics...</div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Statistics & Achievements</h1>
-          <p className="text-slate-400">Platform-wide statistics and achievement tracking</p>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
+      <div className="container mx-auto px-4 py-8">
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold text-white mb-2">Statistics & Achievements</h1>
+            <p className="text-slate-400">Platform-wide statistics and achievement tracking</p>
+          </div>
 
         <Tabs defaultValue="global" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
@@ -348,6 +351,7 @@ const Statistics = () => {
             </TabsContent>
           )}
         </Tabs>
+        </div>
       </div>
     </div>
   );

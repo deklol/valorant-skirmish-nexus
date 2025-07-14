@@ -16,12 +16,13 @@ import {
 
 const Help = () => {
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Help & Guide</h1>
-          <p className="text-slate-400">Everything you need to know about using the tournament platform</p>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
+      <div className="container mx-auto px-4 py-8">
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold text-white mb-2">Help & Guide</h1>
+            <p className="text-slate-400">Everything you need to know about using the tournament platform</p>
+          </div>
 
         <Tabs defaultValue="getting-started" className="w-full">
           <TabsList className="grid w-full grid-cols-4">
@@ -270,6 +271,7 @@ const Help = () => {
             </div>
           </TabsContent>
         </Tabs>
+        </div>
       </div>
     </div>
   );

@@ -60,17 +60,20 @@ const Players = () => {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">
-          <p className="text-white">Loading players...</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <p className="text-white">Loading players...</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex items-center gap-3 mb-2">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
+      <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center gap-3 mb-2">
           <Users className="w-8 h-8 text-blue-500" />
           <h1 className="text-3xl font-bold text-white">Players</h1>
         </div>
@@ -85,7 +88,7 @@ const Players = () => {
             </CardContent>
           </Card>
         ) : (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {players.map((player) => (
               <Card key={player.id} className="bg-slate-800/90 border-slate-700 hover:bg-slate-800 transition-colors">
                 <CardHeader className="pb-3">
@@ -160,6 +163,7 @@ const Players = () => {
             ))}
           </div>
         )}
+      </div>
     </div>
   );
 };
