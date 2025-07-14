@@ -1,13 +1,15 @@
-import { useNameEffects } from '@/hooks/useNameEffects';
+import { useNameEffects, getNameEffectStyles } from '@/hooks/useNameEffects';
 import { StandardText } from '@/components/ui';
+import { cn } from '@/lib/utils';
 
 interface StyledUsernameProps {
-  userId: string;
+  userId?: string;
   username: string;
   className?: string;
   size?: "xs" | "sm" | "base" | "lg" | "xl";
   weight?: "normal" | "medium" | "semibold" | "bold";
   as?: "p" | "span" | "div" | "label";
+  fallbackOnly?: boolean; // For critical UI areas where effects might cause issues
 }
 
 export function StyledUsername({ 
@@ -16,11 +18,13 @@ export function StyledUsername({
   className,
   size = "base",
   weight = "normal",
-  as = "span"
+  as = "span",
+  fallbackOnly = false
 }: StyledUsernameProps) {
-  const { getNameStyle, loading } = useNameEffects(userId);
+  const { nameEffect, loading } = useNameEffects(userId || null);
 
-  if (loading) {
+  // If fallbackOnly is true, no userId, loading, or no effect, just render plain username
+  if (fallbackOnly || !userId || loading || !nameEffect) {
     return (
       <StandardText size={size} weight={weight} as={as} className={className}>
         {username}
@@ -28,15 +32,14 @@ export function StyledUsername({
     );
   }
 
-  const customStyle = getNameStyle();
+  const effectClasses = getNameEffectStyles({ effect_data: nameEffect });
 
   return (
     <StandardText 
       size={size} 
       weight={weight} 
       as={as}
-      className={className}
-      style={customStyle}
+      className={cn(effectClasses, className)}
     >
       {username}
     </StandardText>

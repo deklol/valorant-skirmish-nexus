@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StyledUsername } from "@/components/StyledUsername";
 import {
   Sidebar,
   SidebarContent,
@@ -365,7 +366,12 @@ export function AppSidebar() {
               <Card className="bg-sidebar-accent border-sidebar-border">
                 <CardContent className="p-3 space-y-3">
                   <div className="text-sm text-sidebar-foreground font-medium truncate">
-                    {userProfile.discord_username || user.email}
+                    <StyledUsername 
+                      userId={user.id} 
+                      username={userProfile.discord_username || user.email || "Unknown"} 
+                      size="sm"
+                      fallbackOnly={true} // Keep sidebar simple for stability
+                    />
                   </div>
                   {userProfile.current_rank && (
                     <div className="flex items-center gap-2 text-xs text-sidebar-foreground/70">

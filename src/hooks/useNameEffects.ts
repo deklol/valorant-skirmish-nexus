@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface NameEffect {
+  style?: string;
   color?: string;
-  gradient?: string;
-  weight?: string;
+  pattern?: string;
 }
 
 export function useNameEffects(userId: string | null) {
@@ -60,31 +60,40 @@ export function useNameEffects(userId: string | null) {
     };
   }, [userId]);
 
-  const getNameStyle = () => {
-    if (!nameEffect) return {};
-
-    if (nameEffect.gradient) {
-      return {
-        background: nameEffect.gradient,
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent',
-        backgroundClip: 'text',
-        fontWeight: nameEffect.weight || 'normal',
-      };
-    } else if (nameEffect.color) {
-      return {
-        color: nameEffect.color,
-        fontWeight: nameEffect.weight || 'normal',
-      };
-    }
-
-    return {};
-  };
-
   return {
     nameEffect,
     loading,
-    getNameStyle,
     hasEffect: !!nameEffect,
   };
 }
+
+export const getNameEffectStyles = (effect: any): string => {
+  if (!effect?.effect_data) return "";
+  
+  const { style, color, pattern } = effect.effect_data;
+  
+  switch (style) {
+    case 'bold':
+      return 'font-bold';
+    case 'italic':
+      return 'italic';
+    case 'glow':
+      return `text-${color || 'blue'}-400 drop-shadow-[0_0_8px_rgba(59,130,246,0.8)]`;
+    case 'galaxy':
+      return 'bg-gradient-to-r from-blue-400 via-purple-500 to-indigo-600 bg-clip-text text-transparent font-semibold';
+    case 'fire':
+      return 'bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 bg-clip-text text-transparent font-semibold';
+    case 'ice':
+      return 'bg-gradient-to-r from-cyan-400 via-blue-500 to-blue-600 bg-clip-text text-transparent font-semibold';
+    case 'neon':
+      return 'text-green-400 drop-shadow-[0_0_10px_rgba(34,197,94,0.9)] font-bold';
+    case 'royal':
+      return 'bg-gradient-to-r from-purple-600 via-violet-600 to-purple-700 bg-clip-text text-transparent font-bold';
+    case 'shadow':
+      return 'text-gray-300 drop-shadow-[2px_2px_4px_rgba(0,0,0,0.8)] font-semibold';
+    case 'electric':
+      return 'bg-gradient-to-r from-yellow-400 via-blue-500 to-cyan-400 bg-clip-text text-transparent font-bold animate-pulse';
+    default:
+      return "";
+  }
+};
