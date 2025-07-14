@@ -25,11 +25,11 @@ const Help = () => {
           </div>
 
         <Tabs defaultValue="getting-started" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="getting-started">Getting Started</TabsTrigger>
-            <TabsTrigger value="tournaments">Tournaments</TabsTrigger>
-            <TabsTrigger value="teams">Teams</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4 bg-slate-800/90 border border-slate-700">
+            <TabsTrigger value="getting-started" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">Getting Started</TabsTrigger>
+            <TabsTrigger value="tournaments" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">Tournaments</TabsTrigger>
+            <TabsTrigger value="teams" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">Teams</TabsTrigger>
+            <TabsTrigger value="settings" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">Settings</TabsTrigger>
           </TabsList>
 
           <TabsContent value="getting-started" className="space-y-6">

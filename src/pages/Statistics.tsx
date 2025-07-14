@@ -181,10 +181,10 @@ const Statistics = () => {
           </div>
 
         <Tabs defaultValue="global" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="global">Global Stats</TabsTrigger>
-            <TabsTrigger value="achievements">All Achievements</TabsTrigger>
-            {user && <TabsTrigger value="my-achievements">My Achievements</TabsTrigger>}
+          <TabsList className="grid w-full grid-cols-3 bg-slate-800/90 border border-slate-700">
+            <TabsTrigger value="global" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">Global Stats</TabsTrigger>
+            <TabsTrigger value="achievements" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">All Achievements</TabsTrigger>
+            {user && <TabsTrigger value="my-achievements" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">My Achievements</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="global" className="space-y-6">
