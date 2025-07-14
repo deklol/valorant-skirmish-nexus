@@ -11,7 +11,7 @@ import { Users, UserPlus, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { StyledUsername } from "@/components/StyledUsername";
+import { Username } from "@/components/Username";
 
 interface TeamCreationDialogProps {
   tournamentId: string;
@@ -228,7 +228,7 @@ const TeamCreationDialog = ({ tournamentId, onTeamCreated }: TeamCreationDialogP
                     <CardContent className="p-3">
                       <div className="flex items-center justify-between">
                         <div>
-                           <StyledUsername username={player.discord_username} userId={player.id} size="sm" className="text-white font-medium" />
+                           <Username username={player.discord_username} userId={player.id} size="sm" className="text-white font-medium" />
                           <div className="text-slate-400 text-sm">{player.riot_id}</div>
                           <div className="text-slate-400 text-sm">{player.current_rank || 'Unranked'}</div>
                         </div>
@@ -250,7 +250,7 @@ const TeamCreationDialog = ({ tournamentId, onTeamCreated }: TeamCreationDialogP
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
-                            <StyledUsername username={player.discord_username} userId={player.id} size="sm" className="text-white font-medium" />
+                            <Username username={player.discord_username} userId={player.id} size="sm" className="text-white font-medium" />
                             {captainId === player.id && (
                               <Badge className="bg-yellow-500/20 text-yellow-400">Captain</Badge>
                             )}
