@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { User, Trophy, Target, Calendar, Settings, Bell, RefreshCw, TrendingUp, Twitter, Twitch, Clock, Award, Swords, Save } from "lucide-react";
+import { User, Trophy, Target, Calendar, Settings, Bell, RefreshCw, TrendingUp, Twitter, Twitch, Clock, Award, Swords, Save, Shield } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -22,6 +22,7 @@ import ProfileAchievements from '@/components/profile/ProfileAchievements';
 import { getTrackerGGUrl } from "@/utils/getTrackerGGUrl";
 import { useUserTeam } from "@/hooks/useUserTeam";
 import ClickableTeamName from "@/components/ClickableTeamName";
+import { Username } from "@/components/Username";
 import { Users } from "lucide-react";
 
 interface UserProfile {
@@ -41,6 +42,7 @@ interface UserProfile {
   profile_visibility: string;
   last_seen: string;
   created_at: string;
+  role: string;
 }
 
 const Profile = () => {
@@ -251,8 +253,14 @@ const Profile = () => {
                 </div>
               )}
               <div>
-                <CardTitle className="text-white text-2xl">
-                  {profile.discord_username || 'Unknown Player'}
+                <CardTitle className="text-white text-2xl flex items-center gap-2">
+                  <Username username={profile.discord_username || 'Unknown Player'} userId={profile.id} size="lg" weight="bold" />
+                  {profile.role === 'admin' && (
+                    <Badge className="bg-gradient-to-r from-red-600 to-red-700 text-white border-red-500">
+                      <Shield className="w-3 h-3 mr-1" />
+                      Admin
+                    </Badge>
+                  )}
                 </CardTitle>
                 <div className="flex items-center gap-2 mt-2">
                   {profile.current_rank && (

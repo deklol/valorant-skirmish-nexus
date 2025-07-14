@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { User, Calendar, Trophy, Target, Twitter, Twitch, Clock, Lock, Swords, Award } from 'lucide-react';
+import { User, Calendar, Trophy, Target, Twitter, Twitch, Clock, Lock, Swords, Award, Shield, Users } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import ProfileMatchHistory from '@/components/profile/ProfileMatchHistory';
 import ProfileTournamentHistory from '@/components/profile/ProfileTournamentHistory';
@@ -14,7 +14,7 @@ import ProfileRankHistory from '@/components/profile/ProfileRankHistory';
 import { getTrackerGGUrl } from '@/utils/getTrackerGGUrl';
 import { useUserTeam } from "@/hooks/useUserTeam";
 import ClickableTeamName from "@/components/ClickableTeamName";
-import { Users } from "lucide-react";
+import { Username } from "@/components/Username";
 
 const PublicProfile = () => {
   const { userId } = useParams<{ userId: string }>();
@@ -80,9 +80,15 @@ const PublicProfile = () => {
                 />
               )}
               <div>
-                <CardTitle className="text-white text-2xl">
-                  {profile.discord_username || 'Unknown Player'}
-                  {isPrivate && <Lock className="w-5 h-5 inline ml-2 text-slate-400" />}
+                <CardTitle className="text-white text-2xl flex items-center gap-2">
+                  <Username username={profile.discord_username || 'Unknown Player'} userId={profile.id} size="lg" weight="bold" />
+                  {profile.role === 'admin' && (
+                    <Badge className="bg-gradient-to-r from-red-600 to-red-700 text-white border-red-500">
+                      <Shield className="w-3 h-3 mr-1" />
+                      Admin
+                    </Badge>
+                  )}
+                  {isPrivate && <Lock className="w-5 h-5 text-slate-400" />}
                 </CardTitle>
                 <div className="flex items-center gap-2 mt-2">
                   {profile.current_rank && (
