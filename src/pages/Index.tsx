@@ -32,11 +32,11 @@ const Index = () => {
           .from('tournaments')
           .select('*', { count: 'exact' });
 
-        // Get active players (users with recent activity)
+        // Get total registered players
         const { count: playerCount } = await supabase
           .from('users')
           .select('*', { count: 'exact' })
-          .gte('last_seen', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+          .eq('is_phantom', false);
 
         // Get live matches
         const { count: liveMatchCount } = await supabase
