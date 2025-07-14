@@ -3,9 +3,11 @@
 ## Overview
 This document defines the consistent design patterns for the tournament platform to ensure UI consistency across all components.
 
-## Reusable Layout Components
+## Complete Component System
 
-To prevent UI inconsistencies, use these pre-built components instead of manually applying styles:
+To prevent UI inconsistencies, use these pre-built standard components instead of manually applying styles:
+
+## Layout Components
 
 ### PageLayout Component
 Automatically applies the gradient background and container styling:
@@ -76,6 +78,108 @@ export default function MyTabs() {
     </StandardTabs>
   )
 }
+```
+
+## Form Components
+
+### StandardInput
+```tsx
+import { StandardInput } from "@/components/ui/standard-input"
+
+<StandardInput 
+  placeholder="Enter text..." 
+  type="text"
+/>
+```
+
+### StandardTextarea
+```tsx
+import { StandardTextarea } from "@/components/ui/standard-textarea"
+
+<StandardTextarea 
+  placeholder="Enter description..." 
+  rows={4}
+/>
+```
+
+### StandardSelect
+```tsx
+import { StandardSelect, StandardSelectItem } from "@/components/ui/standard-select"
+
+<StandardSelect placeholder="Choose option...">
+  <StandardSelectItem value="option1">Option 1</StandardSelectItem>
+  <StandardSelectItem value="option2">Option 2</StandardSelectItem>
+</StandardSelect>
+```
+
+## Typography Components
+
+### StandardHeading
+```tsx
+import { StandardHeading } from "@/components/ui/standard-heading"
+
+<StandardHeading level="h1" color="primary">Main Title</StandardHeading>
+<StandardHeading as="h3" color="muted">Subtitle</StandardHeading>
+```
+
+### StandardText
+```tsx
+import { StandardText } from "@/components/ui/standard-text"
+
+<StandardText size="lg" weight="semibold">Important text</StandardText>
+<StandardText color="muted" as="span">Helper text</StandardText>
+```
+
+### StandardLink
+```tsx
+import { StandardLink, StandardExternalLink } from "@/components/ui/standard-link"
+
+<StandardLink to="/tournaments" variant="nav">Tournaments</StandardLink>
+<StandardExternalLink href="https://example.com" variant="button">
+  External Link
+</StandardExternalLink>
+```
+
+## UI Elements
+
+### StandardBadge
+```tsx
+import { StandardBadge } from "@/components/ui/standard-badge"
+
+<StandardBadge status="success">Live</StandardBadge>
+<StandardBadge status="warning">Pending</StandardBadge>
+<StandardBadge status="error">Failed</StandardBadge>
+```
+
+### StandardAlert
+```tsx
+import { 
+  StandardAlert, 
+  StandardAlertTitle, 
+  StandardAlertDescription 
+} from "@/components/ui/standard-alert"
+
+<StandardAlert status="info">
+  <StandardAlertTitle>Info</StandardAlertTitle>
+  <StandardAlertDescription>This is an informational message.</StandardAlertDescription>
+</StandardAlert>
+```
+
+### StandardSeparator
+```tsx
+import { StandardSeparator } from "@/components/ui/standard-separator"
+
+<StandardSeparator />
+<StandardSeparator orientation="vertical" className="h-8" />
+```
+
+### StandardSkeleton
+```tsx
+import { StandardSkeleton } from "@/components/ui/standard-skeleton"
+
+<StandardSkeleton variant="title" />
+<StandardSkeleton variant="text" />
+<StandardSkeleton variant="card" />
 ```
 
 ## Usage Guidelines
@@ -194,6 +298,10 @@ data-[state=active]:bg-slate-700 data-[state=active]:text-white
 - **NEVER** manually apply gradient backgrounds - use `PageLayout`
 - **NEVER** manually style cards - use `PageCard`
 - **NEVER** manually style tabs - use `StandardTabs`
+- **NEVER** use raw `<input>`, `<textarea>`, `<select>` - use `Standard*` variants
+- **NEVER** use raw `<h1>`, `<h2>`, etc. - use `StandardHeading`
+- **NEVER** use raw `<p>`, `<span>` for content - use `StandardText`
+- **NEVER** use raw `<a>`, `<Link>` - use `StandardLink`
 - **ALWAYS** import and use the standard components
 
 ### Benefits
@@ -206,6 +314,12 @@ data-[state=active]:bg-slate-700 data-[state=active]:text-white
 Existing pages can be gradually migrated by replacing:
 - `<Card>` → `<PageCard>`
 - `<Tabs>` → `<StandardTabs>`
+- `<input>`, `<textarea>`, `<select>` → `StandardInput`, `StandardTextarea`, `StandardSelect`
+- `<h1>`, `<h2>`, etc. → `StandardHeading`
+- `<p>`, `<span>` → `StandardText`
+- `<a>`, `<Link>` → `StandardLink`, `StandardExternalLink`
+- `<Badge>` → `<StandardBadge>`
+- `<Alert>` → `<StandardAlert>`
 - Manual backgrounds → `<PageLayout>`
 
 This ensures the application maintains a cohesive, professional appearance automatically.

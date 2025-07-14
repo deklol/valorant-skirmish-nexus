@@ -1,5 +1,10 @@
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  StandardTabs, 
+  StandardTabsList, 
+  StandardTabsTrigger, 
+  StandardTabsContent 
+} from "@/components/ui/standard-tabs";
 import { Settings, Trophy, Users, Scale, UserCheck } from "lucide-react";
 import OverviewTab from "./tabs/OverviewTab";
 import BracketTab from "./tabs/BracketTab";
@@ -21,56 +26,53 @@ export default function TournamentTabs({
   onRefresh: () => void
 }) {
   return (
-    <Tabs defaultValue="overview" className="space-y-6">
-      <TabsList
-        className={`flex flex-wrap w-full gap-x-2 gap-y-2 bg-slate-800/90 border border-slate-700`}
-        style={{ alignItems: 'stretch' }}
-      >
-        <TabsTrigger value="overview" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
+    <StandardTabs defaultValue="overview" className="space-y-6">
+      <StandardTabsList className="flex flex-wrap w-full gap-x-2 gap-y-2">
+        <StandardTabsTrigger value="overview">
           <Settings className="w-4 h-4 mr-2" />
           Overview
-        </TabsTrigger>
+        </StandardTabsTrigger>
         {matches.length > 0 && (
-          <TabsTrigger value="bracket" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
+          <StandardTabsTrigger value="bracket">
             <Trophy className="w-4 h-4 mr-2" />
             Bracket
-          </TabsTrigger>
+          </StandardTabsTrigger>
         )}
-        <TabsTrigger value="participants" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
+        <StandardTabsTrigger value="participants">
           <Users className="w-4 h-4 mr-2" />
           Participants
-        </TabsTrigger>
+        </StandardTabsTrigger>
         {isAdmin && (
           <>
-            <TabsTrigger value="admin" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
+            <StandardTabsTrigger value="admin">
               <Settings className="w-4 h-4 mr-2" />
               Admin
-            </TabsTrigger>
-            <TabsTrigger value="players" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
+            </StandardTabsTrigger>
+            <StandardTabsTrigger value="players">
               <UserCheck className="w-4 h-4 mr-2" />
               Players
-            </TabsTrigger>
-            <TabsTrigger value="balancing" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
+            </StandardTabsTrigger>
+            <StandardTabsTrigger value="balancing">
               <Scale className="w-4 h-4 mr-2" />
               Balance
-            </TabsTrigger>
+            </StandardTabsTrigger>
           </>
         )}
-      </TabsList>
-      <TabsContent value="overview" className="space-y-6">
+      </StandardTabsList>
+      <StandardTabsContent value="overview" className="space-y-6">
         <OverviewTab tournament={tournament} parsedMapVetoRounds={parsedMapVetoRounds} />
-      </TabsContent>
+      </StandardTabsContent>
       {matches.length > 0 && (
-        <TabsContent value="bracket" className="space-y-6">
+        <StandardTabsContent value="bracket" className="space-y-6">
           <BracketTab tournamentId={tournament.id} />
-        </TabsContent>
+        </StandardTabsContent>
       )}
-      <TabsContent value="participants" className="space-y-6">
+      <StandardTabsContent value="participants" className="space-y-6">
         <ParticipantsTab tournamentId={tournament.id} maxPlayers={maxPlayers} isAdmin={isAdmin} />
-      </TabsContent>
+      </StandardTabsContent>
       {isAdmin &&
         <>
-          <TabsContent value="admin" className="space-y-6">
+          <StandardTabsContent value="admin" className="space-y-6">
             <AdminTab 
               tournament={tournament} 
               teams={teams} 
@@ -81,15 +83,15 @@ export default function TournamentTabs({
               onBracketGenerated={onRefresh} 
               onStatusChange={onRefresh} 
             />
-          </TabsContent>
-          <TabsContent value="players" className="space-y-6">
+          </StandardTabsContent>
+          <StandardTabsContent value="players" className="space-y-6">
             <PlayersTab tournamentId={tournament.id} maxPlayers={maxPlayers} onCheckInUpdate={onRefresh} />
-          </TabsContent>
-          <TabsContent value="balancing" className="space-y-6">
+          </StandardTabsContent>
+          <StandardTabsContent value="balancing" className="space-y-6">
             <BalancingTab tournamentId={tournament.id} maxTeams={tournament.max_teams} teamSize={tournament.team_size} onTeamsUpdated={onRefresh} />
-          </TabsContent>
+          </StandardTabsContent>
         </>
       }
-    </Tabs>
+    </StandardTabs>
   );
 }
