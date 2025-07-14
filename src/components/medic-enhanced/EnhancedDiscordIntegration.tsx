@@ -30,6 +30,7 @@ interface Match {
   winner_id: string | null;
   score_team1: number | null;
   score_team2: number | null;
+  map_veto_enabled?: boolean;
 }
 
 interface Team {
@@ -139,7 +140,7 @@ export default function EnhancedDiscordIntegration() {
     }
   };
 
-  // Generate bracket visualization as image
+  // Generate bracket visualization as image matching the actual UI
   const generateBracketImage = async (): Promise<string> => {
     const canvas = canvasRef.current;
     if (!canvas) throw new Error("Canvas not available");
@@ -147,71 +148,153 @@ export default function EnhancedDiscordIntegration() {
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error("Canvas context not available");
 
-    // Set canvas size
-    canvas.width = 1200;
-    canvas.height = 800;
+    // Set canvas size for better quality
+    canvas.width = 1600;
+    canvas.height = 1000;
 
-    // Dark background
-    ctx.fillStyle = '#1e293b';
+    // Dark background matching the UI
+    ctx.fillStyle = '#0f172a';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Title
+    // Helper function to draw rounded rectangle
+    const drawRoundedRect = (x: number, y: number, width: number, height: number, radius: number, fillColor: string, strokeColor?: string) => {
+      ctx.fillStyle = fillColor;
+      ctx.beginPath();
+      ctx.roundRect(x, y, width, height, radius);
+      ctx.fill();
+      if (strokeColor) {
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    };
+
+    // Title with better styling
     ctx.fillStyle = '#f8fafc';
-    ctx.font = 'bold 32px Arial';
+    ctx.font = 'bold 28px Inter, Arial';
     ctx.textAlign = 'center';
-    ctx.fillText(tournament?.name || 'No Tournament Selected', canvas.width / 2, 40);
+    ctx.fillText(tournament?.name || 'No Tournament Selected', canvas.width / 2, 50);
 
-    // Tournament status
-    ctx.fillStyle = '#94a3b8';
-    ctx.font = '18px Arial';
-    ctx.fillText(`Status: ${tournament?.status?.toUpperCase() || 'UNKNOWN'}`, canvas.width / 2, 70);
+    // Tournament status badge
+    const statusColor = tournament?.status === 'completed' ? '#059669' : 
+                       tournament?.status === 'live' ? '#dc2626' : '#64748b';
+    drawRoundedRect(canvas.width / 2 - 80, 65, 160, 30, 15, statusColor);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 14px Inter, Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(`${tournament?.status?.toUpperCase() || 'UNKNOWN'}`, canvas.width / 2, 85);
 
-    // Draw bracket structure
+    // Calculate bracket layout
     const rounds = Math.max(...matches.map(m => m.round_number), 1);
-    const roundWidth = (canvas.width - 100) / rounds;
-    
+    const startY = 130;
+    const availableHeight = canvas.height - startY - 50;
+    const roundWidth = Math.min(280, (canvas.width - 100) / rounds);
+    const spacing = 20;
+
     for (let round = 1; round <= rounds; round++) {
       const roundMatches = matches.filter(m => m.round_number === round);
-      const matchHeight = (canvas.height - 150) / Math.max(roundMatches.length, 1);
-      
-      // Round header
+      const matchHeight = 120;
+      const totalMatchesHeight = roundMatches.length * matchHeight + (roundMatches.length - 1) * spacing;
+      const startMatchY = startY + (availableHeight - totalMatchesHeight) / 2;
+
+      const roundX = 50 + (round - 1) * (roundWidth + 30);
+
+      // Round header with styling
+      const headerY = startY - 20;
+      drawRoundedRect(roundX, headerY, roundWidth, 35, 8, '#334155');
       ctx.fillStyle = '#3b82f6';
-      ctx.font = 'bold 20px Arial';
+      ctx.font = 'bold 16px Inter, Arial';
       ctx.textAlign = 'center';
-      const roundX = 50 + (round - 1) * roundWidth + roundWidth / 2;
-      ctx.fillText(`Round ${round}`, roundX, 110);
       
+      const roundName = round === rounds ? 'Final' : 
+                       round === rounds - 1 ? 'Semi-Final' :
+                       `Round ${round}`;
+      ctx.fillText(roundName, roundX + roundWidth / 2, headerY + 23);
+
       roundMatches.forEach((match, index) => {
-        const matchY = 130 + index * matchHeight;
-        const matchX = 50 + (round - 1) * roundWidth;
+        const matchY = startMatchY + index * (matchHeight + spacing);
         
-        // Match box
-        ctx.fillStyle = match.status === 'completed' ? '#059669' : 
-                       match.status === 'live' ? '#dc2626' : '#475569';
-        ctx.fillRect(matchX + 10, matchY, roundWidth - 20, matchHeight - 10);
-        
-        // Match border
-        ctx.strokeStyle = '#64748b';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(matchX + 10, matchY, roundWidth - 20, matchHeight - 10);
-        
-        // Match info
-        ctx.fillStyle = '#f8fafc';
-        ctx.font = '14px Arial';
+        // Match container with UI-like styling
+        drawRoundedRect(roundX, matchY, roundWidth, matchHeight, 8, '#334155', '#475569');
+
+        // Match number
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '12px Inter, Arial';
         ctx.textAlign = 'left';
-        
+        ctx.fillText(`Match ${match.match_number}`, roundX + 12, matchY + 18);
+
+        // Status badge
+        const statusBadgeColor = match.status === 'completed' ? '#059669' : 
+                               match.status === 'live' ? '#dc2626' : '#6b7280';
+        drawRoundedRect(roundX + roundWidth - 80, matchY + 6, 70, 18, 9, statusBadgeColor);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 10px Inter, Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(match.status.toUpperCase(), roundX + roundWidth - 45, matchY + 18);
+
         const team1Name = teams.find(t => t.id === match.team1_id)?.name || 'TBD';
         const team2Name = teams.find(t => t.id === match.team2_id)?.name || 'TBD';
+        const team1Score = match.score_team1 || 0;
+        const team2Score = match.score_team2 || 0;
+
+        // Team 1 container
+        const team1Y = matchY + 30;
+        const team1Winner = match.winner_id === match.team1_id;
+        const team1BgColor = team1Winner ? '#16a34a33' : '#475569';
+        const team1BorderColor = team1Winner ? '#16a34a' : '#64748b';
         
-        ctx.fillText(`${team1Name}`, matchX + 20, matchY + 25);
-        ctx.fillText(`vs`, matchX + 20, matchY + 45);
-        ctx.fillText(`${team2Name}`, matchX + 20, matchY + 65);
+        drawRoundedRect(roundX + 8, team1Y, roundWidth - 16, 30, 6, team1BgColor, team1BorderColor);
         
-        if (match.winner_id) {
-          const winnerName = teams.find(t => t.id === match.winner_id)?.name || 'Unknown';
-          ctx.fillStyle = '#10b981';
-          ctx.font = 'bold 12px Arial';
-          ctx.fillText(`Winner: ${winnerName}`, matchX + 20, matchY + 85);
+        // Team 1 text
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '14px Inter, Arial';
+        ctx.textAlign = 'left';
+        ctx.fillText(team1Name, roundX + 16, team1Y + 20);
+        
+        // Team 1 score
+        ctx.font = 'bold 16px Inter, Arial';
+        ctx.textAlign = 'right';
+        ctx.fillText(team1Score.toString(), roundX + roundWidth - 16, team1Y + 21);
+
+        // Winner trophy for team 1
+        if (team1Winner) {
+          ctx.fillStyle = '#fbbf24';
+          ctx.font = '12px Arial';
+          ctx.fillText('🏆', roundX + 16 + ctx.measureText(team1Name).width + 8, team1Y + 20);
+        }
+
+        // Team 2 container
+        const team2Y = matchY + 65;
+        const team2Winner = match.winner_id === match.team2_id;
+        const team2BgColor = team2Winner ? '#16a34a33' : '#475569';
+        const team2BorderColor = team2Winner ? '#16a34a' : '#64748b';
+        
+        drawRoundedRect(roundX + 8, team2Y, roundWidth - 16, 30, 6, team2BgColor, team2BorderColor);
+        
+        // Team 2 text
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '14px Inter, Arial';
+        ctx.textAlign = 'left';
+        ctx.fillText(team2Name, roundX + 16, team2Y + 20);
+        
+        // Team 2 score
+        ctx.font = 'bold 16px Inter, Arial';
+        ctx.textAlign = 'right';
+        ctx.fillText(team2Score.toString(), roundX + roundWidth - 16, team2Y + 21);
+
+        // Winner trophy for team 2
+        if (team2Winner) {
+          ctx.fillStyle = '#fbbf24';
+          ctx.font = '12px Arial';
+          ctx.fillText('🏆', roundX + 16 + ctx.measureText(team2Name).width + 8, team2Y + 20);
+        }
+
+        // Map veto indicator
+        if (match.map_veto_enabled) {
+          ctx.fillStyle = '#8b5cf6';
+          ctx.font = '10px Inter, Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText('MAP VETO', roundX + roundWidth / 2, matchY + 110);
         }
       });
     }
