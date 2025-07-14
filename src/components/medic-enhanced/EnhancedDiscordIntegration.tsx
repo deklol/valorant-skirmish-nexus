@@ -65,6 +65,7 @@ export default function EnhancedDiscordIntegration() {
   const [customMessage, setCustomMessage] = useState("");
   const [embedType, setEmbedType] = useState<'bracket' | 'results' | 'leaderboard' | 'schedule' | 'teams'>('bracket');
   const [bracketImageUrl, setBracketImageUrl] = useState("");
+  const [teamsImageUrl, setTeamsImageUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -669,7 +670,7 @@ export default function EnhancedDiscordIntegration() {
               inline: true
             }
           ],
-          image: bracketImageUrl ? { url: bracketImageUrl } : undefined
+          image: teamsImageUrl ? { url: teamsImageUrl } : undefined
         };
 
       default:
@@ -803,6 +804,54 @@ export default function EnhancedDiscordIntegration() {
       console.error('Bracket generation error:', error);
       toast({
         title: "Failed to Post Bracket",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGenerateAndPost = async () => {
+    setLoading(true);
+    try {
+      console.log('Generating and posting embed...', 'Embed type:', embedType);
+      
+      // Generate image based on embed type
+      let imageUrl = "";
+      if (tournament) {
+        if (embedType === 'bracket') {
+          console.log('Generating bracket image...');
+          imageUrl = await generateBracketImage();
+          setBracketImageUrl(imageUrl);
+        } else if (embedType === 'teams') {
+          console.log('Generating teams overview image...');
+          imageUrl = await generateTeamsOverviewImage();
+          setTeamsImageUrl(imageUrl);
+        }
+        
+        console.log('Image generated successfully, length:', imageUrl ? imageUrl.length : 0);
+      }
+
+      const embed = createRichEmbed(embedType) as any;
+      
+      // Attach image if generated
+      if (imageUrl && (embedType === 'bracket' || embedType === 'teams')) {
+        embed.image = { url: imageUrl };
+        console.log('Image attached to embed');
+      }
+
+      console.log('Sending embed to Discord...', JSON.stringify(embed, null, 2));
+      await sendDiscordMessage(embed, customMessage);
+      
+      toast({
+        title: "Success!",
+        description: `${embedType.charAt(0).toUpperCase() + embedType.slice(1)} embed posted to Discord`,
+      });
+    } catch (error: any) {
+      console.error('Generate and post error:', error);
+      toast({
+        title: "Failed to Post",
         description: error.message,
         variant: "destructive"
       });
@@ -1046,18 +1095,18 @@ export default function EnhancedDiscordIntegration() {
                 Generate & Post Bracket Image
               </Button>
               
-              {bracketImageUrl && (
-                <div className="mt-4">
-                  <Label className="text-slate-300">Generated Bracket Preview:</Label>
-                  <div className="mt-2 p-2 bg-slate-900 rounded border">
-                    <img 
-                      src={bracketImageUrl} 
-                      alt="Generated Bracket" 
-                      className="max-w-full h-auto rounded"
-                    />
-                  </div>
-                </div>
-              )}
+               {(bracketImageUrl || teamsImageUrl) && (
+                 <div className="mt-4">
+                   <Label className="text-slate-300">Generated Image Preview:</Label>
+                   <div className="mt-2 p-2 bg-slate-900 rounded border">
+                     <img 
+                       src={embedType === 'teams' ? teamsImageUrl : bracketImageUrl} 
+                       alt={`Generated ${embedType} Image`} 
+                       className="max-w-full h-auto rounded"
+                     />
+                   </div>
+                 </div>
+               )}
             </div>
           </div>
 
@@ -1094,11 +1143,11 @@ export default function EnhancedDiscordIntegration() {
                 </Button>
                 
                 <Button
-                  onClick={handlePostEmbed}
+                  onClick={handleGenerateAndPost}
                   disabled={!webhookUrl.trim() || loading || !tournament}
                   className="bg-green-600 hover:bg-green-700"
                 >
-                  Post Embed
+                  {(embedType === 'bracket' || embedType === 'teams') ? 'Generate & Post' : 'Post Embed'}
                 </Button>
               </div>
             </div>
