@@ -38,6 +38,15 @@ interface Team {
   name: string;
   status: string;
   total_rank_points: number | null;
+  team_members?: {
+    user_id: string;
+    is_captain: boolean;
+    users: {
+      discord_username: string;
+      current_rank: string | null;
+      rank_points: number | null;
+    };
+  }[];
 }
 
 export default function EnhancedDiscordIntegration() {
@@ -116,10 +125,18 @@ export default function EnhancedDiscordIntegration() {
       if (matchesError) throw matchesError;
       setMatches(matchesData || []);
 
-      // Load teams
+      // Load teams with members
       const { data: teamsData, error: teamsError } = await supabase
         .from('teams')
-        .select('id, name, status, total_rank_points')
+        .select(`
+          id, name, status, total_rank_points,
+          team_members (
+            user_id, is_captain,
+            users (
+              discord_username, current_rank, rank_points
+            )
+          )
+        `)
         .eq('tournament_id', tournamentId)
         .order('name', { ascending: true });
 
@@ -178,6 +195,22 @@ export default function EnhancedDiscordIntegration() {
       }
     };
 
+    // Helper function to get rank color
+    const getRankColor = (rank: string | null): string => {
+      if (!rank) return '#6b7280';
+      const rankLower = rank.toLowerCase();
+      if (rankLower.includes('iron')) return '#8b7355';
+      if (rankLower.includes('bronze')) return '#cd7f32';
+      if (rankLower.includes('silver')) return '#c0c0c0';
+      if (rankLower.includes('gold')) return '#ffd700';
+      if (rankLower.includes('platinum')) return '#e5e4e2';
+      if (rankLower.includes('diamond')) return '#b9f2ff';
+      if (rankLower.includes('ascendant')) return '#00ff87';
+      if (rankLower.includes('immortal')) return '#ff6b9d';
+      if (rankLower.includes('radiant')) return '#ffffaa';
+      return '#6b7280';
+    };
+
     // Title with better styling
     ctx.fillStyle = '#f8fafc';
     ctx.font = 'bold 28px Inter, Arial';
@@ -193,16 +226,17 @@ export default function EnhancedDiscordIntegration() {
     ctx.textAlign = 'center';
     ctx.fillText(`${tournament?.status?.toUpperCase() || 'UNKNOWN'}`, canvas.width / 2, 85);
 
-    // Teams overview title
+    // Teams & Participants header
     ctx.fillStyle = '#94a3b8';
-    ctx.font = '16px Inter, Arial';
-    ctx.fillText(`${teams.length} Teams Registered`, canvas.width / 2, 115);
+    ctx.font = 'bold 18px Inter, Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText('👥 Teams & Participants', 50, 125);
 
-    // Calculate grid layout for teams
-    const teamsPerRow = Math.ceil(Math.sqrt(teams.length));
-    const teamCardWidth = 250;
-    const teamCardHeight = 80;
-    const spacing = 20;
+    // Calculate grid layout for teams (2 teams per row for better detail)
+    const teamsPerRow = 2;
+    const teamCardWidth = 700;
+    const teamCardHeight = 200;
+    const spacing = 40;
     const startX = (canvas.width - (teamsPerRow * teamCardWidth + (teamsPerRow - 1) * spacing)) / 2;
     const startY = 150;
 
@@ -213,58 +247,84 @@ export default function EnhancedDiscordIntegration() {
       const y = startY + row * (teamCardHeight + spacing);
 
       // Team status color
-      const teamBgColor = team.status === 'winner' ? '#16a34a33' : 
-                         team.status === 'eliminated' ? '#dc262633' :
-                         team.status === 'confirmed' ? '#334155' : '#475569';
-      const teamBorderColor = team.status === 'winner' ? '#16a34a' : 
+      const teamBgColor = '#1e293b';
+      const teamBorderColor = team.status === 'winner' ? '#fbbf24' : 
                              team.status === 'eliminated' ? '#dc2626' :
                              team.status === 'confirmed' ? '#3b82f6' : '#64748b';
 
       // Team card container
-      drawRoundedRect(x, y, teamCardWidth, teamCardHeight, 8, teamBgColor, teamBorderColor);
+      drawRoundedRect(x, y, teamCardWidth, teamCardHeight, 12, teamBgColor, teamBorderColor);
 
-      // Team name
+      // Team name with crown
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 16px Inter, Arial';
+      ctx.font = 'bold 18px Inter, Arial';
       ctx.textAlign = 'left';
-      const maxNameWidth = teamCardWidth - 20;
+      ctx.fillText('👑', x + 15, y + 30);
+      
       let teamName = team.name;
+      const maxNameWidth = teamCardWidth - 200;
       if (ctx.measureText(teamName).width > maxNameWidth) {
         while (ctx.measureText(teamName + '...').width > maxNameWidth && teamName.length > 0) {
           teamName = teamName.slice(0, -1);
         }
         teamName += '...';
       }
-      ctx.fillText(teamName, x + 10, y + 25);
+      ctx.fillText(teamName, x + 50, y + 30);
 
-      // Status badge
-      const statusBadgeColors: { [key: string]: string } = {
-        'winner': '#059669',
-        'eliminated': '#dc2626',
-        'confirmed': '#3b82f6',
-        'pending': '#6b7280'
-      };
-      const badgeColor = statusBadgeColors[team.status] || '#6b7280';
-      drawRoundedRect(x + 10, y + 35, 80, 18, 9, badgeColor);
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 10px Inter, Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText(team.status.toUpperCase(), x + 50, y + 47);
-
-      // Rank points if available
+      // Team weight
       if (team.total_rank_points) {
-        ctx.fillStyle = '#94a3b8';
-        ctx.font = '12px Inter, Arial';
-        ctx.textAlign = 'right';
-        ctx.fillText(`${team.total_rank_points} pts`, x + teamCardWidth - 10, y + 65);
+        const weightText = `Team Weight: ${team.total_rank_points}`;
+        drawRoundedRect(x + teamCardWidth - 200, y + 10, 180, 25, 12, '#6366f1');
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 12px Inter, Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(weightText, x + teamCardWidth - 110, y + 27);
       }
+
+      // Team members
+      const members = team.team_members || [];
+      const membersStartY = y + 55;
+      const memberHeight = 35;
+      
+      members.forEach((member, memberIndex) => {
+        const memberY = membersStartY + memberIndex * memberHeight;
+        const user = member.users;
+        
+        // Captain icon
+        if (member.is_captain) {
+          ctx.fillStyle = '#fbbf24';
+          ctx.font = '14px Arial';
+          ctx.textAlign = 'left';
+          ctx.fillText('👑', x + 20, memberY + 20);
+        }
+        
+        // Member username
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '14px Inter, Arial';
+        ctx.textAlign = 'left';
+        const username = user.discord_username || 'Unknown';
+        ctx.fillText(username, x + (member.is_captain ? 50 : 30), memberY + 20);
+        
+        // Rank badge
+        if (user.current_rank) {
+          const rankColor = getRankColor(user.current_rank);
+          const rankText = user.current_rank;
+          const rankWidth = Math.max(ctx.measureText(rankText).width + 20, 80);
+          
+          drawRoundedRect(x + teamCardWidth - 200, memberY + 5, rankWidth, 20, 10, rankColor);
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 10px Inter, Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText(rankText, x + teamCardWidth - 200 + rankWidth / 2, memberY + 18);
+        }
+      });
 
       // Winner trophy
       if (team.status === 'winner') {
         ctx.fillStyle = '#fbbf24';
-        ctx.font = '16px Arial';
+        ctx.font = '24px Arial';
         ctx.textAlign = 'right';
-        ctx.fillText('🏆', x + teamCardWidth - 30, y + 25);
+        ctx.fillText('🏆', x + teamCardWidth - 20, y + 35);
       }
     });
 
