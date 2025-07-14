@@ -44,20 +44,65 @@ export function ShopItemCard({ item, canAfford, onPurchase, isPurchasing, disabl
   const isDisabled = disabled || isPurchasing || !canAfford || isOutOfStock;
 
   const getPreviewStyle = () => {
-    if (item.category === 'name_effects' && item.item_data) {
-      if (item.item_data.gradient) {
-        return {
-          background: item.item_data.gradient,
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text',
-          fontWeight: item.item_data.weight || 'normal',
-        };
-      } else if (item.item_data.color) {
-        return {
-          color: item.item_data.color,
-          fontWeight: item.item_data.weight || 'normal',
-        };
+    if (item.category === 'name_effects' && item.item_data?.style) {
+      const style = item.item_data.style;
+      
+      switch (style) {
+        case 'galaxy':
+          return {
+            background: 'linear-gradient(to right, rgb(96, 165, 250), rgb(168, 85, 247), rgb(99, 102, 241))',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            fontWeight: '600'
+          };
+        case 'fire':
+          return {
+            background: 'linear-gradient(to right, rgb(239, 68, 68), rgb(249, 115, 22), rgb(234, 179, 8))',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            fontWeight: '600'
+          };
+        case 'ice':
+          return {
+            background: 'linear-gradient(to right, rgb(34, 211, 238), rgb(59, 130, 246), rgb(37, 99, 235))',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            fontWeight: '600'
+          };
+        case 'neon':
+          return {
+            color: 'rgb(34, 197, 94)',
+            textShadow: '0 0 10px rgba(34, 197, 94, 0.9)',
+            fontWeight: 'bold'
+          };
+        case 'royal':
+          return {
+            background: 'linear-gradient(to right, rgb(147, 51, 234), rgb(139, 92, 246), rgb(124, 58, 237))',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            fontWeight: 'bold'
+          };
+        case 'shadow':
+          return {
+            color: 'rgb(209, 213, 219)',
+            textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
+            fontWeight: '600'
+          };
+        case 'electric':
+          return {
+            background: 'linear-gradient(to right, rgb(250, 204, 21), rgb(59, 130, 246), rgb(34, 211, 238))',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            fontWeight: 'bold',
+            animation: 'pulse 2s cubic-bezier(0.4,0,0.6,1) infinite'
+          };
+        default:
+          return {};
       }
     }
     return {};
