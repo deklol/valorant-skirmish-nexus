@@ -150,7 +150,8 @@ const TeamManagementPage = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
+      <div className="container mx-auto px-4 py-8 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Team Management</h1>
       </div>
@@ -436,6 +437,7 @@ const TeamManagementPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 };

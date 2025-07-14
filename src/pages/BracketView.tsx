@@ -163,7 +163,7 @@ export default function BracketView() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
         <div className="container mx-auto px-4 py-8">
           <Button onClick={() => navigate(-1)} className="mb-4">
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -191,7 +191,7 @@ export default function BracketView() {
 
   if (!bracketData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
         <div className="container mx-auto px-4 py-8">
           <Button onClick={() => navigate(-1)} className="mb-4">
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -204,7 +204,7 @@ export default function BracketView() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
       <div className="container mx-auto px-4 py-8">
         <Button onClick={() => navigate(-1)} className="mb-4">
           <ArrowLeft className="w-4 h-4 mr-2" />

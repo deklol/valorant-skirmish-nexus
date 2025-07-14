@@ -65,7 +65,8 @@ const PublicProfile = () => {
   const isPrivate = profile.profile_visibility === 'private';
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
+      <div className="container mx-auto px-4 py-8">
       {/* Profile Header */}
       <Card className="bg-slate-800 border-slate-700 mb-6">
         <CardHeader>
@@ -236,17 +237,17 @@ const PublicProfile = () => {
         <Card className="bg-slate-800 border-slate-700">
           <CardContent className="p-6">
             <Tabs defaultValue="matches" className="w-full">
-              <TabsList className="grid w-full grid-cols-4 bg-slate-700">
-                <TabsTrigger value="awards" className="data-[state=active]:bg-slate-600">
+              <TabsList className="grid w-full grid-cols-4 bg-slate-800/90 border border-slate-700">
+                <TabsTrigger value="awards" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
                   Achievements
                 </TabsTrigger>
-                <TabsTrigger value="matches" className="data-[state=active]:bg-slate-600">
+                <TabsTrigger value="matches" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
                   Match History
                 </TabsTrigger>
-                <TabsTrigger value="tournaments" className="data-[state=active]:bg-slate-600">
+                <TabsTrigger value="tournaments" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
                   Tournaments
                 </TabsTrigger>
-                <TabsTrigger value="ranks" className="data-[state=active]:bg-slate-600">
+                <TabsTrigger value="ranks" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
                   Rank History
                 </TabsTrigger>
               </TabsList>
@@ -280,6 +281,7 @@ const PublicProfile = () => {
           </CardContent>
         </Card>
       )}
+      </div>
     </div>
   );
 };

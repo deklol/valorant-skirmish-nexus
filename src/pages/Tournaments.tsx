@@ -101,7 +101,7 @@ const Tournaments = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
             <p className="text-white text-lg">Loading tournaments...</p>
@@ -112,7 +112,7 @@ const Tournaments = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
       <div className="container mx-auto px-4 py-8">
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">

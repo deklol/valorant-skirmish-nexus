@@ -39,7 +39,7 @@ const Admin = () => {
 
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
         <div className="container mx-auto px-4 py-8">
           <Card className="bg-slate-800 border-slate-700">
             <CardContent className="text-center py-12">
@@ -53,7 +53,7 @@ const Admin = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
           <div>

@@ -69,6 +69,20 @@ data-[state=active]:bg-slate-700 data-[state=active]:text-white
 - ✅ src/pages/Statistics.tsx
 - ✅ src/pages/Help.tsx
 - ✅ src/pages/Leaderboard.tsx (Reference standard)
+- ✅ src/pages/NotFound.tsx
+- ✅ src/pages/PublicProfile.tsx
+- ✅ src/pages/Index.tsx
+- ✅ src/pages/Login.tsx
+- ✅ src/pages/Tournaments.tsx
+- ✅ src/pages/TournamentDetail.tsx
+- ✅ src/pages/Archive.tsx
+- ✅ src/pages/Bracket.tsx
+- ✅ src/pages/BracketView.tsx
+- ✅ src/pages/MatchDetails.tsx
+- ✅ src/pages/Players.tsx
+- ✅ src/components/TeamManagementPage.tsx
+- ✅ src/components/TeamProfile.tsx
+- ✅ src/components/TeamsDirectory.tsx
 
 ### Components
 - ✅ src/components/MatchManager.tsx

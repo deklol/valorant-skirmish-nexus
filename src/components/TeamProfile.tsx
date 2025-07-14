@@ -124,7 +124,8 @@ const TeamProfile = () => {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
+        <div className="container mx-auto px-4 py-8">
         <div className="animate-pulse space-y-6">
           <div className="h-8 bg-slate-700 rounded w-1/4"></div>
           <div className="h-32 bg-slate-700 rounded"></div>
@@ -132,6 +133,7 @@ const TeamProfile = () => {
             <div className="h-48 bg-slate-700 rounded"></div>
             <div className="h-48 bg-slate-700 rounded"></div>
           </div>
+        </div>
         </div>
       </div>
     );

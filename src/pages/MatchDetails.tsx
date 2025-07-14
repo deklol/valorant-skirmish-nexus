@@ -56,7 +56,7 @@ const MatchDetails = () => {
   // Loading UI
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 flex flex-col items-center justify-center">
         <div className="container mx-auto px-4 py-8 text-center">
           <p className="text-white text-lg">Loading match details...</p>
         </div>
@@ -67,7 +67,7 @@ const MatchDetails = () => {
   // Defensive: If match is null after loading, show "not found" error
   if (!match) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 flex flex-col items-center justify-center">
         <div className="container mx-auto px-4 py-8 text-center">
           <p className="text-white text-lg">Match not found</p>
           <Button
@@ -92,7 +92,7 @@ const MatchDetails = () => {
 
   // Main Render
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
       <div className="container mx-auto px-4 py-8">
         <MatchHeader
           team1Name={team1Name}
