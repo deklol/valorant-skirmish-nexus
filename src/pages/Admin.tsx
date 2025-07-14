@@ -27,6 +27,7 @@ import AdvancedMonitoringSystem from "@/components/medic-enhanced/AdvancedMonito
 import EnhancedDiscordIntegration from "@/components/medic-enhanced/EnhancedDiscordIntegration";
 import PlayerMedicManager from "@/components/medic-enhanced/PlayerMedicManager";
 import StatisticsMedicManager from "@/components/medic-enhanced/StatisticsMedicManager";
+import { ShopMedicManager } from "@/components/admin/ShopMedicManager";
 
 const Admin = () => {
   const { isAdmin } = useAuth();
@@ -107,6 +108,10 @@ const Admin = () => {
               <Award className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Achievement Medic</span>
             </TabsTrigger>
+            <TabsTrigger value="shop-medic" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
+              <Settings className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Shop Medic</span>
+            </TabsTrigger>
             
             {/* Enhanced Phase 2-4 Tools */}
             <TabsTrigger value="stats-medic" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
@@ -167,6 +172,10 @@ const Admin = () => {
 
           <TabsContent value="achievement-medic">
             <AchievementMedicManager />
+          </TabsContent>
+
+          <TabsContent value="shop-medic">
+            <ShopMedicManager />
           </TabsContent>
 
           {/* Phase 2-4 Enhanced Tools */}
