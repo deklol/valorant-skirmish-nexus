@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Users, Trophy, MessageSquare, Map, ShieldAlert, Wrench, BookOpen, FileText, Stethoscope, Play, TestTube, Award } from "lucide-react";
+import { Settings, Users, Trophy, MessageSquare, Map, ShieldAlert, Wrench, BookOpen, FileText, Stethoscope, Play, TestTube, Award, Bot, BarChart3, Activity } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import DiscordWebhookManager from "@/components/DiscordWebhookManager";
 import CreateTournamentDialog from "@/components/CreateTournamentDialog";
@@ -23,6 +23,10 @@ import AuditLogManager from "@/components/admin/AuditLogManager";
 import StatisticsManager from "@/components/admin/StatisticsManager";
 import AchievementMedicManager from "@/components/AchievementMedicManager";
 import { VetoDialog } from "@/components/veto/VetoDialog";
+import AdvancedMonitoringSystem from "@/components/medic-enhanced/AdvancedMonitoringSystem";
+import EnhancedDiscordIntegration from "@/components/medic-enhanced/EnhancedDiscordIntegration";
+import PlayerMedicManager from "@/components/medic-enhanced/PlayerMedicManager";
+import StatisticsMedicManager from "@/components/medic-enhanced/StatisticsMedicManager";
 
 const Admin = () => {
   const { isAdmin } = useAuth();
@@ -67,7 +71,7 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="tournaments" className="space-y-6">
-          <TabsList className="bg-slate-800 border-slate-700 grid grid-cols-3 lg:grid-cols-10 w-full max-w-7xl mx-auto overflow-x-auto" style={{scrollbarWidth: 'none', msOverflowStyle: 'none'}}>
+          <TabsList className="bg-slate-800 border-slate-700 grid grid-cols-3 lg:grid-cols-6 xl:grid-cols-13 w-full max-w-7xl mx-auto overflow-x-auto" style={{scrollbarWidth: 'none', msOverflowStyle: 'none'}}>
             {/* Core Management */}
             <TabsTrigger value="tournaments" className="text-white data-[state=active]:bg-red-600">
               <Trophy className="w-4 h-4 mr-2" />
@@ -102,6 +106,24 @@ const Admin = () => {
             <TabsTrigger value="achievement-medic" className="text-white data-[state=active]:bg-yellow-600">
               <Award className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Achievement Medic</span>
+            </TabsTrigger>
+            
+            {/* Enhanced Phase 2-4 Tools */}
+            <TabsTrigger value="player-medic" className="text-white data-[state=active]:bg-green-600">
+              <Users className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Player Medic</span>
+            </TabsTrigger>
+            <TabsTrigger value="stats-medic" className="text-white data-[state=active]:bg-indigo-600">
+              <BarChart3 className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Stats Medic</span>
+            </TabsTrigger>
+            <TabsTrigger value="discord-integration" className="text-white data-[state=active]:bg-violet-600">
+              <Bot className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Discord</span>
+            </TabsTrigger>
+            <TabsTrigger value="monitoring" className="text-white data-[state=active]:bg-emerald-600">
+              <Activity className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Monitoring</span>
             </TabsTrigger>
 
             {/* System & Logs */}
@@ -149,6 +171,28 @@ const Admin = () => {
 
           <TabsContent value="achievement-medic">
             <AchievementMedicManager />
+          </TabsContent>
+
+          {/* Phase 2-4 Enhanced Tools */}
+          <TabsContent value="player-medic">
+            <PlayerMedicManager />
+          </TabsContent>
+
+          <TabsContent value="stats-medic">
+            <StatisticsMedicManager />
+          </TabsContent>
+
+          <TabsContent value="discord-integration">
+            <EnhancedDiscordIntegration
+              tournamentId=""
+              tournament={{ name: "Global", status: "active", start_time: null }}
+              matches={[]}
+              teams={[]}
+            />
+          </TabsContent>
+
+          <TabsContent value="monitoring">
+            <AdvancedMonitoringSystem />
           </TabsContent>
 
           <TabsContent value="audit-log">
