@@ -54,7 +54,7 @@ export default function EnhancedDiscordIntegration() {
   const [postMatchResults, setPostMatchResults] = useState(true);
   const [postMilestones, setPostMilestones] = useState(true);
   const [customMessage, setCustomMessage] = useState("");
-  const [embedType, setEmbedType] = useState<'bracket' | 'results' | 'leaderboard' | 'schedule'>('bracket');
+  const [embedType, setEmbedType] = useState<'bracket' | 'results' | 'leaderboard' | 'schedule' | 'teams'>('bracket');
   const [bracketImageUrl, setBracketImageUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -138,6 +138,154 @@ export default function EnhancedDiscordIntegration() {
     } finally {
       setDataLoading(false);
     }
+  };
+
+  // Generate teams overview as image matching the actual UI
+  const generateTeamsOverviewImage = async (): Promise<string> => {
+    const canvas = canvasRef.current;
+    if (!canvas) throw new Error("Canvas not available");
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error("Canvas context not available");
+
+    // Set canvas size for better quality
+    canvas.width = 1600;
+    canvas.height = 1000;
+
+    // Dark background matching the UI
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Helper function to draw rounded rectangle
+    const drawRoundedRect = (x: number, y: number, width: number, height: number, radius: number, fillColor: string, strokeColor?: string) => {
+      ctx.fillStyle = fillColor;
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + width - radius, y);
+      ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+      ctx.lineTo(x + width, y + height - radius);
+      ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+      ctx.lineTo(x + radius, y + height);
+      ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+      ctx.closePath();
+      ctx.fill();
+      if (strokeColor) {
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    };
+
+    // Title with better styling
+    ctx.fillStyle = '#f8fafc';
+    ctx.font = 'bold 28px Inter, Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(tournament?.name || 'No Tournament Selected', canvas.width / 2, 50);
+
+    // Tournament status badge
+    const statusColor = tournament?.status === 'completed' ? '#059669' : 
+                       tournament?.status === 'live' ? '#dc2626' : '#64748b';
+    drawRoundedRect(canvas.width / 2 - 80, 65, 160, 30, 15, statusColor);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 14px Inter, Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(`${tournament?.status?.toUpperCase() || 'UNKNOWN'}`, canvas.width / 2, 85);
+
+    // Teams overview title
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '16px Inter, Arial';
+    ctx.fillText(`${teams.length} Teams Registered`, canvas.width / 2, 115);
+
+    // Calculate grid layout for teams
+    const teamsPerRow = Math.ceil(Math.sqrt(teams.length));
+    const teamCardWidth = 250;
+    const teamCardHeight = 80;
+    const spacing = 20;
+    const startX = (canvas.width - (teamsPerRow * teamCardWidth + (teamsPerRow - 1) * spacing)) / 2;
+    const startY = 150;
+
+    teams.forEach((team, index) => {
+      const row = Math.floor(index / teamsPerRow);
+      const col = index % teamsPerRow;
+      const x = startX + col * (teamCardWidth + spacing);
+      const y = startY + row * (teamCardHeight + spacing);
+
+      // Team status color
+      const teamBgColor = team.status === 'winner' ? '#16a34a33' : 
+                         team.status === 'eliminated' ? '#dc262633' :
+                         team.status === 'confirmed' ? '#334155' : '#475569';
+      const teamBorderColor = team.status === 'winner' ? '#16a34a' : 
+                             team.status === 'eliminated' ? '#dc2626' :
+                             team.status === 'confirmed' ? '#3b82f6' : '#64748b';
+
+      // Team card container
+      drawRoundedRect(x, y, teamCardWidth, teamCardHeight, 8, teamBgColor, teamBorderColor);
+
+      // Team name
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 16px Inter, Arial';
+      ctx.textAlign = 'left';
+      const maxNameWidth = teamCardWidth - 20;
+      let teamName = team.name;
+      if (ctx.measureText(teamName).width > maxNameWidth) {
+        while (ctx.measureText(teamName + '...').width > maxNameWidth && teamName.length > 0) {
+          teamName = teamName.slice(0, -1);
+        }
+        teamName += '...';
+      }
+      ctx.fillText(teamName, x + 10, y + 25);
+
+      // Status badge
+      const statusBadgeColors: { [key: string]: string } = {
+        'winner': '#059669',
+        'eliminated': '#dc2626',
+        'confirmed': '#3b82f6',
+        'pending': '#6b7280'
+      };
+      const badgeColor = statusBadgeColors[team.status] || '#6b7280';
+      drawRoundedRect(x + 10, y + 35, 80, 18, 9, badgeColor);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 10px Inter, Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(team.status.toUpperCase(), x + 50, y + 47);
+
+      // Rank points if available
+      if (team.total_rank_points) {
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '12px Inter, Arial';
+        ctx.textAlign = 'right';
+        ctx.fillText(`${team.total_rank_points} pts`, x + teamCardWidth - 10, y + 65);
+      }
+
+      // Winner trophy
+      if (team.status === 'winner') {
+        ctx.fillStyle = '#fbbf24';
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'right';
+        ctx.fillText('🏆', x + teamCardWidth - 30, y + 25);
+      }
+    });
+
+    // Convert to blob and return data URL
+    return new Promise((resolve, reject) => {
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          reject(new Error("Failed to generate image"));
+          return;
+        }
+
+        try {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = () => reject(new Error("Failed to convert image"));
+          reader.readAsDataURL(blob);
+        } catch (error) {
+          reject(error);
+        }
+      }, 'image/png');
+    });
   };
 
   // Generate bracket visualization as image matching the actual UI
@@ -437,6 +585,31 @@ export default function EnhancedDiscordIntegration() {
               inline: true
             };
           })
+        };
+
+      case 'teams':
+        return {
+          ...baseEmbed,
+          title: `👥 ${tournament.name} - Teams Overview`,
+          description: "All registered teams in the tournament",
+          color: 0x10b981,
+          fields: [
+            {
+              name: "Total Teams",
+              value: teams.length.toString(),
+              inline: true
+            },
+            {
+              name: "Status Distribution",
+              value: [
+                `✅ Confirmed: ${teams.filter(t => t.status === 'confirmed').length}`,
+                `🏆 Winners: ${teams.filter(t => t.status === 'winner').length}`,
+                `❌ Eliminated: ${teams.filter(t => t.status === 'eliminated').length}`
+              ].join('\n'),
+              inline: true
+            }
+          ],
+          image: bracketImageUrl ? { url: bracketImageUrl } : undefined
         };
 
       default:
@@ -843,6 +1016,7 @@ export default function EnhancedDiscordIntegration() {
                   </SelectTrigger>
                   <SelectContent className="bg-slate-700 border-slate-600">
                     <SelectItem value="bracket">🏆 Bracket Overview</SelectItem>
+                    <SelectItem value="teams">👥 Teams Overview</SelectItem>
                     <SelectItem value="results">📊 Match Results</SelectItem>
                     <SelectItem value="leaderboard">🏅 Current Leaderboard</SelectItem>
                     <SelectItem value="schedule">📅 Upcoming Matches</SelectItem>
