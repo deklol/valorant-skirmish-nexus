@@ -40,7 +40,7 @@ export function useNameEffects(userId: string | null) {
 
     // Set up real-time subscription for name effect changes
     const channel = supabase
-      .channel('name-effects')
+      .channel(`name-effects-${userId}`)
       .on(
         'postgres_changes',
         {
