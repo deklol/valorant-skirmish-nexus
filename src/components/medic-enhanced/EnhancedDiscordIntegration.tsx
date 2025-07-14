@@ -357,11 +357,18 @@ export default function EnhancedDiscordIntegration() {
       throw new Error("Discord webhook URL is required");
     }
 
+    // Validate webhook URL format
+    if (!webhookUrl.includes('discord.com/api/webhooks/') && !webhookUrl.includes('discordapp.com/api/webhooks/')) {
+      throw new Error("Invalid Discord webhook URL format");
+    }
+
     const payload = {
       username: "Tournament Bot",
       content: message || undefined,
       embeds: [embed]
     };
+
+    console.log('Sending Discord payload:', JSON.stringify(payload, null, 2));
 
     const response = await fetch(webhookUrl, {
       method: "POST",
@@ -372,7 +379,9 @@ export default function EnhancedDiscordIntegration() {
     });
 
     if (!response.ok) {
-      throw new Error(`Discord webhook failed: ${response.status}`);
+      const errorText = await response.text();
+      console.error('Discord webhook error:', response.status, errorText);
+      throw new Error(`Discord webhook failed: ${response.status} - ${errorText || 'Unknown error'}`);
     }
   };
 
