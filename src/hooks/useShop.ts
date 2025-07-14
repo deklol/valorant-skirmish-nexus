@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -32,6 +33,9 @@ export function useShop() {
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
   const [activating, setActivating] = useState<string | null>(null);
+  
+  // Use ref to track if we already have an active subscription
+  const subscriptionRef = useRef<any>(null);
 
   useEffect(() => {
     if (!user) {
@@ -83,40 +87,47 @@ export function useShop() {
 
     fetchShopData();
 
-    // Set up real-time subscription for spendable points updates
-    const channelName = `shop-updates-${user.id}-${Date.now()}`;
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'users',
-          filter: `id=eq.${user.id}`,
-        },
-        (payload) => {
-          if (payload.new.spendable_points !== undefined) {
-            setSpendablePoints(payload.new.spendable_points);
+    // Only create subscription if we don't already have one
+    if (!subscriptionRef.current) {
+      const channelName = `shop-updates-${user.id}-${Date.now()}`;
+      const channel = supabase
+        .channel(channelName)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'users',
+            filter: `id=eq.${user.id}`,
+          },
+          (payload) => {
+            if (payload.new.spendable_points !== undefined) {
+              setSpendablePoints(payload.new.spendable_points);
+            }
           }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'shop_items',
-        },
-        () => {
-          // Refresh shop items when they change
-          fetchShopData();
-        }
-      )
-      .subscribe();
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'shop_items',
+          },
+          () => {
+            // Refresh shop items when they change
+            fetchShopData();
+          }
+        )
+        .subscribe();
+
+      subscriptionRef.current = channel;
+    }
 
     return () => {
-      supabase.removeChannel(channel);
+      if (subscriptionRef.current) {
+        supabase.removeChannel(subscriptionRef.current);
+        subscriptionRef.current = null;
+      }
     };
   }, [user?.id, toast]);
 
