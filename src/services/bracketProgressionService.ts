@@ -1,5 +1,5 @@
 
-import { UnifiedBracketService } from "@/services/unifiedBracketService";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface ProgressionResult {
   success: boolean;
@@ -9,17 +9,33 @@ export interface ProgressionResult {
 }
 
 /**
- * Legacy wrapper for backward compatibility - now uses unified service with original team count fix
+ * Database-level bracket progression fix - uses secure database RPC
  */
 export async function fixBracketProgression(tournamentId: string): Promise<ProgressionResult> {
-  console.log('🔧 Legacy fixBracketProgression called - routing to unified service with original team count fix');
+  console.log('🔧 fixBracketProgression routing to database-level fix_all_bracket_progression');
   
-  const result = await UnifiedBracketService.fixAllBracketProgression(tournamentId);
-  
-  return {
-    success: result.success,
-    fixesApplied: result.fixesApplied,
-    issues: result.issues,
-    errors: result.errors
-  };
+  try {
+    const { data: result, error } = await supabase.rpc('fix_all_bracket_progression', {
+      p_tournament_id: tournamentId
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    const parsedResult = result as any;
+    return {
+      success: parsedResult.success,
+      fixesApplied: parsedResult.fixes_applied || 0,
+      issues: [],
+      errors: parsedResult.errors || []
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      fixesApplied: 0,
+      issues: [],
+      errors: [error.message]
+    };
+  }
 }

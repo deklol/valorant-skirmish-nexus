@@ -1578,8 +1578,16 @@ export type Database = {
         }
         Returns: string
       }
+      diagnose_bracket_progression: {
+        Args: { p_tournament_id: string }
+        Returns: Json
+      }
       disqualify_team: {
         Args: { p_team_id: string; p_reason?: string }
+        Returns: Json
+      }
+      fix_all_bracket_progression: {
+        Args: { p_tournament_id: string }
         Returns: Json
       }
       fix_missing_match_statistics: {
@@ -1825,6 +1833,10 @@ export type Database = {
       user_has_notification_enabled: {
         Args: { p_user_id: string; p_notification_type: string }
         Returns: boolean
+      }
+      validate_bracket_structure: {
+        Args: { p_tournament_id: string }
+        Returns: Json
       }
       withdraw_team: {
         Args: { p_team_id: string; p_reason?: string }

@@ -103,59 +103,34 @@ export default function BracketMedicManager() {
     }
   };
 
-  // Fix Team Progression using database-level logic
+  // Fix Team Progression using new database-level function
   const handleFixProgression = async () => {
     if (!selectedTournament) return;
     setLoading(true);
     
     try {
-      console.log('🔧 Using database-level bracket medic to fix progression');
+      console.log('🔧 Using new database-level fix_all_bracket_progression function');
       
-      // Get all completed matches that need progression
-      const { data: completedMatches } = await supabase
-        .from('matches')
-        .select('*')
-        .eq('tournament_id', selectedTournament.id)
-        .eq('status', 'completed')
-        .not('winner_id', 'is', null);
+      const { data: result, error } = await supabase.rpc('fix_all_bracket_progression', {
+        p_tournament_id: selectedTournament.id
+      });
 
-      let fixesApplied = 0;
-      const errors: string[] = [];
-
-      for (const match of completedMatches || []) {
-        try {
-          const loserId = match.team1_id === match.winner_id ? match.team2_id : match.team1_id;
-          
-          const { data: result, error } = await supabase.rpc('advance_match_winner_secure', {
-            p_match_id: match.id,
-            p_winner_id: match.winner_id,
-            p_loser_id: loserId,
-            p_tournament_id: selectedTournament.id,
-            p_score_team1: match.score_team1,
-            p_score_team2: match.score_team2
-          });
-
-          if (error) {
-            errors.push(`Match R${match.round_number}M${match.match_number}: ${error.message}`);
-          } else if ((result as { success: boolean }).success) {
-            fixesApplied++;
-          }
-        } catch (err: any) {
-          errors.push(`Match R${match.round_number}M${match.match_number}: ${err.message}`);
-        }
+      if (error) {
+        throw error;
       }
 
       await loadBracket(selectedTournament.id);
       
-      if (errors.length === 0) {
+      const parsedResult = result as any;
+      if (parsedResult.success) {
         toast({
           title: "Bracket Progression Fixed",
-          description: `Applied ${fixesApplied} fixes using database-level progression.`,
+          description: `Applied ${parsedResult.fixes_applied} fixes, set ${parsedResult.matches_set_to_live} matches to live.`,
         });
       } else {
         toast({
-          title: "Progression Fix Issues",
-          description: errors.slice(0, 2).join("; ") + (errors.length > 2 ? "..." : ""),
+          title: "Progression Fix Error",
+          description: parsedResult.error || "Unknown error",
           variant: "destructive",
         });
       }
@@ -170,64 +145,42 @@ export default function BracketMedicManager() {
     }
   };
 
-  // Diagnose Progression using database-level queries
+  // Diagnose Progression using new database-level function
   const handleDiagnoseBracketProgression = async () => {
     if (!selectedTournament) return;
     setLoading(true);
     
     try {
-      console.log('🔍 Using database queries for bracket diagnosis');
+      console.log('🔍 Using new database-level diagnose_bracket_progression function');
       
-      // Check for matches that should be live but aren't
-      const { data: pendingMatches } = await supabase
-        .from('matches')
-        .select('id, round_number, match_number, team1_id, team2_id, status')
-        .eq('tournament_id', selectedTournament.id)
-        .eq('status', 'pending')
-        .not('team1_id', 'is', null)
-        .not('team2_id', 'is', null);
+      const { data: result, error } = await supabase.rpc('diagnose_bracket_progression', {
+        p_tournament_id: selectedTournament.id
+      });
 
-      // Check for completed matches without progression
-      const { data: completedMatches } = await supabase
-        .from('matches')
-        .select('id, round_number, match_number, winner_id')
-        .eq('tournament_id', selectedTournament.id)
-        .eq('status', 'completed')
-        .not('winner_id', 'is', null);
-
-      const issues: string[] = [];
-      
-      if (pendingMatches && pendingMatches.length > 0) {
-        issues.push(`${pendingMatches.length} matches have both teams but status is still 'pending'`);
+      if (error) {
+        throw error;
       }
 
-      // Check if winners have been properly advanced
-      for (const match of completedMatches || []) {
-        const nextRound = match.round_number + 1;
-        const nextMatchNumber = Math.ceil(match.match_number / 2);
+      const parsedResult = result as any;
+      if (parsedResult.success) {
+        const issues = parsedResult.issues || [];
         
-        const { data: nextMatch } = await supabase
-          .from('matches')
-          .select('team1_id, team2_id')
-          .eq('tournament_id', selectedTournament.id)
-          .eq('round_number', nextRound)
-          .eq('match_number', nextMatchNumber)
-          .maybeSingle();
-
-        if (nextMatch && !nextMatch.team1_id && !nextMatch.team2_id) {
-          issues.push(`R${match.round_number}M${match.match_number} winner not advanced`);
+        if (issues.length === 0) {
+          toast({
+            title: "Bracket Progression Healthy",
+            description: `No progression issues detected. Tournament has ${parsedResult.original_team_count} teams, ${parsedResult.total_matches} matches.`,
+          });
+        } else {
+          toast({
+            title: `${issues.length} Progression Issues Found`,
+            description: issues.slice(0, 2).join("; ") + (issues.length > 2 ? "..." : ""),
+            variant: "destructive",
+          });
         }
-      }
-
-      if (issues.length === 0) {
-        toast({
-          title: "Bracket Progression Healthy",
-          description: `No progression issues detected in ${matches.length} matches.`,
-        });
       } else {
         toast({
-          title: `${issues.length} Progression Issues Found`,
-          description: issues.slice(0, 2).join("; ") + (issues.length > 2 ? "..." : ""),
+          title: "Diagnosis Error",
+          description: parsedResult.error || "Unknown error",
           variant: "destructive",
         });
       }

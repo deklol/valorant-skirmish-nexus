@@ -1,5 +1,5 @@
 
-import { UnifiedBracketService } from "@/services/unifiedBracketService";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface BracketProgressionDiagnostic {
   tournamentId: string;
@@ -9,19 +9,28 @@ export interface BracketProgressionDiagnostic {
 }
 
 /**
- * Diagnose bracket progression using unified service with original team count fix
+ * Database-level bracket progression diagnosis - uses secure database RPC
  */
 export async function diagnoseBracketProgression(tournamentId: string): Promise<BracketProgressionDiagnostic> {
-  console.log('🔍 Legacy diagnoseBracketProgression called - routing to unified service with original team count fix');
+  console.log('🔍 diagnoseBracketProgression routing to database-level diagnose_bracket_progression');
   
   try {
-    const validation = await UnifiedBracketService.diagnoseBracket(tournamentId);
+    const { data: result, error } = await supabase.rpc('diagnose_bracket_progression', {
+      p_tournament_id: tournamentId
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    const parsedResult = result as any;
+    const issues = parsedResult.issues || [];
     
     return {
       tournamentId,
-      issues: validation.issues,
-      suggestions: validation.issues.map(issue => `Fix: ${issue}`),
-      nextActions: validation.issues.map(issue => `AUTO_FIX: ${issue}`)
+      issues: issues,
+      suggestions: issues.map((issue: string) => `Fix: ${issue}`),
+      nextActions: issues.map((issue: string) => `AUTO_FIX: ${issue}`)
     };
   } catch (error: any) {
     return {
@@ -34,22 +43,29 @@ export async function diagnoseBracketProgression(tournamentId: string): Promise<
 }
 
 /**
- * Auto-fix bracket progression using unified service with original team count fix
+ * Database-level auto-fix bracket progression - uses secure database RPC
  */
 export async function autoFixBracketProgression(tournamentId: string): Promise<{
   success: boolean;
   fixesApplied: string[];
   errors: string[];
 }> {
-  console.log('🔧 Legacy autoFixBracketProgression called - routing to unified service with original team count fix');
+  console.log('🔧 autoFixBracketProgression routing to database-level fix_all_bracket_progression');
   
   try {
-    const result = await UnifiedBracketService.fixAllBracketProgression(tournamentId);
-    
+    const { data: result, error } = await supabase.rpc('fix_all_bracket_progression', {
+      p_tournament_id: tournamentId
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    const parsedResult = result as any;
     return {
-      success: result.success,
-      fixesApplied: [`Applied ${result.fixesApplied} bracket progression fixes using original team count`],
-      errors: result.errors
+      success: parsedResult.success,
+      fixesApplied: [`Applied ${parsedResult.fixes_applied} bracket progression fixes using database-level logic`],
+      errors: parsedResult.errors || []
     };
   } catch (error: any) {
     return {
