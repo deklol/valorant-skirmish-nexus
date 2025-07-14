@@ -884,6 +884,56 @@ export type Database = {
           },
         ]
       }
+      shop_items: {
+        Row: {
+          category: Database["public"]["Enums"]["shop_item_category"]
+          created_at: string
+          created_by: string | null
+          description: string
+          id: string
+          is_active: boolean
+          item_data: Json
+          name: string
+          price_points: number
+          quantity_available: number | null
+          updated_at: string
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["shop_item_category"]
+          created_at?: string
+          created_by?: string | null
+          description: string
+          id?: string
+          is_active?: boolean
+          item_data?: Json
+          name: string
+          price_points: number
+          quantity_available?: number | null
+          updated_at?: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["shop_item_category"]
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          is_active?: boolean
+          item_data?: Json
+          name?: string
+          price_points?: number
+          quantity_available?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_items_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_members: {
         Row: {
           id: string
@@ -1325,6 +1375,51 @@ export type Database = {
           },
         ]
       }
+      user_active_effects: {
+        Row: {
+          activated_at: string
+          effect_data: Json
+          effect_type: string
+          expires_at: string | null
+          id: string
+          purchase_id: string | null
+          user_id: string
+        }
+        Insert: {
+          activated_at?: string
+          effect_data?: Json
+          effect_type: string
+          expires_at?: string | null
+          id?: string
+          purchase_id?: string | null
+          user_id: string
+        }
+        Update: {
+          activated_at?: string
+          effect_data?: Json
+          effect_type?: string
+          expires_at?: string | null
+          id?: string
+          purchase_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_active_effects_purchase_id_fkey"
+            columns: ["purchase_id"]
+            isOneToOne: false
+            referencedRelation: "user_purchases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_active_effects_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_notification_preferences: {
         Row: {
           created_at: string | null
@@ -1402,6 +1497,67 @@ export type Database = {
           },
         ]
       }
+      user_purchases: {
+        Row: {
+          id: string
+          points_spent: number
+          purchase_data: Json
+          purchased_at: string
+          refund_reason: string | null
+          refunded_at: string | null
+          refunded_by: string | null
+          shop_item_id: string
+          status: Database["public"]["Enums"]["purchase_status"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          points_spent: number
+          purchase_data?: Json
+          purchased_at?: string
+          refund_reason?: string | null
+          refunded_at?: string | null
+          refunded_by?: string | null
+          shop_item_id: string
+          status?: Database["public"]["Enums"]["purchase_status"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          points_spent?: number
+          purchase_data?: Json
+          purchased_at?: string
+          refund_reason?: string | null
+          refunded_at?: string | null
+          refunded_by?: string | null
+          shop_item_id?: string
+          status?: Database["public"]["Enums"]["purchase_status"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_purchases_refunded_by_fkey"
+            columns: ["refunded_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_purchases_shop_item_id_fkey"
+            columns: ["shop_item_id"]
+            isOneToOne: false
+            referencedRelation: "shop_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_purchases_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           ban_expires_at: string | null
@@ -1430,6 +1586,7 @@ export type Database = {
           riot_id: string | null
           riot_id_last_updated: string | null
           role: Database["public"]["Enums"]["user_role"] | null
+          spendable_points: number
           tournaments_played: number | null
           tournaments_won: number | null
           twitch_handle: string | null
@@ -1466,6 +1623,7 @@ export type Database = {
           riot_id?: string | null
           riot_id_last_updated?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
+          spendable_points?: number
           tournaments_played?: number | null
           tournaments_won?: number | null
           twitch_handle?: string | null
@@ -1502,6 +1660,7 @@ export type Database = {
           riot_id?: string | null
           riot_id_last_updated?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
+          spendable_points?: number
           tournaments_played?: number | null
           tournaments_won?: number | null
           twitch_handle?: string | null
@@ -1787,6 +1946,10 @@ export type Database = {
         Args: { p_match_id: string; p_user_id: string; p_map_id: string }
         Returns: Json
       }
+      process_shop_purchase: {
+        Args: { p_user_id: string; p_shop_item_id: string }
+        Returns: Json
+      }
       promote_substitute_to_player: {
         Args: { p_tournament_id: string; p_substitute_user_id: string }
         Returns: Json
@@ -1799,6 +1962,10 @@ export type Database = {
           p_metadata?: Json
         }
         Returns: string
+      }
+      refund_purchase: {
+        Args: { p_purchase_id: string; p_refund_reason?: string }
+        Returns: Json
       }
       roll_veto_dice: {
         Args: { p_match_id: string; p_initiator_user_id: string }
@@ -1848,7 +2015,14 @@ export type Database = {
       map_veto_status: "pending" | "in_progress" | "completed"
       match_format: "BO1" | "BO3" | "BO5"
       match_status: "pending" | "live" | "completed"
+      purchase_status: "completed" | "refunded"
       registration_type: "solo" | "team"
+      shop_item_category:
+        | "name_effects"
+        | "profile_enhancements"
+        | "gaming_rewards"
+        | "platform_perks"
+        | "random_boxes"
       team_status:
         | "pending"
         | "confirmed"
@@ -1996,7 +2170,15 @@ export const Constants = {
       map_veto_status: ["pending", "in_progress", "completed"],
       match_format: ["BO1", "BO3", "BO5"],
       match_status: ["pending", "live", "completed"],
+      purchase_status: ["completed", "refunded"],
       registration_type: ["solo", "team"],
+      shop_item_category: [
+        "name_effects",
+        "profile_enhancements",
+        "gaming_rewards",
+        "platform_perks",
+        "random_boxes",
+      ],
       team_status: [
         "pending",
         "confirmed",

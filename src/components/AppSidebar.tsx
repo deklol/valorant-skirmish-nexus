@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Calendar, Trophy, Users, Shield, User, LogOut, Home, Archive, ChevronRight, PlayCircle, ArrowLeft, Crown, Medal, Target, UsersRound, TrendingUp, HelpCircle } from "lucide-react";
+import { Calendar, Trophy, Users, Shield, User, LogOut, Home, Archive, ChevronRight, PlayCircle, ArrowLeft, Crown, Medal, Target, UsersRound, TrendingUp, HelpCircle, ShoppingBag } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -93,6 +93,7 @@ export function AppSidebar() {
   const userNavItems = user ? [
     { title: "Profile", url: "/profile", icon: User },
     { title: "My Team", url: "/teams", icon: UsersRound },
+    { title: "Shop", url: "/shop", icon: ShoppingBag },
   ] : [];
 
   useEffect(() => {
