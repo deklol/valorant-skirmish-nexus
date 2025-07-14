@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
-import { UnifiedBracketService } from "@/services/unifiedBracketService";
+// Database RPC functions handle bracket progression now
 import MatchEditModal, { parseStatus } from "@/components/MatchEditModal";
 import MatchResultHistory from "./match-details/MatchResultHistory";
 
@@ -141,17 +141,26 @@ const ScoreReporting = ({ match, onScoreSubmitted }: ScoreReportingProps) => {
           .in('id', subIds);
           
         if (match.tournament_id) {
-          console.log('🏆 Using UnifiedBracketService for captain-confirmed result');
+          console.log('🏆 Using database RPC for captain-confirmed result');
           const loserId = winnerId === match.team1_id ? match.team2_id : match.team1_id;
           
-          await UnifiedBracketService.advanceMatchWinner(
-            match.id,
-            winnerId,
-            loserId,
-            match.tournament_id,
-            score_team1,
-            score_team2
-          );
+          const { data: advancementResult, error: advancementError } = await supabase.rpc('advance_match_winner_secure', {
+            p_match_id: match.id,
+            p_winner_id: winnerId,
+            p_loser_id: loserId,
+            p_tournament_id: match.tournament_id,
+            p_score_team1: score_team1,
+            p_score_team2: score_team2
+          });
+
+          if (advancementError) {
+            throw new Error(`Match advancement failed: ${advancementError.message}`);
+          }
+
+          const result = advancementResult as { success: boolean; error?: string };
+          if (!result.success) {
+            throw new Error(result.error || 'Failed to advance match winner');
+          }
         }
         
         toast({
@@ -206,17 +215,26 @@ const ScoreReporting = ({ match, onScoreSubmitted }: ScoreReportingProps) => {
       });
       
       if (match.tournament_id) {
-        console.log('🏆 Using UnifiedBracketService for admin override');
+        console.log('🏆 Using database RPC for admin override');
         const loserId = winnerId === match.team1_id ? match.team2_id : match.team1_id;
         
-        await UnifiedBracketService.advanceMatchWinner(
-          match.id,
-          winnerId,
-          loserId,
-          match.tournament_id,
-          score_team1,
-          score_team2
-        );
+        const { data: advancementResult, error: advancementError } = await supabase.rpc('advance_match_winner_secure', {
+          p_match_id: match.id,
+          p_winner_id: winnerId,
+          p_loser_id: loserId,
+          p_tournament_id: match.tournament_id,
+          p_score_team1: score_team1,
+          p_score_team2: score_team2
+        });
+
+        if (advancementError) {
+          throw new Error(`Match advancement failed: ${advancementError.message}`);
+        }
+
+        const result = advancementResult as { success: boolean; error?: string };
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to advance match winner');
+        }
       }
       
       toast({

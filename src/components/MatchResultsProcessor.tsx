@@ -1,7 +1,6 @@
 
-// SINGLE authoritative result processor using unified bracket service
+// SINGLE authoritative result processor using database RPC functions
 import { supabase } from "@/integrations/supabase/client";
-import { UnifiedBracketService } from "@/services/unifiedBracketService";
 
 export type MatchResultsProcessorInput = {
   matchId: string;
@@ -21,8 +20,8 @@ export type NotificationFunctions = {
 };
 
 /**
- * Process match results using the unified bracket progression service
- * CRITICAL FIX: All progression now routes through UnifiedBracketService
+ * Process match results using database-level RPC functions
+ * CRITICAL FIX: All progression now routes through advance_match_winner_secure RPC
  */
 export async function processMatchResults(
   {
@@ -46,7 +45,7 @@ export async function processMatchResults(
   const safeNotifyTournamentWinner = notifyTournamentWinner ?? (() => Promise.resolve());
   const safeNotifyMatchReady = notifyMatchReady ?? (() => Promise.resolve());
 
-  console.log('🏆 Processing match results with unified service:', { matchId, winnerId, loserId, tournamentId });
+  console.log('🏆 Processing match results with database RPC:', { matchId, winnerId, loserId, tournamentId });
 
   try {
     // CRITICAL FIX: Use the new security definer function for match advancement
@@ -65,10 +64,10 @@ export async function processMatchResults(
 
     const result = advancementData as {
       success: boolean;
-      tournamentComplete: boolean;
-      winner?: string;
-      nextMatchReady?: boolean;
-      nextMatchId?: string;
+      tournament_completed?: boolean;
+      winner_team_id?: string;
+      next_match_ready?: boolean;
+      next_match_id?: string;
       error?: string;
     };
 
@@ -107,26 +106,26 @@ export async function processMatchResults(
     // Send notifications based on result
     await safeNotifyMatchComplete(matchId, winnerId, loserId);
 
-    if (result.tournamentComplete && result.winner) {
+    if (result.tournament_completed && result.winner_team_id) {
       console.log('🎉 Tournament completed!');
-      await safeNotifyTournamentWinner(tournamentId, result.winner);
+      await safeNotifyTournamentWinner(tournamentId, result.winner_team_id);
       
       safeToast({
         title: "Tournament Complete!",
         description: "Congratulations to the tournament winner!"
       });
-    } else if (result.nextMatchReady && result.nextMatchId) {
+    } else if (result.next_match_ready && result.next_match_id) {
       console.log('🔔 Next match is ready');
       // Could notify about next match being ready if needed
       
       safeToast({
         title: "Match Results Processed",
-        description: "Winner advanced to next round successfully using unified bracket logic"
+        description: "Winner advanced to next round successfully using database-level logic"
       });
     } else {
       safeToast({
         title: "Match Results Processed",
-        description: "Statistics and tournament progress updated using unified bracket logic"
+        description: "Statistics and tournament progress updated using database-level logic"
       });
     }
     
