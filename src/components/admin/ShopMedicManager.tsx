@@ -16,7 +16,7 @@ import type { Tables, Enums } from "@/integrations/supabase/types";
 
 type ShopItem = Tables<"shop_items">;
 type Purchase = Tables<"user_purchases"> & {
-  users: { discord_username: string | null; email: string } | null;
+  users: { discord_username: string | null } | null;
   shop_items: { name: string } | null;
 };
 
@@ -80,7 +80,7 @@ export function ShopMedicManager() {
       // Get total revenue and sales count
       const { data: salesData, error: salesError } = await supabase
         .from("user_purchases")
-        .select("points_spent, shop_items!inner(name), users!inner(discord_username, email)")
+        .select("points_spent, shop_items!inner(name), users!user_purchases_user_id_fkey(discord_username)")
         .eq("status", "completed");
 
       if (salesError) throw salesError;
@@ -109,7 +109,7 @@ export function ShopMedicManager() {
         .from("user_purchases")
         .select(`
           *,
-          users(discord_username, email),
+          users!user_purchases_user_id_fkey(discord_username),
           shop_items(name)
         `)
         .eq("status", "completed")
@@ -304,6 +304,57 @@ export function ShopMedicManager() {
         </TabsList>
 
         <TabsContent value="analytics" className="space-y-4">
+          <div className="mb-6">
+            <Button
+              onClick={async () => {
+                try {
+                  const { data: achievements } = await supabase
+                    .from("user_achievements")
+                    .select("user_id, achievements!inner(points)")
+                    .order("earned_at", { ascending: false });
+
+                  if (!achievements) return;
+
+                  const userPointsMap = achievements.reduce((acc: Record<string, number>, item: any) => {
+                    acc[item.user_id] = (acc[item.user_id] || 0) + (item.achievements?.points || 0);
+                    return acc;
+                  }, {});
+
+                  let fixedCount = 0;
+                  for (const [userId, totalPoints] of Object.entries(userPointsMap)) {
+                    const { data: user } = await supabase
+                      .from("users")
+                      .select("spendable_points")
+                      .eq("id", userId)
+                      .single();
+
+                    if (user && user.spendable_points < totalPoints) {
+                      await supabase
+                        .from("users")
+                        .update({ spendable_points: totalPoints })
+                        .eq("id", userId);
+                      fixedCount++;
+                    }
+                  }
+
+                  toast({
+                    title: "Achievement Points Fixed",
+                    description: `Fixed ${fixedCount} users' achievement points`,
+                  });
+                } catch (error) {
+                  console.error("Error fixing achievement points:", error);
+                  toast({
+                    title: "Error",
+                    description: "Failed to fix achievement points",
+                    variant: "destructive",
+                  });
+                }
+              }}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              Fix Achievement Points Sync
+            </Button>
+          </div>
           {analytics && (
             <>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -448,7 +499,7 @@ export function ShopMedicManager() {
                   {analytics?.recentSales.map((sale) => (
                     <TableRow key={sale.id}>
                       <TableCell>
-                        {sale.users?.discord_username || sale.users?.email || "Unknown"}
+                        {sale.users?.discord_username || "Unknown"}
                       </TableCell>
                       <TableCell>{sale.shop_items?.name || "Unknown"}</TableCell>
                       <TableCell>{sale.points_spent} pts</TableCell>

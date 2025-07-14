@@ -1,5 +1,6 @@
 import { ShoppingCart, Sparkles, Package, Gift, Crown, Zap } from 'lucide-react';
 import { StandardBadge, StandardText, StandardHeading, Button } from '@/components/ui';
+import { useAuth } from '@/hooks/useAuth';
 
 interface ShopItem {
   id: string;
@@ -37,6 +38,7 @@ const categoryColors = {
 };
 
 export function ShopItemCard({ item, canAfford, onPurchase, isPurchasing, disabled }: ShopItemCardProps) {
+  const { profile } = useAuth();
   const CategoryIcon = categoryIcons[item.category as keyof typeof categoryIcons] || Package;
   const isOutOfStock = item.quantity_available !== null && item.quantity_available <= 0;
   const isDisabled = disabled || isPurchasing || !canAfford || isOutOfStock;
@@ -122,7 +124,7 @@ export function ShopItemCard({ item, canAfford, onPurchase, isPurchasing, disabl
             className="font-medium"
             style={getPreviewStyle()}
           >
-            Your Username
+            {profile?.discord_username || "Your Username"}
           </StandardText>
         </div>
       )}
