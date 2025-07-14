@@ -275,6 +275,7 @@ const MatchManager = ({ tournamentId, onMatchUpdate }: MatchManagerProps) => {
                             isUserCaptain={match.isUserCaptain}
                             currentScore={{ team1: match.score_team1 || 0, team2: match.score_team2 || 0 }}
                             onResultsSubmitted={handleResultsSubmitted}
+                            tournamentId={tournamentId}
                           />
                         </div>
                       )}

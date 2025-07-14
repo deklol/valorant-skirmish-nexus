@@ -16,6 +16,7 @@ interface MatchResultsSubmissionProps {
   isUserCaptain: boolean;
   currentScore: { team1: number; team2: number; };
   onResultsSubmitted: () => void;
+  tournamentId: string;
 }
 
 const MatchResultsSubmission = ({ 
@@ -25,7 +26,8 @@ const MatchResultsSubmission = ({
   userTeamId, 
   isUserCaptain,
   currentScore,
-  onResultsSubmitted 
+  onResultsSubmitted,
+  tournamentId
 }: MatchResultsSubmissionProps) => {
   const [scores, setScores] = useState({ 
     team1: currentScore.team1, 
@@ -63,7 +65,7 @@ const MatchResultsSubmission = ({
           matchId,
           winnerId,
           loserId,
-          tournamentId: team1.id, // Use any team's tournament; prefer team1 but should be safe, must pass correct id!
+          tournamentId,
           scoreTeam1: scores.team1,
           scoreTeam2: scores.team2,
           onComplete: onResultsSubmitted,
