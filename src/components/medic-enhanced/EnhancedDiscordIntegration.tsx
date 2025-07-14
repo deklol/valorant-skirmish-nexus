@@ -678,7 +678,7 @@ export default function EnhancedDiscordIntegration() {
     }
   };
 
-  const sendDiscordMessage = async (embed: any, message?: string) => {
+  const sendDiscordMessage = async (embed: any, message?: string, imageUrl?: string) => {
     if (!webhookUrl.trim()) {
       throw new Error("Discord webhook URL is required");
     }
@@ -688,10 +688,42 @@ export default function EnhancedDiscordIntegration() {
       throw new Error("Invalid Discord webhook URL format");
     }
 
+    // If we have an image URL but no embed, send just the image
+    if (imageUrl && !embed) {
+      // Convert data URL to blob
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      
+      const formData = new FormData();
+      formData.append('file', blob, 'teams.png');
+      
+      const payload = {
+        username: "Tournament Bot",
+        content: message || undefined
+      };
+      
+      formData.append('payload_json', JSON.stringify(payload));
+      
+      console.log('Sending Discord image payload...');
+
+      const discordResponse = await fetch(webhookUrl, {
+        method: "POST",
+        body: formData
+      });
+
+      if (!discordResponse.ok) {
+        const errorText = await discordResponse.text();
+        console.error('Discord webhook error:', discordResponse.status, errorText);
+        throw new Error(`Discord webhook failed: ${discordResponse.status} - ${errorText || 'Unknown error'}`);
+      }
+      return;
+    }
+
+    // Regular embed sending
     const payload = {
       username: "Tournament Bot",
       content: message || undefined,
-      embeds: [embed]
+      embeds: embed ? [embed] : undefined
     };
 
     console.log('Sending Discord payload:', JSON.stringify(payload, null, 2));
@@ -833,20 +865,26 @@ export default function EnhancedDiscordIntegration() {
         console.log('Image generated successfully, length:', imageUrl ? imageUrl.length : 0);
       }
 
-      const embed = createRichEmbed(embedType) as any;
-      
-      // Attach image if generated
-      if (imageUrl && (embedType === 'bracket' || embedType === 'teams')) {
-        embed.image = { url: imageUrl };
-        console.log('Image attached to embed');
-      }
+      // For teams overview, just send the image without rich embed
+      if (embedType === 'teams' && imageUrl) {
+        console.log('Sending teams image only to Discord...');
+        await sendDiscordMessage(null, customMessage, imageUrl);
+      } else {
+        const embed = createRichEmbed(embedType) as any;
+        
+        // Attach image if generated
+        if (imageUrl && embedType === 'bracket') {
+          embed.image = { url: imageUrl };
+          console.log('Image attached to embed');
+        }
 
-      console.log('Sending embed to Discord...', JSON.stringify(embed, null, 2));
-      await sendDiscordMessage(embed, customMessage);
+        console.log('Sending embed to Discord...', JSON.stringify(embed, null, 2));
+        await sendDiscordMessage(embed, customMessage);
+      }
       
       toast({
         title: "Success!",
-        description: `${embedType.charAt(0).toUpperCase() + embedType.slice(1)} embed posted to Discord`,
+        description: `${embedType.charAt(0).toUpperCase() + embedType.slice(1)} posted to Discord`,
       });
     } catch (error: any) {
       console.error('Generate and post error:', error);
