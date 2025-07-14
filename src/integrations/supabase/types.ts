@@ -192,6 +192,71 @@ export type Database = {
           },
         ]
       }
+      fulfillment_orders: {
+        Row: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          fulfillment_notes: string | null
+          id: string
+          purchase_id: string
+          shop_item_id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          fulfillment_notes?: string | null
+          id?: string
+          purchase_id: string
+          shop_item_id: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          fulfillment_notes?: string | null
+          id?: string
+          purchase_id?: string
+          shop_item_id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fulfillment_orders_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fulfillment_orders_purchase_id_fkey"
+            columns: ["purchase_id"]
+            isOneToOne: false
+            referencedRelation: "user_purchases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fulfillment_orders_shop_item_id_fkey"
+            columns: ["shop_item_id"]
+            isOneToOne: false
+            referencedRelation: "shop_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fulfillment_orders_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       map_veto_actions: {
         Row: {
           action: Database["public"]["Enums"]["map_veto_action"]
@@ -890,6 +955,8 @@ export type Database = {
           created_at: string
           created_by: string | null
           description: string
+          fulfillment_instructions: string | null
+          fulfillment_required: boolean
           id: string
           is_active: boolean
           item_data: Json
@@ -903,6 +970,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description: string
+          fulfillment_instructions?: string | null
+          fulfillment_required?: boolean
           id?: string
           is_active?: boolean
           item_data?: Json
@@ -916,6 +985,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string
+          fulfillment_instructions?: string | null
+          fulfillment_required?: boolean
           id?: string
           is_active?: boolean
           item_data?: Json
@@ -2023,6 +2094,8 @@ export type Database = {
         | "gaming_rewards"
         | "platform_perks"
         | "random_boxes"
+        | "skins"
+        | "in_game_items"
       team_status:
         | "pending"
         | "confirmed"
@@ -2178,6 +2251,8 @@ export const Constants = {
         "gaming_rewards",
         "platform_perks",
         "random_boxes",
+        "skins",
+        "in_game_items",
       ],
       team_status: [
         "pending",
