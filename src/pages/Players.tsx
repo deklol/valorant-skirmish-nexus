@@ -13,6 +13,8 @@ interface Player {
   current_rank: string;
   rank_points: number;
   weight_rating: number;
+  manual_weight_override: number | null;
+  use_manual_override: boolean | null;
   tournaments_won: number;
   mvp_awards: number;
   wins: number;
@@ -31,7 +33,7 @@ const Players = () => {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('id, discord_username, discord_avatar_url, current_rank, rank_points, weight_rating, tournaments_won, mvp_awards, wins, losses')
+        .select('id, discord_username, discord_avatar_url, current_rank, rank_points, weight_rating, manual_weight_override, use_manual_override, tournaments_won, mvp_awards, wins, losses')
         .eq('is_phantom', false)
         .order('weight_rating', { ascending: false }); // Sort by weight_rating instead
 
@@ -42,6 +44,13 @@ const Players = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const getEffectiveWeight = (player: Player) => {
+    if (player.use_manual_override && player.manual_weight_override !== null) {
+      return player.manual_weight_override;
+    }
+    return player.weight_rating || 150;
   };
 
   const calculateWinRate = (wins: number, losses: number) => {
@@ -67,7 +76,7 @@ const Players = () => {
         <div className="flex items-center gap-3 mb-8">
           <Users className="w-8 h-8 text-blue-500" />
           <h1 className="text-3xl font-bold text-white">Players</h1>
-          <p className="text-slate-400">Q: Balancing Weight? A: Number represents rank, used for balancing purposes.</p>
+          <p className="text-slate-400">Q: Balancing Weight? A: Number represents rank, used for balancing purposes. <span className="text-orange-400">*</span> indicates manual override.</p>
         </div>
 
         {players.length === 0 ? (
@@ -122,8 +131,13 @@ const Players = () => {
                 <CardContent className="pt-0">
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div className="text-center p-2 bg-slate-700/50 rounded">
-                      <div className="font-bold text-indigo-400">{player.weight_rating || 150}</div>
-                      <div className="text-slate-400 text-xs">Balancing Weight</div>
+                      <div className="font-bold text-indigo-400">{getEffectiveWeight(player)}</div>
+                      <div className="text-slate-400 text-xs">
+                        Balancing Weight
+                        {player.use_manual_override && player.manual_weight_override !== null && (
+                          <span className="text-orange-400 ml-1">*</span>
+                        )}
+                      </div>
                     </div>
                     <div className="text-center p-2 bg-slate-700/50 rounded">
                       <div className="font-bold text-purple-400">{player.rank_points || 0}</div>
