@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { FulfillmentManager } from "./FulfillmentManager";
 import type { Tables, Enums } from "@/integrations/supabase/types";
 
 type ShopItem = Tables<"shop_items">;
@@ -296,12 +297,17 @@ export function ShopMedicManager() {
         </Dialog>
       </div>
 
-      <Tabs defaultValue="analytics" className="space-y-4">
+      <Tabs defaultValue="fulfillment" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="fulfillment">Fulfillment Orders</TabsTrigger>
           <TabsTrigger value="inventory">Inventory</TabsTrigger>
           <TabsTrigger value="sales">Sales History</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="fulfillment">
+          <FulfillmentManager />
+        </TabsContent>
 
         <TabsContent value="analytics" className="space-y-4">
           <div className="mb-6">
@@ -598,6 +604,8 @@ function ItemForm({ formData, setFormData, onSubmit, onCancel }: ItemFormProps) 
             <SelectItem value="gaming_rewards">Gaming Rewards</SelectItem>
             <SelectItem value="platform_perks">Platform Perks</SelectItem>
             <SelectItem value="random_boxes">Random Boxes</SelectItem>
+            <SelectItem value="skins">Skins</SelectItem>
+            <SelectItem value="in_game_items">In-Game Items</SelectItem>
           </SelectContent>
         </Select>
       </div>

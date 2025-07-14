@@ -5,6 +5,7 @@ import { Trophy, Users, Crown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
+import { StyledUsername } from "./StyledUsername";
 
 type Winner = {
   tournament: string;
@@ -132,7 +133,9 @@ export default function RecentWinners() {
                   key={member.id}
                   className="bg-slate-700/50 rounded-lg px-3 py-2 flex items-center justify-between"
                 >
-                  <span className="text-white">{member.discord_username}</span>
+                  <span className="text-white">
+                    <StyledUsername username={member.discord_username} userId={member.id} />
+                  </span>
                   <Badge variant="outline" className="text-slate-300 border-slate-500">
                     {member.current_rank}
                   </Badge>

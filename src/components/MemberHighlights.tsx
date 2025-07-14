@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Trophy, Award, Target, TrendingUp, Users, Medal } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
+import { StyledUsername } from "./StyledUsername";
 
 interface AchievementLeader {
   top_points_user_id: string;
@@ -97,7 +98,9 @@ const MemberHighlights = () => {
               <span className="text-yellow-400 font-semibold text-sm">Top Ranked Player</span>
             </div>
             <Link to={`/profile/${topPlayer.id}`} className="hover:underline">
-              <div className="text-white font-bold">{topPlayer.discord_username}</div>
+              <div className="text-white font-bold">
+                <StyledUsername username={topPlayer.discord_username} userId={topPlayer.id} />
+              </div>
             </Link>
             <div className="flex items-center gap-2 mt-1">
               <Badge variant="outline" className="text-xs border-yellow-600 text-yellow-300">

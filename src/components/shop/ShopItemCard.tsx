@@ -27,6 +27,8 @@ const categoryIcons = {
   gaming_rewards: Package,
   platform_perks: Zap,
   random_boxes: Gift,
+  skins: Package,
+  in_game_items: Gift,
 };
 
 const categoryColors = {
@@ -35,6 +37,8 @@ const categoryColors = {
   gaming_rewards: 'hsl(var(--chart-3))',
   platform_perks: 'hsl(var(--chart-4))',
   random_boxes: 'hsl(var(--chart-5))',
+  skins: 'hsl(var(--chart-6))',
+  in_game_items: 'hsl(var(--chart-7))',
 };
 
 export function ShopItemCard({ item, canAfford, onPurchase, isPurchasing, disabled }: ShopItemCardProps) {

@@ -4,6 +4,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { GripVertical } from "lucide-react";
+import { StyledUsername } from "./StyledUsername";
 
 interface Player {
   id: string;
@@ -44,7 +45,9 @@ const DraggablePlayer = ({ player }: DraggablePlayerProps) => {
           <GripVertical className="w-4 h-4 text-slate-400" />
           <div className="flex-1">
             <div className="flex items-center justify-between">
-              <span className="text-white font-medium">{player.discord_username}</span>
+              <span className="text-white font-medium">
+                <StyledUsername username={player.discord_username} userId={player.id} />
+              </span>
               <Badge variant="outline" className="text-slate-300 border-slate-500">
                 {player.rank_points} pts
               </Badge>
