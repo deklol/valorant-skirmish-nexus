@@ -30,6 +30,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { StyledUsername } from "@/components/StyledUsername";
 
 const TeamManagementPage = () => {
   const { user } = useAuth();
@@ -312,7 +313,7 @@ const TeamManagementPage = () => {
                       <div className="flex items-center gap-3">
                         {member.is_captain && <Crown className="h-4 w-4 text-yellow-500" />}
                         <div>
-                          <p className="font-medium">{member.users.discord_username}</p>
+                          <StyledUsername username={member.users.discord_username} userId={member.users.id} size="sm" className="font-medium" />
                           <p className="text-sm text-slate-400">
                             {member.users.current_rank} • {member.users.riot_id}
                           </p>

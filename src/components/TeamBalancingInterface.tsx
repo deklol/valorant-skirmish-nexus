@@ -14,6 +14,7 @@ import PeakRankFallbackAlert from "@/components/team-balancing/PeakRankFallbackA
 import EnhancedRankFallbackAlert from "@/components/team-balancing/EnhancedRankFallbackAlert";
 import TeamCleanupTools from "@/components/team-balancing/TeamCleanupTools";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { StyledUsername } from "@/components/StyledUsername";
 
 interface TeamBalancingInterfaceProps {
 tournamentId: string;
@@ -72,7 +73,7 @@ const DraggablePlayer = ({ player }: { player: Player }) => {
         <GripVertical className="w-4 h-4 text-slate-400" />
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-white font-medium">{player.discord_username}</span>
+            <StyledUsername username={player.discord_username} userId={player.id} size="sm" className="text-white font-medium" />
             {rankResult.source === 'manual_override' && (
               <Badge className="bg-purple-600 text-white text-xs flex items-center gap-1">
                 <Settings className="w-3 h-3" />
