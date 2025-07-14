@@ -1916,6 +1916,7 @@ export type Database = {
           last_seen: string
           created_at: string
           peak_rank: string
+          role: string
         }[]
       }
       get_user_role: {

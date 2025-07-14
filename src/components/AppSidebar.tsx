@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { StyledUsername } from "@/components/StyledUsername";
+import { Username } from "@/components/Username";
 import {
   Sidebar,
   SidebarContent,
@@ -42,6 +42,7 @@ interface LatestResult {
 }
 
 interface UserProfile {
+  id: string;
   discord_username: string;
   current_rank: string;
   wins: number;
@@ -144,7 +145,7 @@ export function AppSidebar() {
         if (user) {
           const { data: profileData } = await supabase
             .from('users')
-            .select('discord_username, current_rank, wins, losses, tournaments_won')
+            .select('id, discord_username, current_rank, wins, losses, tournaments_won')
             .eq('id', user.id)
             .single();
 
@@ -366,11 +367,10 @@ export function AppSidebar() {
               <Card className="bg-sidebar-accent border-sidebar-border">
                 <CardContent className="p-3 space-y-3">
                   <div className="text-sm text-sidebar-foreground font-medium truncate">
-                    <StyledUsername 
-                      userId={user.id} 
+                    <Username 
+                      userId={userProfile.id} 
                       username={userProfile.discord_username || user.email || "Unknown"} 
                       size="sm"
-                      fallbackOnly={true} // Keep sidebar simple for stability
                     />
                   </div>
                   {userProfile.current_rank && (
