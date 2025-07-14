@@ -93,6 +93,10 @@ export const getNameEffectStyles = (effect: any): string => {
       return 'text-gray-300 drop-shadow-[2px_2px_4px_rgba(0,0,0,0.8)] font-semibold';
     case 'electric':
       return 'bg-gradient-to-r from-yellow-400 via-blue-500 to-cyan-400 bg-clip-text text-transparent font-bold animate-pulse';
+    case 'silver':
+      return 'text-gray-300 drop-shadow-[0_0_5px_rgba(192,192,192,0.5)] font-semibold';
+    case 'golden':
+      return 'text-yellow-400 drop-shadow-[0_0_8px_rgba(255,215,0,0.6)] font-semibold';
     default:
       return "";
   }

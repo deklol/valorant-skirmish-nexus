@@ -105,6 +105,18 @@ export function ShopItemCard({ item, canAfford, onPurchase, isPurchasing, disabl
             fontWeight: 'bold',
             animation: 'pulse 2s cubic-bezier(0.4,0,0.6,1) infinite'
           };
+        case 'silver':
+          return {
+            color: 'rgb(192, 192, 192)',
+            textShadow: '0 0 5px rgba(192, 192, 192, 0.5)',
+            fontWeight: '600'
+          };
+        case 'golden':
+          return {
+            color: 'rgb(255, 215, 0)',
+            textShadow: '0 0 8px rgba(255, 215, 0, 0.6)',
+            fontWeight: '600'
+          };
         default:
           return {};
       }
