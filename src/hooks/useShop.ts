@@ -34,7 +34,10 @@ export function useShop() {
   const [activating, setActivating] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     const fetchShopData = async () => {
       try {
@@ -81,8 +84,9 @@ export function useShop() {
     fetchShopData();
 
     // Set up real-time subscription for spendable points updates
+    const channelName = `shop-updates-${user.id}-${Date.now()}`;
     const channel = supabase
-      .channel(`shop-updates-${user.id}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -114,7 +118,7 @@ export function useShop() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, toast]);
+  }, [user?.id, toast]);
 
   const purchaseItem = async (itemId: string) => {
     if (!user || purchasing) return;
