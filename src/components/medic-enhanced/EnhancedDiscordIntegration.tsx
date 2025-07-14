@@ -156,11 +156,20 @@ export default function EnhancedDiscordIntegration() {
     ctx.fillStyle = '#0f172a';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Helper function to draw rounded rectangle
+    // Helper function to draw rounded rectangle (manual implementation for compatibility)
     const drawRoundedRect = (x: number, y: number, width: number, height: number, radius: number, fillColor: string, strokeColor?: string) => {
       ctx.fillStyle = fillColor;
       ctx.beginPath();
-      ctx.roundRect(x, y, width, height, radius);
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + width - radius, y);
+      ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+      ctx.lineTo(x + width, y + height - radius);
+      ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+      ctx.lineTo(x + radius, y + height);
+      ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+      ctx.closePath();
       ctx.fill();
       if (strokeColor) {
         ctx.strokeStyle = strokeColor;
@@ -473,81 +482,12 @@ export default function EnhancedDiscordIntegration() {
     try {
       console.log('Starting bracket image generation...');
       
-      // Generate bracket image as blob
+      // Use the improved bracket image generation function
+      await generateBracketImage();
+      
+      // Generate bracket image as blob using the updated styling
       const canvas = canvasRef.current;
       if (!canvas) throw new Error("Canvas not available");
-
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error("Canvas context not available");
-
-      // Set canvas size
-      canvas.width = 1200;
-      canvas.height = 800;
-
-      // Dark background
-      ctx.fillStyle = '#1e293b';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // Title
-      ctx.fillStyle = '#f8fafc';
-      ctx.font = 'bold 32px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText(tournament?.name || 'No Tournament Selected', canvas.width / 2, 40);
-
-      // Tournament status
-      ctx.fillStyle = '#94a3b8';
-      ctx.font = '18px Arial';
-      ctx.fillText(`Status: ${tournament?.status?.toUpperCase() || 'UNKNOWN'}`, canvas.width / 2, 70);
-
-      // Draw bracket structure
-      const rounds = Math.max(...matches.map(m => m.round_number), 1);
-      const roundWidth = (canvas.width - 100) / rounds;
-      
-      for (let round = 1; round <= rounds; round++) {
-        const roundMatches = matches.filter(m => m.round_number === round);
-        const matchHeight = (canvas.height - 150) / Math.max(roundMatches.length, 1);
-        
-        // Round header
-        ctx.fillStyle = '#3b82f6';
-        ctx.font = 'bold 20px Arial';
-        ctx.textAlign = 'center';
-        const roundX = 50 + (round - 1) * roundWidth + roundWidth / 2;
-        ctx.fillText(`Round ${round}`, roundX, 110);
-        
-        roundMatches.forEach((match, index) => {
-          const matchY = 130 + index * matchHeight;
-          const matchX = 50 + (round - 1) * roundWidth;
-          
-          // Match box
-          ctx.fillStyle = match.status === 'completed' ? '#059669' : 
-                         match.status === 'live' ? '#dc2626' : '#475569';
-          ctx.fillRect(matchX + 10, matchY, roundWidth - 20, matchHeight - 10);
-          
-          // Match border
-          ctx.strokeStyle = '#64748b';
-          ctx.lineWidth = 2;
-          ctx.strokeRect(matchX + 10, matchY, roundWidth - 20, matchHeight - 10);
-          
-          // Match info
-          ctx.fillStyle = '#f8fafc';
-          ctx.font = '14px Arial';
-          ctx.textAlign = 'left';
-          
-          const team1Name = teams.find(t => t.id === match.team1_id)?.name || 'TBD';
-          const team2Name = teams.find(t => t.id === match.team2_id)?.name || 'TBD';
-          
-          ctx.fillText(`${team1Name}`, matchX + 20, matchY + 25);
-          ctx.fillText(`vs`, matchX + 20, matchY + 45);
-          ctx.fillText(`${team2Name}`, matchX + 20, matchY + 65);
-          
-          if (match.winner_id) {
-            const winnerName = teams.find(t => t.id === match.winner_id)?.name || 'Unknown';
-            ctx.fillStyle = '#10b981';
-            ctx.font = 'bold 12px Arial';
-            ctx.fillText(`Winner: ${winnerName}`, matchX + 20, matchY + 85);
-          }
-        });
-      }
 
       // Convert canvas to blob
       const blob = await new Promise<Blob>((resolve, reject) => {
