@@ -1756,6 +1756,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      activate_name_effect: {
+        Args: { p_user_id: string; p_purchase_id: string }
+        Returns: Json
+      }
       advance_match_winner_secure: {
         Args: {
           p_match_id: string
@@ -1807,6 +1811,10 @@ export type Database = {
           p_expires_at?: string
         }
         Returns: string
+      }
+      deactivate_name_effect: {
+        Args: { p_user_id: string }
+        Returns: Json
       }
       diagnose_bracket_progression: {
         Args: { p_tournament_id: string }

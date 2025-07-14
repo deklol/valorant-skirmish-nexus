@@ -31,6 +31,7 @@ export function useShop() {
   const [spendablePoints, setSpendablePoints] = useState(0);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
+  const [activating, setActivating] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -174,6 +175,81 @@ export function useShop() {
     }
   };
 
+  const activateNameEffect = async (purchaseId: string) => {
+    if (!user || activating) return;
+
+    setActivating(purchaseId);
+    try {
+      const { data, error } = await supabase.rpc('activate_name_effect', {
+        p_user_id: user.id,
+        p_purchase_id: purchaseId
+      });
+
+      if (error) throw error;
+
+      const result = data as { success: boolean; error?: string; message?: string };
+
+      if (result.success) {
+        toast({
+          title: "Effect Activated!",
+          description: result.message || "Name effect has been activated",
+        });
+      } else {
+        toast({
+          title: "Activation Failed",
+          description: result.error || "Failed to activate name effect",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error activating name effect:', error);
+      toast({
+        title: "Activation Failed",
+        description: "An error occurred while activating the effect",
+        variant: "destructive",
+      });
+    } finally {
+      setActivating(null);
+    }
+  };
+
+  const deactivateNameEffect = async () => {
+    if (!user || activating) return;
+
+    setActivating('deactivating');
+    try {
+      const { data, error } = await supabase.rpc('deactivate_name_effect', {
+        p_user_id: user.id
+      });
+
+      if (error) throw error;
+
+      const result = data as { success: boolean; error?: string; message?: string };
+
+      if (result.success) {
+        toast({
+          title: "Effect Deactivated",
+          description: result.message || "Name effect has been deactivated",
+        });
+      } else {
+        toast({
+          title: "Deactivation Failed",
+          description: result.error || "Failed to deactivate name effect",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error deactivating name effect:', error);
+      toast({
+        title: "Deactivation Failed",
+        description: "An error occurred while deactivating the effect",
+        variant: "destructive",
+      });
+    } finally {
+      setActivating(null);
+    }
+  };
+
   const getItemsByCategory = (category: string) => {
     return shopItems.filter(item => item.category === category);
   };
@@ -186,15 +262,26 @@ export function useShop() {
     return userPurchases.some(p => p.status === 'completed');
   };
 
+  const getPurchasedNameEffects = () => {
+    return userPurchases.filter(p => 
+      p.status === 'completed' && 
+      p.shop_items.category === 'name_effects'
+    );
+  };
+
   return {
     shopItems,
     userPurchases,
     spendablePoints,
     loading,
     purchasing,
+    activating,
     purchaseItem,
+    activateNameEffect,
+    deactivateNameEffect,
     getItemsByCategory,
     canAfford,
     hasAnyPurchases,
+    getPurchasedNameEffects,
   };
 }

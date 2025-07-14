@@ -3,6 +3,7 @@ import { Sparkles, ShoppingBag, History, Crown, Package, Gift, Zap } from 'lucid
 import { useShop } from '@/hooks/useShop';
 import { ShopItemCard } from './ShopItemCard';
 import { PurchaseHistory } from './PurchaseHistory';
+import { PurchasedNameEffects } from './PurchasedNameEffects';
 import { 
   StandardTabs, 
   StandardTabsList, 
@@ -55,7 +56,8 @@ export function Shop() {
     purchaseItem,
     getItemsByCategory,
     canAfford,
-    hasAnyPurchases
+    hasAnyPurchases,
+    getPurchasedNameEffects
   } = useShop();
 
   const [activeTab, setActiveTab] = useState('shop');
@@ -113,6 +115,8 @@ export function Shop() {
           </StandardTabsList>
 
           <StandardTabsContent value="shop" className="space-y-6">
+            {/* Show purchased name effects if user has any */}
+            {getPurchasedNameEffects().length > 0 && <PurchasedNameEffects />}
             {categories.length === 0 ? (
               <PageCard>
                 <PageCardContent className="text-center py-12">
