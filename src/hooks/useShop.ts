@@ -82,7 +82,7 @@ export function useShop() {
 
     // Set up real-time subscription for spendable points updates
     const channel = supabase
-      .channel('shop-updates')
+      .channel(`shop-updates-${user.id}`)
       .on(
         'postgres_changes',
         {
