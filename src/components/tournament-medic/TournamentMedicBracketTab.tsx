@@ -2,6 +2,12 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogFooter, AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel } from "@/components/ui/alert-dialog";
+import { Target, Shuffle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import TournamentMedicBracketTabExtras from "./TournamentMedicBracketTabExtras";
@@ -43,27 +49,42 @@ export default function TournamentMedicBracketTab({ tournament, onRefresh }: {
   onRefresh: () => void;
 }) {
   const [matches, setMatches] = useState<Match[]>([]);
+  const [teams, setTeams] = useState<TeamObj[]>([]);
   const [loading, setLoading] = useState(false);
   const [editModal, setEditModal] = useState<Match | null>(null);
   const [actionMatchId, setActionMatchId] = useState<string | null>(null);
+  
+  // States for bracket controls
+  const [forceProgressionTeam, setForceProgressionTeam] = useState<string>("");
+  const [targetRound, setTargetRound] = useState<number>(1);
+  const [targetMatchNumber, setTargetMatchNumber] = useState<number>(1);
+  const [progressionReason, setProgressionReason] = useState<string>("");
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [pendingAction, setPendingAction] = useState<() => void>(() => {});
 
   useEffect(() => {
     (async () => {
       setLoading(true);
-      // Updated query: include team joins!
-      const { data, error } = await supabase
-        .from("matches")
-        .select(`
-          id, team1_id, team2_id, winner_id, round_number, match_number, status, score_team1, score_team2,
-          team1:team1_id (id, name),
-          team2:team2_id (id, name)
-        `)
-        .eq("tournament_id", tournament.id)
-        .order("round_number", { ascending: true })
-        .order("match_number", { ascending: true });
+      // Fetch matches and teams
+      const [matchesResponse, teamsResponse] = await Promise.all([
+        supabase
+          .from("matches")
+          .select(`
+            id, team1_id, team2_id, winner_id, round_number, match_number, status, score_team1, score_team2,
+            team1:team1_id (id, name),
+            team2:team2_id (id, name)
+          `)
+          .eq("tournament_id", tournament.id)
+          .order("round_number", { ascending: true })
+          .order("match_number", { ascending: true }),
+        supabase
+          .from("teams")
+          .select("id, name, status")
+          .eq("tournament_id", tournament.id)
+      ]);
 
       // Transform results to ensure types are correct and joins are parsed safely
-      const sanitized: Match[] = (data || []).map((m: any) => ({
+      const sanitized: Match[] = (matchesResponse.data || []).map((m: any) => ({
         id: m.id,
         team1: parseTeam(m.team1),
         team2: parseTeam(m.team2),
@@ -78,6 +99,7 @@ export default function TournamentMedicBracketTab({ tournament, onRefresh }: {
       }));
 
       setMatches(sanitized);
+      setTeams((teamsResponse.data || []).map((t: any) => ({ id: t.id, name: t.name })));
       setLoading(false);
     })();
   }, [tournament.id]);
@@ -179,9 +201,181 @@ export default function TournamentMedicBracketTab({ tournament, onRefresh }: {
     };
   }
 
+  // Bracket control functions
+  const activeTeams = teams.filter(team => team.name && !team.name.includes('eliminated'));
+  const maxRound = Math.max(...matches.map(m => m.round_number), 1);
+
+  const handleForcedProgression = async () => {
+    if (!forceProgressionTeam || !targetRound || !targetMatchNumber || !progressionReason.trim()) return;
+    
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.rpc('manually_advance_team', {
+        p_team_id: forceProgressionTeam,
+        p_to_round: targetRound,
+        p_to_match_number: targetMatchNumber,
+        p_reason: progressionReason.trim()
+      });
+
+      if (error) throw error;
+
+      const result = data as any;
+      if (result?.success) {
+        toast({
+          title: "Forced Progression Complete",
+          description: `Team advanced to Round ${targetRound}, Match ${targetMatchNumber}`
+        });
+        onRefresh();
+        setForceProgressionTeam("");
+        setTargetRound(1);
+        setTargetMatchNumber(1);
+        setProgressionReason("");
+      } else {
+        throw new Error(result?.error || 'Unknown error');
+      }
+    } catch (error: any) {
+      toast({
+        title: "Forced Progression Failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBracketShuffle = async () => {
+    if (!window.confirm("This will randomly reassign all teams in Round 1. Continue?")) return;
+    
+    setLoading(true);
+    try {
+      const round1Matches = matches.filter(m => m.round_number === 1);
+      const shuffledTeams = [...activeTeams].sort(() => Math.random() - 0.5);
+      
+      let teamIndex = 0;
+      for (const match of round1Matches) {
+        const team1 = shuffledTeams[teamIndex++];
+        const team2 = shuffledTeams[teamIndex++];
+        
+        await supabase
+          .from('matches')
+          .update({
+            team1_id: team1?.id || null,
+            team2_id: team2?.id || null
+          })
+          .eq('id', match.id);
+      }
+
+      toast({
+        title: "Bracket Shuffled",
+        description: "All Round 1 teams have been randomly reassigned."
+      });
+      onRefresh();
+    } catch (error: any) {
+      toast({
+        title: "Shuffle Failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const confirmActionHandler = (action: () => void) => {
+    setPendingAction(() => action);
+    setShowConfirmDialog(true);
+  };
+
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-4">
       <TournamentMedicBracketTabExtras tournament={tournament} onRefresh={onRefresh} />
+      
+      {/* Forced Progression Controls */}
+      <div className="border border-purple-600/30 bg-purple-950/20 rounded-lg p-4">
+        <h3 className="text-purple-400 font-medium mb-3 flex items-center gap-2">
+          <Target className="w-4 h-4" />
+          Forced Progression Controls
+        </h3>
+        <div className="space-y-4">
+          <div>
+            <Label className="text-slate-300">Team to Advance</Label>
+            <Select value={forceProgressionTeam} onValueChange={setForceProgressionTeam}>
+              <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                <SelectValue placeholder="Select team to force advance..." />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-700 border-slate-600">
+                {activeTeams.map(team => (
+                  <SelectItem key={team.id} value={team.id}>
+                    {team.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label className="text-slate-300">Target Round</Label>
+              <Input
+                type="number"
+                min="1"
+                max={maxRound}
+                value={targetRound}
+                onChange={(e) => setTargetRound(parseInt(e.target.value) || 1)}
+                className="bg-slate-700 border-slate-600 text-white"
+              />
+            </div>
+            <div>
+              <Label className="text-slate-300">Target Match</Label>
+              <Input
+                type="number"
+                min="1"
+                value={targetMatchNumber}
+                onChange={(e) => setTargetMatchNumber(parseInt(e.target.value) || 1)}
+                className="bg-slate-700 border-slate-600 text-white"
+              />
+            </div>
+          </div>
+          
+          <div>
+            <Label className="text-slate-300">Progression Reason</Label>
+            <Textarea
+              value={progressionReason}
+              onChange={(e) => setProgressionReason(e.target.value)}
+              placeholder="Explain why this team is being advanced..."
+              className="bg-slate-700 border-slate-600 text-white"
+            />
+          </div>
+          
+          <Button
+            onClick={() => confirmActionHandler(handleForcedProgression)}
+            disabled={!forceProgressionTeam || !progressionReason.trim() || loading}
+            className="w-full bg-purple-600 hover:bg-purple-700"
+          >
+            <Target className="w-4 h-4 mr-2" />
+            Force Team Progression
+          </Button>
+        </div>
+      </div>
+
+      {/* Bracket Utilities */}
+      <div className="border border-orange-600/30 bg-orange-950/20 rounded-lg p-4">
+        <h3 className="text-orange-400 font-medium mb-3 flex items-center gap-2">
+          <Shuffle className="w-4 h-4" />
+          Bracket Utilities
+        </h3>
+        <Button
+          onClick={() => confirmActionHandler(handleBracketShuffle)}
+          disabled={loading}
+          className="w-full bg-orange-600 hover:bg-orange-700"
+        >
+          <Shuffle className="w-4 h-4 mr-2" />
+          Shuffle Round 1 Teams
+        </Button>
+      </div>
+      
+      {/* Match List */}
       {loading ? (
         <span>Loading...</span>
       ) : (
@@ -201,6 +395,7 @@ export default function TournamentMedicBracketTab({ tournament, onRefresh }: {
           </div>
         ))
       )}
+      
       <MatchEditModal
         open={!!editModal}
         match={getModalMatchObj(editModal)}
@@ -221,6 +416,31 @@ export default function TournamentMedicBracketTab({ tournament, onRefresh }: {
         onCancel={() => setEditModal(null)}
         onSave={handleEditSubmit}
       />
+
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent className="bg-slate-800 border-slate-700">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">Confirm Action</AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-400">
+              Are you sure you want to perform this action? This will modify the tournament bracket structure.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                pendingAction();
+                setShowConfirmDialog(false);
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

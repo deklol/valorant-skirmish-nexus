@@ -441,6 +441,30 @@ export default function MatchMedicManager() {
             </Button>
           </div>
 
+          {/* Advanced Match Management Section */}
+          <div className="mb-6 border border-blue-600/30 bg-blue-950/20 rounded-lg p-4">
+            <h3 className="text-blue-400 font-medium mb-3 flex items-center gap-2">
+              <Edit className="w-4 h-4" />
+              Advanced Match Management
+            </h3>
+            <div className="text-sm text-slate-300">
+              Click "Edit Match" on any match below to access advanced controls including team reassignment, 
+              notes, and detailed match management.
+            </div>
+          </div>
+
+          {/* Match Scheduling Section */}
+          <div className="mb-6 border border-green-600/30 bg-green-950/20 rounded-lg p-4">
+            <h3 className="text-green-400 font-medium mb-3 flex items-center gap-2">
+              <Calendar className="w-4 h-4" />
+              Match Scheduling
+            </h3>
+            <div className="text-sm text-slate-300">
+              Scheduling controls are available in the match edit modal. Select a match and click "Edit Match" 
+              to set scheduled times and manage timing.
+            </div>
+          </div>
+
           {loading ? (
             <div className="text-center text-slate-300 py-8">Loading matches...</div>
           ) : filteredMatches.length === 0 ? (

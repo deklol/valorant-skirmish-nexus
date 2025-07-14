@@ -8,7 +8,7 @@ import BracketOverview from "./BracketOverview";
 import BracketMedicTournamentList from "./BracketMedicTournamentList";
 import BracketHealthAnalyzer from "./bracket-medic/BracketHealthAnalyzer";
 import BracketMedicActions from "./bracket-medic/BracketMedicActions";
-import EnhancedBracketControlSystem from "./medic-enhanced/EnhancedBracketControlSystem";
+
 
 import { getOriginalTeamCount } from "@/utils/bracketCalculations";
 
@@ -24,8 +24,6 @@ type MatchInfo = {
   winner_id: string | null;
   score_team1: number | null;
   score_team2: number | null;
-  scheduled_time: string | null;
-  notes: string | null;
 };
 type TeamInfo = {
   id: string;
@@ -64,7 +62,7 @@ export default function BracketMedicManager() {
     const [matchesResult, teamsResult, eliminatedResult] = await Promise.all([
       supabase
         .from("matches")
-        .select("id, round_number, match_number, status, team1_id, team2_id, winner_id, score_team1, score_team2, scheduled_time, notes")
+        .select("id, round_number, match_number, status, team1_id, team2_id, winner_id, score_team1, score_team2")
         .eq("tournament_id", tournamentId)
         .order("round_number", { ascending: true })
         .order("match_number", { ascending: true }),
@@ -392,21 +390,6 @@ export default function BracketMedicManager() {
               onRebuildBracket={handleRebuildBracket}
             />
 
-            <EnhancedBracketControlSystem
-              tournamentId={selectedTournament.id}
-              matches={matches.map(m => ({
-                id: m.id,
-                round_number: m.round_number,
-                match_number: m.match_number,
-                team1_id: m.team1_id || "",
-                team2_id: m.team2_id || "",
-                status: m.status,
-                scheduled_time: m.scheduled_time || "",
-                notes: m.notes || ""
-              }))}
-              teams={teams.map(t => ({ id: t.id, name: t.name, status: t.status }))}
-              onUpdate={() => loadBracket(selectedTournament.id)}
-            />
 
             <div className="text-xs text-slate-500 mt-4">
               <p>Unified Bracket System uses original team count ({originalTeamCount} teams) for all calculations and fixes progression issues.<br/>
