@@ -132,7 +132,7 @@ const Statistics = () => {
     const IconComponent = iconMap[achievement.icon] || Trophy;
     
     return (
-      <Card className={`transition-all duration-200 ${earned ? 'border-primary bg-primary/5' : 'opacity-60'}`}>
+      <Card className={`bg-slate-800/90 border-slate-700 transition-all duration-200 ${earned ? 'border-primary bg-primary/5' : 'opacity-60'}`}>
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <IconComponent className={`w-6 h-6 ${earned ? 'text-primary' : 'text-muted-foreground'}`} />
@@ -189,7 +189,7 @@ const Statistics = () => {
 
           <TabsContent value="global" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <Card>
+              <Card className="bg-slate-800/90 border-slate-700">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total Tournaments</CardTitle>
                   <Trophy className="h-4 w-4 text-muted-foreground" />
@@ -199,7 +199,7 @@ const Statistics = () => {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="bg-slate-800/90 border-slate-700">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total Matches</CardTitle>
                   <Target className="h-4 w-4 text-muted-foreground" />
@@ -209,7 +209,7 @@ const Statistics = () => {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="bg-slate-800/90 border-slate-700">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total Players</CardTitle>
                   <Users className="h-4 w-4 text-muted-foreground" />
@@ -219,7 +219,7 @@ const Statistics = () => {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="bg-slate-800/90 border-slate-700">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Top Winner</CardTitle>
                   <Crown className="h-4 w-4 text-muted-foreground" />
@@ -232,7 +232,7 @@ const Statistics = () => {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="bg-slate-800/90 border-slate-700">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Achievement Leader</CardTitle>
                   <Star className="h-4 w-4 text-muted-foreground" />
@@ -245,7 +245,7 @@ const Statistics = () => {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="bg-slate-800/90 border-slate-700">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Most Achievements</CardTitle>
                   <Medal className="h-4 w-4 text-muted-foreground" />
@@ -287,7 +287,7 @@ const Statistics = () => {
           {user && (
             <TabsContent value="my-achievements" className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <Card>
+                <Card className="bg-slate-800/90 border-slate-700">
                   <CardHeader>
                     <CardTitle className="text-sm">Achievements Earned</CardTitle>
                   </CardHeader>
@@ -299,7 +299,7 @@ const Statistics = () => {
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="bg-slate-800/90 border-slate-700">
                   <CardHeader>
                     <CardTitle className="text-sm">Total Points</CardTitle>
                   </CardHeader>
@@ -310,7 +310,7 @@ const Statistics = () => {
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="bg-slate-800/90 border-slate-700">
                   <CardHeader>
                     <CardTitle className="text-sm">Completion</CardTitle>
                   </CardHeader>
@@ -338,7 +338,7 @@ const Statistics = () => {
                   </div>
                 </div>
               ) : (
-                <Card>
+                <Card className="bg-slate-800/90 border-slate-700">
                   <CardContent className="text-center py-8">
                     <Trophy className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
                     <h3 className="text-lg font-semibold text-white mb-2">No Achievements Yet</h3>

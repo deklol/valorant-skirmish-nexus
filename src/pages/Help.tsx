@@ -33,7 +33,7 @@ const Help = () => {
           </TabsList>
 
           <TabsContent value="getting-started" className="space-y-6">
-            <Card>
+            <Card className="bg-slate-800/90 border-slate-700">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <UserPlus className="w-5 h-5" />
@@ -57,7 +57,7 @@ const Help = () => {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-slate-800/90 border-slate-700">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Info className="w-5 h-5" />
@@ -88,7 +88,7 @@ const Help = () => {
           </TabsContent>
 
           <TabsContent value="tournaments" className="space-y-6">
-            <Card>
+            <Card className="bg-slate-800/90 border-slate-700">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Calendar className="w-5 h-5" />
@@ -115,7 +115,7 @@ const Help = () => {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-slate-800/90 border-slate-700">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Trophy className="w-5 h-5" />
@@ -160,7 +160,7 @@ const Help = () => {
           </TabsContent>
 
           <TabsContent value="teams" className="space-y-6">
-            <Card>
+            <Card className="bg-slate-800/90 border-slate-700">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Users className="w-5 h-5" />
@@ -187,7 +187,7 @@ const Help = () => {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-slate-800/90 border-slate-700">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <MessageSquare className="w-5 h-5" />
@@ -208,7 +208,7 @@ const Help = () => {
           </TabsContent>
 
           <TabsContent value="settings" className="space-y-6">
-            <Card>
+            <Card className="bg-slate-800/90 border-slate-700">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Settings className="w-5 h-5" />
@@ -232,7 +232,7 @@ const Help = () => {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-slate-800/90 border-slate-700">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <HelpCircle className="w-5 h-5" />
