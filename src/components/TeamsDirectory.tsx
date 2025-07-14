@@ -109,7 +109,8 @@ const TeamsDirectory = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
+      <div className="container mx-auto px-4 py-8 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Teams Directory</h1>
         <Badge variant="secondary" className="text-lg px-3 py-1">
@@ -132,7 +133,7 @@ This feature is for later where we'll be positioned to host actual team tourname
       </div>
 
       {filteredTeams.length === 0 ? (
-        <Card className="bg-slate-800 border-slate-700">
+        <Card className="bg-slate-800/90 border-slate-700">
           <CardContent className="py-12 text-center">
             <Users className="h-16 w-16 mx-auto mb-4 text-slate-600" />
             <h3 className="text-xl font-semibold mb-2">
@@ -157,7 +158,7 @@ This feature is for later where we'll be positioned to host actual team tourname
             const captain = team.members.find(m => m.is_captain);
             
             return (
-              <Card key={team.id} className="bg-slate-800 border-slate-700 hover:border-slate-600 transition-all duration-200 animate-fade-in hover-scale">
+              <Card key={team.id} className="bg-slate-800/90 border-slate-700 hover:border-slate-600 transition-all duration-200 animate-fade-in hover-scale">
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <CardTitle className="text-lg">{team.name}</CardTitle>
@@ -228,6 +229,7 @@ This feature is for later where we'll be positioned to host actual team tourname
           })}
         </div>
       )}
+      </div>
     </div>
   );
 };
