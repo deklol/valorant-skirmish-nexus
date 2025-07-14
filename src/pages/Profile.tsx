@@ -408,25 +408,25 @@ const Profile = () => {
       <Card className="bg-slate-800 border-slate-700">
         <CardContent className="p-6">
           <Tabs defaultValue="settings" className="w-full">
-            <TabsList className="grid w-full grid-cols-6 bg-slate-700">
-              <TabsTrigger value="settings" className="data-[state=active]:bg-slate-600">
+            <TabsList className="grid w-full grid-cols-6 bg-slate-800/90 border border-slate-700">
+              <TabsTrigger value="settings" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
                 <Settings className="w-4 h-4 mr-2" />
                 Settings
               </TabsTrigger>
-              <TabsTrigger value="awards" className="data-[state=active]:bg-slate-600">
+              <TabsTrigger value="awards" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
                 Achievements
               </TabsTrigger>
-              <TabsTrigger value="matches" className="data-[state=active]:bg-slate-600">
+              <TabsTrigger value="matches" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
                 Match History
               </TabsTrigger>
-              <TabsTrigger value="tournaments" className="data-[state=active]:bg-slate-600">
+              <TabsTrigger value="tournaments" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
                 Tournaments
               </TabsTrigger>
-              <TabsTrigger value="rank-history" className="data-[state=active]:bg-slate-600">
+              <TabsTrigger value="rank-history" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
                 <TrendingUp className="w-4 h-4 mr-2" />
                 Rank History
               </TabsTrigger>
-              <TabsTrigger value="notifications" className="data-[state=active]:bg-slate-600">
+              <TabsTrigger value="notifications" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
                 <Bell className="w-4 h-4 mr-2" />
                 Notifications
               </TabsTrigger>

@@ -23,7 +23,7 @@ export default function TournamentTabs({
   return (
     <Tabs defaultValue="overview" className="space-y-6">
       <TabsList
-        className={`flex flex-wrap w-full gap-x-2 gap-y-2 bg-slate-800 border-slate-700`}
+        className={`flex flex-wrap w-full gap-x-2 gap-y-2 bg-slate-800/90 border border-slate-700`}
         style={{ alignItems: 'stretch' }}
       >
         <TabsTrigger value="overview" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">

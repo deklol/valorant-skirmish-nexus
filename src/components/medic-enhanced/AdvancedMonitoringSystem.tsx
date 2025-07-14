@@ -598,28 +598,28 @@ export default function AdvancedMonitoringSystem() {
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="bg-slate-800 border-slate-700 grid grid-cols-6 w-full">
-              <TabsTrigger value="overview" className="text-white data-[state=active]:bg-emerald-600">
+            <TabsList className="bg-slate-800/90 border border-slate-700 grid grid-cols-6 w-full">
+              <TabsTrigger value="overview" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
                 <BarChart3 className="w-4 h-4 mr-2" />
                 Overview
               </TabsTrigger>
-              <TabsTrigger value="database" className="text-white data-[state=active]:bg-blue-600">
+              <TabsTrigger value="database" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
                 <Database className="w-4 h-4 mr-2" />
                 Database
               </TabsTrigger>
-              <TabsTrigger value="alerts" className="text-white data-[state=active]:bg-orange-600">
+              <TabsTrigger value="alerts" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
                 <Bell className="w-4 h-4 mr-2" />
                 Alerts ({activeAlerts.length})
               </TabsTrigger>
-              <TabsTrigger value="performance" className="text-white data-[state=active]:bg-purple-600">
+              <TabsTrigger value="performance" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
                 <Zap className="w-4 h-4 mr-2" />
                 Performance
               </TabsTrigger>
-              <TabsTrigger value="analytics" className="text-white data-[state=active]:bg-cyan-600">
+              <TabsTrigger value="analytics" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
                 <TrendingUp className="w-4 h-4 mr-2" />
                 Analytics
               </TabsTrigger>
-              <TabsTrigger value="tools" className="text-white data-[state=active]:bg-red-600">
+              <TabsTrigger value="tools" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
                 <Shield className="w-4 h-4 mr-2" />
                 Tools
               </TabsTrigger>

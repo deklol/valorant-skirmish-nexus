@@ -71,67 +71,67 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="tournaments" className="space-y-6">
-          <TabsList className="bg-slate-800 border-slate-700 flex flex-wrap justify-start gap-1 h-auto p-2 w-full max-w-7xl mx-auto overflow-x-auto">{/* Using flex instead of grid for better tab handling */}
+          <TabsList className="bg-slate-800/90 border border-slate-700 flex flex-wrap justify-start gap-1 h-auto p-2 w-full max-w-7xl mx-auto overflow-x-auto">{/* Using flex instead of grid for better tab handling */}
             {/* Core Management */}
-            <TabsTrigger value="tournaments" className="text-white data-[state=active]:bg-red-600">
+            <TabsTrigger value="tournaments" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
               <Trophy className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Tournaments</span>
             </TabsTrigger>
-            <TabsTrigger value="users" className="text-white data-[state=active]:bg-red-600">
+            <TabsTrigger value="users" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
               <Users className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">User & Player Management</span>
             </TabsTrigger>
-            <TabsTrigger value="maps" className="text-white data-[state=active]:bg-red-600">
+            <TabsTrigger value="maps" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
               <Map className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Maps</span>
             </TabsTrigger>
 
             {/* Medical Tools - Individual Tabs */}
-            <TabsTrigger value="tournament-medic" className="text-white data-[state=active]:bg-yellow-600">
+            <TabsTrigger value="tournament-medic" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
               <Trophy className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Tournament Medic</span>
             </TabsTrigger>
-            <TabsTrigger value="veto-medic" className="text-white data-[state=active]:bg-orange-600">
+            <TabsTrigger value="veto-medic" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
               <MessageSquare className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Veto Medic</span>
             </TabsTrigger>
-            <TabsTrigger value="bracket-medic" className="text-white data-[state=active]:bg-cyan-600">
+            <TabsTrigger value="bracket-medic" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
               <Wrench className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Bracket Medic</span>
             </TabsTrigger>
-            <TabsTrigger value="match-medic" className="text-white data-[state=active]:bg-amber-600">
+            <TabsTrigger value="match-medic" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
               <ShieldAlert className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Match Medic</span>
             </TabsTrigger>
-            <TabsTrigger value="achievement-medic" className="text-white data-[state=active]:bg-yellow-600">
+            <TabsTrigger value="achievement-medic" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
               <Award className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Achievement Medic</span>
             </TabsTrigger>
             
             {/* Enhanced Phase 2-4 Tools */}
-            <TabsTrigger value="stats-medic" className="text-white data-[state=active]:bg-indigo-600">
+            <TabsTrigger value="stats-medic" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
               <BarChart3 className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Stats Medic</span>
             </TabsTrigger>
-            <TabsTrigger value="discord-integration" className="text-white data-[state=active]:bg-violet-600">
+            <TabsTrigger value="discord-integration" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
               <Bot className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Discord</span>
             </TabsTrigger>
-            <TabsTrigger value="monitoring" className="text-white data-[state=active]:bg-emerald-600">
+            <TabsTrigger value="monitoring" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
               <Activity className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Monitoring</span>
             </TabsTrigger>
 
             {/* System & Logs */}
-            <TabsTrigger value="audit-log" className="text-white data-[state=active]:bg-purple-600">
+            <TabsTrigger value="audit-log" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
               <FileText className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Audit Logs</span>
             </TabsTrigger>
-            <TabsTrigger value="settings" className="text-white data-[state=active]:bg-slate-600">
+            <TabsTrigger value="settings" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
               <Settings className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Settings</span>
             </TabsTrigger>
-            <TabsTrigger value="help" className="text-white data-[state=active]:bg-blue-600">
+            <TabsTrigger value="help" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
               <BookOpen className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Help</span>
             </TabsTrigger>

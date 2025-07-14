@@ -158,12 +158,12 @@ const MatchManager = ({ tournamentId, onMatchUpdate }: MatchManagerProps) => {
           onValueChange={setActiveTab} 
           className="space-y-4"
         >
-          <TabsList className="bg-slate-700">
-            <TabsTrigger value="all" className="text-white data-[state=active]:bg-red-600">All</TabsTrigger>
-            <TabsTrigger value="pending" className="text-white data-[state=active]:bg-red-600">Pending</TabsTrigger>
-            <TabsTrigger value="live" className="text-white data-[state=active]:bg-red-600">Live</TabsTrigger>
-            <TabsTrigger value="completed" className="text-white data-[state=active]:bg-red-600">Completed</TabsTrigger>
-            {user && <TabsTrigger value="my-matches" className="text-white data-[state=active]:bg-red-600">My Matches</TabsTrigger>}
+          <TabsList className="bg-slate-800/90 border border-slate-700">
+            <TabsTrigger value="all" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">All</TabsTrigger>
+            <TabsTrigger value="pending" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">Pending</TabsTrigger>
+            <TabsTrigger value="live" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">Live</TabsTrigger>
+            <TabsTrigger value="completed" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">Completed</TabsTrigger>
+            {user && <TabsTrigger value="my-matches" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">My Matches</TabsTrigger>}
           </TabsList>
 
           <TabsContent value={activeTab} className="space-y-4">

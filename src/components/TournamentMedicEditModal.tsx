@@ -145,13 +145,13 @@ export default function TournamentMedicEditModal({
           </span>
         </div>
         <Tabs defaultValue="status" className="mt-3 w-full">
-          <TabsList className="bg-slate-800 border-slate-700 mb-4 w-full flex">
-            <TabsTrigger value="status" className="flex-1">Status</TabsTrigger>
-            <TabsTrigger value="details" className="flex-1">Details</TabsTrigger>
-            <TabsTrigger value="players" className="flex-1">Players</TabsTrigger>
-            <TabsTrigger value="teams" className="flex-1">Teams</TabsTrigger>
-            <TabsTrigger value="bracket" className="flex-1">Bracket</TabsTrigger>
-            <TabsTrigger value="tools" className="flex-1">Tools</TabsTrigger>
+          <TabsList className="bg-slate-800/90 border border-slate-700 mb-4 w-full flex">
+            <TabsTrigger value="status" className="flex-1 data-[state=active]:bg-slate-700 data-[state=active]:text-white">Status</TabsTrigger>
+            <TabsTrigger value="details" className="flex-1 data-[state=active]:bg-slate-700 data-[state=active]:text-white">Details</TabsTrigger>
+            <TabsTrigger value="players" className="flex-1 data-[state=active]:bg-slate-700 data-[state=active]:text-white">Players</TabsTrigger>
+            <TabsTrigger value="teams" className="flex-1 data-[state=active]:bg-slate-700 data-[state=active]:text-white">Teams</TabsTrigger>
+            <TabsTrigger value="bracket" className="flex-1 data-[state=active]:bg-slate-700 data-[state=active]:text-white">Bracket</TabsTrigger>
+            <TabsTrigger value="tools" className="flex-1 data-[state=active]:bg-slate-700 data-[state=active]:text-white">Tools</TabsTrigger>
           </TabsList>
           <TabsContent value="status">
             <TournamentMedicStatusTab tournament={tournament} onUpdate={handleUpdate} onRefresh={handleRefresh} />

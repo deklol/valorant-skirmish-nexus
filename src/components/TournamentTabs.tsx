@@ -94,10 +94,10 @@ export default function TournamentTabs() {
       <CardHeader>
         <CardTitle className="text-2xl text-white">Tournaments</CardTitle>
         <Tabs defaultValue="live" className="w-full">
-          <TabsList className="bg-slate-700 mt-2">
-            <TabsTrigger value="live">Live</TabsTrigger>
-            <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
-            <TabsTrigger value="past">Past</TabsTrigger>
+          <TabsList className="bg-slate-800/90 border border-slate-700 mt-2">
+            <TabsTrigger value="live" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">Live</TabsTrigger>
+            <TabsTrigger value="upcoming" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">Upcoming</TabsTrigger>
+            <TabsTrigger value="past" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">Past</TabsTrigger>
           </TabsList>
           <TabsContent value="live" className="pt-4">
             {loading ? <div className="text-slate-400 text-sm text-center">Loading...</div> : <List tournaments={live} />}

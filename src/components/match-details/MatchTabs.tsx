@@ -66,12 +66,12 @@ const MatchTabs = ({
 
   return (
     <Tabs defaultValue="overview" className="space-y-6">
-      <TabsList className="bg-slate-800 border-slate-700">
-        <TabsTrigger value="overview" className="text-slate-300 data-[state=active]:text-white">
+      <TabsList className="bg-slate-800/90 border border-slate-700">
+        <TabsTrigger value="overview" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
           Overview
         </TabsTrigger>
         {isAdmin && (
-          <TabsTrigger value="admin" className="text-slate-300 data-[state=active]:text-white">
+          <TabsTrigger value="admin" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
             <Settings className="w-4 h-4 mr-2" />
             Admin
           </TabsTrigger>
