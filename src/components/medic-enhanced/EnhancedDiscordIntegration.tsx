@@ -388,19 +388,163 @@ export default function EnhancedDiscordIntegration() {
   const handleGenerateAndPostBracket = async () => {
     setLoading(true);
     try {
-      // Generate bracket image
-      const imageUrl = await generateBracketImage();
-      setBracketImageUrl(imageUrl);
+      console.log('Starting bracket image generation...');
+      
+      // Generate bracket image as blob
+      const canvas = canvasRef.current;
+      if (!canvas) throw new Error("Canvas not available");
 
-      // Create and send embed
-      const embed = createRichEmbed('bracket');
-      await sendDiscordMessage(embed, customMessage);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error("Canvas context not available");
+
+      // Set canvas size
+      canvas.width = 1200;
+      canvas.height = 800;
+
+      // Dark background
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Title
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = 'bold 32px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(tournament?.name || 'No Tournament Selected', canvas.width / 2, 40);
+
+      // Tournament status
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '18px Arial';
+      ctx.fillText(`Status: ${tournament?.status?.toUpperCase() || 'UNKNOWN'}`, canvas.width / 2, 70);
+
+      // Draw bracket structure
+      const rounds = Math.max(...matches.map(m => m.round_number), 1);
+      const roundWidth = (canvas.width - 100) / rounds;
+      
+      for (let round = 1; round <= rounds; round++) {
+        const roundMatches = matches.filter(m => m.round_number === round);
+        const matchHeight = (canvas.height - 150) / Math.max(roundMatches.length, 1);
+        
+        // Round header
+        ctx.fillStyle = '#3b82f6';
+        ctx.font = 'bold 20px Arial';
+        ctx.textAlign = 'center';
+        const roundX = 50 + (round - 1) * roundWidth + roundWidth / 2;
+        ctx.fillText(`Round ${round}`, roundX, 110);
+        
+        roundMatches.forEach((match, index) => {
+          const matchY = 130 + index * matchHeight;
+          const matchX = 50 + (round - 1) * roundWidth;
+          
+          // Match box
+          ctx.fillStyle = match.status === 'completed' ? '#059669' : 
+                         match.status === 'live' ? '#dc2626' : '#475569';
+          ctx.fillRect(matchX + 10, matchY, roundWidth - 20, matchHeight - 10);
+          
+          // Match border
+          ctx.strokeStyle = '#64748b';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(matchX + 10, matchY, roundWidth - 20, matchHeight - 10);
+          
+          // Match info
+          ctx.fillStyle = '#f8fafc';
+          ctx.font = '14px Arial';
+          ctx.textAlign = 'left';
+          
+          const team1Name = teams.find(t => t.id === match.team1_id)?.name || 'TBD';
+          const team2Name = teams.find(t => t.id === match.team2_id)?.name || 'TBD';
+          
+          ctx.fillText(`${team1Name}`, matchX + 20, matchY + 25);
+          ctx.fillText(`vs`, matchX + 20, matchY + 45);
+          ctx.fillText(`${team2Name}`, matchX + 20, matchY + 65);
+          
+          if (match.winner_id) {
+            const winnerName = teams.find(t => t.id === match.winner_id)?.name || 'Unknown';
+            ctx.fillStyle = '#10b981';
+            ctx.font = 'bold 12px Arial';
+            ctx.fillText(`Winner: ${winnerName}`, matchX + 20, matchY + 85);
+          }
+        });
+      }
+
+      // Convert canvas to blob
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob((blob) => {
+          if (blob) resolve(blob);
+          else reject(new Error("Failed to generate image blob"));
+        }, 'image/png');
+      });
+
+      console.log('Generated bracket image blob:', blob.size, 'bytes');
+
+      // Create FormData with the image file
+      const formData = new FormData();
+      formData.append('file', blob, 'bracket.png');
+      
+      // Create embed with image reference
+      const embed = {
+        title: "🏆 Tournament Bracket",
+        description: `Current bracket for **${tournament?.name}**`,
+        color: 0x3b82f6,
+        image: {
+          url: "attachment://bracket.png"
+        },
+        fields: [
+          {
+            name: "📊 Status",
+            value: tournament?.status?.toUpperCase() || 'UNKNOWN',
+            inline: true
+          },
+          {
+            name: "👥 Teams",
+            value: teams.length.toString(),
+            inline: true
+          },
+          {
+            name: "⚔️ Matches",
+            value: matches.length.toString(),
+            inline: true
+          }
+        ],
+        timestamp: new Date().toISOString(),
+        footer: {
+          text: "Tournament Management System",
+          icon_url: "https://cdn.discordapp.com/embed/avatars/0.png"
+        }
+      };
+
+      // Prepare payload
+      const payload = {
+        content: customMessage || undefined,
+        embeds: [embed]
+      };
+
+      formData.append('payload_json', JSON.stringify(payload));
+
+      console.log('Sending bracket image to Discord...');
+
+      if (!webhookUrl.trim()) {
+        throw new Error('Discord webhook URL is required');
+      }
+
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Discord API Error:', response.status, errorText);
+        throw new Error(`Discord webhook failed (${response.status}): ${errorText}`);
+      }
+
+      console.log('Bracket posted successfully!');
 
       toast({
         title: "Bracket Posted",
-        description: "Bracket image and embed sent to Discord successfully!"
+        description: "Bracket image sent to Discord successfully!"
       });
     } catch (error: any) {
+      console.error('Bracket generation error:', error);
       toast({
         title: "Failed to Post Bracket",
         description: error.message,
