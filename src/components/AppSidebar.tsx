@@ -81,6 +81,7 @@ export function AppSidebar() {
     { title: "Leaderboard", url: "/leaderboard", icon: Trophy },
     { title: "Players", url: "/players", icon: User },
     { title: "Statistics", url: "/statistics", icon: TrendingUp },
+    { title: "Shop", url: "/shop", icon: ShoppingBag },
     { title: "Help", url: "/help", icon: HelpCircle },
   ];
 
@@ -93,7 +94,6 @@ export function AppSidebar() {
   const userNavItems = user ? [
     { title: "Profile", url: "/profile", icon: User },
     { title: "My Team", url: "/teams", icon: UsersRound },
-    { title: "Shop", url: "/shop", icon: ShoppingBag },
   ] : [];
 
   useEffect(() => {
