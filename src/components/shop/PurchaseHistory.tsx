@@ -1,5 +1,5 @@
 import { Clock, Package, RotateCcw, CheckCircle } from 'lucide-react';
-import { useShop } from '@/hooks/useShop';
+import { useShopContext } from '@/contexts/ShopContext';
 import { 
   StandardText,
   StandardHeading,
@@ -11,7 +11,7 @@ import {
 } from '@/components/ui';
 
 export function PurchaseHistory() {
-  const { userPurchases, loading } = useShop();
+  const { userPurchases, loading } = useShopContext();
 
   if (loading) {
     return (

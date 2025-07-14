@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Crown, Power, PowerOff } from 'lucide-react';
-import { useShop } from '@/hooks/useShop';
+import { useShopContext } from '@/contexts/ShopContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useNameEffects } from '@/hooks/useNameEffects';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,7 +16,7 @@ import {
 } from '@/components/ui';
 
 export function PurchasedNameEffects() {
-  const { getPurchasedNameEffects, activateNameEffect, deactivateNameEffect, activating } = useShop();
+  const { getPurchasedNameEffects, activateNameEffect, deactivateNameEffect, activating } = useShopContext();
   const { user, profile } = useAuth();
   const { nameEffect: currentEffect } = useNameEffects(user?.id || null);
   const [activeEffectPurchaseId, setActiveEffectPurchaseId] = useState<string | null>(null);

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Sparkles, ShoppingBag, History, Crown, Package, Gift, Zap } from 'lucide-react';
-import { useShop } from '@/hooks/useShop';
+import { ShopProvider, useShopContext } from '@/contexts/ShopContext';
 import { ShopItemCard } from './ShopItemCard';
 import { PurchaseHistory } from './PurchaseHistory';
 import { PurchasedNameEffects } from './PurchasedNameEffects';
@@ -47,7 +47,7 @@ const categoryInfo = {
   }
 };
 
-export function Shop() {
+function ShopContent() {
   const {
     shopItems,
     spendablePoints,
@@ -58,7 +58,7 @@ export function Shop() {
     canAfford,
     hasAnyPurchases,
     getPurchasedNameEffects
-  } = useShop();
+  } = useShopContext();
 
   const [activeTab, setActiveTab] = useState('shop');
 
@@ -170,5 +170,13 @@ export function Shop() {
         </StandardTabs>
       </div>
     </PageLayout>
+  );
+}
+
+export function Shop() {
+  return (
+    <ShopProvider>
+      <ShopContent />
+    </ShopProvider>
   );
 }
