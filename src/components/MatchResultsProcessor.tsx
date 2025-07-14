@@ -49,15 +49,28 @@ export async function processMatchResults(
   console.log('🏆 Processing match results with unified service:', { matchId, winnerId, loserId, tournamentId });
 
   try {
-    // CRITICAL FIX: Use ONLY unified bracket service for all progression logic
-    const result = await UnifiedBracketService.advanceMatchWinner(
-      matchId,
-      winnerId,
-      loserId,
-      tournamentId,
-      scoreTeam1,
-      scoreTeam2
-    );
+    // CRITICAL FIX: Use the new security definer function for match advancement
+    const { data: advancementData, error: advancementError } = await supabase.rpc('advance_match_winner_secure', {
+      p_match_id: matchId,
+      p_winner_id: winnerId,
+      p_loser_id: loserId,
+      p_tournament_id: tournamentId,
+      p_score_team1: scoreTeam1,
+      p_score_team2: scoreTeam2
+    });
+
+    if (advancementError) {
+      throw new Error(`Match advancement failed: ${advancementError.message}`);
+    }
+
+    const result = advancementData as {
+      success: boolean;
+      tournamentComplete: boolean;
+      winner?: string;
+      nextMatchReady?: boolean;
+      nextMatchId?: string;
+      error?: string;
+    };
 
     if (!result.success) {
       throw new Error(result.error || 'Failed to advance match winner');

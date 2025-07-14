@@ -1526,6 +1526,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      advance_match_winner_secure: {
+        Args: {
+          p_match_id: string
+          p_winner_id: string
+          p_loser_id: string
+          p_tournament_id: string
+          p_score_team1?: number
+          p_score_team2?: number
+        }
+        Returns: Json
+      }
       can_user_perform_veto: {
         Args: {
           p_veto_session_id: string
