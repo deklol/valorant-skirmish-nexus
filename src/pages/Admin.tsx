@@ -10,7 +10,7 @@ import CreateTournamentDialog from "@/components/CreateTournamentDialog";
 import TournamentManagement from "@/components/TournamentManagement";
 import AdminLogoutAll from "@/components/AdminLogoutAll";
 import MapManager from "@/components/MapManager";
-import UserManagement from "@/components/UserManagement";
+import UserPlayerManagement from "@/components/UserPlayerManagement";
 import VetoMedicManager from "@/components/VetoMedicManager";
 import MatchMedicManager from "@/components/MatchMedicManager";
 import TournamentMedicManager from "@/components/TournamentMedicManager";
@@ -79,7 +79,7 @@ const Admin = () => {
             </TabsTrigger>
             <TabsTrigger value="users" className="text-white data-[state=active]:bg-red-600">
               <Users className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">Users</span>
+              <span className="hidden sm:inline">User & Player Management</span>
             </TabsTrigger>
             <TabsTrigger value="maps" className="text-white data-[state=active]:bg-red-600">
               <Map className="w-4 h-4 mr-2" />
@@ -109,10 +109,6 @@ const Admin = () => {
             </TabsTrigger>
             
             {/* Enhanced Phase 2-4 Tools */}
-            <TabsTrigger value="player-medic" className="text-white data-[state=active]:bg-green-600">
-              <Users className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">Player Medic</span>
-            </TabsTrigger>
             <TabsTrigger value="stats-medic" className="text-white data-[state=active]:bg-indigo-600">
               <BarChart3 className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Stats Medic</span>
@@ -146,7 +142,7 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="users">
-            <UserManagement />
+            <UserPlayerManagement />
           </TabsContent>
 
           <TabsContent value="maps">
@@ -174,9 +170,6 @@ const Admin = () => {
           </TabsContent>
 
           {/* Phase 2-4 Enhanced Tools */}
-          <TabsContent value="player-medic">
-            <PlayerMedicManager />
-          </TabsContent>
 
           <TabsContent value="stats-medic">
             <StatisticsMedicManager />
