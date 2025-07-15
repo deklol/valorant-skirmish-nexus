@@ -1,14 +1,16 @@
+
+import TeamBalancingInterface from "@/components/TeamBalancingInterface";
 import SubstituteWaitlistManager from "@/components/SubstituteWaitlistManager";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import EnhancedTeamBalancingTool from "@/components/team-balancing/EnhancedTeamBalancingTool";
 
 export default function BalancingTab({
-  tournament,
+  tournamentId,
   maxTeams,
   teamSize,
   onTeamsUpdated
 }: {
-  tournament: { id: string }, // expand this if you have a proper Tournament type
+  tournamentId: string,
   maxTeams: number,
   teamSize: number,
   onTeamsUpdated: () => void
@@ -18,13 +20,21 @@ export default function BalancingTab({
       <div className="space-y-6">
         {/* Enhanced Auto-Balancing Tool */}
         <EnhancedTeamBalancingTool
-          tournamentId={tournament.id}
+          tournamentId={tournamentId}
           maxTeams={maxTeams}
           onTeamsBalanced={onTeamsUpdated}
         />
         
+        {/* Manual Balancing Interface */}
+        <TeamBalancingInterface
+          tournamentId={tournamentId}
+          maxTeams={maxTeams}
+          teamSize={teamSize}
+          onTeamsUpdated={onTeamsUpdated}
+        />
+        
         <SubstituteWaitlistManager
-          tournamentId={tournament.id}
+          tournamentId={tournamentId}
           onSubstituteChange={onTeamsUpdated}
           showAdminTools={true}
         />
