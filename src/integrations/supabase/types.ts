@@ -1840,6 +1840,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
+      force_advance_team: {
+        Args: { p_team_id: string; p_target_round: number; p_reason?: string }
+        Returns: Json
+      }
       generate_team_invite_code: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -2047,12 +2051,26 @@ export type Database = {
         Args: { p_purchase_id: string; p_refund_reason?: string }
         Returns: Json
       }
+      reverse_team_progression: {
+        Args: { p_team_id: string; p_target_round: number; p_reason?: string }
+        Returns: Json
+      }
       roll_veto_dice: {
         Args: { p_match_id: string; p_initiator_user_id: string }
         Returns: Json
       }
       safe_delete_tournament: {
         Args: { p_tournament_id: string }
+        Returns: Json
+      }
+      set_manual_winner: {
+        Args: {
+          p_match_id: string
+          p_winner_team_id: string
+          p_score_team1?: number
+          p_score_team2?: number
+          p_reason?: string
+        }
         Returns: Json
       }
       set_side_choice: {
