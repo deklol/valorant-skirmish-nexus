@@ -1273,6 +1273,7 @@ export type Database = {
       }
       tournaments: {
         Row: {
+          balance_analysis: Json | null
           bracket_type: string | null
           check_in_ends_at: string | null
           check_in_required: boolean | null
@@ -1304,6 +1305,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          balance_analysis?: Json | null
           bracket_type?: string | null
           check_in_ends_at?: string | null
           check_in_required?: boolean | null
@@ -1337,6 +1339,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          balance_analysis?: Json | null
           bracket_type?: string | null
           check_in_ends_at?: string | null
           check_in_required?: boolean | null

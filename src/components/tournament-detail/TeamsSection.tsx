@@ -2,9 +2,16 @@
 import { Crown, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import ClickableUsername from "@/components/ClickableUsername";
+import TournamentBalanceTransparency from "./TournamentBalanceTransparency";
 import type { Team } from "@/types/tournamentDetail";
+import type { Database } from "@/integrations/supabase/types";
 
-export default function TeamsSection({ teams }: { teams: Team[] }) {
+interface TeamsSectionProps {
+  teams: Team[];
+  tournament?: Database["public"]["Tables"]["tournaments"]["Row"] | null;
+}
+
+export default function TeamsSection({ teams, tournament }: TeamsSectionProps) {
   // Sorted alphabetically
   const sortedTeams = [...teams].sort((a, b) => a.name.localeCompare(b.name));
   return (
@@ -77,6 +84,16 @@ export default function TeamsSection({ teams }: { teams: Team[] }) {
           )}
         </div>
       </div>
+
+      {/* Balance Analysis Section */}
+      {tournament?.balance_analysis && (
+        <div className="mt-6">
+          <TournamentBalanceTransparency 
+            balanceAnalysis={tournament.balance_analysis as any}
+            teams={teams}
+          />
+        </div>
+      )}
     </div>
   );
 }

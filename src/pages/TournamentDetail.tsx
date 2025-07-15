@@ -37,7 +37,7 @@ const TournamentDetail = () => {
           />
         )}
         <TournamentHeader tournament={tournament} />
-        <TeamsSection teams={teams} />
+        <TeamsSection teams={teams} tournament={tournament} />
         {tournament.status === "open" && (
           <TournamentRegistration
             tournamentId={tournament.id}

@@ -175,6 +175,51 @@ const EnhancedTeamBalancingTool = ({
         }
       }
 
+      // Save balance analysis data for transparency
+      const qualityScore = balanceResult.finalBalance.balanceQuality === 'ideal' ? 95 :
+                           balanceResult.finalBalance.balanceQuality === 'good' ? 80 :
+                           balanceResult.finalBalance.balanceQuality === 'warning' ? 65 : 50;
+
+      await supabase
+        .from('tournaments')
+        .update({
+          balance_analysis: {
+            qualityScore,
+            maxPointDifference: balanceResult.finalBalance.maxPointDifference,
+            avgPointDifference: (balanceResult.finalBalance.maxTeamPoints - balanceResult.finalBalance.minTeamPoints) / 2,
+            balanceSteps: balanceResult.balanceSteps.map(step => ({
+              round: step.step,
+              player: {
+                name: step.player.discord_username,
+                rank: step.player.rank,
+                points: step.player.points
+              },
+              assignedTo: `Team ${step.assignedTeam + 1}`,
+              reasoning: step.reasoning,
+              teamStates: step.teamStatesAfter.map(state => ({
+                name: `Team ${state.teamIndex + 1}`,
+                totalPoints: state.totalPoints,
+                playerCount: state.playerCount
+              }))
+            })),
+            finalTeamStats: balanceResult.teams.map((team, index) => ({
+              name: `Team ${team[0]?.discord_username || `${index + 1}`}`,
+              totalPoints: team.reduce((sum, player) => {
+                const result = getRankPointsWithManualOverride(player);
+                return sum + result.points;
+              }, 0),
+              playerCount: team.length,
+              avgPoints: team.length > 0 ? team.reduce((sum, player) => {
+                const result = getRankPointsWithManualOverride(player);
+                return sum + result.points;
+              }, 0) / team.length : 0
+            })),
+            method: "Enhanced Snake Draft",
+            timestamp: new Date().toISOString()
+          }
+        })
+        .eq('id', tournamentId);
+
       setPhase('complete');
       onTeamsBalanced();
 
