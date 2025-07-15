@@ -42,19 +42,31 @@ export function analyzeBracketState(matches: Match[], eliminatedTeamIds: string[
     if (!byRound[m.round_number]) byRound[m.round_number] = [];
     byRound[m.round_number].push(m);
   }
+  
+  // Get all winners from all completed matches
+  const allWinners = new Set(
+    matches
+      .filter(m => m.status === "completed" && m.winner_id)
+      .map(m => m.winner_id!)
+  );
+  
   for (const round of Object.keys(byRound).map(Number)) {
     if (round === 1) continue;
     for (const match of byRound[round]) {
-      // For T1/T2: did they come from a win in previous round?
-      const prev = byRound[round - 1] || [];
-      if (match.team1_id && !prev.some((pm) => pm.winner_id === match.team1_id)) {
+      // For teams in rounds > 1: they should either be winners from previous rounds
+      // OR be present in Round 1 (meaning they had a bye or were placed directly)
+      const round1Teams = new Set(
+        byRound[1]?.flatMap(m => [m.team1_id, m.team2_id].filter(Boolean)) || []
+      );
+      
+      if (match.team1_id && !allWinners.has(match.team1_id) && !round1Teams.has(match.team1_id)) {
         issues.push(
-          `Team ${match.team1_id.slice(0, 6)} in R${round}M${match.match_number} was not a winner in prior round.`
+          `Team ${match.team1_id.slice(0, 6)} in R${round}M${match.match_number} was not a winner in any prior round.`
         );
       }
-      if (match.team2_id && !prev.some((pm) => pm.winner_id === match.team2_id)) {
+      if (match.team2_id && !allWinners.has(match.team2_id) && !round1Teams.has(match.team2_id)) {
         issues.push(
-          `Team ${match.team2_id.slice(0, 6)} in R${round}M${match.match_number} was not a winner in prior round.`
+          `Team ${match.team2_id.slice(0, 6)} in R${round}M${match.match_number} was not a winner in any prior round.`
         );
       }
     }
