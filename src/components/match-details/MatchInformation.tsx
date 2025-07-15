@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Eye } from "lucide-react";
+import { Trophy, Eye, AlertTriangle } from "lucide-react";
 import { useTournamentPageViews } from "@/hooks/useTournamentPageViews";
 
 interface MatchInformationProps {
@@ -15,6 +15,7 @@ interface MatchInformationProps {
   team1Name: string;
   team2Name: string;
   tournamentId?: string;
+  notes?: string | null;
 }
 
 const MatchInformation = ({
@@ -27,7 +28,8 @@ const MatchInformation = ({
   team2Id,
   team1Name,
   team2Name,
-  tournamentId
+  tournamentId,
+  notes
 }: MatchInformationProps) => {
   const { pageViews } = useTournamentPageViews(tournamentId);
   const getStatusBadge = (status: string) => {
@@ -89,6 +91,18 @@ const MatchInformation = ({
             <div className="text-green-400 font-medium">Winner:</div>
             <div className="text-white text-lg">
               {winnerId === team1Id ? team1Name : team2Name}
+            </div>
+          </div>
+        )}
+
+        {notes && (
+          <div className="mt-4 p-4 bg-amber-900/20 border border-amber-700 rounded-lg">
+            <div className="flex items-center gap-2 text-amber-400 font-medium mb-2">
+              <AlertTriangle className="w-4 h-4" />
+              Administrative Notes
+            </div>
+            <div className="text-slate-200 text-sm leading-relaxed">
+              {notes}
             </div>
           </div>
         )}

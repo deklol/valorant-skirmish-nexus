@@ -17,6 +17,7 @@ interface Match {
   started_at: string | null;
   completed_at: string | null;
   tournament_id?: string;
+  notes?: string | null;
   team1?: { 
     id: string;
     name: string; 

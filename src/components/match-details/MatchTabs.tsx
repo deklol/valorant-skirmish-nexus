@@ -28,6 +28,7 @@ interface Match {
   started_at: string | null;
   completed_at: string | null;
   tournament_id?: string;
+  notes?: string | null;
   team1?: { 
     id: string;
     name: string; 
@@ -122,6 +123,7 @@ const MatchTabs = ({
           team1Name={match.team1?.name || 'Team 1'}
           team2Name={match.team2?.name || 'Team 2'}
           tournamentId={match.tournament_id}
+          notes={match.notes}
         />
 
         {match.status !== 'completed' && (userTeamId || isAdmin) && (
