@@ -28,7 +28,6 @@ export function useNameEffects(userId: string | null) {
         .eq('effect_type', 'name_effect')
         .maybeSingle();
 
-      console.log('fetchNameEffect result for user', userId, ':', data);
       setNameEffect(data?.effect_data as NameEffect || null);
     } catch (error) {
       console.error('Error fetching name effect:', error);

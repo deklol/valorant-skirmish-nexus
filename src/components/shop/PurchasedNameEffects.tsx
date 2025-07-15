@@ -44,7 +44,19 @@ export function PurchasedNameEffects() {
   }, [user, currentEffect]);
 
   const getPreviewStyle = (itemData: any) => {
-    if (!itemData?.style) return {};
+    if (!itemData) return {};
+    
+    // Handle new format with direct color values (like Golden Name)
+    if (itemData.color) {
+      return {
+        color: itemData.color,
+        fontWeight: itemData.weight || '600',
+        textShadow: `0 0 8px ${itemData.color}60`
+      };
+    }
+    
+    // Handle legacy format with style names
+    if (!itemData.style) return {};
     
     const style = itemData.style;
     
