@@ -78,8 +78,22 @@ export function useNameEffects(userId: string | null) {
 export const getNameEffectStyles = (effect: any): string => {
   if (!effect?.effect_data) return "";
   
-  const { style, color, pattern } = effect.effect_data;
+  const { style, color, weight } = effect.effect_data;
   
+  // Handle new format with color and weight properties (like Golden Name)
+  if (color && weight) {
+    const fontWeight = weight === 'bold' ? 'font-bold' : 'font-semibold';
+    
+    // Golden effect
+    if (color === '#FFD700') {
+      return `text-yellow-400 drop-shadow-[0_0_8px_rgba(255,215,0,0.6)] ${fontWeight}`;
+    }
+    
+    // Add other color-based effects here if needed
+    return fontWeight;
+  }
+  
+  // Handle legacy format with style property
   switch (style) {
     case 'bold':
       return 'font-bold';
