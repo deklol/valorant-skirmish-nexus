@@ -85,8 +85,8 @@ export default function TeamsSection({ teams, tournament }: TeamsSectionProps) {
         </div>
       </div>
 
-      {/* Balance Analysis Section */}
-      {tournament?.balance_analysis && (
+      {/* Balance Analysis Section - Shows how teams were fairly balanced */}
+      {tournament?.balance_analysis && teams.length > 0 && (
         <div className="mt-6">
           <TournamentBalanceTransparency 
             balanceAnalysis={tournament.balance_analysis as any}
