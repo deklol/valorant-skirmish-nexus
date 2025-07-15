@@ -4,7 +4,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import EnhancedTeamBalancingTool from "@/components/team-balancing/EnhancedTeamBalancingTool";
 
 export default function BalancingTab({
-  tournamentId,
+  tournament,
   maxTeams,
   teamSize,
   onTeamsUpdated
