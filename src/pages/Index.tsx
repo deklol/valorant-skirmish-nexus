@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Users, Calendar, Zap, Target, Shield, Activity, Clock, Award, TrendingUp, Play, ChevronRight, ChevronLeft } from "lucide-react";
+import { Trophy, Users, Calendar, Zap, Target, Shield, Activity, Clock, Award, TrendingUp, Play, ChevronRight, ChevronLeft, ShoppingBag } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -243,17 +243,17 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-orange-900/20 to-orange-800/10 border-orange-700/30 hover:border-orange-500 transition-colors group">
+          <Card className="bg-gradient-to-br from-purple-900/20 to-purple-800/10 border-purple-700/30 hover:border-purple-500 transition-colors group">
             <CardHeader>
-              <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center mb-4 group-hover:bg-orange-500/30 transition-colors">
-                <Calendar className="h-6 w-6 text-orange-400" />
+              <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center mb-4 group-hover:bg-purple-500/30 transition-colors">
+                <ShoppingBag className="h-6 w-6 text-purple-400" />
               </div>
-              <CardTitle className="text-white">Smart Scheduling</CardTitle>
+              <CardTitle className="text-white">Shop & Rewards</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-slate-400">
-                Automated scheduling with check-in systems, timezone support, 
-                and flexible tournament timing management.
+                Play tournaments, earn achievement points, and purchase cool 
+                name effects and exclusive items to customize your profile.
               </p>
             </CardContent>
           </Card>
