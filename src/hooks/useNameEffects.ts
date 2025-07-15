@@ -10,8 +10,6 @@ interface NameEffect {
 export function useNameEffects(userId: string | null) {
   const [nameEffect, setNameEffect] = useState<NameEffect | null>(null);
   const [loading, setLoading] = useState(true);
-  
-  // Use ref to track if we already have an active subscription
   const subscriptionRef = useRef<any>(null);
 
   useEffect(() => {
@@ -41,28 +39,27 @@ export function useNameEffects(userId: string | null) {
 
     fetchNameEffect();
 
-    // Only create subscription if we don't already have one
-    if (!subscriptionRef.current) {
-      const channelName = `name-effects-${userId}-${Date.now()}`;
-      const channel = supabase
-        .channel(channelName)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'user_active_effects',
-            filter: `user_id=eq.${userId}`,
-          },
-          () => {
-            fetchNameEffect();
-          }
-        )
-        .subscribe();
+    // Create a unique channel for each component instance to avoid conflicts
+    const channelName = `name-effects-${userId}-${Math.random().toString(36).substr(2, 9)}`;
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_active_effects',
+          filter: `user_id=eq.${userId}`,
+        },
+        () => {
+          fetchNameEffect();
+        }
+      )
+      .subscribe();
 
-      subscriptionRef.current = channel;
-    }
+    subscriptionRef.current = channel;
 
+    // Cleanup function
     return () => {
       if (subscriptionRef.current) {
         supabase.removeChannel(subscriptionRef.current);
