@@ -125,7 +125,9 @@ const MemberHighlights = () => {
                   <span className="text-purple-400 font-semibold text-sm">Most Achievement Points</span>
                 </div>
                 <Link to={`/profile/${achievementLeaders.top_points_user_id}`} className="hover:underline">
-                  <div className="text-white font-bold">{achievementLeaders.top_points_username}</div>
+                  <div className="text-white font-bold">
+                    <StyledUsername username={achievementLeaders.top_points_username} userId={achievementLeaders.top_points_user_id} />
+                  </div>
                 </Link>
                 <div className="text-purple-300 text-sm">{achievementLeaders.top_points_total} points</div>
               </div>
@@ -139,7 +141,9 @@ const MemberHighlights = () => {
                   <span className="text-green-400 font-semibold text-sm">Most Achievements</span>
                 </div>
                 <Link to={`/profile/${achievementLeaders.most_achievements_user_id}`} className="hover:underline">
-                  <div className="text-white font-bold">{achievementLeaders.most_achievements_username}</div>
+                  <div className="text-white font-bold">
+                    <StyledUsername username={achievementLeaders.most_achievements_username} userId={achievementLeaders.most_achievements_user_id} />
+                  </div>
                 </Link>
                 <div className="text-green-300 text-sm">{achievementLeaders.most_achievements_count} achievements</div>
               </div>
