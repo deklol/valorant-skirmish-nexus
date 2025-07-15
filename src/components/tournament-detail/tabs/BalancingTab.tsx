@@ -19,13 +19,13 @@ export default function BalancingTab({
       <div className="space-y-6">
         {/* Enhanced Auto-Balancing Tool */}
         <EnhancedTeamBalancingTool
-          tournamentId={tournamentId}
+          tournamentId={tournament}
           maxTeams={maxTeams}
           onTeamsBalanced={onTeamsUpdated}
         />
         
         <SubstituteWaitlistManager
-          tournamentId={tournamentId}
+          tournamentId={tournament}
           onSubstituteChange={onTeamsUpdated}
           showAdminTools={true}
         />
