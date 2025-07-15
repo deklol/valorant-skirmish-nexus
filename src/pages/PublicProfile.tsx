@@ -15,6 +15,7 @@ import { getTrackerGGUrl } from '@/utils/getTrackerGGUrl';
 import { useUserTeam } from "@/hooks/useUserTeam";
 import ClickableTeamName from "@/components/ClickableTeamName";
 import { Username } from "@/components/Username";
+import { PageLayout } from "@/components/ui/page-layout";
 
 const PublicProfile = () => {
   const { userId } = useParams<{ userId: string }>();
@@ -38,19 +39,19 @@ const PublicProfile = () => {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <PageLayout>
         <div className="animate-pulse">
           <div className="h-8 bg-slate-700 rounded w-1/3 mb-4"></div>
           <div className="h-32 bg-slate-700 rounded mb-4"></div>
           <div className="h-96 bg-slate-700 rounded"></div>
         </div>
-      </div>
+      </PageLayout>
     );
   }
 
   if (!profile) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <PageLayout>
         <Card className="bg-slate-800 border-slate-700">
           <CardContent className="p-8 text-center">
             <User className="w-16 h-16 text-slate-400 mx-auto mb-4" />
@@ -58,15 +59,14 @@ const PublicProfile = () => {
             <p className="text-slate-400">This user profile does not exist or has been made private.</p>
           </CardContent>
         </Card>
-      </div>
+      </PageLayout>
     );
   }
 
   const isPrivate = profile.profile_visibility === 'private';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
-      <div className="container mx-auto px-4 py-8">
+    <PageLayout>
       {/* Profile Header */}
       <Card className="bg-slate-800 border-slate-700 mb-6">
         <CardHeader>
@@ -287,8 +287,7 @@ const PublicProfile = () => {
           </CardContent>
         </Card>
       )}
-      </div>
-    </div>
+    </PageLayout>
   );
 };
 
