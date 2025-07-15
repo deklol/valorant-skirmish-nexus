@@ -38,14 +38,9 @@ export function useShop() {
   const subscriptionRef = useRef<any>(null);
 
   useEffect(() => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-
     const fetchShopData = async () => {
       try {
-        // Fetch shop items
+        // Always fetch shop items (public data)
         const { data: items } = await supabase
           .from('shop_items')
           .select('*')
@@ -53,26 +48,34 @@ export function useShop() {
           .order('category', { ascending: true })
           .order('price_points', { ascending: true });
 
-        // Fetch user's spendable points
-        const { data: userData } = await supabase
-          .from('users')
-          .select('spendable_points')
-          .eq('id', user.id)
-          .single();
-
-        // Fetch user's purchase history
-        const { data: purchases } = await supabase
-          .from('user_purchases')
-          .select(`
-            *,
-            shop_items (*)
-          `)
-          .eq('user_id', user.id)
-          .order('purchased_at', { ascending: false });
-
         setShopItems(items || []);
-        setSpendablePoints(userData?.spendable_points || 0);
-        setUserPurchases(purchases || []);
+
+        // Only fetch user-specific data if logged in
+        if (user) {
+          // Fetch user's spendable points
+          const { data: userData } = await supabase
+            .from('users')
+            .select('spendable_points')
+            .eq('id', user.id)
+            .single();
+
+          // Fetch user's purchase history
+          const { data: purchases } = await supabase
+            .from('user_purchases')
+            .select(`
+              *,
+              shop_items (*)
+            `)
+            .eq('user_id', user.id)
+            .order('purchased_at', { ascending: false });
+
+          setSpendablePoints(userData?.spendable_points || 0);
+          setUserPurchases(purchases || []);
+        } else {
+          // Reset user-specific data when not logged in
+          setSpendablePoints(0);
+          setUserPurchases([]);
+        }
       } catch (error) {
         console.error('Error fetching shop data:', error);
         toast({
@@ -89,10 +92,26 @@ export function useShop() {
 
     // Only create subscription if we don't already have one
     if (!subscriptionRef.current) {
-      const channelName = `shop-updates-${user.id}-${Date.now()}`;
-      const channel = supabase
-        .channel(channelName)
-        .on(
+      const channelName = `shop-updates-${user?.id || 'anonymous'}-${Date.now()}`;
+      const channel = supabase.channel(channelName);
+
+      // Always listen for shop items changes
+      channel.on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'shop_items',
+        },
+        () => {
+          // Refresh shop items when they change
+          fetchShopData();
+        }
+      );
+
+      // Only listen for user updates if logged in
+      if (user) {
+        channel.on(
           'postgres_changes',
           {
             event: 'UPDATE',
@@ -105,21 +124,10 @@ export function useShop() {
               setSpendablePoints(payload.new.spendable_points);
             }
           }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'shop_items',
-          },
-          () => {
-            // Refresh shop items when they change
-            fetchShopData();
-          }
-        )
-        .subscribe();
+        );
+      }
 
+      channel.subscribe();
       subscriptionRef.current = channel;
     }
 
