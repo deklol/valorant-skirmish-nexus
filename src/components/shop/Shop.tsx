@@ -44,6 +44,16 @@ const categoryInfo = {
     label: 'Mystery Boxes',
     icon: Gift,
     description: 'Random rewards with surprises inside'
+  },
+  skins: {
+    label: 'Game Skins',
+    icon: Package,
+    description: 'Exclusive game skins and cosmetic items'
+  },
+  in_game_items: {
+    label: 'In-Game Items',
+    icon: Gift,
+    description: 'Gift cards, subscriptions, and other gaming items'
   }
 };
 
