@@ -11,7 +11,7 @@ const PageLayout = React.forwardRef<HTMLDivElement, PageLayoutProps>(
     <div
       ref={ref}
       className={cn(
-        "min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900",
+        "min-h-screen bg-background",
         className
       )}
       {...props}
