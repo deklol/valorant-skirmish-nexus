@@ -23,8 +23,18 @@ export function Username({
 }: UsernameProps) {
   const { nameEffect, loading } = useNameEffects(userId || null);
 
+  // Debug logging
+  console.log('Username component debug:', { 
+    userId, 
+    username, 
+    nameEffect, 
+    loading, 
+    fallbackOnly 
+  });
+
   // If fallbackOnly is true, no userId, loading, or no effect, just render plain username
   if (fallbackOnly || !userId || loading || !nameEffect) {
+    console.log('Username: Falling back to plain text', { fallbackOnly, userId: !!userId, loading, nameEffect: !!nameEffect });
     return (
       <StandardText size={size} weight={weight} as={as} className={className}>
         {username}
@@ -33,6 +43,7 @@ export function Username({
   }
 
   const effectClasses = getNameEffectStyles({ effect_data: nameEffect });
+  console.log('Username: Generated effect classes:', effectClasses);
 
   return (
     <StandardText 
