@@ -2059,6 +2059,14 @@ export type Database = {
         Args: { p_match_id: string; p_initiator_user_id: string }
         Returns: Json
       }
+      rollback_tournament_to_round: {
+        Args: {
+          p_tournament_id: string
+          p_target_round: number
+          p_reason?: string
+        }
+        Returns: Json
+      }
       safe_delete_tournament: {
         Args: { p_tournament_id: string }
         Returns: Json
@@ -2098,6 +2106,10 @@ export type Database = {
       user_has_notification_enabled: {
         Args: { p_user_id: string; p_notification_type: string }
         Returns: boolean
+      }
+      validate_and_repair_bracket: {
+        Args: { p_tournament_id: string }
+        Returns: Json
       }
       validate_bracket_structure: {
         Args: { p_tournament_id: string }

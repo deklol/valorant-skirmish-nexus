@@ -343,6 +343,242 @@ export default function BracketMedicManager() {
     }
   };
 
+  // --- Enhanced Action: Force Advance Team ---
+  const handleForceAdvanceTeam = async () => {
+    if (!selectedTournament) return;
+    
+    const teamName = window.prompt("Enter team name to advance:");
+    if (!teamName) return;
+    
+    const targetRound = window.prompt("Enter target round number:");
+    if (!targetRound || isNaN(parseInt(targetRound))) return;
+    
+    const reason = window.prompt("Enter reason for advancement:") || "Manual admin advancement";
+    
+    const team = teams.find(t => t.name.toLowerCase().includes(teamName.toLowerCase()));
+    if (!team) {
+      toast({
+        title: "Team Not Found",
+        description: "Could not find a team with that name.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.rpc('force_advance_team', {
+        p_team_id: team.id,
+        p_target_round: parseInt(targetRound),
+        p_reason: reason
+      });
+      
+      if (error) throw error;
+      
+      const result = data as any;
+      if (result.success) {
+        await loadBracket(selectedTournament.id);
+        toast({
+          title: "Team Advanced",
+          description: `${result.team_name} advanced from Round ${result.advanced_from_round} to Round ${result.advanced_to_round}`,
+        });
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (err: any) {
+      toast({
+        title: "Advancement Error",
+        description: err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // --- Enhanced Action: Reverse Team Progression ---
+  const handleReverseProgression = async () => {
+    if (!selectedTournament) return;
+    
+    const teamName = window.prompt("Enter team name to reverse progression:");
+    if (!teamName) return;
+    
+    const targetRound = window.prompt("Enter target round to revert to:");
+    if (!targetRound || isNaN(parseInt(targetRound))) return;
+    
+    const reason = window.prompt("Enter reason for reversal:") || "Manual admin reversal";
+    
+    const team = teams.find(t => t.name.toLowerCase().includes(teamName.toLowerCase()));
+    if (!team) {
+      toast({
+        title: "Team Not Found",
+        description: "Could not find a team with that name.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.rpc('reverse_team_progression', {
+        p_team_id: team.id,
+        p_target_round: parseInt(targetRound),
+        p_reason: reason
+      });
+      
+      if (error) throw error;
+      
+      const result = data as any;
+      if (result.success) {
+        await loadBracket(selectedTournament.id);
+        toast({
+          title: "Progression Reversed",
+          description: `${result.team_name} reverted from Round ${result.reversed_from_round} to Round ${result.reversed_to_round}. ${result.matches_affected} matches affected.`,
+        });
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (err: any) {
+      toast({
+        title: "Reversal Error",
+        description: err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // --- Enhanced Action: Set Manual Winner ---
+  const handleSetManualWinner = async () => {
+    if (!selectedMatchId) return;
+    
+    const selectedMatch = matches.find(m => m.id === selectedMatchId);
+    if (!selectedMatch) return;
+    
+    const team1Name = teams.find(t => t.id === selectedMatch.team1_id)?.name || "Team 1";
+    const team2Name = teams.find(t => t.id === selectedMatch.team2_id)?.name || "Team 2";
+    
+    const winnerChoice = window.prompt(`Choose winner:\n1 - ${team1Name}\n2 - ${team2Name}\nEnter 1 or 2:`);
+    if (winnerChoice !== "1" && winnerChoice !== "2") return;
+    
+    const winnerId = winnerChoice === "1" ? selectedMatch.team1_id : selectedMatch.team2_id;
+    if (!winnerId) return;
+    
+    const score1 = window.prompt("Enter Team 1 score:") || "1";
+    const score2 = window.prompt("Enter Team 2 score:") || "0";
+    const reason = window.prompt("Enter reason for manual winner:") || "Manual admin decision";
+    
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.rpc('set_manual_winner', {
+        p_match_id: selectedMatchId,
+        p_winner_team_id: winnerId,
+        p_score_team1: parseInt(score1),
+        p_score_team2: parseInt(score2),
+        p_reason: reason
+      });
+      
+      if (error) throw error;
+      
+      const result = data as any;
+      if (result.success) {
+        await loadBracket(selectedTournament!.id);
+        toast({
+          title: "Manual Winner Set",
+          description: `${result.winner_team} wins ${result.final_score}`,
+        });
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (err: any) {
+      toast({
+        title: "Manual Winner Error",
+        description: err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // --- Enhanced Action: Validate and Repair ---
+  const handleValidateAndRepair = async () => {
+    if (!selectedTournament) return;
+    
+    if (!window.confirm("Run deep bracket validation and auto-repair? This will fix inconsistencies automatically.")) return;
+    
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.rpc('validate_and_repair_bracket', {
+        p_tournament_id: selectedTournament.id
+      });
+      
+      if (error) throw error;
+      
+      const result = data as any;
+      if (result.success) {
+        await loadBracket(selectedTournament.id);
+        toast({
+          title: "Validation Complete",
+          description: `Found ${result.issues_found} issues, made ${result.repairs_made} automatic repairs.`,
+        });
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (err: any) {
+      toast({
+        title: "Validation Error",
+        description: err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // --- Enhanced Action: Emergency Rollback ---
+  const handleEmergencyRollback = async () => {
+    if (!selectedTournament) return;
+    
+    const targetRound = window.prompt("Enter round number to rollback to (WARNING: This will reset all matches beyond this round):");
+    if (!targetRound || isNaN(parseInt(targetRound))) return;
+    
+    const reason = window.prompt("Enter reason for emergency rollback:") || "Emergency rollback";
+    
+    if (!window.confirm(`DESTRUCTIVE OPERATION: This will reset all matches beyond Round ${targetRound}. Are you absolutely sure?`)) return;
+    
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.rpc('rollback_tournament_to_round', {
+        p_tournament_id: selectedTournament.id,
+        p_target_round: parseInt(targetRound),
+        p_reason: reason
+      });
+      
+      if (error) throw error;
+      
+      const result = data as any;
+      if (result.success) {
+        await loadBracket(selectedTournament.id);
+        toast({
+          title: "Emergency Rollback Complete",
+          description: `Tournament rolled back to Round ${result.target_round}. ${result.matches_reset} matches reset, ${result.teams_restored} teams restored.`,
+        });
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (err: any) {
+      toast({
+        title: "Rollback Error",
+        description: err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // UI Rendering
   return (
     <Card className="bg-slate-800 border-slate-700 mb-8">
@@ -383,11 +619,17 @@ export default function BracketMedicManager() {
             <BracketMedicActions
               loading={loading}
               selectedMatchId={selectedMatchId}
+              selectedTournamentId={selectedTournament.id}
               onFixProgression={handleFixProgression}
               onDiagnoseProgression={handleDiagnoseBracketProgression}
               onResetMatch={handleResetMatch}
               onSwapTeams={handleSwapTeams}
               onRebuildBracket={handleRebuildBracket}
+              onForceAdvanceTeam={handleForceAdvanceTeam}
+              onReverseProgression={handleReverseProgression}
+              onSetManualWinner={handleSetManualWinner}
+              onValidateAndRepair={handleValidateAndRepair}
+              onEmergencyRollback={handleEmergencyRollback}
             />
 
 
