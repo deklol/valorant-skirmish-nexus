@@ -42,6 +42,10 @@ export default function TournamentTabs({
           <Users className="w-4 h-4 mr-2" />
           Participants
         </StandardTabsTrigger>
+        <StandardTabsTrigger value="balancing">
+          <Scale className="w-4 h-4 mr-2" />
+          Balance Analysis
+        </StandardTabsTrigger>
         {isAdmin && (
           <>
             <StandardTabsTrigger value="admin">
@@ -51,10 +55,6 @@ export default function TournamentTabs({
             <StandardTabsTrigger value="players">
               <UserCheck className="w-4 h-4 mr-2" />
               Players
-            </StandardTabsTrigger>
-            <StandardTabsTrigger value="balancing">
-              <Scale className="w-4 h-4 mr-2" />
-              Balance
             </StandardTabsTrigger>
           </>
         )}
@@ -69,6 +69,9 @@ export default function TournamentTabs({
       )}
       <StandardTabsContent value="participants" className="space-y-6">
         <ParticipantsTab tournamentId={tournament.id} maxPlayers={maxPlayers} isAdmin={isAdmin} />
+      </StandardTabsContent>
+      <StandardTabsContent value="balancing" className="space-y-6">
+        <BalancingTab tournament={tournament} teams={teams} />
       </StandardTabsContent>
       {isAdmin &&
         <>
@@ -86,9 +89,6 @@ export default function TournamentTabs({
           </StandardTabsContent>
           <StandardTabsContent value="players" className="space-y-6">
             <PlayersTab tournamentId={tournament.id} maxPlayers={maxPlayers} onCheckInUpdate={onRefresh} />
-          </StandardTabsContent>
-          <StandardTabsContent value="balancing" className="space-y-6">
-            <BalancingTab tournamentId={tournament.id} maxTeams={tournament.max_teams} teamSize={tournament.team_size} onTeamsUpdated={onRefresh} />
           </StandardTabsContent>
         </>
       }

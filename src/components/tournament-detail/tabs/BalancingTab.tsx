@@ -1,44 +1,31 @@
 
-import TeamBalancingInterface from "@/components/TeamBalancingInterface";
-import SubstituteWaitlistManager from "@/components/SubstituteWaitlistManager";
-import ErrorBoundary from "@/components/ErrorBoundary";
-import EnhancedTeamBalancingTool from "@/components/team-balancing/EnhancedTeamBalancingTool";
+import TournamentBalanceTransparency from "../TournamentBalanceTransparency";
 
 export default function BalancingTab({
-  tournamentId,
-  maxTeams,
-  teamSize,
-  onTeamsUpdated
+  tournament,
+  teams
 }: {
-  tournamentId: string,
-  maxTeams: number,
-  teamSize: number,
-  onTeamsUpdated: () => void
+  tournament: any,
+  teams: any[]
 }) {
-  return (
-    <ErrorBoundary componentName="BalancingTab">
-      <div className="space-y-6">
-        {/* Enhanced Auto-Balancing Tool */}
-        <EnhancedTeamBalancingTool
-          tournamentId={tournamentId}
-          maxTeams={maxTeams}
-          onTeamsBalanced={onTeamsUpdated}
-        />
-        
-        {/* Manual Balancing Interface */}
-        <TeamBalancingInterface
-          tournamentId={tournamentId}
-          maxTeams={maxTeams}
-          teamSize={teamSize}
-          onTeamsUpdated={onTeamsUpdated}
-        />
-        
-        <SubstituteWaitlistManager
-          tournamentId={tournamentId}
-          onSubstituteChange={onTeamsUpdated}
-          showAdminTools={true}
-        />
+  // Show balance analysis if available
+  if (!tournament?.balance_analysis) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center space-y-2">
+          <p className="text-muted-foreground">No balance analysis available</p>
+          <p className="text-sm text-muted-foreground">Teams were not auto-balanced for this tournament</p>
+        </div>
       </div>
-    </ErrorBoundary>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <TournamentBalanceTransparency 
+        balanceAnalysis={tournament.balance_analysis}
+        teams={teams}
+      />
+    </div>
   );
 }
