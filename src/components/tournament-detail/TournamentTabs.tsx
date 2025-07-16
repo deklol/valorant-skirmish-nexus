@@ -12,6 +12,7 @@ import ParticipantsTab from "./tabs/ParticipantsTab";
 import AdminTab from "./tabs/AdminTab";
 import PlayersTab from "./tabs/PlayersTab";
 import BalancingTab from "./tabs/BalancingTab";
+import TournamentBalanceTransparency from "./TournamentBalanceTransparency";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function TournamentTabs({
@@ -42,6 +43,12 @@ export default function TournamentTabs({
           <Users className="w-4 h-4 mr-2" />
           Participants
         </StandardTabsTrigger>
+        {tournament.balance_analysis && (
+          <StandardTabsTrigger value="balance-analysis">
+            <Scale className="w-4 h-4 mr-2" />
+            Balance Analysis
+          </StandardTabsTrigger>
+        )}
         {isAdmin && (
           <>
             <StandardTabsTrigger value="admin">
@@ -70,6 +77,14 @@ export default function TournamentTabs({
       <StandardTabsContent value="participants" className="space-y-6">
         <ParticipantsTab tournamentId={tournament.id} maxPlayers={maxPlayers} isAdmin={isAdmin} />
       </StandardTabsContent>
+      {tournament.balance_analysis && (
+        <StandardTabsContent value="balance-analysis" className="space-y-6">
+          <TournamentBalanceTransparency 
+            balanceAnalysis={tournament.balance_analysis}
+            teams={teams}
+          />
+        </StandardTabsContent>
+      )}
       {isAdmin &&
         <>
           <StandardTabsContent value="admin" className="space-y-6">

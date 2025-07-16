@@ -2,6 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
 import { getRankPointsWithManualOverride } from "@/utils/rankingSystemWithOverrides";
+import { enhancedSnakeDraft } from "./EnhancedSnakeDraft";
 
 interface UseTeamBalancingProps {
   tournamentId: string;
@@ -151,37 +152,15 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
   };
 
   const createBalancedTeams = async (sortedPlayers: any[], teamsToCreate: number, teamSize: number) => {
-    // Create teams using snake draft algorithm for optimal balance
-    const teams: any[][] = Array(teamsToCreate).fill(null).map(() => []);
-    let currentTeam = 0;
-    let direction = 1; // 1 for forward, -1 for backward
-
-    // Distribute players using snake draft for maximum balance
-    for (const player of sortedPlayers) {
-      if (teams[currentTeam].length < teamSize) {
-        teams[currentTeam].push(player);
-      }
-      
-      if (teams[currentTeam].length < teamSize) {
-        continue;
-      }
-      
-      currentTeam += direction;
-      
-      if (currentTeam === teamsToCreate) {
-        currentTeam = teamsToCreate - 1;
-        direction = -1;
-      } else if (currentTeam === -1) {
-        currentTeam = 0;
-        direction = 1;
-      }
-      
-      const allTeamsFull = teams.every(team => team.length === teamSize);
-      if (allTeamsFull) break;
-    }
+    // Use enhanced snake draft with detailed logging
+    const playerData = sortedPlayers.map(signup => signup.users);
+    const result = enhancedSnakeDraft(playerData, teamsToCreate, teamSize);
+    
+    const { teams, balanceSteps, finalBalance } = result;
 
     // Helper to ensure unique team names
     const usedNames = new Set<string>();
+    const createdTeams: any[] = [];
 
     // Create teams in database
     for (let i = 0; i < teams.length; i++) {
@@ -189,8 +168,8 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
 
       // Captain is ALWAYS first (highest rating), ensured by sorting before insertion
       const captainUser =
-        teams[i][0]?.users?.discord_username && typeof teams[i][0]?.users?.discord_username === 'string'
-          ? teams[i][0].users.discord_username.trim()
+        teams[i][0]?.discord_username && typeof teams[i][0]?.discord_username === 'string'
+          ? teams[i][0].discord_username.trim()
           : null;
       let baseName = captainUser ? `Team ${captainUser}` : `Team Unknown`;
 
@@ -205,7 +184,7 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
 
       // Calculate total weight using enhanced ranking system
       const totalWeight = teams[i].reduce((sum, player) => {
-        const rankResult = getRankPointsWithManualOverride(player.users);
+        const rankResult = getRankPointsWithManualOverride(player);
         return sum + rankResult.points;
       }, 0);
 
@@ -222,29 +201,79 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
         .single();
 
       if (teamError) throw teamError;
+      createdTeams.push({ ...newTeam, players: teams[i] });
 
       // Add team members
       for (let j = 0; j < teams[i].length; j++) {
         const player = teams[i][j];
         const isCaptain = j === 0; // First player (highest weight) is captain
 
-        await supabase
-          .from('team_members')
-          .insert({
-            team_id: newTeam.id,
-            user_id: player.user_id,
-            is_captain: isCaptain
-          });
+        // Find the original signup to get user_id
+        const originalSignup = sortedPlayers.find(s => s.users?.id === player.id);
+        if (originalSignup) {
+          await supabase
+            .from('team_members')
+            .insert({
+              team_id: newTeam.id,
+              user_id: originalSignup.user_id,
+              is_captain: isCaptain
+            });
+        }
       }
 
       // Send notifications to team members
-      const teamUserIds = teams[i].map(player => player.user_id);
+      const teamUserIds = teams[i]
+        .map(player => sortedPlayers.find(s => s.users?.id === player.id)?.user_id)
+        .filter(Boolean);
       try {
         await notifyTeamAssigned(newTeam.id, teamName, teamUserIds);
       } catch (notificationError) {
         console.error('Failed to send notification:', notificationError);
       }
     }
+
+    // Save balance analysis to tournament
+    await saveBalanceAnalysis(balanceSteps, finalBalance, createdTeams, teamSize);
+  };
+
+  const saveBalanceAnalysis = async (balanceSteps: any[], finalBalance: any, createdTeams: any[], teamSize: number) => {
+    const analysis = {
+      qualityScore: Math.round(
+        finalBalance.balanceQuality === 'ideal' ? 95 :
+        finalBalance.balanceQuality === 'good' ? 80 :
+        finalBalance.balanceQuality === 'warning' ? 65 : 45
+      ),
+      maxPointDifference: finalBalance.maxPointDifference,
+      avgPointDifference: finalBalance.maxPointDifference / 2, // Approximate
+      balanceSteps: balanceSteps.map(step => ({
+        round: Math.floor(step.step / createdTeams.length) + 1,
+        player: {
+          name: step.player.discord_username,
+          rank: step.player.rank,
+          points: step.player.points
+        },
+        assignedTo: `Team ${step.assignedTeam + 1}`,
+        reasoning: step.reasoning,
+        teamStates: step.teamStatesAfter.map((state, index) => ({
+          name: `Team ${index + 1}`,
+          totalPoints: state.totalPoints,
+          playerCount: state.playerCount
+        }))
+      })),
+      finalTeamStats: createdTeams.map((team, index) => ({
+        name: team.name,
+        totalPoints: team.total_rank_points,
+        playerCount: team.players.length,
+        avgPoints: Math.round(team.total_rank_points / team.players.length)
+      })),
+      method: `Snake Draft (${teamSize}v${teamSize})`,
+      timestamp: new Date().toISOString()
+    };
+
+    await supabase
+      .from('tournaments')
+      .update({ balance_analysis: analysis })
+      .eq('id', tournamentId);
   };
 
   return { balanceTeams };

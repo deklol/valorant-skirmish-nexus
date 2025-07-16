@@ -112,7 +112,7 @@ export const enhancedSnakeDraft = (
         id: player.id,
         discord_username: player.discord_username || 'Unknown',
         points: rankResult.points,
-        rank: rankResult.rank,
+        rank: rankResult.rank || 'Unranked',
         source: rankResult.source
       },
       assignedTeam: currentTeamIndex,
