@@ -7,32 +7,68 @@ import { useState } from "react";
 import { Team } from "@/types/tournamentDetail";
 
 interface BalanceStep {
-  round: number;
+  step?: number; // New format
+  round?: number; // Old format
   player: {
-    name: string;
+    id?: string;
+    name?: string;
+    discord_username?: string;
     rank: string;
     points: number;
+    source?: string;
   };
-  assignedTo: string;
+  assignedTo?: string; // Old format
+  assignedTeam?: number; // New format
   reasoning: string;
-  teamStates: Array<{
+  teamStates?: Array<{ // Old format
     name: string;
+    totalPoints: number;
+    playerCount: number;
+  }>;
+  teamStatesAfter?: Array<{ // New format
+    teamIndex: number;
     totalPoints: number;
     playerCount: number;
   }>;
 }
 
-interface BalanceAnalysis {
-  qualityScore: number;
+interface FinalBalance {
+  averageTeamPoints: number;
+  minTeamPoints: number;
+  maxTeamPoints: number;
   maxPointDifference: number;
-  avgPointDifference: number;
-  balanceSteps: BalanceStep[];
-  finalTeamStats: Array<{
+  balanceQuality: 'ideal' | 'good' | 'warning' | 'poor';
+}
+
+interface BalanceAnalysis {
+  // Old format properties
+  qualityScore?: number;
+  maxPointDifference?: number;
+  avgPointDifference?: number;
+  balanceSteps?: BalanceStep[];
+  finalTeamStats?: Array<{
     name: string;
     totalPoints: number;
     playerCount: number;
     avgPoints: number;
   }>;
+  
+  // New format properties
+  final_balance?: FinalBalance;
+  balance_steps?: BalanceStep[];
+  teams_created?: Array<{
+    name: string;
+    members: Array<{
+      discord_username: string;
+      rank: string;
+      points: number;
+      source: string;
+    }>;
+    total_points: number;
+    seed: number;
+  }>;
+  
+  // Common properties
   method: string;
   timestamp: string;
 }
@@ -44,6 +80,63 @@ interface TournamentBalanceTransparencyProps {
 
 const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBalanceTransparencyProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  
+  // Helper functions to handle both old and new formats
+  const getQualityScore = () => {
+    if (balanceAnalysis.qualityScore !== undefined) {
+      return balanceAnalysis.qualityScore;
+    }
+    if (balanceAnalysis.final_balance?.balanceQuality) {
+      const quality = balanceAnalysis.final_balance.balanceQuality;
+      switch (quality) {
+        case 'ideal': return 95;
+        case 'good': return 80;
+        case 'warning': return 65;
+        case 'poor': return 40;
+        default: return 50;
+      }
+    }
+    return 50;
+  };
+
+  const getMaxPointDifference = () => {
+    return balanceAnalysis.maxPointDifference ?? balanceAnalysis.final_balance?.maxPointDifference ?? 0;
+  };
+
+  const getAvgPointDifference = () => {
+    if (balanceAnalysis.avgPointDifference !== undefined) {
+      return balanceAnalysis.avgPointDifference;
+    }
+    if (balanceAnalysis.final_balance) {
+      return balanceAnalysis.final_balance.maxPointDifference / 2; // Approximate from max difference
+    }
+    return 0;
+  };
+
+  const getFinalTeamStats = () => {
+    if (balanceAnalysis.finalTeamStats) {
+      return balanceAnalysis.finalTeamStats;
+    }
+    if (balanceAnalysis.teams_created) {
+      return balanceAnalysis.teams_created.map(team => ({
+        name: team.name,
+        totalPoints: team.total_points,
+        playerCount: team.members.length,
+        avgPoints: team.total_points / team.members.length
+      }));
+    }
+    return [];
+  };
+
+  const getBalanceSteps = () => {
+    return balanceAnalysis.balanceSteps ?? balanceAnalysis.balance_steps ?? [];
+  };
+  
+  const qualityScore = getQualityScore();
+  const maxPointDifference = getMaxPointDifference();
+  const avgPointDifference = getAvgPointDifference();
+  const finalTeamStats = getFinalTeamStats();
+  const balanceSteps = getBalanceSteps();
   
   const getQualityColor = (score: number) => {
     if (score >= 85) return "text-emerald-600 bg-emerald-50 border-emerald-200";
@@ -72,9 +165,9 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
           </div>
           <Badge 
             variant="outline" 
-            className={`px-3 py-1 ${getQualityColor(balanceAnalysis.qualityScore)}`}
+            className={`px-3 py-1 ${getQualityColor(qualityScore)}`}
           >
-            {getQualityLabel(balanceAnalysis.qualityScore)} ({balanceAnalysis.qualityScore}%)
+            {getQualityLabel(qualityScore)} ({qualityScore}%)
           </Badge>
         </div>
       </CardHeader>
@@ -87,8 +180,8 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
               <TrendingUp className="h-4 w-4 text-primary" />
               <span className="text-sm font-medium text-foreground">Balance Quality</span>
             </div>
-            <Progress value={balanceAnalysis.qualityScore} className="h-2" />
-            <p className="text-xs text-muted-foreground">{balanceAnalysis.qualityScore}% balanced</p>
+            <Progress value={qualityScore} className="h-2" />
+            <p className="text-xs text-muted-foreground">{qualityScore}% balanced</p>
           </div>
           
           <div className="space-y-2">
@@ -96,7 +189,7 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
               <Users className="h-4 w-4 text-primary" />
               <span className="text-sm font-medium text-foreground">Max Point Difference</span>
             </div>
-            <div className="text-lg font-semibold text-foreground">{balanceAnalysis.maxPointDifference}</div>
+            <div className="text-lg font-semibold text-foreground">{maxPointDifference}</div>
             <p className="text-xs text-muted-foreground">Between strongest/weakest teams</p>
           </div>
           
@@ -105,7 +198,7 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
               <Trophy className="h-4 w-4 text-primary" />
               <span className="text-sm font-medium text-foreground">Avg Difference</span>
             </div>
-            <div className="text-lg font-semibold text-foreground">{balanceAnalysis.avgPointDifference.toFixed(1)}</div>
+            <div className="text-lg font-semibold text-foreground">{avgPointDifference.toFixed(1)}</div>
             <p className="text-xs text-muted-foreground">Average team point difference</p>
           </div>
         </div>
@@ -117,11 +210,11 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
             Team Point Distribution
           </h4>
           <div className="space-y-2">
-            {balanceAnalysis.finalTeamStats
+            {finalTeamStats
               .sort((a, b) => b.totalPoints - a.totalPoints)
               .map((team, index) => {
-                const maxPoints = Math.max(...balanceAnalysis.finalTeamStats.map(t => t.totalPoints));
-                const percentage = (team.totalPoints / maxPoints) * 100;
+                const maxPoints = Math.max(...finalTeamStats.map(t => t.totalPoints));
+                const percentage = maxPoints > 0 ? (team.totalPoints / maxPoints) * 100 : 0;
                 
                 return (
                   <div key={team.name} className="space-y-1">
@@ -157,7 +250,7 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
             className="w-full flex items-center justify-between p-2 h-auto"
           >
             <span className="text-sm font-medium text-foreground">
-              View Balance Assignment Steps ({balanceAnalysis.balanceSteps.length} steps)
+              View Balance Assignment Steps ({balanceSteps.length} steps)
             </span>
             {isExpanded ? (
               <ChevronUp className="h-4 w-4 text-muted-foreground" />
@@ -168,29 +261,35 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
           
           {isExpanded && (
             <div className="mt-4 space-y-3 max-h-96 overflow-y-auto">
-              {balanceAnalysis.balanceSteps.map((step, index) => (
-                <div key={index} className="p-3 rounded-lg bg-muted/30 border border-border">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs">
-                          Round {step.round}
-                        </Badge>
-                        <span className="text-sm font-medium text-foreground">
-                          {step.player.name}
-                        </span>
-                        <Badge variant="secondary" className="text-xs">
-                          {step.player.rank} ({step.player.points}pts)
-                        </Badge>
+              {balanceSteps.map((step, index) => {
+                const playerName = step.player.discord_username || step.player.name || 'Unknown';
+                const stepNumber = step.step || step.round || index + 1;
+                const assignedTo = step.assignedTo || `Team ${(step.assignedTeam || 0) + 1}`;
+                
+                return (
+                  <div key={index} className="p-3 rounded-lg bg-muted/30 border border-border">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs">
+                            Step {stepNumber}
+                          </Badge>
+                          <span className="text-sm font-medium text-foreground">
+                            {playerName}
+                          </span>
+                          <Badge variant="secondary" className="text-xs">
+                            {step.player.rank} ({step.player.points}pts)
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Assigned to <span className="font-medium text-foreground">{assignedTo}</span>
+                        </p>
+                        <p className="text-xs text-muted-foreground">{step.reasoning}</p>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        Assigned to <span className="font-medium text-foreground">{step.assignedTo}</span>
-                      </p>
-                      <p className="text-xs text-muted-foreground">{step.reasoning}</p>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
