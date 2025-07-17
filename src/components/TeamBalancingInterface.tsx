@@ -15,6 +15,7 @@ import EnhancedRankFallbackAlert from "@/components/team-balancing/EnhancedRankF
 import TeamCleanupTools from "@/components/team-balancing/TeamCleanupTools";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { Username } from "@/components/Username";
+import { enhancedSnakeDraft, type EnhancedTeamResult } from "@/components/team-balancing/EnhancedSnakeDraft";
 
 interface TeamBalancingInterfaceProps {
 tournamentId: string;
@@ -191,6 +192,7 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
   const [saving, setSaving] = useState(false);
   const [creatingTeams, setCreatingTeams] = useState(false);
   const [autobalancing, setAutobalancing] = useState(false);
+  const [balanceAnalysis, setBalanceAnalysis] = useState<EnhancedTeamResult | null>(null);
 const { toast } = useToast();
   const notifications = useEnhancedNotifications();
   const [tournamentName, setTournamentName] = useState<string>("");
@@ -523,91 +525,69 @@ variant: "destructive",
     );
   };
 
-  // Enhanced Autobalance Algorithm with manual override support
+  // Enhanced Autobalance Algorithm with Snake Draft and detailed analysis
   function autobalanceUnassignedPlayers() {
     setAutobalancing(true);
     try {
-      // Copy current teams and unassigned lists
-      const teamsCopy: Team[] = teams.map(team => ({ ...team, members: [...team.members] }));
-      let unassignedCopy: Player[] = [...unassignedPlayers];
-
-      // Sort unassigned players by enhanced ranking system (highest first)
-      unassignedCopy.sort((a, b) => {
-        const aRankResult = getRankPointsWithManualOverride(a);
-        const bRankResult = getRankPointsWithManualOverride(b);
-        return bRankResult.points - aRankResult.points;
-      });
-
-      while (unassignedCopy.length > 0) {
-        // Pick the next strongest player
-        const player = unassignedCopy.shift();
-        if (!player) break;
-
-        let bestTeamIndex = -1;
-        let bestDelta = Infinity;
-
-        // Try this player on every team that has open slot
-        for (let i = 0; i < teamsCopy.length; i++) {
-          if (teamsCopy[i].members.length >= teamSize) continue;
-
-          // Simulate adding to this team
-          const rankResult = getRankPointsWithManualOverride(player);
-          const playerWeight = rankResult.points;
-          
-          const simulatedTeams = teamsCopy.map((t, idx) =>
-            idx === i
-              ? { ...t, members: [...t.members, player], totalWeight: t.totalWeight + playerWeight }
-              : t
-          );
-
-          // Calculate balance delta
-          const teamWeights = simulatedTeams
-            .filter(t => t.members.length > 0)
-            .map(t => t.members.reduce((sum, m) => {
-              const mRankResult = getRankPointsWithManualOverride(m);
-              return sum + mRankResult.points;
-            }, 0));
-
-          const maxW = Math.max(...teamWeights, 0);
-          const minW = Math.min(...teamWeights, 0);
-          const delta = maxW - minW;
-
-          if (delta < bestDelta) {
-            bestDelta = delta;
-            bestTeamIndex = i;
-          }
-        }
-
-        // Fallback: if all teams are full, break
-        if (bestTeamIndex === -1) break;
-
-        // Assign the player to the best team found
-        const rankResult = getRankPointsWithManualOverride(player);
-        const playerWeight = rankResult.points;
-        teamsCopy[bestTeamIndex].members.push(player);
-        teamsCopy[bestTeamIndex].totalWeight = 
-          (teamsCopy[bestTeamIndex].totalWeight || 0) + playerWeight;
+      // Get teams that have space for players
+      const availableTeams = teams.filter(team => team.members.length < teamSize);
+      const numTeams = availableTeams.length;
+      
+      if (numTeams === 0) {
+        toast({
+          title: "No Available Teams",
+          description: "All teams are full. Cannot autobalance.",
+          variant: "destructive",
+        });
+        setAutobalancing(false);
+        return;
       }
 
+      if (unassignedPlayers.length === 0) {
+        toast({
+          title: "No Players to Assign",
+          description: "All players are already assigned to teams.",
+        });
+        setAutobalancing(false);
+        return;
+      }
+
+      // Use enhanced snake draft algorithm
+      const snakeDraftResult = enhancedSnakeDraft(unassignedPlayers, numTeams, teamSize);
+      
+      // Store the balance analysis for later saving
+      setBalanceAnalysis(snakeDraftResult);
+
+      // Apply the snake draft results to our teams
+      const updatedTeams = teams.map((team, index) => {
+        const teamIndex = availableTeams.findIndex(t => t.id === team.id);
+        if (teamIndex >= 0 && teamIndex < snakeDraftResult.teams.length) {
+          const newMembers = [...team.members, ...snakeDraftResult.teams[teamIndex]];
+          return {
+            ...team,
+            members: newMembers,
+            totalWeight: newMembers.reduce((sum, m) => {
+              const mRankResult = getRankPointsWithManualOverride(m);
+              return sum + mRankResult.points;
+            }, 0),
+          };
+        }
+        return team;
+      });
+
+      // Clear unassigned players
       setUnassignedPlayers([]);
-      setTeams(
-        teamsCopy.map(team => ({
-          ...team,
-          totalWeight: team.members.reduce((sum, m) => {
-            const mRankResult = getRankPointsWithManualOverride(m);
-            return sum + mRankResult.points;
-          }, 0),
-        }))
-      );
+      setTeams(updatedTeams);
 
       toast({
-        title: "Suggestion Complete",
-        description: "Players distributed to teams for best possible balance using enhanced ranking system. Review before saving.",
+        title: "Snake Draft Complete",
+        description: `Players distributed using snake draft algorithm across ${numTeams} teams. Balance quality: ${snakeDraftResult.finalBalance.balanceQuality}. Review before saving.`,
       });
     } catch (e) {
+      console.error('Snake draft autobalance error:', e);
       toast({
         title: "Autobalance Error",
-        description: "Something went wrong during autobalance.",
+        description: "Something went wrong during snake draft autobalance.",
         variant: "destructive",
       });
     }
@@ -738,9 +718,74 @@ try {
         }
       }
 
+      // Save balance analysis if autobalance was used
+      if (balanceAnalysis) {
+        const balanceData = {
+          timestamp: new Date().toISOString(),
+          method: "Snake Draft Algorithm",
+          tournament_info: {
+            max_teams: maxTeams,
+            team_size: teamSize,
+            total_players: balanceAnalysis.balanceSteps.length,
+            teams_balanced: teamsWithMembers.length
+          },
+          balance_steps: balanceAnalysis.balanceSteps.map(step => ({
+            step: step.step,
+            player: {
+              id: step.player.id,
+              discord_username: step.player.discord_username,
+              points: step.player.points,
+              rank: step.player.rank,
+              source: step.player.source
+            },
+            assignedTeam: step.assignedTeam,
+            reasoning: step.reasoning,
+            teamStatesAfter: step.teamStatesAfter.map(state => ({
+              teamIndex: state.teamIndex,
+              totalPoints: state.totalPoints,
+              playerCount: state.playerCount
+            }))
+          })),
+          final_balance: {
+            averageTeamPoints: balanceAnalysis.finalBalance.averageTeamPoints,
+            minTeamPoints: balanceAnalysis.finalBalance.minTeamPoints,
+            maxTeamPoints: balanceAnalysis.finalBalance.maxTeamPoints,
+            maxPointDifference: balanceAnalysis.finalBalance.maxPointDifference,
+            balanceQuality: balanceAnalysis.finalBalance.balanceQuality
+          },
+          teams_created: teamsWithMembers.map((team, index) => ({
+            name: team.name,
+            members: team.members.map(m => ({
+              discord_username: m.discord_username,
+              rank: getRankPointsWithManualOverride(m).rank,
+              points: getRankPointsWithManualOverride(m).points,
+              source: getRankPointsWithManualOverride(m).source
+            })),
+            total_points: team.totalWeight,
+            seed: index + 1
+          }))
+        };
+
+        // Update tournament with balance analysis
+        const { error: balanceError } = await supabase
+          .from('tournaments')
+          .update({ balance_analysis: balanceData })
+          .eq('id', tournamentId);
+
+        if (balanceError) {
+          console.error('Error saving balance analysis:', balanceError);
+          // Don't fail the whole save for this
+        }
+
+        // Clear the analysis after saving
+        setBalanceAnalysis(null);
+      }
+
 toast({
         title: "Teams Updated",
-        description: "Team assignments have been saved successfully with enhanced rank balancing including manual overrides.",
+        description: balanceAnalysis 
+          ? "Team assignments saved with detailed snake draft balance analysis."
+          : "Team assignments have been saved successfully with enhanced rank balancing including manual overrides.",
 });
 
       // Refresh the data
