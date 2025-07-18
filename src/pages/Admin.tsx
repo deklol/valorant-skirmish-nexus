@@ -28,6 +28,7 @@ import EnhancedDiscordIntegration from "@/components/medic-enhanced/EnhancedDisc
 import PlayerMedicManager from "@/components/medic-enhanced/PlayerMedicManager";
 import StatisticsMedicManager from "@/components/medic-enhanced/StatisticsMedicManager";
 import { ShopMedicManager } from "@/components/admin/ShopMedicManager";
+import SponsorManager from "@/components/admin/SponsorManager";
 
 const Admin = () => {
   const { isAdmin } = useAuth();
@@ -85,6 +86,10 @@ const Admin = () => {
             <TabsTrigger value="maps" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
               <Map className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Maps</span>
+            </TabsTrigger>
+            <TabsTrigger value="sponsors" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
+              <Trophy className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Sponsors</span>
             </TabsTrigger>
 
             {/* Medical Tools - Individual Tabs */}
@@ -152,6 +157,10 @@ const Admin = () => {
 
           <TabsContent value="maps">
             <MapManager />
+          </TabsContent>
+
+          <TabsContent value="sponsors">
+            <SponsorManager />
           </TabsContent>
 
           <TabsContent value="tournament-medic">

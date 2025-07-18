@@ -13,6 +13,7 @@ import TopPlayersDisplay from "@/components/TopPlayersDisplay";
 import TwitchEmbed from "@/components/TwitchEmbed";
 import RecentWinners from "@/components/RecentWinners";
 import MemberHighlights from "@/components/MemberHighlights";
+import SponsorDisplay from "@/components/SponsorDisplay";
 
 const Index = () => {
   const { user } = useAuth();
@@ -259,6 +260,9 @@ const Index = () => {
           </Card>
         </div>
       </section>
+
+      {/* Sponsors Section */}
+      <SponsorDisplay />
 
     </div>
   );
