@@ -90,9 +90,9 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
       const quality = balanceAnalysis.final_balance.balanceQuality;
       switch (quality) {
         case 'ideal': return 95;
-        case 'good': return 80;
-        case 'warning': return 65;
-        case 'poor': return 40;
+        case 'good': return 85;
+        case 'warning': return 70;
+        case 'poor': return 45;
         default: return 50;
       }
     }

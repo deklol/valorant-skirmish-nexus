@@ -33,6 +33,7 @@ const SponsorManager = () => {
   const [formData, setFormData] = useState({
     name: "",
     website_url: "",
+    logo_url: "",
     display_order: 0,
     is_active: true,
   });
@@ -99,7 +100,7 @@ const SponsorManager = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    let logoUrl = editingSponsor?.logo_url || null;
+    let logoUrl = formData.logo_url || editingSponsor?.logo_url || null;
 
     if (logoFile) {
       const uploadedUrl = await uploadLogo(logoFile);
@@ -185,6 +186,7 @@ const SponsorManager = () => {
     setFormData({
       name: "",
       website_url: "",
+      logo_url: "",
       display_order: 0,
       is_active: true,
     });
@@ -197,6 +199,7 @@ const SponsorManager = () => {
     setFormData({
       name: sponsor.name,
       website_url: sponsor.website_url || "",
+      logo_url: sponsor.logo_url || "",
       display_order: sponsor.display_order,
       is_active: sponsor.is_active,
     });
@@ -265,16 +268,24 @@ const SponsorManager = () => {
                 </div>
 
                 <div>
-                  <Label htmlFor="logo" className="text-slate-300">Logo (optional)</Label>
-                  <Input
-                    id="logo"
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
-                    className="bg-slate-700 border-slate-600 text-white"
-                  />
+                  <Label className="text-slate-300">Logo (optional)</Label>
+                  <div className="space-y-2">
+                    <Input
+                      placeholder="Direct image URL (https://...)"
+                      value={formData.logo_url || ""}
+                      onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })}
+                      className="bg-slate-700 border-slate-600 text-white"
+                    />
+                    <div className="text-xs text-slate-400 text-center">— OR —</div>
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
+                      className="bg-slate-700 border-slate-600 text-white"
+                    />
+                  </div>
                   <p className="text-xs text-slate-400 mt-1">
-                    Recommended: PNG or JPG, max 2MB
+                    Use direct URL or upload file. Recommended: PNG or JPG, max 2MB
                   </p>
                 </div>
 
