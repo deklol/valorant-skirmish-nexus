@@ -15,7 +15,8 @@ import EnhancedRankFallbackAlert from "@/components/team-balancing/EnhancedRankF
 import TeamCleanupTools from "@/components/team-balancing/TeamCleanupTools";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { Username } from "@/components/Username";
-import { enhancedSnakeDraft, type EnhancedTeamResult } from "@/components/team-balancing/EnhancedSnakeDraft";
+import { enhancedSnakeDraft, type EnhancedTeamResult, type BalanceStep } from "@/components/team-balancing/EnhancedSnakeDraft";
+import { AutobalanceProgress } from "@/components/team-balancing/AutobalanceProgress";
 
 interface TeamBalancingInterfaceProps {
 tournamentId: string;
@@ -193,7 +194,10 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
   const [creatingTeams, setCreatingTeams] = useState(false);
   const [autobalancing, setAutobalancing] = useState(false);
   const [balanceAnalysis, setBalanceAnalysis] = useState<EnhancedTeamResult | null>(null);
-const { toast } = useToast();
+  const [showProgress, setShowProgress] = useState(false);
+  const [progressStep, setProgressStep] = useState(0);
+  const [lastProgressStep, setLastProgressStep] = useState<BalanceStep | undefined>();
+  const { toast } = useToast();
   const notifications = useEnhancedNotifications();
   const [tournamentName, setTournamentName] = useState<string>("");
 
@@ -526,8 +530,9 @@ variant: "destructive",
   };
 
   // Enhanced Autobalance Algorithm with Snake Draft and detailed analysis
-  function autobalanceUnassignedPlayers() {
+  async function autobalanceUnassignedPlayers() {
     setAutobalancing(true);
+    
     try {
       // Get teams that have space for players
       const availableTeams = teams.filter(team => team.members.length < teamSize);
@@ -552,8 +557,30 @@ variant: "destructive",
         return;
       }
 
-      // Use enhanced snake draft algorithm
-      const snakeDraftResult = enhancedSnakeDraft(unassignedPlayers, numTeams, teamSize);
+      // Show progress for large player groups
+      if (unassignedPlayers.length > 10) {
+        setShowProgress(true);
+        setProgressStep(0);
+        setLastProgressStep(undefined);
+      }
+
+      // Use enhanced snake draft algorithm with progress tracking
+      const snakeDraftResult = await new Promise<any>((resolve) => {
+        const result = enhancedSnakeDraft(
+          unassignedPlayers, 
+          numTeams, 
+          teamSize,
+          async (step: BalanceStep, currentStep: number, totalSteps: number) => {
+            if (unassignedPlayers.length > 10) {
+              setProgressStep(currentStep);
+              setLastProgressStep(step);
+              // Small delay to show progress
+              await new Promise(r => setTimeout(r, 150));
+            }
+          }
+        );
+        resolve(result);
+      });
       
       // Store the balance analysis for later saving
       setBalanceAnalysis(snakeDraftResult);
@@ -591,7 +618,17 @@ variant: "destructive",
         variant: "destructive",
       });
     }
+    
     setAutobalancing(false);
+    
+    // Hide progress after a brief delay
+    if (showProgress) {
+      setTimeout(() => {
+        setShowProgress(false);
+        setProgressStep(0);
+        setLastProgressStep(undefined);
+      }, 1000);
+    }
   }
 
   // Helper to generate team name based on captain for use in saveTeamChanges
@@ -886,7 +923,15 @@ Team Balancing
                 </div>
               )}
   
-              <div className="flex gap-2">
+          <div className="space-y-4">
+            <AutobalanceProgress
+              isVisible={showProgress}
+              totalPlayers={unassignedPlayers.length}
+              currentStep={progressStep}
+              lastStep={lastProgressStep}
+            />
+  
+            <div className="flex gap-2">
                 <Button
                   onClick={autobalanceUnassignedPlayers}
                   disabled={autobalancing || hasPlaceholderTeams || unassignedPlayers.length === 0}
@@ -925,6 +970,7 @@ Team Balancing
                   </p>
                 </div>
               )}
+            </div>
             </CardContent>
           </Card>
   

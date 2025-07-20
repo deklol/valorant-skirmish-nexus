@@ -38,7 +38,8 @@ export interface EnhancedTeamResult {
 export const enhancedSnakeDraft = (
   players: any[], 
   numTeams: number, 
-  teamSize: number
+  teamSize: number,
+  onProgress?: (step: BalanceStep, currentStep: number, totalSteps: number) => void
 ): EnhancedTeamResult => {
   // Sort players by enhanced ranking system (highest first)
   const sortedPlayers = [...players].sort((a, b) => {
@@ -106,7 +107,7 @@ export const enhancedSnakeDraft = (
     );
 
     // Record this step
-    balanceSteps.push({
+    const balanceStep = {
       step: i + 1,
       player: {
         id: player.id,
@@ -118,7 +119,14 @@ export const enhancedSnakeDraft = (
       assignedTeam: currentTeamIndex,
       reasoning,
       teamStatesAfter
-    });
+    };
+
+    balanceSteps.push(balanceStep);
+
+    // Call progress callback if provided
+    if (onProgress) {
+      onProgress(balanceStep, i + 1, sortedPlayers.length);
+    }
 
     // Move to next team in snake pattern for next iteration
     currentTeamIndex += direction;
