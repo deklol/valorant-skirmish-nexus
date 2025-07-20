@@ -185,11 +185,11 @@ const calculateFinalBalance = (teams: any[][]) => {
   const maxPointDifference = maxTeamPoints - minTeamPoints;
 
   let balanceQuality: 'ideal' | 'good' | 'warning' | 'poor';
-  if (maxPointDifference <= 40) {
+  if (maxPointDifference <= 50) {
     balanceQuality = 'ideal';
-  } else if (maxPointDifference <= 75) {
+  } else if (maxPointDifference <= 100) {
     balanceQuality = 'good';
-  } else if (maxPointDifference <= 120) {
+  } else if (maxPointDifference <= 150) {
     balanceQuality = 'warning';
   } else {
     balanceQuality = 'poor';
