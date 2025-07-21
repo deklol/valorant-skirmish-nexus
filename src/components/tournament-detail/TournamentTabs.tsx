@@ -1,4 +1,3 @@
-
 import { 
   StandardTabs, 
   StandardTabsList, 
@@ -43,12 +42,7 @@ export default function TournamentTabs({
           <Users className="w-4 h-4 mr-2" />
           Participants
         </StandardTabsTrigger>
-        {tournament.balance_analysis && (
-          <StandardTabsTrigger value="balance-analysis">
-            <Scale className="w-4 h-4 mr-2" />
-            Balance Analysis
-          </StandardTabsTrigger>
-        )}
+        {/* The 'Balance Analysis' tab trigger has been removed as it's now on the main page. */}
         {isAdmin && (
           <>
             <StandardTabsTrigger value="admin">
@@ -77,14 +71,7 @@ export default function TournamentTabs({
       <StandardTabsContent value="participants" className="space-y-6">
         <ParticipantsTab tournamentId={tournament.id} maxPlayers={maxPlayers} isAdmin={isAdmin} />
       </StandardTabsContent>
-      {tournament.balance_analysis && (
-        <StandardTabsContent value="balance-analysis" className="space-y-6">
-          <TournamentBalanceTransparency 
-            balanceAnalysis={tournament.balance_analysis}
-            teams={teams}
-          />
-        </StandardTabsContent>
-      )}
+      {/* The 'Balance Analysis' tab content has been removed as it's now on the main page. */}
       {isAdmin &&
         <>
           <StandardTabsContent value="admin" className="space-y-6">
