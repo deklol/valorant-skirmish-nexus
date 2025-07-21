@@ -223,13 +223,128 @@ const performPostBalanceValidation = (
   teams: any[][],
   initialBalance: any
 ): { teams: any[][], adjustments: { swaps: Array<{ player1: string; player2: string; fromTeam: number; toTeam: number; reason: string; }> } } => {
-  // For now, return teams as-is with no adjustments
-  // This can be enhanced later with actual balance adjustment logic
-  return {
-    teams,
-    adjustments: {
-      swaps: []
+  // Deep copy the teams to avoid direct mutation of the original array
+  let adjustedTeams = JSON.parse(JSON.stringify(teams));
+  const adjustments: { swaps: Array<{ player1: string; player2: string; fromTeam: number; toTeam: number; reason: string; }> } = { swaps: [] };
+
+  let hasMadeSwap = true;
+  const maxIterations = 5; // Limit iterations to prevent excessive computation
+  let iterationCount = 0;
+
+  // Continue iterating as long as swaps are being made and max iterations are not reached
+  while (hasMadeSwap && iterationCount < maxIterations) {
+    hasMadeSwap = false; // Assume no swap will be made in this iteration
+    iterationCount++;
+
+    const currentBalance = calculateFinalBalance(adjustedTeams);
+
+    // If balance is already ideal, no further adjustments needed
+    if (currentBalance.balanceQuality === 'ideal') {
+      break;
     }
+
+    // Find the team with the highest total points and the team with the lowest total points
+    let highestTeamIndex = -1;
+    let lowestTeamIndex = -1;
+    let highestTeamPoints = -1;
+    let lowestTeamPoints = Infinity;
+
+    // Ensure there are at least two teams with members to consider for swapping
+    const teamsWithMembers = adjustedTeams.filter(team => team.length > 0);
+    if (teamsWithMembers.length < 2) {
+        break; // Cannot perform swaps if less than 2 teams have members
+    }
+
+    // Recalculate team totals to ensure they are up-to-date after any previous swaps
+    const teamTotals = adjustedTeams.map(team =>
+        team.reduce((sum, player) => getRankPointsWithManualOverride(player).points + sum, 0)
+    );
+
+    for (let i = 0; i < adjustedTeams.length; i++) {
+        if (teamTotals[i] > highestTeamPoints) {
+            highestTeamPoints = teamTotals[i];
+            highestTeamIndex = i;
+        }
+        if (teamTotals[i] < lowestTeamPoints) {
+            lowestTeamPoints = teamTotals[i];
+            lowestTeamIndex = i;
+        }
+    }
+
+    // If highest and lowest are the same team, or no valid teams found, break
+    if (highestTeamIndex === -1 || lowestTeamIndex === -1 || highestTeamIndex === lowestTeamIndex) {
+        break;
+    }
+
+    let bestSwap: { playerA: any; playerB: any; fromTeam: number; toTeam: number; newMaxDiff: number } | null = null;
+    let bestNewMaxDiff = currentBalance.maxPointDifference;
+
+    // Iterate through players in the highest team
+    for (const playerA of adjustedTeams[highestTeamIndex]) {
+      // Iterate through players in the lowest team
+      for (const playerB of adjustedTeams[lowestTeamIndex]) {
+        // Calculate hypothetical new totals if playerA and playerB are swapped
+        const playerAPoints = getRankPointsWithManualOverride(playerA).points;
+        const playerBPoints = getRankPointsWithManualOverride(playerB).points;
+
+        const hypotheticalHighestTeamPoints = highestTeamPoints - playerAPoints + playerBPoints;
+        const hypotheticalLowestTeamPoints = lowestTeamPoints - playerBPoints + playerAPoints;
+
+        // Create a temporary array of all team totals to find the new max difference
+        const tempTeamTotals = [...teamTotals];
+        tempTeamTotals[highestTeamIndex] = hypotheticalHighestTeamPoints;
+        tempTeamTotals[lowestTeamIndex] = hypotheticalLowestTeamPoints;
+
+        const hypotheticalMaxDiff = Math.max(...tempTeamTotals) - Math.min(...tempTeamTotals);
+
+        // If this swap improves the balance, record it as the best so far for this iteration
+        if (hypotheticalMaxDiff < bestNewMaxDiff) {
+          bestNewMaxDiff = hypotheticalMaxDiff;
+          bestSwap = {
+            playerA,
+            playerB,
+            fromTeam: highestTeamIndex,
+            toTeam: lowestTeamIndex,
+            newMaxDiff: hypotheticalMaxDiff
+          };
+        }
+      }
+    }
+
+    // Apply the best swap found in this iteration
+    if (bestSwap) {
+      // Remove playerA from highest team and add playerB
+      adjustedTeams[bestSwap.fromTeam] = adjustedTeams[bestSwap.fromTeam].filter(
+        (p: any) => p.id !== bestSwap.playerA.id
+      );
+      adjustedTeams[bestSwap.fromTeam].push(bestSwap.playerB);
+
+      // Remove playerB from lowest team and add playerA
+      adjustedTeams[bestSwap.toTeam] = adjustedTeams[bestSwap.toTeam].filter(
+        (p: any) => p.id !== bestSwap.playerB.id
+      );
+      adjustedTeams[bestSwap.toTeam].push(bestSwap.playerA);
+
+      // Update total weights for the swapped teams
+      // Note: The totalWeight property on the team object itself is not directly used by calculateFinalBalance,
+      // but it's good practice to keep it consistent if it's used elsewhere.
+      adjustedTeams[bestSwap.fromTeam].totalWeight = adjustedTeams[bestSwap.fromTeam].reduce((sum: number, p: any) => getRankPointsWithManualOverride(p).points + sum, 0);
+      adjustedTeams[bestSwap.toTeam].totalWeight = adjustedTeams[bestSwap.toTeam].reduce((sum: number, p: any) => getRankPointsWithManualOverride(p).points + sum, 0);
+
+      adjustments.swaps.push({
+        player1: bestSwap.playerA.discord_username,
+        player2: bestSwap.playerB.discord_username,
+        fromTeam: bestSwap.fromTeam + 1, // 1-indexed for display
+        toTeam: bestSwap.toTeam + 1,     // 1-indexed for display
+        reason: `Swapped to reduce max point difference from ${currentBalance.maxPointDifference} to ${bestNewMaxDiff}`
+      });
+      hasMadeSwap = true; // Indicate that a swap was made, continue iterating
+    }
+  }
+
+  return {
+    teams: adjustedTeams,
+    adjustments
   };
 };
 
