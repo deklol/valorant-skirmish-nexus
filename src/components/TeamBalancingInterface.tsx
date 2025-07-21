@@ -558,8 +558,8 @@ variant: "destructive",
         return;
       }
 
-      // Show progress for large player groups
-      if (unassignedPlayers.length > 10) {
+      // Show progress for tournaments with more than 5 players
+      if (unassignedPlayers.length > 5) {
         setShowProgress(true);
         setProgressStep(0);
         setLastProgressStep(undefined);
@@ -573,7 +573,7 @@ variant: "destructive",
           numTeams, 
           teamSize,
           async (step: BalanceStep, currentStep: number, totalSteps: number) => {
-            if (unassignedPlayers.length > 10) {
+            if (unassignedPlayers.length > 5) {
               setProgressStep(currentStep);
               setLastProgressStep(step);
               setCurrentPhase('analyzing');
@@ -583,14 +583,14 @@ variant: "destructive",
           },
           () => {
             // Validation phase callback
-            if (unassignedPlayers.length > 10) {
+            if (unassignedPlayers.length > 5) {
               setCurrentPhase('validating');
             }
           }
         );
         
         // Complete phase
-        if (unassignedPlayers.length > 10) {
+        if (unassignedPlayers.length > 5) {
           setCurrentPhase('complete');
           setTimeout(() => {
             setShowProgress(false);
