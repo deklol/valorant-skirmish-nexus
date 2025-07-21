@@ -536,13 +536,6 @@ variant: "destructive",
   // Enhanced Autobalance Algorithm with Snake Draft and detailed analysis
   async function autobalanceUnassignedPlayers() {
     setAutobalancing(true);
-    // Show progress immediately if there are enough players to warrant it
-    if (unassignedPlayers.length > 5) {
-      setShowProgress(true);
-      setProgressStep(0);
-      setLastProgressStep(undefined);
-      setCurrentPhase('analyzing');
-    }
     
     try {
       // Get teams that have space for players
@@ -566,78 +559,99 @@ variant: "destructive",
         return; 
       }
 
-      // Use a Promise to wrap the synchronous enhancedSnakeDraft and wait for its callbacks
-      const snakeDraftResult = await new Promise<EnhancedTeamResult>((resolve, reject) => {
-        let finalResult: EnhancedTeamResult | null = null;
-        let totalStepsCount = 0;
-
-        // Call enhancedSnakeDraft. It runs synchronously, but its callbacks are async.
-        // We need to ensure the outer Promise resolves only after the last async step.
-        const result = enhancedSnakeDraft(
-          unassignedPlayers, 
-          numTeams, 
-          teamSize,
-          async (step: BalanceStep, currentStep: number, totalSteps: number) => {
-            totalStepsCount = totalSteps; // Capture total steps
-            if (unassignedPlayers.length > 5) {
-              setProgressStep(currentStep);
-              setLastProgressStep(step);
-              setCurrentPhase('analyzing');
-              await delay(150); // This delay allows React to re-render
-            }
-            // If this is the very last step, resolve the outer Promise
-            if (currentStep === totalStepsCount && finalResult) {
-                resolve(finalResult);
-            }
-          },
-          async () => { 
-            // Validation phase callback
-            if (unassignedPlayers.length > 5) {
-              setCurrentPhase('validating');
-              await delay(150); // Add delay for validation phase
-            }
-          }
-        );
-        
-        // Store the result returned by the synchronous enhancedSnakeDraft call
-        finalResult = result;
-
-        // Handle edge case where there are no steps or very few, and the onStep
-        // callback might not trigger the final resolve.
-        // If the draft completes instantly (e.g., 0 players, or very few players
-        // where totalSteps is small), resolve the promise immediately.
-        if (totalStepsCount === 0 || unassignedPlayers.length <= 5) {
-            resolve(finalResult);
+      // First, run the enhancedSnakeDraft to get all the steps and the final result.
+      // We are not relying on its internal callbacks for UI updates anymore,
+      // but rather processing its result step-by-step.
+      const fullSnakeDraftResult = enhancedSnakeDraft(
+        unassignedPlayers, 
+        numTeams, 
+        teamSize,
+        // These callbacks are now primarily for internal logging or future extensions,
+        // as UI updates are driven by the loop below.
+        (step: BalanceStep, currentStep: number, totalSteps: number) => {
+          // console.log(`Draft Step (internal): ${currentStep}/${totalSteps}`, step);
+        },
+        () => {
+          // console.log("Validation phase (internal)");
         }
-      });
+      );
       
       // Store the balance analysis for later saving
-      setBalanceAnalysis(snakeDraftResult);
+      setBalanceAnalysis(fullSnakeDraftResult);
 
-      // Apply the snake draft results to our teams
-      const updatedTeams = teams.map((team, index) => {
-        const teamIndex = availableTeams.findIndex(t => t.id === team.id);
-        if (teamIndex >= 0 && teamIndex < snakeDraftResult.teams.length) {
-          const newMembers = [...team.members, ...snakeDraftResult.teams[teamIndex]];
-          return {
-            ...team,
-            members: newMembers,
-            totalWeight: newMembers.reduce((sum, m) => {
-              const mRankResult = getRankPointsWithManualOverride(m);
-              return sum + mRankResult.points;
-            }, 0),
-          };
+      // Initialize temporary teams and unassigned players for step-by-step UI updates
+      let tempTeams = JSON.parse(JSON.stringify(teams)); // Deep copy to avoid direct state mutation
+      let tempUnassignedPlayers = [...unassignedPlayers];
+
+      // Show progress bar if there are enough players
+      if (fullSnakeDraftResult.balanceSteps.length > 0) {
+        setShowProgress(true);
+        setProgressStep(0);
+        setLastProgressStep(undefined);
+        setCurrentPhase('analyzing');
+
+        // Iterate through each step of the draft and update UI with delays
+        for (let i = 0; i < fullSnakeDraftResult.balanceSteps.length; i++) {
+          const step = fullSnakeDraftResult.balanceSteps[i];
+          const currentStepIndex = i + 1;
+          const totalSteps = fullSnakeDraftResult.balanceSteps.length;
+
+          // Update progress bar
+          setProgressStep(currentStepIndex);
+          setLastProgressStep(step);
+          setCurrentPhase('analyzing');
+
+          // Find the player being assigned in this step
+          const playerToMove = tempUnassignedPlayers.find(p => p.id === step.player.id);
+          if (playerToMove) {
+            // Remove player from unassigned list
+            tempUnassignedPlayers = tempUnassignedPlayers.filter(p => p.id !== playerToMove.id);
+
+            // Find the target team (using its original ID or placeholder ID)
+            const targetTeam = tempTeams.find(t => t.id === step.assignedTeam || t.id === `placeholder-${step.assignedTeam}`);
+            if (targetTeam) {
+              // Add player to the target team and update its total weight
+              targetTeam.members.push(playerToMove);
+              targetTeam.totalWeight = targetTeam.members.reduce((sum, m) => {
+                const mRankResult = getRankPointsWithManualOverride(m);
+                return sum + mRankResult.points;
+              }, 0);
+            }
+          }
+
+          // Update the React state for teams and unassigned players
+          // This will trigger a re-render showing the player moving
+          setUnassignedPlayers(tempUnassignedPlayers);
+          setTeams([...tempTeams]); // Create new array reference to trigger re-render
+
+          await delay(250); // Increased delay for a more noticeable step-by-step animation
         }
-        return team;
-      });
+        
+        // After all steps are processed, set phase to complete
+        setCurrentPhase('complete');
+        await delay(1000); // Short delay to show 'complete' before hiding
+      }
 
-      // Clear unassigned players
+      // Final state update (though the loop above should have already set the final state)
+      // This ensures consistency and handles cases with very few players where the loop might not run.
       setUnassignedPlayers([]);
-      setTeams(updatedTeams);
+      setTeams(fullSnakeDraftResult.teams.map((draftedTeam, index) => {
+        const originalTeam = availableTeams[index]; // Get the original team corresponding to this drafted team
+        const newMembers = [...originalTeam.members, ...draftedTeam];
+        return {
+          ...originalTeam,
+          members: newMembers,
+          totalWeight: newMembers.reduce((sum, m) => {
+            const mRankResult = getRankPointsWithManualOverride(m);
+            return sum + mRankResult.points;
+          }, 0),
+        };
+      }));
+
 
       toast({
         title: "Snake Draft Complete",
-        description: `Players distributed using snake draft algorithm across ${numTeams} teams. Balance quality: ${snakeDraftResult.finalBalance.balanceQuality}. Review before saving.`,
+        description: `Players distributed using snake draft algorithm across ${numTeams} teams. Balance quality: ${fullSnakeDraftResult.finalBalance.balanceQuality}. Review before saving.`,
       });
     } catch (e) {
       console.error('Snake draft autobalance error:', e);
@@ -648,10 +662,8 @@ variant: "destructive",
       });
     } finally {
       setAutobalancing(false);
-      // Ensure progress is hidden after a brief delay, regardless of success or failure
+      // Ensure progress is hidden
       if (showProgress) {
-        setCurrentPhase('complete'); // Set to complete before hiding
-        await delay(1500); // Longer delay for "complete" phase to be visible
         setShowProgress(false);
         setProgressStep(0);
         setLastProgressStep(undefined);
