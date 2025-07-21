@@ -555,7 +555,7 @@ variant: "destructive",
           description: "All teams are full. Cannot autobalance.",
           variant: "destructive",
         });
-        return; // Return early, autobalancing will be set to false in finally block
+        return; 
       }
 
       if (unassignedPlayers.length === 0) {
@@ -563,25 +563,34 @@ variant: "destructive",
           title: "No Players to Assign",
           description: "All players are already assigned to teams.",
         });
-        return; // Return early, autobalancing will be set to false in finally block
+        return; 
       }
 
-      // Use enhanced snake draft algorithm with progress tracking and validation
-      const snakeDraftResult = await new Promise<any>((resolve) => {
+      // Use a Promise to wrap the synchronous enhancedSnakeDraft and wait for its callbacks
+      const snakeDraftResult = await new Promise<EnhancedTeamResult>((resolve, reject) => {
+        let finalResult: EnhancedTeamResult | null = null;
+        let totalStepsCount = 0;
+
+        // Call enhancedSnakeDraft. It runs synchronously, but its callbacks are async.
+        // We need to ensure the outer Promise resolves only after the last async step.
         const result = enhancedSnakeDraft(
           unassignedPlayers, 
           numTeams, 
           teamSize,
           async (step: BalanceStep, currentStep: number, totalSteps: number) => {
+            totalStepsCount = totalSteps; // Capture total steps
             if (unassignedPlayers.length > 5) {
               setProgressStep(currentStep);
               setLastProgressStep(step);
               setCurrentPhase('analyzing');
-              // Small delay to show progress
-              await delay(150); // Use the helper delay function
+              await delay(150); // This delay allows React to re-render
+            }
+            // If this is the very last step, resolve the outer Promise
+            if (currentStep === totalStepsCount && finalResult) {
+                resolve(finalResult);
             }
           },
-          async () => { // Make this callback async too
+          async () => { 
             // Validation phase callback
             if (unassignedPlayers.length > 5) {
               setCurrentPhase('validating');
@@ -590,7 +599,16 @@ variant: "destructive",
           }
         );
         
-        resolve(result);
+        // Store the result returned by the synchronous enhancedSnakeDraft call
+        finalResult = result;
+
+        // Handle edge case where there are no steps or very few, and the onStep
+        // callback might not trigger the final resolve.
+        // If the draft completes instantly (e.g., 0 players, or very few players
+        // where totalSteps is small), resolve the promise immediately.
+        if (totalStepsCount === 0 || unassignedPlayers.length <= 5) {
+            resolve(finalResult);
+        }
       });
       
       // Store the balance analysis for later saving
