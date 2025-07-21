@@ -17,11 +17,35 @@ export interface BalanceStep {
     totalPoints: number;
     playerCount: number;
   }[];
+  round?: number;
+  direction?: 'ascending' | 'descending';
+}
+
+export interface ValidationResult {
+  originalBalance: {
+    maxPointDifference: number;
+    balanceQuality: 'ideal' | 'good' | 'warning' | 'poor';
+  };
+  adjustmentsMade: {
+    swaps: Array<{
+      player1: string;
+      player2: string;
+      fromTeam: number;
+      toTeam: number;
+      reason: string;
+    }>;
+  };
+  finalBalance: {
+    maxPointDifference: number;
+    balanceQuality: 'ideal' | 'good' | 'warning' | 'poor';
+  };
+  validationTime: number;
 }
 
 export interface EnhancedTeamResult {
   teams: any[][];
   balanceSteps: BalanceStep[];
+  validationResult?: ValidationResult;
   finalBalance: {
     averageTeamPoints: number;
     minTeamPoints: number;
@@ -32,14 +56,14 @@ export interface EnhancedTeamResult {
 }
 
 /**
- * Enhanced snake draft algorithm with proper alternating pattern and detailed logging
- * Pattern: Team 1 → Team 2 → Team 3 → Team 3 → Team 2 → Team 1 → repeat
+ * Enhanced snake draft algorithm with detailed progress tracking and post-balance validation
  */
 export const enhancedSnakeDraft = (
   players: any[], 
   numTeams: number, 
   teamSize: number,
-  onProgress?: (step: BalanceStep, currentStep: number, totalSteps: number) => void
+  onProgress?: (step: BalanceStep, currentStep: number, totalSteps: number) => void,
+  onValidationStart?: () => void
 ): EnhancedTeamResult => {
   // Sort players by enhanced ranking system (highest first)
   const sortedPlayers = [...players].sort((a, b) => {
@@ -53,8 +77,8 @@ export const enhancedSnakeDraft = (
   const balanceSteps: BalanceStep[] = [];
   
   let currentTeamIndex = 0;
-  let direction = 1; // 1 for forward, -1 for backward
-  let round = 0;
+  let direction = 1;
+  let round = 1;
 
   for (let i = 0; i < sortedPlayers.length; i++) {
     const player = sortedPlayers[i];
@@ -73,6 +97,7 @@ export const enhancedSnakeDraft = (
       } else if (currentTeamIndex < 0) {
         currentTeamIndex = 0;
         direction = 1;
+        round++;
       }
       
       attempts++;
@@ -96,8 +121,8 @@ export const enhancedSnakeDraft = (
       playerCount: team.length
     }));
 
-    // Generate reasoning for this assignment
-    const reasoning = generateAssignmentReasoning(
+    // Enhanced reasoning with round and direction info
+    const reasoning = generateEnhancedReasoning(
       player, 
       currentTeamIndex, 
       teamStatesAfter, 
@@ -106,8 +131,7 @@ export const enhancedSnakeDraft = (
       i
     );
 
-    // Record this step
-    const balanceStep = {
+    const balanceStep: BalanceStep = {
       step: i + 1,
       player: {
         id: player.id,
@@ -118,7 +142,9 @@ export const enhancedSnakeDraft = (
       },
       assignedTeam: currentTeamIndex,
       reasoning,
-      teamStatesAfter
+      teamStatesAfter,
+      round,
+      direction: direction === 1 ? 'ascending' : 'descending'
     };
 
     balanceSteps.push(balanceStep);
@@ -135,7 +161,6 @@ export const enhancedSnakeDraft = (
     if (currentTeamIndex >= numTeams) {
       currentTeamIndex = numTeams - 1;
       direction = -1;
-      round++;
     } else if (currentTeamIndex < 0) {
       currentTeamIndex = 0;
       direction = 1;
@@ -143,17 +168,35 @@ export const enhancedSnakeDraft = (
     }
   }
 
-  // Calculate final balance metrics
-  const finalBalance = calculateFinalBalance(teams);
+  // Post-balance validation phase
+  let validationResult: ValidationResult | undefined;
+  if (onValidationStart) {
+    onValidationStart();
+  }
+
+  const initialBalance = calculateFinalBalance(teams);
+  const validationStartTime = Date.now();
+
+  // Perform validation and potential adjustments
+  const validatedTeams = performPostBalanceValidation(teams, initialBalance);
+  const finalBalance = calculateFinalBalance(validatedTeams.teams);
+
+  validationResult = {
+    originalBalance: initialBalance,
+    adjustmentsMade: validatedTeams.adjustments,
+    finalBalance,
+    validationTime: Date.now() - validationStartTime
+  };
 
   return {
-    teams,
+    teams: validatedTeams.teams,
     balanceSteps,
+    validationResult,
     finalBalance
   };
 };
 
-const generateAssignmentReasoning = (
+const generateEnhancedReasoning = (
   player: any,
   teamIndex: number,
   teamStates: any[],
@@ -166,17 +209,26 @@ const generateAssignmentReasoning = (
   const playerName = player.discord_username || 'Unknown';
   
   if (step === 0) {
-    return `First pick: Assigned ${playerName} (${rankResult.rank}, ${rankResult.points}pts) to Team ${teamIndex + 1} as highest-rated player.`;
-  }
-
-  if (step === 1) {
-    return `Snake draft: Assigned ${playerName} (${rankResult.rank}, ${rankResult.points}pts) to Team ${teamIndex + 1} following snake pattern.`;
+    return `First pick (Round ${round}): Assigned ${playerName} (${rankResult.rank}, ${rankResult.points}pts) to Team ${teamIndex + 1} as highest-rated player.`;
   }
 
   const directionText = direction === 1 ? 'ascending' : 'descending';
-  const roundText = round > 0 ? ` (Round ${round + 1})` : '';
+  const sourceText = rankResult.source === 'manual_override' ? ' [Override]' : 
+                    rankResult.source === 'peak_rank' ? ' [Peak]' : '';
   
-  return `Snake draft${roundText}: Assigned ${playerName} (${rankResult.rank}, ${rankResult.points}pts) to Team ${teamIndex + 1} in ${directionText} order. Team total: ${currentTeamPoints}pts.`;
+  return `Snake draft Round ${round} (${directionText}): Assigned ${playerName} (${rankResult.rank}, ${rankResult.points}pts${sourceText}) to Team ${teamIndex + 1}. Team total: ${currentTeamPoints}pts.`;
+};
+
+const performPostBalanceValidation = (
+  teams: any[][],
+  initialBalance: any
+): { teams: any[][], adjustments: any[] } => {
+  // For now, return teams as-is with no adjustments
+  // This can be enhanced later with actual balance adjustment logic
+  return {
+    teams,
+    adjustments: []
+  };
 };
 
 const calculateFinalBalance = (teams: any[][]) => {

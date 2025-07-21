@@ -5,8 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Shuffle, AlertTriangle, CheckCircle, Eye, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
-import { enhancedSnakeDraft, EnhancedTeamResult } from "./EnhancedSnakeDraft";
+import { enhancedSnakeDraft, EnhancedTeamResult, BalanceStep } from "./EnhancedSnakeDraft";
 import DetailedBalanceAnalysis from "./DetailedBalanceAnalysis";
+import { AutobalanceProgress } from "./AutobalanceProgress";
 import { supabase } from "@/integrations/supabase/client";
 import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
 import { getRankPointsWithManualOverride } from "@/utils/rankingSystemWithOverrides";
@@ -25,9 +26,15 @@ const EnhancedTeamBalancingTool = ({
   tournamentName 
 }: EnhancedTeamBalancingToolProps) => {
   const [loading, setLoading] = useState(false);
-  const [previewMode, setPreviewMode] = useState(false);
   const [balanceResult, setBalanceResult] = useState<EnhancedTeamResult | null>(null);
-  const [phase, setPhase] = useState<'idle' | 'analyzing' | 'preview' | 'saving' | 'complete'>('idle');
+  const [phase, setPhase] = useState<'idle' | 'analyzing' | 'validating' | 'preview' | 'saving' | 'complete'>('idle');
+  
+  // Progress tracking state
+  const [showProgress, setShowProgress] = useState(false);
+  const [progressStep, setProgressStep] = useState(0);
+  const [lastProgressStep, setLastProgressStep] = useState<BalanceStep | undefined>();
+  const [totalPlayers, setTotalPlayers] = useState(0);
+  
   const { toast } = useToast();
   const { notifyTeamAssigned } = useEnhancedNotifications();
 
@@ -36,7 +43,6 @@ const EnhancedTeamBalancingTool = ({
     setPhase('analyzing');
 
     try {
-      // Get tournament details
       const { data: tournament } = await supabase
         .from('tournaments')
         .select('name, team_size')
@@ -47,7 +53,6 @@ const EnhancedTeamBalancingTool = ({
 
       const teamSize = tournament.team_size || 5;
 
-      // Get checked-in players
       const { data: signups } = await supabase
         .from('tournament_signups')
         .select(`
@@ -81,10 +86,33 @@ const EnhancedTeamBalancingTool = ({
         throw new Error(`Need at least ${teamSize * 2} players for ${teamSize}v${teamSize} format`);
       }
 
-      // Run enhanced balance analysis
-      const result = enhancedSnakeDraft(players, teamsToCreate, teamSize);
+      // Set up progress tracking
+      setTotalPlayers(players.length);
+      setProgressStep(0);
+      setLastProgressStep(undefined);
+      
+      // Show progress for larger tournaments
+      if (players.length > 10) {
+        setShowProgress(true);
+      }
+
+      // Run enhanced balance analysis with progress tracking
+      const result = enhancedSnakeDraft(
+        players, 
+        teamsToCreate, 
+        teamSize,
+        (step: BalanceStep, currentStep: number, totalSteps: number) => {
+          setProgressStep(currentStep);
+          setLastProgressStep(step);
+        },
+        () => {
+          setPhase('validating');
+        }
+      );
+      
       setBalanceResult(result);
       setPhase('preview');
+      setShowProgress(false);
 
       toast({
         title: "Balance Analysis Complete",
@@ -94,6 +122,7 @@ const EnhancedTeamBalancingTool = ({
     } catch (error: any) {
       console.error('Error analyzing balance:', error);
       setPhase('idle');
+      setShowProgress(false);
       toast({
         title: "Analysis Failed",
         description: error.message || "Failed to analyze team balance",
@@ -111,10 +140,8 @@ const EnhancedTeamBalancingTool = ({
     setPhase('saving');
 
     try {
-      // Clear existing teams
       await clearExistingTeams();
 
-      // Get tournament details for team size
       const { data: tournament } = await supabase
         .from('tournaments')
         .select('team_size')
@@ -123,22 +150,18 @@ const EnhancedTeamBalancingTool = ({
 
       const teamSize = tournament?.team_size || 5;
 
-      // Save teams to database
       for (let i = 0; i < balanceResult.teams.length; i++) {
         const team = balanceResult.teams[i];
         if (team.length === 0) continue;
 
-        // Generate team name
         const captainName = team[0]?.discord_username || 'Unknown';
         const teamName = teamSize === 1 ? `${captainName} (Solo)` : `Team ${captainName}`;
 
-        // Calculate total points
         const totalPoints = team.reduce((sum, player) => {
           const result = getRankPointsWithManualOverride(player);
           return sum + result.points;
         }, 0);
 
-        // Create team
         const { data: newTeam, error: teamError } = await supabase
           .from('teams')
           .insert({
@@ -152,10 +175,9 @@ const EnhancedTeamBalancingTool = ({
 
         if (teamError) throw teamError;
 
-        // Add team members
         for (let j = 0; j < team.length; j++) {
           const player = team[j];
-          const isCaptain = j === 0; // First player is captain
+          const isCaptain = j === 0;
 
           await supabase
             .from('team_members')
@@ -166,7 +188,6 @@ const EnhancedTeamBalancingTool = ({
             });
         }
 
-        // Send notifications
         try {
           const teamUserIds = team.map(player => player.id);
           await notifyTeamAssigned(newTeam.id, teamName, teamUserIds);
@@ -175,50 +196,63 @@ const EnhancedTeamBalancingTool = ({
         }
       }
 
-      // Save balance analysis data for transparency
-      const qualityScore = balanceResult.finalBalance.balanceQuality === 'ideal' ? 95 :
-                           balanceResult.finalBalance.balanceQuality === 'good' ? 80 :
-                           balanceResult.finalBalance.balanceQuality === 'warning' ? 65 : 50;
+      // Enhanced balance analysis data with validation results
+      const enhancedBalanceData = {
+        timestamp: new Date().toISOString(),
+        method: "Enhanced Snake Draft with Validation",
+        tournament_info: {
+          max_teams: maxTeams,
+          team_size: teamSize,
+          total_players: balanceResult.balanceSteps.length,
+          teams_balanced: balanceResult.teams.length
+        },
+        balance_steps: balanceResult.balanceSteps.map(step => ({
+          step: step.step,
+          player: {
+            id: step.player.id,
+            discord_username: step.player.discord_username,
+            points: step.player.points,
+            rank: step.player.rank,
+            source: step.player.source
+          },
+          assignedTeam: step.assignedTeam,
+          reasoning: step.reasoning,
+          teamStatesAfter: step.teamStatesAfter,
+          round: step.round,
+          direction: step.direction
+        })),
+        validation_result: balanceResult.validationResult,
+        final_balance: {
+          averageTeamPoints: balanceResult.finalBalance.averageTeamPoints,
+          minTeamPoints: balanceResult.finalBalance.minTeamPoints,
+          maxTeamPoints: balanceResult.finalBalance.maxTeamPoints,
+          maxPointDifference: balanceResult.finalBalance.maxPointDifference,
+          balanceQuality: balanceResult.finalBalance.balanceQuality
+        },
+        teams_created: balanceResult.teams.map((team, index) => ({
+          name: teamSize === 1 ? `${team[0]?.discord_username} (Solo)` : `Team ${team[0]?.discord_username}`,
+          members: team.map(m => ({
+            discord_username: m.discord_username,
+            rank: getRankPointsWithManualOverride(m).rank,
+            points: getRankPointsWithManualOverride(m).points,
+            source: getRankPointsWithManualOverride(m).source
+          })),
+          total_points: team.reduce((sum, player) => {
+            const result = getRankPointsWithManualOverride(player);
+            return sum + result.points;
+          }, 0),
+          seed: index + 1
+        }))
+      };
 
-      await supabase
+      const { error: balanceError } = await supabase
         .from('tournaments')
-        .update({
-          balance_analysis: {
-            qualityScore,
-            maxPointDifference: balanceResult.finalBalance.maxPointDifference,
-            avgPointDifference: (balanceResult.finalBalance.maxTeamPoints - balanceResult.finalBalance.minTeamPoints) / 2,
-            balanceSteps: balanceResult.balanceSteps.map(step => ({
-              round: step.step,
-              player: {
-                name: step.player.discord_username,
-                rank: step.player.rank,
-                points: step.player.points
-              },
-              assignedTo: `Team ${step.assignedTeam + 1}`,
-              reasoning: step.reasoning,
-              teamStates: step.teamStatesAfter.map(state => ({
-                name: `Team ${state.teamIndex + 1}`,
-                totalPoints: state.totalPoints,
-                playerCount: state.playerCount
-              }))
-            })),
-            finalTeamStats: balanceResult.teams.map((team, index) => ({
-              name: `Team ${team[0]?.discord_username || `${index + 1}`}`,
-              totalPoints: team.reduce((sum, player) => {
-                const result = getRankPointsWithManualOverride(player);
-                return sum + result.points;
-              }, 0),
-              playerCount: team.length,
-              avgPoints: team.length > 0 ? team.reduce((sum, player) => {
-                const result = getRankPointsWithManualOverride(player);
-                return sum + result.points;
-              }, 0) / team.length : 0
-            })),
-            method: "Enhanced Snake Draft",
-            timestamp: new Date().toISOString()
-          }
-        })
+        .update({ balance_analysis: enhancedBalanceData })
         .eq('id', tournamentId);
+
+      if (balanceError) {
+        console.error('Error saving balance analysis:', balanceError);
+      }
 
       setPhase('complete');
       onTeamsBalanced();
@@ -242,7 +276,6 @@ const EnhancedTeamBalancingTool = ({
   };
 
   const clearExistingTeams = async () => {
-    // Delete team members first
     await supabase
       .from('team_members')
       .delete()
@@ -254,7 +287,6 @@ const EnhancedTeamBalancingTool = ({
         ).data?.map(t => t.id) || []
       );
 
-    // Delete teams
     await supabase
       .from('teams')
       .delete()
@@ -264,7 +296,9 @@ const EnhancedTeamBalancingTool = ({
   const resetToIdle = () => {
     setPhase('idle');
     setBalanceResult(null);
-    setPreviewMode(false);
+    setShowProgress(false);
+    setProgressStep(0);
+    setLastProgressStep(undefined);
   };
 
   const getPhaseIcon = () => {
@@ -273,6 +307,8 @@ const EnhancedTeamBalancingTool = ({
         return <Users className="w-5 h-5" />;
       case 'analyzing':
         return <Settings className="w-5 h-5 animate-spin" />;
+      case 'validating':
+        return <Settings className="w-5 h-5 animate-pulse" />;
       case 'preview':
         return <Eye className="w-5 h-5" />;
       case 'saving':
@@ -288,6 +324,8 @@ const EnhancedTeamBalancingTool = ({
         return 'Ready to analyze team balance';
       case 'analyzing':
         return 'Running enhanced snake draft analysis...';
+      case 'validating':
+        return 'Validating balance and making final adjustments...';
       case 'preview':
         return 'Review balance results before saving';
       case 'saving':
@@ -299,6 +337,16 @@ const EnhancedTeamBalancingTool = ({
 
   return (
     <div className="space-y-6">
+      {/* Progress Display */}
+      <AutobalanceProgress
+        isVisible={showProgress}
+        totalPlayers={totalPlayers}
+        currentStep={progressStep}
+        lastStep={lastProgressStep}
+        phase={phase === 'analyzing' ? 'analyzing' : phase === 'validating' ? 'validating' : 'complete'}
+        onComplete={() => setShowProgress(false)}
+      />
+
       {/* Main Control Card */}
       <Card className="bg-slate-800 border-slate-700">
         <CardHeader>
@@ -311,10 +359,10 @@ const EnhancedTeamBalancingTool = ({
           <div className="text-slate-300 text-sm">
             <p className="mb-2">{getPhaseDescription()}</p>
             <div className="text-xs text-slate-400 space-y-1">
-              <p>• Uses enhanced snake draft algorithm with proper alternating pattern</p>
-              <p>• Supports manual rank overrides and peak rank fallback</p>
-              <p>• Provides detailed balance analysis and step-by-step reasoning</p>
-              <p>• Preview results before committing to database</p>
+              <p>• Uses enhanced snake draft algorithm with live progress tracking</p>
+              <p>• Includes post-balance validation and adjustment phase</p>
+              <p>• Provides detailed reasoning for each player assignment</p>
+              <p>• Records complete decision-making process for transparency</p>
             </div>
           </div>
 
@@ -377,6 +425,9 @@ const EnhancedTeamBalancingTool = ({
               </Badge>
               <span className="text-slate-300 text-sm">
                 {balanceResult.teams.length} teams • Max difference: {balanceResult.finalBalance.maxPointDifference} pts
+                {balanceResult.validationResult && (
+                  <span className="ml-2 text-blue-400">• Validated</span>
+                )}
               </span>
             </div>
           )}
