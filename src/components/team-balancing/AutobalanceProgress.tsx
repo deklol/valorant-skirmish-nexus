@@ -53,7 +53,7 @@ export const AutobalanceProgress = ({
     }
   }, [currentStep, totalPlayers, phase, onComplete]);
 
-  if (!isVisible || totalPlayers <= 10) return null;
+  if (!isVisible || totalPlayers < 5) return null;
 
   const getPhaseDisplay = () => {
     switch (phase) {
