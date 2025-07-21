@@ -222,12 +222,14 @@ const generateEnhancedReasoning = (
 const performPostBalanceValidation = (
   teams: any[][],
   initialBalance: any
-): { teams: any[][], adjustments: any[] } => {
+): { teams: any[][], adjustments: { swaps: Array<{ player1: string; player2: string; fromTeam: number; toTeam: number; reason: string; }> } } => {
   // For now, return teams as-is with no adjustments
   // This can be enhanced later with actual balance adjustment logic
   return {
     teams,
-    adjustments: []
+    adjustments: {
+      swaps: []
+    }
   };
 };
 

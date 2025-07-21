@@ -197,6 +197,7 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
   const [showProgress, setShowProgress] = useState(false);
   const [progressStep, setProgressStep] = useState(0);
   const [lastProgressStep, setLastProgressStep] = useState<BalanceStep | undefined>();
+  const [currentPhase, setCurrentPhase] = useState<'analyzing' | 'validating' | 'complete'>('analyzing');
   const { toast } = useToast();
   const notifications = useEnhancedNotifications();
   const [tournamentName, setTournamentName] = useState<string>("");
@@ -562,9 +563,10 @@ variant: "destructive",
         setShowProgress(true);
         setProgressStep(0);
         setLastProgressStep(undefined);
+        setCurrentPhase('analyzing');
       }
 
-      // Use enhanced snake draft algorithm with progress tracking
+      // Use enhanced snake draft algorithm with progress tracking and validation
       const snakeDraftResult = await new Promise<any>((resolve) => {
         const result = enhancedSnakeDraft(
           unassignedPlayers, 
@@ -574,11 +576,28 @@ variant: "destructive",
             if (unassignedPlayers.length > 10) {
               setProgressStep(currentStep);
               setLastProgressStep(step);
+              setCurrentPhase('analyzing');
               // Small delay to show progress
               await new Promise(r => setTimeout(r, 150));
             }
+          },
+          () => {
+            // Validation phase callback
+            if (unassignedPlayers.length > 10) {
+              setCurrentPhase('validating');
+            }
           }
         );
+        
+        // Complete phase
+        if (unassignedPlayers.length > 10) {
+          setCurrentPhase('complete');
+          setTimeout(() => {
+            setShowProgress(false);
+            setCurrentPhase('analyzing');
+          }, 1500);
+        }
+        
         resolve(result);
       });
       
@@ -929,6 +948,7 @@ Team Balancing
               totalPlayers={unassignedPlayers.length}
               currentStep={progressStep}
               lastStep={lastProgressStep}
+              phase={currentPhase}
             />
   
             <div className="flex gap-2">

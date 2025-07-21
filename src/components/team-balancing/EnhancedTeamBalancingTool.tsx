@@ -221,7 +221,12 @@ const EnhancedTeamBalancingTool = ({
           round: step.round,
           direction: step.direction
         })),
-        validation_result: balanceResult.validationResult,
+        validation_result: balanceResult.validationResult ? {
+          originalBalance: balanceResult.validationResult.originalBalance,
+          adjustmentsMade: balanceResult.validationResult.adjustmentsMade,
+          finalBalance: balanceResult.validationResult.finalBalance,
+          validationTime: balanceResult.validationResult.validationTime
+        } : null,
         final_balance: {
           averageTeamPoints: balanceResult.finalBalance.averageTeamPoints,
           minTeamPoints: balanceResult.finalBalance.minTeamPoints,
