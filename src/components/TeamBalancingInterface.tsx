@@ -19,9 +19,9 @@ import { enhancedSnakeDraft, type EnhancedTeamResult, type BalanceStep } from "@
 import { AutobalanceProgress } from "@/components/team-balancing/AutobalanceProgress";
 
 interface TeamBalancingInterfaceProps {
-tournamentId: string;
-maxTeams: number;
-teamSize: number;
+  tournamentId: string;
+  maxTeams: number;
+  teamSize: number;
   onTeamsUpdated?: () => void;
 }
 
@@ -185,6 +185,9 @@ const DroppableUnassigned = ({ players }: { players: Player[] }) => {
     </Card>
   );
 };
+
+// Helper function to introduce a delay
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdated }: TeamBalancingInterfaceProps) => {
   const [teams, setTeams] = useState<Team[]>([]);
@@ -533,6 +536,13 @@ variant: "destructive",
   // Enhanced Autobalance Algorithm with Snake Draft and detailed analysis
   async function autobalanceUnassignedPlayers() {
     setAutobalancing(true);
+    // Show progress immediately if there are enough players to warrant it
+    if (unassignedPlayers.length > 5) {
+      setShowProgress(true);
+      setProgressStep(0);
+      setLastProgressStep(undefined);
+      setCurrentPhase('analyzing');
+    }
     
     try {
       // Get teams that have space for players
@@ -545,8 +555,7 @@ variant: "destructive",
           description: "All teams are full. Cannot autobalance.",
           variant: "destructive",
         });
-        setAutobalancing(false);
-        return;
+        return; // Return early, autobalancing will be set to false in finally block
       }
 
       if (unassignedPlayers.length === 0) {
@@ -554,16 +563,7 @@ variant: "destructive",
           title: "No Players to Assign",
           description: "All players are already assigned to teams.",
         });
-        setAutobalancing(false);
-        return;
-      }
-
-      // Show progress for tournaments with more than 5 players
-      if (unassignedPlayers.length > 5) {
-        setShowProgress(true);
-        setProgressStep(0);
-        setLastProgressStep(undefined);
-        setCurrentPhase('analyzing');
+        return; // Return early, autobalancing will be set to false in finally block
       }
 
       // Use enhanced snake draft algorithm with progress tracking and validation
@@ -578,25 +578,17 @@ variant: "destructive",
               setLastProgressStep(step);
               setCurrentPhase('analyzing');
               // Small delay to show progress
-              await new Promise(r => setTimeout(r, 150));
+              await delay(150); // Use the helper delay function
             }
           },
-          () => {
+          async () => { // Make this callback async too
             // Validation phase callback
             if (unassignedPlayers.length > 5) {
               setCurrentPhase('validating');
+              await delay(150); // Add delay for validation phase
             }
           }
         );
-        
-        // Complete phase
-        if (unassignedPlayers.length > 5) {
-          setCurrentPhase('complete');
-          setTimeout(() => {
-            setShowProgress(false);
-            setCurrentPhase('analyzing');
-          }, 1500);
-        }
         
         resolve(result);
       });
@@ -636,17 +628,17 @@ variant: "destructive",
         description: "Something went wrong during snake draft autobalance.",
         variant: "destructive",
       });
-    }
-    
-    setAutobalancing(false);
-    
-    // Hide progress after a brief delay
-    if (showProgress) {
-      setTimeout(() => {
+    } finally {
+      setAutobalancing(false);
+      // Ensure progress is hidden after a brief delay, regardless of success or failure
+      if (showProgress) {
+        setCurrentPhase('complete'); // Set to complete before hiding
+        await delay(1500); // Longer delay for "complete" phase to be visible
         setShowProgress(false);
         setProgressStep(0);
         setLastProgressStep(undefined);
-      }, 1000);
+        setCurrentPhase('analyzing'); // Reset phase for next run
+      }
     }
   }
 
