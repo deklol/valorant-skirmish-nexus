@@ -31,25 +31,37 @@ export const useNotifications = () => {
       // If specific user IDs provided, send to those users
       if (userIds.length > 0) {
         for (const userId of userIds) {
-          // Check if user has this notification type enabled
-          const { data: hasEnabled } = await supabase
-            .rpc('user_has_notification_enabled', {
-              p_user_id: userId,
-              p_notification_type: type
-            });
+          // Use enhanced notification function with push and email support
+          await supabase.rpc('create_enhanced_notification', {
+            p_user_id: userId,
+            p_type: type,
+            p_title: title,
+            p_message: message,
+            p_data: data,
+            p_tournament_id: tournamentId,
+            p_match_id: matchId,
+            p_team_id: teamId,
+            p_send_push: true,
+            p_send_email: ['tournament_created', 'match_ready', 'tournament_checkin_time'].includes(type),
+            p_email_subject: title,
+          });
+        }
 
-          if (hasEnabled) {
-            await supabase.rpc('create_notification', {
-              p_user_id: userId,
-              p_type: type,
-              p_title: title,
-              p_message: message,
-              p_data: data,
-              p_tournament_id: tournamentId,
-              p_match_id: matchId,
-              p_team_id: teamId
-            });
-          }
+        // Trigger push notifications for immediate delivery
+        try {
+          await supabase.functions.invoke('send-push-notification', {
+            body: {
+              userIds,
+              payload: {
+                title,
+                body: message,
+                data: data || {},
+                tag: type,
+              }
+            }
+          });
+        } catch (pushError) {
+          console.error('Error sending push notifications:', pushError);
         }
       }
     } catch (error) {

@@ -192,6 +192,48 @@ export type Database = {
           },
         ]
       }
+      email_notification_queue: {
+        Row: {
+          content: string
+          created_at: string | null
+          error_message: string | null
+          id: string
+          notification_type: string
+          scheduled_for: string | null
+          sent_at: string | null
+          status: string | null
+          subject: string
+          template_data: Json | null
+          user_id: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          notification_type: string
+          scheduled_for?: string | null
+          sent_at?: string | null
+          status?: string | null
+          subject: string
+          template_data?: Json | null
+          user_id?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          notification_type?: string
+          scheduled_for?: string | null
+          sent_at?: string | null
+          status?: string | null
+          subject?: string
+          template_data?: Json | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       fulfillment_orders: {
         Row: {
           completed_at: string | null
@@ -908,6 +950,33 @@ export type Database = {
           },
         ]
       }
+      push_subscriptions: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          subscription_data: Json
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          subscription_data: Json
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          subscription_data?: Json
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       rank_history: {
         Row: {
           created_at: string
@@ -1533,11 +1602,14 @@ export type Database = {
       user_notification_preferences: {
         Row: {
           created_at: string | null
+          email_enabled: boolean | null
+          email_frequency: string | null
           id: string
           match_assigned: boolean | null
           match_ready: boolean | null
           new_tournament_posted: boolean | null
           post_results: boolean | null
+          push_enabled: boolean | null
           team_assigned: boolean | null
           tournament_checkin_time: boolean | null
           tournament_signups_open: boolean | null
@@ -1546,11 +1618,14 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          email_enabled?: boolean | null
+          email_frequency?: string | null
           id?: string
           match_assigned?: boolean | null
           match_ready?: boolean | null
           new_tournament_posted?: boolean | null
           post_results?: boolean | null
+          push_enabled?: boolean | null
           team_assigned?: boolean | null
           tournament_checkin_time?: boolean | null
           tournament_signups_open?: boolean | null
@@ -1559,11 +1634,14 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          email_enabled?: boolean | null
+          email_frequency?: string | null
           id?: string
           match_assigned?: boolean | null
           match_ready?: boolean | null
           new_tournament_posted?: boolean | null
           post_results?: boolean | null
+          push_enabled?: boolean | null
           team_assigned?: boolean | null
           tournament_checkin_time?: boolean | null
           tournament_signups_open?: boolean | null
@@ -1833,6 +1911,22 @@ export type Database = {
         Args: { p_match_id: string; p_user_id: string; p_side_choice: string }
         Returns: Json
       }
+      create_enhanced_notification: {
+        Args: {
+          p_user_id: string
+          p_type: string
+          p_title: string
+          p_message: string
+          p_data?: Json
+          p_tournament_id?: string
+          p_match_id?: string
+          p_team_id?: string
+          p_send_push?: boolean
+          p_send_email?: boolean
+          p_email_subject?: string
+        }
+        Returns: string
+      }
       create_missing_user_profile: {
         Args: { user_id: string }
         Returns: boolean
@@ -2077,6 +2171,17 @@ export type Database = {
         Args: { p_tournament_id: string; p_substitute_user_id: string }
         Returns: Json
       }
+      queue_email_notification: {
+        Args: {
+          p_user_id: string
+          p_notification_type: string
+          p_subject: string
+          p_content: string
+          p_template_data?: Json
+          p_scheduled_for?: string
+        }
+        Returns: string
+      }
       record_tournament_metric: {
         Args: {
           p_tournament_id: string
@@ -2109,6 +2214,16 @@ export type Database = {
       safe_delete_tournament: {
         Args: { p_tournament_id: string }
         Returns: Json
+      }
+      send_push_notification: {
+        Args: {
+          p_user_id: string
+          p_title: string
+          p_body: string
+          p_data?: Json
+          p_icon?: string
+        }
+        Returns: undefined
       }
       set_manual_winner: {
         Args: {
