@@ -30,6 +30,7 @@ import TeamProfile from "./components/TeamProfile";
 import Statistics from "./pages/Statistics";
 import Help from "./pages/Help";
 import Shop from "./pages/Shop";
+import NotificationSettings from "./pages/NotificationSettings";
 import { AppSettingsProvider } from "./contexts/AppSettingsContext";
 
 const queryClient = new QueryClient();
@@ -78,6 +79,7 @@ const AppContent = () => {
                     <Route path="/statistics" element={<Statistics />} />
                     <Route path="/shop" element={<Shop />} />
                     <Route path="/help" element={<Help />} />
+                    <Route path="/settings/notifications" element={<NotificationSettings />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </main>
