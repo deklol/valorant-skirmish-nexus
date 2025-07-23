@@ -633,6 +633,20 @@ function ItemForm({ formData, setFormData, onSubmit, onCancel }: ItemFormProps) 
         />
       </div>
 
+      <div>
+        <Label htmlFor="imageUrl">Image URL (optional)</Label>
+        <Input
+          id="imageUrl"
+          type="url"
+          placeholder="https://example.com/image.jpg"
+          value={formData.item_data?.image_url || ""}
+          onChange={(e) => setFormData({ 
+            ...formData, 
+            item_data: { ...formData.item_data, image_url: e.target.value || undefined }
+          })}
+        />
+      </div>
+
       <div className="flex space-x-2 pt-4">
         <Button onClick={onSubmit} className="flex-1">
           Save

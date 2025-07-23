@@ -56,9 +56,6 @@ const TournamentDetail = () => {
           onRefresh={handleRefresh}
         />
       </div>
-      
-      {/* Sponsors Section */}
-      <SponsorDisplay />
     </div>
   );
 };

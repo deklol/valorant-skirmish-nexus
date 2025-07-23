@@ -138,6 +138,20 @@ export function ShopItemCard({ item, canAfford, onPurchase, isPurchasing, disabl
 
   return (
     <div className="group relative overflow-hidden rounded-lg border bg-card p-6 shadow-sm transition-all hover:shadow-md">
+      {/* Item Image */}
+      {item.item_data?.image_url && (
+        <div className="mb-4 overflow-hidden rounded-lg">
+          <img 
+            src={item.item_data.image_url} 
+            alt={item.name}
+            className="w-full h-48 object-cover transition-transform group-hover:scale-105"
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
+          />
+        </div>
+      )}
+
       <div className="mb-4 flex items-start justify-between">
         <div className="flex items-center gap-3">
           <div 

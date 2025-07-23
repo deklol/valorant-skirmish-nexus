@@ -261,9 +261,6 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Sponsors Section */}
-      <SponsorDisplay />
-
     </div>
   );
 };

@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import SponsorDisplay from "@/components/SponsorDisplay";
 import { 
   Code, 
   Database, 
@@ -75,6 +76,9 @@ const Footer = () => {
 
   return (
     <>
+      {/* Sponsors Section */}
+      <SponsorDisplay />
+      
       <footer className="bg-slate-900/50 border-t border-slate-700 py-8 mt-16">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
