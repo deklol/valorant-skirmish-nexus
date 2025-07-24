@@ -76,7 +76,8 @@ const UserPlayerManagement = () => {
     bio: '',
     twitter_handle: '',
     twitch_handle: '',
-    profile_visibility: 'public'
+    profile_visibility: 'public',
+    peak_rank: '' as string
   });
   const [manualOverrideForm, setManualOverrideForm] = useState({
     manual_rank_override: null as string | null,
@@ -201,7 +202,8 @@ const UserPlayerManagement = () => {
       bio: user.bio || '',
       twitter_handle: user.twitter_handle || '',
       twitch_handle: user.twitch_handle || '',
-      profile_visibility: user.profile_visibility || 'public'
+      profile_visibility: user.profile_visibility || 'public',
+      peak_rank: user.peak_rank || ''
     });
     setManualOverrideForm({
       manual_rank_override: user.manual_rank_override,
@@ -225,6 +227,7 @@ const UserPlayerManagement = () => {
           twitter_handle: editForm.twitter_handle || null,
           twitch_handle: editForm.twitch_handle || null,
           profile_visibility: editForm.profile_visibility,
+          peak_rank: editForm.peak_rank || null,
           manual_rank_override: manualOverrideForm.manual_rank_override,
           manual_weight_override: manualOverrideForm.manual_weight_override,
           use_manual_override: manualOverrideForm.use_manual_override,
@@ -800,6 +803,22 @@ const UserPlayerManagement = () => {
                     <SelectItem value="private">Private</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-white">Peak Rank</Label>
+                <Select value={editForm.peak_rank} onValueChange={(value) => setEditForm(prev => ({ ...prev, peak_rank: value }))}>
+                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                    <SelectValue placeholder="Select peak rank" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-700 border-slate-600">
+                    <SelectItem value="">No Peak Rank</SelectItem>
+                    {getRankDisplays().map((rank) => (
+                      <SelectItem key={rank} value={rank}>{rank}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-slate-400">Manually set the user's peak rank achieved.</p>
               </div>
             </div>
 

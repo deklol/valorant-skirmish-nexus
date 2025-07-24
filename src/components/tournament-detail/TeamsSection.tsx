@@ -1,8 +1,11 @@
 
 import { Crown, Users } from "lucide-react";
+import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import ClickableUsername from "@/components/ClickableUsername";
 import TournamentBalanceTransparency from "./TournamentBalanceTransparency";
+import TournamentSignupsDisplay from "./TournamentSignupsDisplay";
+import { supabase } from "@/integrations/supabase/client";
 import type { Team } from "@/types/tournamentDetail";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -12,8 +15,51 @@ interface TeamsSectionProps {
 }
 
 export default function TeamsSection({ teams, tournament }: TeamsSectionProps) {
+  const [signups, setSignups] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
   // Sorted alphabetically
   const sortedTeams = [...teams].sort((a, b) => a.name.localeCompare(b.name));
+
+  useEffect(() => {
+    if (tournament?.id && sortedTeams.length === 0) {
+      fetchSignups();
+    } else {
+      setLoading(false);
+    }
+  }, [tournament?.id, sortedTeams.length]);
+
+  const fetchSignups = async () => {
+    if (!tournament?.id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('tournament_signups')
+        .select(`
+          *,
+          users (
+            id,
+            discord_username,
+            current_rank,
+            rank_points,
+            weight_rating,
+            discord_avatar_url,
+            riot_id
+          )
+        `)
+        .eq('tournament_id', tournament.id)
+        .order('priority', { ascending: false })
+        .order('signed_up_at', { ascending: true });
+
+      if (error) throw error;
+      setSignups(data || []);
+    } catch (error) {
+      console.error('Error fetching signups:', error);
+      setSignups([]);
+    } finally {
+      setLoading(false);
+    }
+  };
   return (
     <div className="space-y-6 mb-6">
       <div className="bg-slate-800/90 border border-slate-700 rounded-xl">
@@ -23,7 +69,14 @@ export default function TeamsSection({ teams, tournament }: TeamsSectionProps) {
             Teams &amp; Participants
           </div>
           {sortedTeams.length === 0 ? (
-            <div className="text-slate-400">No teams have been formed yet.</div>
+            loading ? (
+              <div className="text-slate-400">Loading participants...</div>
+            ) : (
+              <TournamentSignupsDisplay 
+                signups={signups} 
+                maxPlayers={tournament?.max_players || 0} 
+              />
+            )
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {sortedTeams.map((team) => (
