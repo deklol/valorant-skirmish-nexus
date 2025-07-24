@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -731,6 +731,9 @@ const UserPlayerManagement = () => {
         <DialogContent className="bg-slate-800 border-slate-700 max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-white">Edit User Profile</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Update user information, roles, and peak rank. Changes will be saved to the database.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-6">
             <div className="space-y-4">
@@ -807,12 +810,12 @@ const UserPlayerManagement = () => {
 
               <div className="space-y-2">
                 <Label className="text-white">Peak Rank</Label>
-                <Select value={editForm.peak_rank} onValueChange={(value) => setEditForm(prev => ({ ...prev, peak_rank: value }))}>
+                <Select value={editForm.peak_rank || "none"} onValueChange={(value) => setEditForm(prev => ({ ...prev, peak_rank: value === "none" ? "" : value }))}>
                   <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                     <SelectValue placeholder="Select peak rank" />
                   </SelectTrigger>
                   <SelectContent className="bg-slate-700 border-slate-600">
-                    <SelectItem value="">No Peak Rank</SelectItem>
+                    <SelectItem value="none">No Peak Rank</SelectItem>
                     {getRankDisplays().map((rank) => (
                       <SelectItem key={rank} value={rank}>{rank}</SelectItem>
                     ))}
