@@ -79,7 +79,7 @@ const TeamsDirectory = () => {
   const filteredTeams = teams.filter(team =>
     team.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     team.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    team.members.some(member => 
+    team.members.some(member =>
       member.users.discord_username.toLowerCase().includes(searchTerm.toLowerCase())
     )
   );
@@ -128,9 +128,9 @@ const TeamsDirectory = () => {
         />
       </div>
 
-       <div className="relative">
+        <div className="relative">
 This feature is for later where we'll be positioned to host actual team tournaments.
-      </div>
+        </div>
 
       {filteredTeams.length === 0 ? (
         <Card className="bg-slate-800/90 border-slate-700">
@@ -140,14 +140,15 @@ This feature is for later where we'll be positioned to host actual team tourname
               {searchTerm ? "No teams found" : "No teams available"}
             </h3>
             <p className="text-slate-400 mb-4">
-              {searchTerm 
+              {searchTerm
                 ? "Try adjusting your search terms"
                 : "Be the first to create a team!"
               }
             </p>
             {!searchTerm && (
               <Link to="/teams">
-                <Button>Create a Team</Button>
+                {/* The "Create a Team" button is now disabled */}
+                <Button disabled>Create a Team</Button>
               </Link>
             )}
           </CardContent>
@@ -156,7 +157,7 @@ This feature is for later where we'll be positioned to host actual team tourname
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredTeams.map((team) => {
             const captain = team.members.find(m => m.is_captain);
-            
+
             return (
               <Card key={team.id} className="bg-slate-800/90 border-slate-700 hover:border-slate-600 transition-all duration-200 animate-fade-in hover-scale">
                 <CardHeader>
