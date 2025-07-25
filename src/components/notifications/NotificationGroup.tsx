@@ -34,7 +34,21 @@ const NotificationGroup = ({
   onMarkRead,
   onMarkAllRead 
 }: NotificationGroupProps) => {
-  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  // Create a unique key for localStorage based on the title
+  const storageKey = `notification_group_${title.toLowerCase().replace(/\s+/g, '_')}_collapsed`;
+  
+  // Initialize state from localStorage, defaulting to defaultExpanded if no stored value
+  const [isExpanded, setIsExpanded] = useState(() => {
+    const stored = localStorage.getItem(storageKey);
+    return stored !== null ? stored === 'false' : defaultExpanded;
+  });
+
+  // Save expansion state to localStorage whenever it changes
+  const toggleExpanded = () => {
+    const newState = !isExpanded;
+    setIsExpanded(newState);
+    localStorage.setItem(storageKey, String(newState));
+  };
 
   if (notifications.length === 0) return null;
 
@@ -52,7 +66,7 @@ const NotificationGroup = ({
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setIsExpanded(!isExpanded)}
+            onClick={toggleExpanded}
             className="h-auto p-0 text-left hover:bg-transparent"
           >
             <div className="flex items-center gap-2">

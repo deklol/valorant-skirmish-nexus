@@ -155,20 +155,37 @@ const EnhancedNotificationCenter = () => {
     if (!user) return;
 
     try {
-      const { error } = await supabase
+      // First get all read notification IDs
+      const { data: readNotifications, error: fetchError } = await supabase
         .from('notifications')
-        .delete()
+        .select('id')
         .eq('user_id', user.id)
         .eq('read', true);
 
-      if (error) throw error;
+      if (fetchError) throw fetchError;
 
-      setNotifications(prev => prev.filter(n => !n.read));
-      
-      toast({
-        title: "Success",
-        description: "All read notifications cleared",
-      });
+      if (readNotifications && readNotifications.length > 0) {
+        const { error } = await supabase
+          .from('notifications')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('read', true);
+
+        if (error) throw error;
+
+        // Update local state immediately
+        setNotifications(prev => prev.filter(n => !n.read));
+        
+        toast({
+          title: "Success",
+          description: `${readNotifications.length} read notifications cleared`,
+        });
+      } else {
+        toast({
+          title: "Info",
+          description: "No read notifications to clear",
+        });
+      }
     } catch (error) {
       console.error('Error clearing notifications:', error);
       toast({
@@ -182,17 +199,17 @@ const EnhancedNotificationCenter = () => {
   const groupNotifications = () => {
     const groups = {
       tournaments: notifications.filter(n => 
-        ['new_tournament_posted', 'tournament_signups_open', 'tournament_checkin_time', 'tournament_complete'].includes(n.type)
+        ['new_tournament_posted', 'tournament_signups_open', 'tournament_checkin_time', 'tournament_complete', 'tournament_started'].includes(n.type)
       ),
       matches: notifications.filter(n => 
-        ['match_ready', 'match_assigned', 'match_complete', 'post_results'].includes(n.type)
+        ['match_ready', 'match_assigned', 'match_complete', 'post_results', 'match_started', 'map_veto_ready'].includes(n.type)
       ),
       teams: notifications.filter(n => 
         ['team_assigned'].includes(n.type)
       ),
       other: notifications.filter(n => 
-        !['new_tournament_posted', 'tournament_signups_open', 'tournament_checkin_time', 'tournament_complete', 
-          'match_ready', 'match_assigned', 'match_complete', 'post_results', 'team_assigned'].includes(n.type)
+        !['new_tournament_posted', 'tournament_signups_open', 'tournament_checkin_time', 'tournament_complete', 'tournament_started',
+          'match_ready', 'match_assigned', 'match_complete', 'post_results', 'match_started', 'map_veto_ready', 'team_assigned'].includes(n.type)
       )
     };
 

@@ -251,6 +251,91 @@ export const useEnhancedNotifications = () => {
     }
   };
 
+  // Additional notification triggers for missing events
+  const notifyTournamentStart = async (tournamentId: string) => {
+    try {
+      const { data: signups } = await supabase
+        .from('tournament_signups')
+        .select('user_id')
+        .eq('tournament_id', tournamentId);
+
+      const { data: tournament } = await supabase
+        .from('tournaments')
+        .select('name')
+        .eq('id', tournamentId)
+        .single();
+
+      if (signups && tournament) {
+        await sendNotification({
+          type: 'tournament_started',
+          title: 'Tournament Started!',
+          message: `${tournament.name} has begun! Check your matches and be ready to play.`,
+          tournamentId,
+          userIds: signups.map(s => s.user_id)
+        });
+      }
+    } catch (error) {
+      console.error('Error notifying tournament start:', error);
+    }
+  };
+
+  const notifyMatchStart = async (matchId: string, team1Id: string, team2Id: string) => {
+    try {
+      const { data: allMembers } = await supabase
+        .from('team_members')
+        .select('user_id, team_id, team:teams!inner(name)')
+        .in('team_id', [team1Id, team2Id]);
+
+      const team1Name = allMembers?.find(m => m.team_id === team1Id)?.team?.name || 'Team 1';
+      const team2Name = allMembers?.find(m => m.team_id === team2Id)?.team?.name || 'Team 2';
+
+      for (const member of allMembers || []) {
+        await createNotification(
+          member.user_id,
+          'match_started',
+          'Match Started!',
+          `Your match has started: ${team1Name} vs ${team2Name}`,
+          { matchId, team1Id, team2Id },
+          undefined,
+          matchId,
+          member.team_id
+        );
+      }
+    } catch (error) {
+      console.error('Error notifying match start:', error);
+    }
+  };
+
+  const notifyCheckInReminder = async (tournamentId: string) => {
+    try {
+      const { data: signups } = await supabase
+        .from('tournament_signups')
+        .select('user_id')
+        .eq('tournament_id', tournamentId)
+        .eq('is_checked_in', false);
+
+      const { data: tournament } = await supabase
+        .from('tournaments')
+        .select('name, check_in_ends_at')
+        .eq('id', tournamentId)
+        .single();
+
+      if (signups && tournament) {
+        const checkInTime = new Date(tournament.check_in_ends_at || '').toLocaleTimeString();
+        
+        await sendNotification({
+          type: 'tournament_checkin_time',
+          title: 'Check-In Required!',
+          message: `Don't forget to check in for ${tournament.name}! Check-in ends at ${checkInTime}.`,
+          tournamentId,
+          userIds: signups.map(s => s.user_id)
+        });
+      }
+    } catch (error) {
+      console.error('Error notifying check-in reminder:', error);
+    }
+  };
+
   return {
     createNotification,
     sendNotification,
@@ -259,6 +344,9 @@ export const useEnhancedNotifications = () => {
     notifyTournamentWinner,
     notifyMapVetoReady,
     notifyTeamAssigned,
-    notifyTournamentCreated
+    notifyTournamentCreated,
+    notifyTournamentStart,
+    notifyMatchStart,
+    notifyCheckInReminder
   };
 };
