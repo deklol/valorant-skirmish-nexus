@@ -23,11 +23,17 @@ const Header = () => {
   };
 
   return (
-    <header className="bg-slate-900 border-b border-slate-700 sticky top-0 z-40">
+    <header className="bg-slate-900/95 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-50">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          {/* Empty left side for sidebar */}
-          <div></div>
+          {/* Mobile Logo and Title */}
+          <div className="md:hidden flex items-center space-x-2">
+            <Trophy className="h-6 w-6 text-red-500" />
+            <span className="font-bold text-white text-lg">{appName || "TLR Hub"}</span>
+          </div>
+          
+          {/* Desktop: Empty left side for sidebar */}
+          <div className="hidden md:block"></div>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6">
@@ -139,14 +145,24 @@ const Header = () => {
         </div>
       </div>
 
-      {/* Mobile Navigation */}
+      {/* Mobile Navigation Overlay */}
       {mobileMenuOpen && (
-        <MobileNav 
-          user={user} 
-          isAdmin={isAdmin}
-          onSignOut={handleSignOut}
-          onClose={() => setMobileMenuOpen(false)}
-        />
+        <>
+          {/* Backdrop */}
+          <div 
+            className="md:hidden fixed inset-0 bg-black/50 z-40" 
+            onClick={() => setMobileMenuOpen(false)}
+          />
+          {/* Mobile Nav */}
+          <div className="md:hidden fixed top-16 left-0 right-0 z-50">
+            <MobileNav 
+              user={user} 
+              isAdmin={isAdmin}
+              onSignOut={handleSignOut}
+              onClose={() => setMobileMenuOpen(false)}
+            />
+          </div>
+        </>
       )}
     </header>
   );

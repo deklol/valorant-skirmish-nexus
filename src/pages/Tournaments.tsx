@@ -113,12 +113,12 @@ const Tournaments = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
         {/* Page Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 sm:mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">Tournaments</h1>
-            <p className="text-slate-400">Browse and join upcoming Valorant tournaments</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Tournaments</h1>
+            <p className="text-slate-400 text-sm sm:text-base">Browse and join upcoming Valorant tournaments</p>
           </div>
           
           {isAdmin && (
@@ -127,7 +127,8 @@ const Tournaments = () => {
                 console.log('Create Tournament button clicked');
                 setCreateDialogOpen(true);
               }}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="bg-red-600 hover:bg-red-700 text-white w-full sm:w-auto"
+              size="sm"
             >
               <Plus className="w-4 h-4 mr-2" />
               Create Tournament
@@ -136,15 +137,15 @@ const Tournaments = () => {
         </div>
 
         {/* Filters */}
-        <Card className="bg-slate-800 border-slate-700 mb-8">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
-              <Filter className="w-5 h-5" />
+        <Card className="bg-slate-800/90 backdrop-blur-sm border-slate-700 mb-6 sm:mb-8">
+          <CardHeader className="pb-3 sm:pb-6">
+            <CardTitle className="text-white flex items-center gap-2 text-lg sm:text-xl">
+              <Filter className="w-4 h-4 sm:w-5 sm:h-5" />
               Filters
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <CardContent className="pt-0">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                 <Input
@@ -184,17 +185,17 @@ const Tournaments = () => {
         </Card>
 
         {/* Tournament Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {filteredTournaments.map((tournament) => (
             <TournamentCard key={tournament.id} tournament={tournament} />
           ))}
         </div>
 
         {filteredTournaments.length === 0 && (
-          <Card className="bg-slate-800 border-slate-700">
-            <CardContent className="text-center py-12">
-              <p className="text-slate-400 text-lg">No tournaments found matching your criteria.</p>
-              <p className="text-slate-500 mt-2">Try adjusting your filters or check back later for new tournaments.</p>
+          <Card className="bg-slate-800/90 backdrop-blur-sm border-slate-700">
+            <CardContent className="text-center py-8 sm:py-12">
+              <p className="text-slate-400 text-base sm:text-lg">No tournaments found matching your criteria.</p>
+              <p className="text-slate-500 mt-2 text-sm sm:text-base">Try adjusting your filters or check back later for new tournaments.</p>
             </CardContent>
           </Card>
         )}
