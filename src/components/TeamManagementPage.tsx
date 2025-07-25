@@ -173,7 +173,7 @@ const TeamManagementPage = () => {
             <CardContent>
               <Dialog open={createTeamDialog} onOpenChange={setCreateTeamDialog}>
                 <DialogTrigger asChild>
-                  <Button className="w-full">Create New Team</Button>
+                  <Button className="w-full" disabled>Create New Team</Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
