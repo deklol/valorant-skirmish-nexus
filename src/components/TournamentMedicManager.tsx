@@ -7,7 +7,6 @@ import { Wrench, RefreshCw, Edit, ShieldAlert, Trophy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import TournamentMedicEditModal from "./TournamentMedicEditModal";
-import TournamentMedicMissingFeatures from "./tournament-medic/TournamentMedicMissingFeatures";
 import { Tournament } from "@/types/tournament";
 
 // Remove local Tournament type, use the imported one
@@ -119,7 +118,6 @@ export default function TournamentMedicManager() {
 
   return (
     <div className="space-y-6">
-      <TournamentMedicMissingFeatures />
       
       <Card className="bg-slate-800 border-slate-700">
         <CardHeader>

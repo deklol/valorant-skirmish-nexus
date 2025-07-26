@@ -100,12 +100,16 @@ const Players = () => {
                           alt={`${player.discord_username}'s avatar`}
                           className="w-full h-full object-cover"
                           onError={(e) => {
-                            // Fallback to letter avatar if image fails to load
+                            // Fallback to letter avatar if image fails to load - XSS safe
                             const target = e.target as HTMLImageElement;
                             target.style.display = 'none';
                             const parent = target.parentElement;
                             if (parent) {
-                              parent.innerHTML = `<span class="text-lg font-bold text-slate-300">${player.discord_username?.charAt(0).toUpperCase() || 'U'}</span>`;
+                              // Create element safely to prevent XSS
+                              const span = document.createElement('span');
+                              span.className = 'text-lg font-bold text-slate-300';
+                              span.textContent = player.discord_username?.charAt(0).toUpperCase() || 'U';
+                              parent.appendChild(span);
                             }
                           }}
                         />
