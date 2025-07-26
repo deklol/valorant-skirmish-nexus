@@ -198,7 +198,7 @@ export const triggerTeamAssignmentNotifications = async (tournamentId: string) =
   }
 };
 
-// Tournament Registration Open Notifications
+// Tournament Registration Open Notifications - Enhanced to notify ALL users
 export const triggerTournamentRegistrationOpenNotifications = async (tournamentId: string) => {
   console.log('Triggering tournament registration open notifications for:', tournamentId);
   
@@ -211,24 +211,24 @@ export const triggerTournamentRegistrationOpenNotifications = async (tournamentI
 
     if (!tournament) return;
 
-    // Get users who want to be notified about new tournaments
+    // Get ALL users by default (tournament is open to everyone)
     const { data: users } = await supabase
-      .from('user_notification_preferences')
-      .select('user_id')
-      .eq('tournament_signups_open', true);
+      .from('users')
+      .select('id')
+      .eq('is_banned', false);
 
     if (!users) return;
 
     const startTime = new Date(tournament.start_time || '').toLocaleString();
 
-    // Send notifications to all interested users
+    // Send notifications to all users
     for (const user of users) {
       await supabase
         .from('notifications')
         .insert({
-          user_id: user.user_id,
+          user_id: user.id,
           type: 'tournament_signups_open',
-          title: 'Tournament Registration Open!',
+          title: 'New Tournament Available!',
           message: `Registration is now open for ${tournament.name}! Tournament starts ${startTime}.`,
           data: { tournamentId, startTime },
           tournament_id: tournamentId
@@ -241,11 +241,41 @@ export const triggerTournamentRegistrationOpenNotifications = async (tournamentI
   }
 };
 
+// Achievement Earned Notifications
+export const triggerAchievementEarnedNotifications = async (userId: string, achievementId: string) => {
+  console.log('Triggering achievement earned notification for:', userId, achievementId);
+  
+  try {
+    const { data: achievement } = await supabase
+      .from('achievements')
+      .select('name, description, points')
+      .eq('id', achievementId)
+      .single();
+
+    if (!achievement) return;
+
+    await supabase
+      .from('notifications')
+      .insert({
+        user_id: userId,
+        type: 'achievement_earned',
+        title: 'Achievement Unlocked!',
+        message: `You earned "${achievement.name}" - ${achievement.description}. +${achievement.points} points!`,
+        data: { achievementId, achievementName: achievement.name, points: achievement.points }
+      });
+
+    console.log(`Sent achievement notification to user ${userId}`);
+  } catch (error) {
+    console.error('Error triggering achievement notification:', error);
+  }
+};
+
 // Export all trigger functions
 export const notificationTriggers = {
   triggerTournamentStartNotifications,
   triggerMatchStartNotifications,
   triggerCheckInReminderNotifications,
   triggerTeamAssignmentNotifications,
-  triggerTournamentRegistrationOpenNotifications
+  triggerTournamentRegistrationOpenNotifications,
+  triggerAchievementEarnedNotifications
 };

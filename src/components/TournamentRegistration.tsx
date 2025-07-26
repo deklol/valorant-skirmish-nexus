@@ -36,9 +36,10 @@ const TournamentRegistration = ({ tournamentId, tournament, onRegistrationChange
   const { toast } = useToast();
 
   useEffect(() => {
+    // Always fetch registration count for public display, check status only if logged in
+    fetchRegistrationCount();
     if (user) {
       checkRegistrationStatus();
-      fetchRegistrationCount();
     }
   }, [user, tournamentId]);
 
