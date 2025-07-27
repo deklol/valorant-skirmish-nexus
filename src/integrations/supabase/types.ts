@@ -1239,6 +1239,78 @@ export type Database = {
           },
         ]
       }
+      tournament_adaptive_weights: {
+        Row: {
+          adaptive_factor: number
+          calculated_adaptive_weight: number
+          calculation_reasoning: string | null
+          created_at: string | null
+          current_rank: string | null
+          current_rank_points: number
+          id: string
+          manual_override_applied: boolean | null
+          peak_rank: string | null
+          peak_rank_points: number
+          rank_decay_factor: number | null
+          time_since_peak_days: number | null
+          tournament_id: string
+          updated_at: string | null
+          user_id: string
+          weight_source: string
+        }
+        Insert: {
+          adaptive_factor?: number
+          calculated_adaptive_weight?: number
+          calculation_reasoning?: string | null
+          created_at?: string | null
+          current_rank?: string | null
+          current_rank_points?: number
+          id?: string
+          manual_override_applied?: boolean | null
+          peak_rank?: string | null
+          peak_rank_points?: number
+          rank_decay_factor?: number | null
+          time_since_peak_days?: number | null
+          tournament_id: string
+          updated_at?: string | null
+          user_id: string
+          weight_source?: string
+        }
+        Update: {
+          adaptive_factor?: number
+          calculated_adaptive_weight?: number
+          calculation_reasoning?: string | null
+          created_at?: string | null
+          current_rank?: string | null
+          current_rank_points?: number
+          id?: string
+          manual_override_applied?: boolean | null
+          peak_rank?: string | null
+          peak_rank_points?: number
+          rank_decay_factor?: number | null
+          time_since_peak_days?: number | null
+          tournament_id?: string
+          updated_at?: string | null
+          user_id?: string
+          weight_source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_adaptive_weights_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_adaptive_weights_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tournament_analytics: {
         Row: {
           created_at: string | null
@@ -1386,6 +1458,7 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           description: string | null
+          enable_adaptive_weights: boolean | null
           enable_map_veto: boolean | null
           final_match_format: Database["public"]["Enums"]["match_format"] | null
           id: string
@@ -1418,6 +1491,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           description?: string | null
+          enable_adaptive_weights?: boolean | null
           enable_map_veto?: boolean | null
           final_match_format?:
             | Database["public"]["Enums"]["match_format"]
@@ -1452,6 +1526,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           description?: string | null
+          enable_adaptive_weights?: boolean | null
           enable_map_veto?: boolean | null
           final_match_format?:
             | Database["public"]["Enums"]["match_format"]

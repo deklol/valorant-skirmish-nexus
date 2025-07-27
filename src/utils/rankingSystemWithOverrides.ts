@@ -4,7 +4,7 @@ import { RANK_POINT_MAPPING } from "./rankingSystem";
 
 export interface EnhancedRankPointsResult {
   points: number;
-  source: 'manual_override' | 'current_rank' | 'peak_rank' | 'default';
+  source: 'manual_override' | 'adaptive_weight' | 'current_rank' | 'peak_rank' | 'default';
   rank: string;
   overrideReason?: string;
   overrideSetBy?: string;
@@ -97,6 +97,8 @@ export const getDisplayRankWithSource = (result: EnhancedRankPointsResult): stri
   switch (result.source) {
     case 'manual_override':
       return `${result.rank} (Manual Override)`;
+    case 'adaptive_weight':
+      return `${result.rank} (Adaptive Weight)`;
     case 'current_rank':
       return result.rank;
     case 'peak_rank':

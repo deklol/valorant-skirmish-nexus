@@ -1,5 +1,6 @@
-// Enhanced Snake Draft Algorithm with proper alternating pattern
+// Enhanced Snake Draft Algorithm with adaptive weights and proper alternating pattern
 import { getRankPointsWithManualOverride } from "@/utils/rankingSystemWithOverrides";
+import { calculateAdaptiveWeight, EnhancedAdaptiveResult, AdaptiveWeightConfig } from "@/utils/adaptiveWeightSystem";
 
 export interface BalanceStep {
   step: number;
@@ -9,6 +10,9 @@ export interface BalanceStep {
     points: number;
     rank: string;
     source: string;
+    adaptiveWeight?: number;
+    weightSource?: string;
+    adaptiveReasoning?: string;
   };
   assignedTeam: number;
   reasoning: string;
@@ -46,6 +50,10 @@ export interface EnhancedTeamResult {
   teams: any[][];
   balanceSteps: BalanceStep[];
   validationResult?: ValidationResult;
+  adaptiveWeightCalculations?: Array<{
+    userId: string;
+    calculation: any;
+  }>;
   finalBalance: {
     averageTeamPoints: number;
     minTeamPoints: number;
@@ -56,20 +64,67 @@ export interface EnhancedTeamResult {
 }
 
 /**
- * Enhanced snake draft algorithm with detailed progress tracking and post-balance validation
+ * Enhanced snake draft algorithm with adaptive weights, detailed progress tracking and post-balance validation
  */
 export const enhancedSnakeDraft = (
   players: any[], 
   numTeams: number, 
   teamSize: number,
   onProgress?: (step: BalanceStep, currentStep: number, totalSteps: number) => void,
-  onValidationStart?: () => void
+  onValidationStart?: () => void,
+  onAdaptiveWeightCalculation?: (phase: string, current: number, total: number) => void,
+  adaptiveConfig?: AdaptiveWeightConfig
 ): EnhancedTeamResult => {
-  // Sort players by enhanced ranking system (highest first)
-  const sortedPlayers = [...players].sort((a, b) => {
-    const aRankResult = getRankPointsWithManualOverride(a);
-    const bRankResult = getRankPointsWithManualOverride(b);
-    return bRankResult.points - aRankResult.points;
+  
+  // Calculate adaptive weights for all players if enabled
+  const adaptiveWeightCalculations: Array<{ userId: string; calculation: any }> = [];
+  const playersWithAdaptiveWeights = players.map((player, index) => {
+    // Call progress callback for adaptive weight calculation
+    if (onAdaptiveWeightCalculation) {
+      onAdaptiveWeightCalculation('calculating', index + 1, players.length);
+    }
+
+    const adaptiveResult = adaptiveConfig?.enableAdaptiveWeights 
+      ? calculateAdaptiveWeight({
+          current_rank: player.current_rank,
+          peak_rank: player.peak_rank,
+          manual_rank_override: player.manual_rank_override,
+          manual_weight_override: player.manual_weight_override,
+          use_manual_override: player.use_manual_override,
+          rank_override_reason: player.rank_override_reason,
+          weight_rating: player.weight_rating
+        }, adaptiveConfig, player.last_rank_update ? new Date(player.last_rank_update) : undefined)
+      : getRankPointsWithManualOverride({
+          current_rank: player.current_rank,
+          peak_rank: player.peak_rank,
+          manual_rank_override: player.manual_rank_override,
+          manual_weight_override: player.manual_weight_override,
+          use_manual_override: player.use_manual_override,
+          rank_override_reason: player.rank_override_reason,
+          weight_rating: player.weight_rating
+        });
+
+    // Store adaptive calculation if available (only for EnhancedAdaptiveResult)
+    const adaptiveCalculation = (adaptiveResult as any).adaptiveCalculation;
+    if (adaptiveCalculation) {
+      adaptiveCalculation.userId = player.user_id || player.id;
+      adaptiveWeightCalculations.push({
+        userId: player.user_id || player.id,
+        calculation: adaptiveCalculation
+      });
+    }
+
+    return {
+      ...player,
+      adaptiveWeight: adaptiveResult.points,
+      weightSource: adaptiveResult.source,
+      adaptiveCalculation
+    };
+  });
+
+  // Sort players by adaptive weight (highest first)
+  const sortedPlayers = [...playersWithAdaptiveWeights].sort((a, b) => {
+    return b.adaptiveWeight - a.adaptiveWeight;
   });
 
   // Initialize teams
@@ -82,7 +137,7 @@ export const enhancedSnakeDraft = (
 
   for (let i = 0; i < sortedPlayers.length; i++) {
     const player = sortedPlayers[i];
-    const rankResult = getRankPointsWithManualOverride(player);
+    const playerPoints = player.adaptiveWeight;
     
     // Find next available team that has space
     let attempts = 0;
@@ -111,17 +166,14 @@ export const enhancedSnakeDraft = (
     // Assign player to current team
     teams[currentTeamIndex].push(player);
 
-    // Calculate team points after assignment
+    // Calculate team points after assignment using adaptive weights
     const teamStatesAfter = teams.map((team, index) => ({
       teamIndex: index,
-      totalPoints: team.reduce((sum, p) => {
-        const result = getRankPointsWithManualOverride(p);
-        return sum + result.points;
-      }, 0),
+      totalPoints: team.reduce((sum, p) => sum + (p.adaptiveWeight || 150), 0),
       playerCount: team.length
     }));
 
-    // Enhanced reasoning with round and direction info
+    // Enhanced reasoning with adaptive weight information
     const reasoning = generateEnhancedReasoning(
       player, 
       currentTeamIndex, 
@@ -136,9 +188,12 @@ export const enhancedSnakeDraft = (
       player: {
         id: player.id,
         discord_username: player.discord_username || 'Unknown',
-        points: rankResult.points,
-        rank: rankResult.rank || 'Unranked',
-        source: rankResult.source
+        points: playerPoints,
+        rank: (player.adaptiveCalculation as any)?.rank || player.current_rank || 'Unranked',
+        source: player.weightSource,
+        adaptiveWeight: playerPoints,
+        weightSource: player.weightSource,
+        adaptiveReasoning: (player.adaptiveCalculation as any)?.calculationReasoning
       },
       assignedTeam: currentTeamIndex,
       reasoning,
@@ -192,6 +247,7 @@ export const enhancedSnakeDraft = (
     teams: validatedTeams.teams,
     balanceSteps,
     validationResult,
+    adaptiveWeightCalculations: adaptiveWeightCalculations.length > 0 ? adaptiveWeightCalculations : undefined,
     finalBalance
   };
 };
@@ -204,19 +260,25 @@ const generateEnhancedReasoning = (
   round: number,
   step: number
 ): string => {
-  const rankResult = getRankPointsWithManualOverride(player);
+  const playerPoints = player.adaptiveWeight;
   const currentTeamPoints = teamStates[teamIndex].totalPoints;
   const playerName = player.discord_username || 'Unknown';
+  const rank = (player.adaptiveCalculation as any)?.rank || player.current_rank || 'Unranked';
+  const weightSource = player.weightSource;
   
   if (step === 0) {
-    return `First pick (Round ${round}): Assigned ${playerName} (${rankResult.rank}, ${rankResult.points}pts) to Team ${teamIndex + 1} as highest-rated player.`;
+    const sourceText = weightSource === 'adaptive_weight' ? ' [Adaptive]' :
+                      weightSource === 'manual_override' ? ' [Override]' : 
+                      weightSource === 'peak_rank' ? ' [Peak]' : '';
+    return `First pick (Round ${round}): Assigned ${playerName} (${rank}, ${playerPoints}pts${sourceText}) to Team ${teamIndex + 1} as highest-weighted player.`;
   }
 
   const directionText = direction === 1 ? 'ascending' : 'descending';
-  const sourceText = rankResult.source === 'manual_override' ? ' [Override]' : 
-                    rankResult.source === 'peak_rank' ? ' [Peak]' : '';
+  const sourceText = weightSource === 'adaptive_weight' ? ' [Adaptive]' :
+                    weightSource === 'manual_override' ? ' [Override]' : 
+                    weightSource === 'peak_rank' ? ' [Peak]' : '';
   
-  return `Snake draft Round ${round} (${directionText}): Assigned ${playerName} (${rankResult.rank}, ${rankResult.points}pts${sourceText}) to Team ${teamIndex + 1}. Team total: ${currentTeamPoints}pts.`;
+  return `Snake draft Round ${round} (${directionText}): Assigned ${playerName} (${rank}, ${playerPoints}pts${sourceText}) to Team ${teamIndex + 1}. Team total: ${currentTeamPoints}pts.`;
 };
 
 const performPostBalanceValidation = (
@@ -257,7 +319,7 @@ const performPostBalanceValidation = (
 
     // Recalculate team totals to ensure they are up-to-date after any previous swaps
     const teamTotals = adjustedTeams.map(team =>
-        team.reduce((sum, player) => getRankPointsWithManualOverride(player).points + sum, 0)
+        team.reduce((sum, player) => sum + (player.adaptiveWeight || 150), 0)
     );
 
     for (let i = 0; i < adjustedTeams.length; i++) {
@@ -284,8 +346,8 @@ const performPostBalanceValidation = (
       // Iterate through players in the lowest team
       for (const playerB of adjustedTeams[lowestTeamIndex]) {
         // Calculate hypothetical new totals if playerA and playerB are swapped
-        const playerAPoints = getRankPointsWithManualOverride(playerA).points;
-        const playerBPoints = getRankPointsWithManualOverride(playerB).points;
+        const playerAPoints = playerA.adaptiveWeight || 150;
+        const playerBPoints = playerB.adaptiveWeight || 150;
 
         const hypotheticalHighestTeamPoints = highestTeamPoints - playerAPoints + playerBPoints;
         const hypotheticalLowestTeamPoints = lowestTeamPoints - playerBPoints + playerAPoints;
@@ -325,18 +387,17 @@ const performPostBalanceValidation = (
       );
       adjustedTeams[bestSwap.toTeam].push(bestSwap.playerA);
 
-      // Update total weights for the swapped teams
-      // Note: The totalWeight property on the team object itself is not directly used by calculateFinalBalance,
-      // but it's good practice to keep it consistent if it's used elsewhere.
-      adjustedTeams[bestSwap.fromTeam].totalWeight = adjustedTeams[bestSwap.fromTeam].reduce((sum: number, p: any) => getRankPointsWithManualOverride(p).points + sum, 0);
-      adjustedTeams[bestSwap.toTeam].totalWeight = adjustedTeams[bestSwap.toTeam].reduce((sum: number, p: any) => getRankPointsWithManualOverride(p).points + sum, 0);
+      // Record the swap with adaptive weight context
+      const playerASource = bestSwap.playerA.weightSource || 'current_rank';
+      const playerBSource = bestSwap.playerB.weightSource || 'current_rank';
+      const swapReason = `Post-validation swap to improve balance: ${bestSwap.playerA.discord_username} (${bestSwap.playerA.adaptiveWeight}pts, ${playerASource}) ↔ ${bestSwap.playerB.discord_username} (${bestSwap.playerB.adaptiveWeight}pts, ${playerBSource}). Reduced max difference from ${currentBalance.maxPointDifference} to ${bestNewMaxDiff}pts.`;
 
       adjustments.swaps.push({
         player1: bestSwap.playerA.discord_username,
         player2: bestSwap.playerB.discord_username,
         fromTeam: bestSwap.fromTeam + 1, // 1-indexed for display
         toTeam: bestSwap.toTeam + 1,     // 1-indexed for display
-        reason: `Swapped to reduce max point difference from ${currentBalance.maxPointDifference} to ${bestNewMaxDiff}`
+        reason: swapReason
       });
       hasMadeSwap = true; // Indicate that a swap was made, continue iterating
     }
@@ -351,8 +412,9 @@ const performPostBalanceValidation = (
 const calculateFinalBalance = (teams: any[][]) => {
   const teamTotals = teams.map(team => 
     team.reduce((sum, player) => {
-      const result = getRankPointsWithManualOverride(player);
-      return sum + result.points;
+      // Use adaptive weight if available, otherwise fall back to manual override system
+      const points = player.adaptiveWeight || getRankPointsWithManualOverride(player).points;
+      return sum + points;
     }, 0)
   );
 

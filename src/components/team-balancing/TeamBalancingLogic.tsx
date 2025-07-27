@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
 import { getRankPointsWithManualOverride } from "@/utils/rankingSystemWithOverrides";
 import { enhancedSnakeDraft } from "./EnhancedSnakeDraft";
+import { AdaptiveWeightConfig } from "@/utils/adaptiveWeightSystem";
 
 interface UseTeamBalancingProps {
   tournamentId: string;
