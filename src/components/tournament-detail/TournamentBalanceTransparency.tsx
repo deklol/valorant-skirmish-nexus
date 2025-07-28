@@ -160,7 +160,12 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
             </div>
             <div>
               <CardTitle className="text-lg text-foreground">Balance Analysis</CardTitle>
-              <p className="text-sm text-muted-foreground">Auto-balanced using {balanceAnalysis.method}</p>
+              <p className="text-sm text-muted-foreground">
+                Auto-balanced using {balanceAnalysis.method}
+                {balanceAnalysis.method?.includes('Adaptive') && (
+                  <span className="ml-2 text-blue-400 font-medium">• Enhanced Weighting</span>
+                )}
+              </p>
             </div>
           </div>
           <Badge 
@@ -265,12 +270,13 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                 const playerName = step.player.discord_username || step.player.name || 'Unknown';
                 const stepNumber = step.step || step.round || index + 1;
                 const assignedTo = step.assignedTo || `Team ${(step.assignedTeam || 0) + 1}`;
+                const playerSource = step.player.source || 'current_rank';
                 
                 return (
                   <div key={index} className="p-3 rounded-lg bg-muted/30 border border-border">
                     <div className="flex items-start justify-between">
                       <div className="space-y-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <Badge variant="outline" className="text-xs">
                             Step {stepNumber}
                           </Badge>
@@ -280,6 +286,22 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                           <Badge variant="secondary" className="text-xs">
                             {step.player.rank} ({step.player.points}pts)
                           </Badge>
+                          {playerSource !== 'current_rank' && (
+                            <Badge 
+                              variant="outline" 
+                              className={`text-xs ${
+                                playerSource === 'adaptive_weight' ? 'border-blue-400 text-blue-400' :
+                                playerSource === 'manual_override' ? 'border-purple-400 text-purple-400' :
+                                playerSource === 'peak_rank' ? 'border-amber-400 text-amber-400' :
+                                'border-slate-400 text-slate-400'
+                              }`}
+                            >
+                              {playerSource === 'adaptive_weight' ? 'Adaptive' :
+                               playerSource === 'manual_override' ? 'Override' :
+                               playerSource === 'peak_rank' ? 'Peak' : 
+                               playerSource}
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-xs text-muted-foreground">
                           Assigned to <span className="font-medium text-foreground">{assignedTo}</span>

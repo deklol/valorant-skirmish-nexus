@@ -1,8 +1,9 @@
 // Enhanced Team Balancing Tool with improved snake draft and transparency
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Shuffle, AlertTriangle, CheckCircle, Eye, Settings } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Users, Shuffle, AlertTriangle, CheckCircle, Eye, Settings, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { enhancedSnakeDraft, EnhancedTeamResult, BalanceStep } from "./EnhancedSnakeDraft";
@@ -11,6 +12,7 @@ import { AutobalanceProgress } from "./AutobalanceProgress";
 import { supabase } from "@/integrations/supabase/client";
 import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
 import { getRankPointsWithManualOverride } from "@/utils/rankingSystemWithOverrides";
+import { calculateAdaptiveWeight } from "@/utils/adaptiveWeightSystem";
 
 interface EnhancedTeamBalancingToolProps {
   tournamentId: string;
@@ -35,8 +37,62 @@ const EnhancedTeamBalancingTool = ({
   const [lastProgressStep, setLastProgressStep] = useState<BalanceStep | undefined>();
   const [totalPlayers, setTotalPlayers] = useState(0);
   
+  // Adaptive weights state
+  const [enableAdaptiveWeights, setEnableAdaptiveWeights] = useState(false);
+  const [loadingAdaptiveSettings, setLoadingAdaptiveSettings] = useState(true);
+  
   const { toast } = useToast();
   const { notifyTeamAssigned } = useEnhancedNotifications();
+
+  // Load adaptive weights setting
+  useEffect(() => {
+    loadAdaptiveWeightsSetting();
+  }, [tournamentId]);
+
+  const loadAdaptiveWeightsSetting = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('tournaments')
+        .select('enable_adaptive_weights')
+        .eq('id', tournamentId)
+        .single();
+      
+      if (!error && data) {
+        setEnableAdaptiveWeights(data.enable_adaptive_weights || false);
+      }
+    } catch (e) {
+      console.error('Error loading adaptive weights setting:', e);
+    } finally {
+      setLoadingAdaptiveSettings(false);
+    }
+  };
+
+  const handleAdaptiveWeightsChange = async (checked: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('tournaments')
+        .update({ enable_adaptive_weights: checked })
+        .eq('id', tournamentId);
+      
+      if (error) throw error;
+      
+      setEnableAdaptiveWeights(checked);
+      
+      toast({
+        title: checked ? "Adaptive Weights Enabled" : "Adaptive Weights Disabled",
+        description: checked 
+          ? "Team balancing will now use enhanced adaptive weight calculation"
+          : "Team balancing will use standard rank-based weights",
+      });
+    } catch (error: any) {
+      console.error('Error updating adaptive weights setting:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update adaptive weights setting",
+        variant: "destructive",
+      });
+    }
+  };
 
   const runBalanceAnalysis = async () => {
     setLoading(true);
@@ -368,7 +424,33 @@ const EnhancedTeamBalancingTool = ({
               <p>• Includes post-balance validation and adjustment phase</p>
               <p>• Provides detailed reasoning for each player assignment</p>
               <p>• Records complete decision-making process for transparency</p>
+              {enableAdaptiveWeights && (
+                <p className="text-blue-400">• Adaptive weight calculation enabled (blends current + peak ranks)</p>
+              )}
             </div>
+          </div>
+
+          {/* Adaptive Weights Toggle */}
+          <div className="flex items-center space-x-2 p-3 bg-slate-700 rounded-lg">
+            <Checkbox
+              id="adaptive-weights"
+              checked={enableAdaptiveWeights}
+              onCheckedChange={handleAdaptiveWeightsChange}
+              disabled={loadingAdaptiveSettings || loading}
+            />
+            <label 
+              htmlFor="adaptive-weights" 
+              className="text-sm font-medium text-slate-300 cursor-pointer flex items-center gap-2"
+            >
+              <Zap className="w-4 h-4" />
+              Enable Adaptive Weight System
+            </label>
+            <Badge variant="outline" className="text-xs ml-auto">
+              {enableAdaptiveWeights ? 'Enhanced' : 'Standard'}
+            </Badge>
+          </div>
+          <div className="text-xs text-slate-400 ml-6">
+            Intelligently blends current and peak ranks based on rank decay and time factors
           </div>
 
           {/* Phase-specific Actions */}

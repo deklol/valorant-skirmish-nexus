@@ -4,11 +4,13 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { AlertTriangle, Users, Shuffle, Save, Plus, GripVertical, Zap, TrendingUp, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { getRankPointsWithFallback, calculateTeamBalance } from "@/utils/rankingSystem";
 import { getRankPointsWithManualOverride } from "@/utils/rankingSystemWithOverrides";
+import { calculateAdaptiveWeight } from "@/utils/adaptiveWeightSystem";
 import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
 import PeakRankFallbackAlert from "@/components/team-balancing/PeakRankFallbackAlert";
 import EnhancedRankFallbackAlert from "@/components/team-balancing/EnhancedRankFallbackAlert";
@@ -204,10 +206,15 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
   const { toast } = useToast();
   const notifications = useEnhancedNotifications();
   const [tournamentName, setTournamentName] = useState<string>("");
+  
+  // Adaptive weights state
+  const [enableAdaptiveWeights, setEnableAdaptiveWeights] = useState(false);
+  const [loadingAdaptiveSettings, setLoadingAdaptiveSettings] = useState(true);
 
 useEffect(() => {
 fetchTeamsAndPlayers();
     fetchTournamentName();
+    loadAdaptiveWeightsSetting();
     // eslint-disable-next-line
 }, [tournamentId]);
 
@@ -224,6 +231,51 @@ fetchTeamsAndPlayers();
     } catch (e) {
       // Fallback: just blank
       setTournamentName("");
+    }
+  };
+
+  const loadAdaptiveWeightsSetting = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('tournaments')
+        .select('enable_adaptive_weights')
+        .eq('id', tournamentId)
+        .single();
+      
+      if (!error && data) {
+        setEnableAdaptiveWeights(data.enable_adaptive_weights || false);
+      }
+    } catch (e) {
+      console.error('Error loading adaptive weights setting:', e);
+    } finally {
+      setLoadingAdaptiveSettings(false);
+    }
+  };
+
+  const handleAdaptiveWeightsChange = async (checked: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('tournaments')
+        .update({ enable_adaptive_weights: checked })
+        .eq('id', tournamentId);
+      
+      if (error) throw error;
+      
+      setEnableAdaptiveWeights(checked);
+      
+      toast({
+        title: checked ? "Adaptive Weights Enabled" : "Adaptive Weights Disabled",
+        description: checked 
+          ? "Team balancing will now use enhanced adaptive weight calculation"
+          : "Team balancing will use standard rank-based weights",
+      });
+    } catch (error: any) {
+      console.error('Error updating adaptive weights setting:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update adaptive weights setting",
+        variant: "destructive",
+      });
     }
   };
 
@@ -538,6 +590,13 @@ variant: "destructive",
     setAutobalancing(true);
     
     try {
+      // Get tournament adaptive weights setting
+      const { data: tournament } = await supabase
+        .from('tournaments')
+        .select('enable_adaptive_weights')
+        .eq('id', tournamentId)
+        .single();
+
       // Get teams that have space for players
       const availableTeams = teams.filter(team => team.members.length < teamSize);
       const numTeams = availableTeams.length;
@@ -559,11 +618,26 @@ variant: "destructive",
         return; 
       }
 
+      // Sort unassigned players by enhanced rank with optional adaptive weights
+      const sortedPlayers = [...unassignedPlayers].sort((a, b) => {
+        let aRankResult, bRankResult;
+        
+        if (tournament?.enable_adaptive_weights) {
+          aRankResult = calculateAdaptiveWeight(a);
+          bRankResult = calculateAdaptiveWeight(b);
+        } else {
+          aRankResult = getRankPointsWithManualOverride(a);
+          bRankResult = getRankPointsWithManualOverride(b);
+        }
+        
+        return bRankResult.points - aRankResult.points;
+      });
+
       // First, run the enhancedSnakeDraft to get all the steps and the final result.
       // We are not relying on its internal callbacks for UI updates anymore,
       // but rather processing its result step-by-step.
       const fullSnakeDraftResult = enhancedSnakeDraft(
-        unassignedPlayers, 
+        sortedPlayers, 
         numTeams, 
         teamSize,
         // These callbacks are now primarily for internal logging or future extensions,
@@ -651,7 +725,7 @@ variant: "destructive",
 
       toast({
         title: "Snake Draft Complete",
-        description: `Players distributed using snake draft algorithm across ${numTeams} teams. Balance quality: ${fullSnakeDraftResult.finalBalance.balanceQuality}. Review before saving.`,
+        description: `Players distributed using ${tournament?.enable_adaptive_weights ? 'adaptive weight ' : ''}snake draft algorithm across ${numTeams} teams. Balance quality: ${fullSnakeDraftResult.finalBalance.balanceQuality}. Review before saving.`,
       });
     } catch (e) {
       console.error('Snake draft autobalance error:', e);
@@ -800,7 +874,7 @@ try {
       if (balanceAnalysis) {
         const balanceData = {
           timestamp: new Date().toISOString(),
-          method: "Snake Draft Algorithm",
+          method: `Snake Draft Algorithm${enableAdaptiveWeights ? ' with Adaptive Weights' : ''}`,
           tournament_info: {
             max_teams: maxTeams,
             team_size: teamSize,
@@ -942,7 +1016,30 @@ Team Balancing
                   Tournament setup: {maxTeams} teams, {teamSize}v{teamSize} format
                   {teamSize === 1 ? ' (1v1 - each player gets their own team)' : ` (${teamSize} players per team)`}
                 </p>
-  </div>
+              </div>
+
+              {/* Adaptive Weights Toggle */}
+              <div className="flex items-center space-x-2 p-3 bg-slate-700 rounded-lg">
+                <Checkbox
+                  id="adaptive-weights-manual"
+                  checked={enableAdaptiveWeights}
+                  onCheckedChange={handleAdaptiveWeightsChange}
+                  disabled={loadingAdaptiveSettings || autobalancing || saving}
+                />
+                <label 
+                  htmlFor="adaptive-weights-manual" 
+                  className="text-sm font-medium text-slate-300 cursor-pointer flex items-center gap-2"
+                >
+                  <Zap className="w-4 h-4" />
+                  Enable Adaptive Weight System
+                </label>
+                <Badge variant="outline" className="text-xs ml-auto">
+                  {enableAdaptiveWeights ? 'Enhanced' : 'Standard'}
+                </Badge>
+              </div>
+              <div className="text-xs text-slate-400 ml-6">
+                Intelligently blends current and peak ranks based on rank decay and time factors
+              </div>
   
               {balance && (
                 <div className="flex items-center justify-between p-3 bg-slate-700 rounded-lg">

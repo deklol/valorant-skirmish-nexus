@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
 import { getRankPointsWithManualOverride } from "@/utils/rankingSystemWithOverrides";
 import { enhancedSnakeDraft } from "./EnhancedSnakeDraft";
-import { AdaptiveWeightConfig } from "@/utils/adaptiveWeightSystem";
+import { calculateAdaptiveWeight } from "@/utils/adaptiveWeightSystem";
 
 interface UseTeamBalancingProps {
   tournamentId: string;
@@ -15,10 +15,10 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
   const { notifyTeamAssigned } = useEnhancedNotifications();
 
   const balanceTeams = async () => {
-    // Get tournament details including team_size
+    // Get tournament details including team_size and adaptive weights setting
     const { data: tournament } = await supabase
       .from('tournaments')
-      .select('name, match_format, team_size')
+      .select('name, match_format, team_size, enable_adaptive_weights')
       .eq('id', tournamentId)
       .single();
 
@@ -78,12 +78,20 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
     // Clear existing teams
     await clearExistingTeams();
 
-    // Sort players by enhanced ranking system (manual override > current > peak > default)
+    // Sort players by enhanced ranking system with optional adaptive weights
     const sortedPlayers = signups
       .filter(signup => signup.users)
       .sort((a, b) => {
-        const aRankResult = getRankPointsWithManualOverride(a.users);
-        const bRankResult = getRankPointsWithManualOverride(b.users);
+        let aRankResult, bRankResult;
+        
+        if (tournament.enable_adaptive_weights) {
+          aRankResult = calculateAdaptiveWeight(a.users);
+          bRankResult = calculateAdaptiveWeight(b.users);
+        } else {
+          aRankResult = getRankPointsWithManualOverride(a.users);
+          bRankResult = getRankPointsWithManualOverride(b.users);
+        }
+        
         return bRankResult.points - aRankResult.points;
       });
 
@@ -115,10 +123,19 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
   };
 
   const createIndividualTeams = async (sortedPlayers: any[]) => {
+    // Get tournament settings for this function scope
+    const { data: tournament } = await supabase
+      .from('tournaments')
+      .select('enable_adaptive_weights')
+      .eq('id', tournamentId)
+      .single();
+
     for (let i = 0; i < sortedPlayers.length; i++) {
       const player = sortedPlayers[i];
       const teamName = `${player.users?.discord_username || 'Player'} (Solo)`;
-      const rankResult = getRankPointsWithManualOverride(player.users);
+      const rankResult = tournament?.enable_adaptive_weights 
+        ? calculateAdaptiveWeight(player.users)
+        : getRankPointsWithManualOverride(player.users);
       
       // Create team
       const { data: newTeam, error: teamError } = await supabase
@@ -153,6 +170,13 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
   };
 
   const createBalancedTeams = async (sortedPlayers: any[], teamsToCreate: number, teamSize: number) => {
+    // Get tournament settings for this function scope
+    const { data: tournament } = await supabase
+      .from('tournaments')
+      .select('enable_adaptive_weights')
+      .eq('id', tournamentId)
+      .single();
+
     // Use enhanced snake draft with detailed logging
     const playerData = sortedPlayers.map(signup => signup.users);
     const result = enhancedSnakeDraft(playerData, teamsToCreate, teamSize);
@@ -183,9 +207,11 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
       }
       usedNames.add(teamName);
 
-      // Calculate total weight using enhanced ranking system
+      // Calculate total weight using enhanced ranking system with optional adaptive weights
       const totalWeight = teams[i].reduce((sum, player) => {
-        const rankResult = getRankPointsWithManualOverride(player);
+        const rankResult = tournament?.enable_adaptive_weights 
+          ? calculateAdaptiveWeight(player)
+          : getRankPointsWithManualOverride(player);
         return sum + rankResult.points;
       }, 0);
 
@@ -234,10 +260,10 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
     }
 
     // Save balance analysis to tournament
-    await saveBalanceAnalysis(balanceSteps, finalBalance, createdTeams, teamSize);
+    await saveBalanceAnalysis(balanceSteps, finalBalance, createdTeams, teamSize, tournament?.enable_adaptive_weights || false);
   };
 
-  const saveBalanceAnalysis = async (balanceSteps: any[], finalBalance: any, createdTeams: any[], teamSize: number) => {
+  const saveBalanceAnalysis = async (balanceSteps: any[], finalBalance: any, createdTeams: any[], teamSize: number, adaptiveWeightsEnabled: boolean) => {
     const analysis = {
       qualityScore: Math.round(
         finalBalance.balanceQuality === 'ideal' ? 95 :
@@ -267,7 +293,7 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
         playerCount: team.players.length,
         avgPoints: Math.round(team.total_rank_points / team.players.length)
       })),
-      method: `Snake Draft (${teamSize}v${teamSize})`,
+      method: `Snake Draft (${teamSize}v${teamSize})${adaptiveWeightsEnabled ? ' with Adaptive Weights' : ''}`,
       timestamp: new Date().toISOString()
     };
 
