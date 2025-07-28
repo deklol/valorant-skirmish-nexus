@@ -8,11 +8,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { AlertTriangle, Users, Shuffle, Save, Plus, GripVertical, Zap, TrendingUp, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { getRankPointsWithFallback, calculateTeamBalance } from "@/utils/rankingSystem";
-import { getRankPointsWithManualOverride } from "@/utils/rankingSystemWithOverrides";
-import { calculateAdaptiveWeight } from "@/utils/adaptiveWeightSystem";
+import { calculateTeamBalance } from "@/utils/rankingSystem";
+// Import the updated getRankPointsWithManualOverride and EnhancedRankPointsResult
+import { getRankPointsWithManualOverride, EnhancedRankPointsResult, UserRankData } from "@/utils/rankingSystemWithOverrides";
+// Import calculateAdaptiveWeight and its types
+import { calculateAdaptiveWeight, EnhancedAdaptiveResult } from "@/utils/adaptiveWeightSystem";
 import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
-import PeakRankFallbackAlert from "@/components/team-balancing/PeakRankFallbackAlert";
+import PeakRankFallbackAlert from "@/components/team-balancing/PeakRankFallbackAlert"; // Assuming this might be removed or updated
 import EnhancedRankFallbackAlert from "@/components/team-balancing/EnhancedRankFallbackAlert";
 import TeamCleanupTools from "@/components/team-balancing/TeamCleanupTools";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -27,18 +29,12 @@ interface TeamBalancingInterfaceProps {
   onTeamsUpdated?: () => void;
 }
 
-interface Player {
+// Player interface should extend UserRankData to include all necessary fields
+interface Player extends UserRankData {
   id: string;
   discord_username: string;
-  rank_points: number;
-  weight_rating: number;
-  current_rank: string;
-  peak_rank?: string;
-  riot_id?: string;
-  manual_rank_override?: string | null;
-  manual_weight_override?: number | null;
-  use_manual_override?: boolean;
-  rank_override_reason?: string | null;
+  // rank_points and weight_rating are now potentially derived or overridden
+  // current_rank, peak_rank, manual_rank_override, etc. are already in UserRankData
 }
 
 interface Team {
@@ -50,7 +46,8 @@ interface Team {
 }
 
 // Enhanced Draggable Player Component with manual override and peak rank indicators
-const DraggablePlayer = ({ player }: { player: Player }) => {
+// Now accepts enableAdaptiveWeights to pass down to getRankPointsWithManualOverride
+const DraggablePlayer = ({ player, enableAdaptiveWeights }: { player: Player; enableAdaptiveWeights: boolean }) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: player.id,
   });
@@ -59,9 +56,8 @@ const DraggablePlayer = ({ player }: { player: Player }) => {
     transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
   } : undefined;
 
-  // Use enhanced ranking system that supports manual overrides
-  const rankResult = getRankPointsWithManualOverride(player);
-  const fallbackResult = getRankPointsWithFallback(player.current_rank, player.peak_rank);
+  // Use enhanced ranking system that supports manual overrides AND adaptive weights
+  const rankResult: EnhancedRankPointsResult = getRankPointsWithManualOverride(player, enableAdaptiveWeights);
 
   return (
     <div
@@ -90,6 +86,12 @@ const DraggablePlayer = ({ player }: { player: Player }) => {
                 Peak: {rankResult.rank}
               </Badge>
             )}
+            {rankResult.source === 'adaptive_weight' && (
+              <Badge className="bg-blue-600 text-white text-xs flex items-center gap-1">
+                <Zap className="w-3 h-3" />
+                Adaptive: {rankResult.rank}
+              </Badge>
+            )}
           </div>
           <div className="text-xs text-slate-400">
             {rankResult.source === 'manual_override' ? (
@@ -100,9 +102,14 @@ const DraggablePlayer = ({ player }: { player: Player }) => {
               <span>
                 {player.current_rank || 'Unrated'} → Using {rankResult.rank} ({rankResult.points} pts)
               </span>
-            ) : (
+            ) : rankResult.source === 'adaptive_weight' ? (
               <span>
-                {player.current_rank} • {player.weight_rating || rankResult.points} pts
+                {player.current_rank} → Adaptive {rankResult.rank} ({rankResult.points} pts)
+              </span>
+            ) : (
+              // Default or Current Rank
+              <span>
+                {player.current_rank || 'Unranked'} • {rankResult.points} pts
               </span>
             )}
           </div>
@@ -112,8 +119,8 @@ const DraggablePlayer = ({ player }: { player: Player }) => {
   );
 };
 
-// Droppable Team Component
-const DroppableTeam = ({ team, teamSize }: { team: Team; teamSize: number }) => {
+// Droppable Team Component (no changes needed here, as it uses the Player interface)
+const DroppableTeam = ({ team, teamSize, enableAdaptiveWeights }: { team: Team; teamSize: number; enableAdaptiveWeights: boolean }) => {
   const { isOver, setNodeRef } = useDroppable({
     id: team.isPlaceholder ? `placeholder-${team.id}` : `team-${team.id}`,
   });
@@ -149,7 +156,7 @@ const DroppableTeam = ({ team, teamSize }: { team: Team; teamSize: number }) => 
             </p>
           ) : (
             team.members.map((player, playerIndex) => (
-              <DraggablePlayer key={player.id} player={player} />
+              <DraggablePlayer key={player.id} player={player} enableAdaptiveWeights={enableAdaptiveWeights} />
             ))
           )}
         </div>
@@ -158,8 +165,8 @@ const DroppableTeam = ({ team, teamSize }: { team: Team; teamSize: number }) => 
   );
 };
 
-// Droppable Unassigned Area
-const DroppableUnassigned = ({ players }: { players: Player[] }) => {
+// Droppable Unassigned Area (no changes needed here)
+const DroppableUnassigned = ({ players, enableAdaptiveWeights }: { players: Player[]; enableAdaptiveWeights: boolean }) => {
   const { isOver, setNodeRef } = useDroppable({
     id: 'unassigned',
   });
@@ -179,7 +186,7 @@ const DroppableUnassigned = ({ players }: { players: Player[] }) => {
             </p>
           ) : (
             players.map(player => (
-              <DraggablePlayer key={player.id} player={player} />
+              <DraggablePlayer key={player.id} player={player} enableAdaptiveWeights={enableAdaptiveWeights} />
             ))
           )}
         </div>
@@ -211,12 +218,40 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
   const [enableAdaptiveWeights, setEnableAdaptiveWeights] = useState(false);
   const [loadingAdaptiveSettings, setLoadingAdaptiveSettings] = useState(true);
 
-useEffect(() => {
-fetchTeamsAndPlayers();
+  useEffect(() => {
+    fetchTeamsAndPlayers();
     fetchTournamentName();
     loadAdaptiveWeightsSetting();
     // eslint-disable-next-line
-}, [tournamentId]);
+  }, [tournamentId]);
+
+  // Effect to re-calculate total weights for teams and unassigned players
+  // whenever enableAdaptiveWeights changes or players/teams change
+  useEffect(() => {
+    // Only re-calculate if not loading or saving
+    if (!loading && !saving) {
+      const updatedTeams = teams.map(team => {
+        const newMembers = team.members.map(player => {
+          const rankResult = getRankPointsWithManualOverride(player, enableAdaptiveWeights);
+          // Update player's weight_rating based on the current adaptive setting
+          return { ...player, weight_rating: rankResult.points };
+        });
+        const totalWeight = newMembers.reduce((sum, member) => {
+          const rankResult = getRankPointsWithManualOverride(member, enableAdaptiveWeights);
+          return sum + rankResult.points;
+        }, 0);
+        return { ...team, members: newMembers, totalWeight };
+      });
+
+      const updatedUnassignedPlayers = unassignedPlayers.map(player => {
+        const rankResult = getRankPointsWithManualOverride(player, enableAdaptiveWeights);
+        return { ...player, weight_rating: rankResult.points };
+      });
+
+      setTeams(updatedTeams);
+      setUnassignedPlayers(updatedUnassignedPlayers);
+    }
+  }, [enableAdaptiveWeights, teams.length, unassignedPlayers.length, loading, saving]); // Depend on relevant state
 
   const fetchTournamentName = async () => {
     try {
@@ -261,8 +296,8 @@ fetchTeamsAndPlayers();
       
       if (error) throw error;
       
-      setEnableAdaptiveWeights(checked);
-      
+      setEnableAdaptiveWeights(checked); // Update local state immediately
+
       toast({
         title: checked ? "Adaptive Weights Enabled" : "Adaptive Weights Disabled",
         description: checked 
@@ -279,34 +314,34 @@ fetchTeamsAndPlayers();
     }
   };
 
-const fetchTeamsAndPlayers = async () => {
+  const fetchTeamsAndPlayers = async () => {
     setLoading(true);
-try {
+    try {
       console.log('Fetching teams and players for tournament:', tournamentId);
       
       // Fetch teams with their members including manual override fields
       const { data: teamsData, error: teamsError } = await supabase
-.from('teams')
-.select(`
-         id,
-         name,
-         team_members (
-           user_id,
-           users (
+        .from('teams')
+        .select(`
+          id,
+          name,
+          team_members (
+            user_id,
+            users (
               id,
-             discord_username,
+              discord_username,
               rank_points,
               weight_rating,
-             current_rank,
-             peak_rank,
+              current_rank,
+              peak_rank,
               riot_id,
               manual_rank_override,
               manual_weight_override,
               use_manual_override,
               rank_override_reason
-           )
-         )
-       `)
+            )
+          )
+        `)
         .eq('tournament_id', tournamentId);
 
       if (teamsError) throw teamsError;
@@ -334,18 +369,19 @@ try {
 
       if (participantsError) throw participantsError;
 
-      // Process teams with enhanced ranking
+      // Process teams with enhanced ranking, using the current adaptive weights setting
       const processedTeams: Team[] = (teamsData || []).map(team => {
         const members = team.team_members
           .map(member => member.users)
           .filter(user => user)
           .map(user => {
-            const rankResult = getRankPointsWithManualOverride(user);
+            // Pass enableAdaptiveWeights to getRankPointsWithManualOverride
+            const rankResult = getRankPointsWithManualOverride(user, enableAdaptiveWeights);
             return {
               id: user.id,
               discord_username: user.discord_username || 'Unknown',
-              rank_points: user.rank_points || 0,
-              weight_rating: user.weight_rating || rankResult.points,
+              rank_points: user.rank_points || 0, // Original rank_points from DB
+              weight_rating: rankResult.points, // This is the calculated effective weight
               current_rank: user.current_rank || 'Unranked',
               peak_rank: user.peak_rank,
               riot_id: user.riot_id,
@@ -357,8 +393,8 @@ try {
           });
 
         const totalWeight = members.reduce((sum, member) => {
-          const rankResult = getRankPointsWithManualOverride(member);
-          return sum + rankResult.points;
+          // Use the already calculated weight_rating for total sum
+          return sum + member.weight_rating;
         }, 0);
 
         return {
@@ -378,12 +414,13 @@ try {
         .map(participant => participant.users)
         .filter(user => user && !allAssignedUserIds.has(user.id))
         .map(user => {
-          const rankResult = getRankPointsWithManualOverride(user);
+          // Pass enableAdaptiveWeights to getRankPointsWithManualOverride
+          const rankResult = getRankPointsWithManualOverride(user, enableAdaptiveWeights);
           return {
             id: user.id,
             discord_username: user.discord_username || 'Unknown',
-            rank_points: user.rank_points || 0,
-            weight_rating: user.weight_rating || rankResult.points,
+            rank_points: user.rank_points || 0, // Original rank_points from DB
+            weight_rating: rankResult.points, // This is the calculated effective weight
             current_rank: user.current_rank || 'Unranked',
             peak_rank: user.peak_rank,
             riot_id: user.riot_id,
@@ -398,21 +435,21 @@ try {
       let finalTeams = processedTeams;
       if (processedTeams.length === 0) {
         finalTeams = createPlaceholderTeams();
-}
+      }
 
       setTeams(finalTeams);
       setUnassignedPlayers(unassigned);
     } catch (error: any) {
       console.error('Error fetching teams and players:', error);
-toast({
-title: "Error",
+      toast({
+        title: "Error",
         description: "Failed to load teams and players",
-variant: "destructive",
-});
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
-}
-};
+    }
+  };
 
   const createPlaceholderTeams = (): Team[] => {
     const placeholderTeams: Team[] = [];
@@ -533,7 +570,7 @@ variant: "destructive",
           if (team.id === sourceTeamId) {
             const newMembers = team.members.filter(p => p.id !== player.id);
             const totalWeight = newMembers.reduce((sum, member) => {
-              const rankResult = getRankPointsWithManualOverride(member);
+              const rankResult = getRankPointsWithManualOverride(member, enableAdaptiveWeights);
               return sum + rankResult.points;
             }, 0);
             return { ...team, members: newMembers, totalWeight };
@@ -545,7 +582,9 @@ variant: "destructive",
     
     setUnassignedPlayers(prev => {
       if (prev.some(p => p.id === player.id)) return prev;
-      return [...prev, player];
+      // When moving to unassigned, ensure its weight_rating is updated based on current adaptive setting
+      const playerWithUpdatedWeight = { ...player, weight_rating: getRankPointsWithManualOverride(player, enableAdaptiveWeights).points };
+      return [...prev, playerWithUpdatedWeight];
     });
   };
 
@@ -557,7 +596,7 @@ variant: "destructive",
           if (team.id === sourceTeamId) {
             const newMembers = team.members.filter(p => p.id !== player.id);
             const totalWeight = newMembers.reduce((sum, member) => {
-              const rankResult = getRankPointsWithManualOverride(member);
+              const rankResult = getRankPointsWithManualOverride(member, enableAdaptiveWeights);
               return sum + rankResult.points;
             }, 0);
             return { ...team, members: newMembers, totalWeight };
@@ -573,9 +612,11 @@ variant: "destructive",
     setTeams(prevTeams => 
       prevTeams.map(team => {
         if (team.id === targetTeamId) {
-          const newMembers = [...team.members, player];
+          // When adding to team, ensure its weight_rating is updated based on current adaptive setting
+          const playerWithUpdatedWeight = { ...player, weight_rating: getRankPointsWithManualOverride(player, enableAdaptiveWeights).points };
+          const newMembers = [...team.members, playerWithUpdatedWeight];
           const totalWeight = newMembers.reduce((sum, member) => {
-            const rankResult = getRankPointsWithManualOverride(member);
+            const rankResult = getRankPointsWithManualOverride(member, enableAdaptiveWeights);
             return sum + rankResult.points;
           }, 0);
           return { ...team, members: newMembers, totalWeight };
@@ -590,12 +631,8 @@ variant: "destructive",
     setAutobalancing(true);
     
     try {
-      // Get tournament adaptive weights setting
-      const { data: tournament } = await supabase
-        .from('tournaments')
-        .select('enable_adaptive_weights')
-        .eq('id', tournamentId)
-        .single();
+      // Get tournament adaptive weights setting (already in enableAdaptiveWeights state)
+      const currentEnableAdaptiveWeights = enableAdaptiveWeights;
 
       // Get teams that have space for players
       const availableTeams = teams.filter(team => team.members.length < teamSize);
@@ -622,12 +659,12 @@ variant: "destructive",
       const sortedPlayers = [...unassignedPlayers].sort((a, b) => {
         let aRankResult, bRankResult;
         
-        if (tournament?.enable_adaptive_weights) {
+        if (currentEnableAdaptiveWeights) {
           aRankResult = calculateAdaptiveWeight(a);
           bRankResult = calculateAdaptiveWeight(b);
         } else {
-          aRankResult = getRankPointsWithManualOverride(a);
-          bRankResult = getRankPointsWithManualOverride(b);
+          aRankResult = getRankPointsWithManualOverride(a, currentEnableAdaptiveWeights); // Pass the flag
+          bRankResult = getRankPointsWithManualOverride(b, currentEnableAdaptiveWeights); // Pass the flag
         }
         
         return bRankResult.points - aRankResult.points;
@@ -685,9 +722,11 @@ variant: "destructive",
             const targetTeam = tempTeams.find(t => t.id === step.assignedTeam || t.id === `placeholder-${step.assignedTeam}`);
             if (targetTeam) {
               // Add player to the target team and update its total weight
-              targetTeam.members.push(playerToMove);
+              // Ensure the player's weight_rating is set based on the adaptive calculation if enabled
+              const playerWithCalculatedWeight = { ...playerToMove, weight_rating: step.player.points };
+              targetTeam.members.push(playerWithCalculatedWeight);
               targetTeam.totalWeight = targetTeam.members.reduce((sum, m) => {
-                const mRankResult = getRankPointsWithManualOverride(m);
+                const mRankResult = getRankPointsWithManualOverride(m, currentEnableAdaptiveWeights); // Use the correct flag
                 return sum + mRankResult.points;
               }, 0);
             }
@@ -711,12 +750,15 @@ variant: "destructive",
       setUnassignedPlayers([]);
       setTeams(fullSnakeDraftResult.teams.map((draftedTeam, index) => {
         const originalTeam = availableTeams[index]; // Get the original team corresponding to this drafted team
-        const newMembers = [...originalTeam.members, ...draftedTeam];
+        const newMembers = [...originalTeam.members, ...draftedTeam.map(p => ({
+          ...p,
+          weight_rating: getRankPointsWithManualOverride(p, currentEnableAdaptiveWeights).points // Ensure final weight is set
+        }))];
         return {
           ...originalTeam,
           members: newMembers,
           totalWeight: newMembers.reduce((sum, m) => {
-            const mRankResult = getRankPointsWithManualOverride(m);
+            const mRankResult = getRankPointsWithManualOverride(m, currentEnableAdaptiveWeights); // Use the correct flag
             return sum + mRankResult.points;
           }, 0),
         };
@@ -725,7 +767,7 @@ variant: "destructive",
 
       toast({
         title: "Snake Draft Complete",
-        description: `Players distributed using ${tournament?.enable_adaptive_weights ? 'adaptive weight ' : ''}snake draft algorithm across ${numTeams} teams. Balance quality: ${fullSnakeDraftResult.finalBalance.balanceQuality}. Review before saving.`,
+        description: `Players distributed using ${currentEnableAdaptiveWeights ? 'adaptive weight ' : ''}snake draft algorithm across ${numTeams} teams. Balance quality: ${fullSnakeDraftResult.finalBalance.balanceQuality}. Review before saving.`,
       });
     } catch (e) {
       console.error('Snake draft autobalance error:', e);
@@ -751,8 +793,8 @@ variant: "destructive",
     if (members.length === 0) return fallback;
     // Captain is highest weight_rating (if equal, first in list wins)
     let sorted = [...members].sort((a, b) => {
-      const aRankResult = getRankPointsWithManualOverride(a);
-      const bRankResult = getRankPointsWithManualOverride(b);
+      const aRankResult = getRankPointsWithManualOverride(a, enableAdaptiveWeights); // Pass the flag
+      const bRankResult = getRankPointsWithManualOverride(b, enableAdaptiveWeights); // Pass the flag
       return bRankResult.points - aRankResult.points;
     });
     let captain = sorted[0];
@@ -777,12 +819,12 @@ variant: "destructive",
   // Sort team members by highest weight before saving (captain = first player highest rating)
   const saveTeamChanges = async () => {
     setSaving(true);
-try {
+    try {
       const usedNames = new Set<string>();
       let reorderedTeams = teams.map(team => {
         const sortedMembers = [...team.members].sort((a, b) => {
-          const aRankResult = getRankPointsWithManualOverride(a);
-          const bRankResult = getRankPointsWithManualOverride(b);
+          const aRankResult = getRankPointsWithManualOverride(a, enableAdaptiveWeights); // Pass the flag
+          const bRankResult = getRankPointsWithManualOverride(b, enableAdaptiveWeights); // Pass the flag
           return bRankResult.points - aRankResult.points;
         });
         let teamName = getCaptainBasedTeamName(sortedMembers, team.name);
@@ -909,9 +951,9 @@ try {
             name: team.name,
             members: team.members.map(m => ({
               discord_username: m.discord_username,
-              rank: getRankPointsWithManualOverride(m).rank,
-              points: getRankPointsWithManualOverride(m).points,
-              source: getRankPointsWithManualOverride(m).source
+              rank: getRankPointsWithManualOverride(m, enableAdaptiveWeights).rank, // Pass the flag
+              points: getRankPointsWithManualOverride(m, enableAdaptiveWeights).points, // Pass the flag
+              source: getRankPointsWithManualOverride(m, enableAdaptiveWeights).source // Pass the flag
             })),
             total_points: team.totalWeight,
             seed: index + 1
@@ -933,27 +975,27 @@ try {
         setBalanceAnalysis(null);
       }
 
-toast({
+      toast({
         title: "Teams Updated",
         description: balanceAnalysis 
           ? "Team assignments saved with detailed snake draft balance analysis."
           : "Team assignments have been saved successfully with enhanced rank balancing including manual overrides.",
-});
+      });
 
       // Refresh the data
       await fetchTeamsAndPlayers();
       onTeamsUpdated?.();
-} catch (error: any) {
+    } catch (error: any) {
       console.error('Error saving team changes:', error);
-toast({
-title: "Error",
+      toast({
+        title: "Error",
         description: "Failed to save team changes",
-variant: "destructive",
-});
-} finally {
+        variant: "destructive",
+      });
+    } finally {
       setSaving(false);
-}
-};
+    }
+  };
 
   const getBalanceAnalysis = () => {
     const teamsWithMembers = teams.filter(team => team.members.length > 0);
@@ -968,17 +1010,17 @@ variant: "destructive",
 
   if (loading) {
     return (
-<Card className="bg-slate-800 border-slate-700">
-<CardHeader>
-<CardTitle className="text-white flex items-center gap-2">
+      <Card className="bg-slate-800 border-slate-700">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center gap-2">
             <Users className="w-5 h-5" />
-Team Balancing
-</CardTitle>
-</CardHeader>
+            Team Balancing
+          </CardTitle>
+        </CardHeader>
         <CardContent>
           <div className="flex justify-center items-center h-40">
             <p className="text-slate-400">Loading teams...</p>
-</div>
+          </div>
         </CardContent>
       </Card>
     );
@@ -1040,7 +1082,7 @@ Team Balancing
               <div className="text-xs text-slate-400 ml-6">
                 Intelligently blends current and peak ranks based on rank decay and time factors
               </div>
-  
+              
               {balance && (
                 <div className="flex items-center justify-between p-3 bg-slate-700 rounded-lg">
                   <div className="flex items-center gap-2">
@@ -1049,7 +1091,7 @@ Team Balancing
                     <Badge className={`${balance.statusColor} bg-slate-600 border-slate-500`}>
                       {balance.balanceStatus.toUpperCase()}
                     </Badge>
-  </div>
+                  </div>
                   <div className="text-right">
                     <span className="text-slate-300 text-sm">
                       Weight difference: {balance.delta} points
@@ -1057,62 +1099,62 @@ Team Balancing
                     <p className={`text-xs ${balance.statusColor} mt-1`}>
                       {balance.statusMessage}
                     </p>
-  </div>
+                  </div>
                 </div>
               )}
-  
-          <div className="space-y-4">
-            <AutobalanceProgress
-              isVisible={showProgress}
-              totalPlayers={unassignedPlayers.length}
-              currentStep={progressStep}
-              lastStep={lastProgressStep}
-              phase={currentPhase}
-            />
-  
-            <div className="flex gap-2">
-                <Button
-                  onClick={autobalanceUnassignedPlayers}
-                  disabled={autobalancing || hasPlaceholderTeams || unassignedPlayers.length === 0}
-                  variant="secondary"
-                  className="bg-yellow-600 hover:bg-yellow-700 text-white"
-                >
-                  <Zap className="w-4 h-4 mr-2" />
-                  {autobalancing ? "Suggesting..." : "Autobalance"}
-                </Button>
-                
+              
+              <div className="space-y-4">
+                <AutobalanceProgress
+                  isVisible={showProgress}
+                  totalPlayers={unassignedPlayers.length}
+                  currentStep={progressStep}
+                  lastStep={lastProgressStep}
+                  phase={currentPhase}
+                />
+              
+                <div className="flex gap-2">
+                    <Button
+                      onClick={autobalanceUnassignedPlayers}
+                      disabled={autobalancing || hasPlaceholderTeams || unassignedPlayers.length === 0}
+                      variant="secondary"
+                      className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                    >
+                      <Zap className="w-4 h-4 mr-2" />
+                      {autobalancing ? "Suggesting..." : "Autobalance"}
+                    </Button>
+                    
+                    {hasPlaceholderTeams && (
+                      <Button
+                        onClick={createEmptyTeams}
+                        disabled={creatingTeams}
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        {creatingTeams ? 'Creating...' : 'Create Team Slots'}
+                      </Button>
+                    )}
+                    
+                    <Button
+                      onClick={saveTeamChanges}
+                      disabled={saving || hasPlaceholderTeams}
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      <Save className="w-4 h-4 mr-2" />
+                      {saving ? 'Saving...' : 'Save Changes'}
+                    </Button>
+                </div>
+              
                 {hasPlaceholderTeams && (
-                  <Button
-                    onClick={createEmptyTeams}
-                    disabled={creatingTeams}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    {creatingTeams ? 'Creating...' : 'Create Team Slots'}
-                  </Button>
+                  <div className="p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg">
+                    <p className="text-blue-400 text-sm">
+                      Click "Create Team Slots" to create {maxTeams} empty teams for manual player assignment.
+                    </p>
+                  </div>
                 )}
-                
-                <Button
-                  onClick={saveTeamChanges}
-                  disabled={saving || hasPlaceholderTeams}
-                  className="bg-green-600 hover:bg-green-700 text-white"
-                >
-                  <Save className="w-4 h-4 mr-2" />
-                  {saving ? 'Saving...' : 'Save Changes'}
-                </Button>
               </div>
-  
-              {hasPlaceholderTeams && (
-                <div className="p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg">
-                  <p className="text-blue-400 text-sm">
-                    Click "Create Team Slots" to create {maxTeams} empty teams for manual player assignment.
-                  </p>
-                </div>
-              )}
-            </div>
             </CardContent>
           </Card>
-  
+          
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="space-y-4">
               <h3 className="text-white font-medium flex items-center gap-2">
@@ -1120,15 +1162,15 @@ Team Balancing
                 Teams ({teams.length}/{maxTeams})
               </h3>
               {teams.map((team) => (
-                <DroppableTeam key={team.id} team={team} teamSize={teamSize} />
+                <DroppableTeam key={team.id} team={team} teamSize={teamSize} enableAdaptiveWeights={enableAdaptiveWeights} />
               ))}
             </div>
-  
+            
             <div className="space-y-4">
               <h3 className="text-white font-medium">Unassigned Players ({unassignedPlayers.length})</h3>
-              <DroppableUnassigned players={unassignedPlayers} />
+              <DroppableUnassigned players={unassignedPlayers} enableAdaptiveWeights={enableAdaptiveWeights} />
             </div>
-  </div>
+          </div>
         </div>
       </DndContext>
     </ErrorBoundary>
