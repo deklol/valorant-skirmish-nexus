@@ -406,6 +406,7 @@ try {
         processedTeams.flatMap(team => team.members.map(member => member.id))
       );
 
+      
       const regularParticipants = (participantsData || [])
         .filter(participant => !participant.is_substitute)
         .map(participant => participant.users)
@@ -1262,7 +1263,7 @@ Team Balancing
                 <DroppableUnassigned players={unassignedPlayers} />
               </div>
 
-              {/* Substitute Players Section */}
+              {/* Substitute Players Section - Always show even if empty */}
               <div>
                 <h3 className="text-lg font-semibold text-amber-300 mb-4 flex items-center gap-2">
                   <Users className="w-5 h-5" />
