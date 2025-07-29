@@ -188,12 +188,43 @@ const DroppableUnassigned = ({ players }: { players: Player[] }) => {
   );
 };
 
+// Droppable Substitutes Area
+const DroppableSubstitutes = ({ players }: { players: Player[] }) => {
+  const { isOver, setNodeRef } = useDroppable({
+    id: 'substitutes',
+  });
+
+  return (
+    <Card className="bg-slate-800 border-slate-700 min-h-[200px]">
+      <CardContent className="p-4">
+        <div 
+          ref={setNodeRef}
+          className={`space-y-2 min-h-[150px] border-2 border-dashed rounded-lg p-4 transition-colors ${
+            isOver ? 'border-amber-400 bg-amber-900/20' : 'border-slate-600'
+          }`}
+        >
+          {players.length === 0 ? (
+            <p className="text-slate-400 text-center py-8">
+              No substitute players
+            </p>
+          ) : (
+            players.map(player => (
+              <DraggablePlayer key={player.id} player={player} />
+            ))
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
 // Helper function to introduce a delay
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdated }: TeamBalancingInterfaceProps) => {
   const [teams, setTeams] = useState<Team[]>([]);
   const [unassignedPlayers, setUnassignedPlayers] = useState<Player[]>([]);
+  const [substitutePlayers, setSubstitutePlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [creatingTeams, setCreatingTeams] = useState(false);
@@ -316,6 +347,7 @@ try {
         .from('tournament_signups')
         .select(`
           user_id,
+          is_substitute,
           users (
             id,
             discord_username,
@@ -369,12 +401,35 @@ try {
         };
       });
 
-      // Find unassigned players with enhanced ranking
+      // Find unassigned players with enhanced ranking (exclude substitutes)
       const allAssignedUserIds = new Set(
         processedTeams.flatMap(team => team.members.map(member => member.id))
       );
 
-      const unassigned = (participantsData || [])
+      const regularParticipants = (participantsData || [])
+        .filter(participant => !participant.is_substitute)
+        .map(participant => participant.users)
+        .filter(user => user && !allAssignedUserIds.has(user.id))
+        .map(user => {
+          const rankResult = getRankPointsWithManualOverride(user);
+          return {
+            id: user.id,
+            discord_username: user.discord_username || 'Unknown',
+            rank_points: user.rank_points || 0,
+            weight_rating: user.weight_rating || rankResult.points,
+            current_rank: user.current_rank || 'Unranked',
+            peak_rank: user.peak_rank,
+            riot_id: user.riot_id,
+            manual_rank_override: user.manual_rank_override,
+            manual_weight_override: user.manual_weight_override,
+            use_manual_override: user.use_manual_override,
+            rank_override_reason: user.rank_override_reason
+          };
+        });
+
+      // Find substitute players (separate from regular participants)
+      const substituteParticipants = (participantsData || [])
+        .filter(participant => participant.is_substitute)
         .map(participant => participant.users)
         .filter(user => user && !allAssignedUserIds.has(user.id))
         .map(user => {
@@ -401,7 +456,8 @@ try {
 }
 
       setTeams(finalTeams);
-      setUnassignedPlayers(unassigned);
+      setUnassignedPlayers(regularParticipants);
+      setSubstitutePlayers(substituteParticipants);
     } catch (error: any) {
       console.error('Error fetching teams and players:', error);
 toast({
@@ -490,13 +546,19 @@ variant: "destructive",
     if (unassignedIndex !== -1) {
       player = unassignedPlayers[unassignedIndex];
     } else {
-      // Check teams
-      for (const team of teams) {
-        const memberIndex = team.members.findIndex(p => p.id === playerId);
-        if (memberIndex !== -1) {
-          player = team.members[memberIndex];
-          sourceTeamId = team.id;
-          break;
+      // Check substitute players
+      const substituteIndex = substitutePlayers.findIndex(p => p.id === playerId);
+      if (substituteIndex !== -1) {
+        player = substitutePlayers[substituteIndex];
+      } else {
+        // Check teams
+        for (const team of teams) {
+          const memberIndex = team.members.findIndex(p => p.id === playerId);
+          if (memberIndex !== -1) {
+            player = team.members[memberIndex];
+            sourceTeamId = team.id;
+            break;
+          }
         }
       }
     }
@@ -506,6 +568,8 @@ variant: "destructive",
     // Handle movement
     if (targetId === 'unassigned') {
       movePlayerToUnassigned(player, sourceTeamId);
+    } else if (targetId === 'substitutes') {
+      movePlayerToSubstitutes(player, sourceTeamId);
     } else if (targetId.startsWith('team-') || targetId.startsWith('placeholder-')) {
       const teamId = targetId.replace('team-', '').replace('placeholder-', '');
       const targetTeam = teams.find(t => t.id === teamId || t.id === `placeholder-${teamId}`);
@@ -543,10 +607,47 @@ variant: "destructive",
       );
     }
     
+    // Remove from substitutes if present
+    setSubstitutePlayers(prev => prev.filter(p => p.id !== player.id));
+    
+    // Add to unassigned
     setUnassignedPlayers(prev => {
       if (prev.some(p => p.id === player.id)) return prev;
       return [...prev, player];
     });
+
+    // Update database to mark as non-substitute
+    updatePlayerSubstituteStatus(player.id, false);
+  };
+
+  const movePlayerToSubstitutes = (player: Player, sourceTeamId: string | null) => {
+    if (sourceTeamId) {
+      setTeams(prevTeams => 
+        prevTeams.map(team => {
+          if (team.id === sourceTeamId) {
+            const newMembers = team.members.filter(p => p.id !== player.id);
+            const totalWeight = newMembers.reduce((sum, member) => {
+              const rankResult = getRankPointsWithManualOverride(member);
+              return sum + rankResult.points;
+            }, 0);
+            return { ...team, members: newMembers, totalWeight };
+          }
+          return team;
+        })
+      );
+    }
+    
+    // Remove from unassigned if present
+    setUnassignedPlayers(prev => prev.filter(p => p.id !== player.id));
+    
+    // Add to substitutes
+    setSubstitutePlayers(prev => {
+      if (prev.some(p => p.id === player.id)) return prev;
+      return [...prev, player];
+    });
+
+    // Update database to mark as substitute
+    updatePlayerSubstituteStatus(player.id, true);
   };
 
   const movePlayerToTeam = (player: Player, targetTeamId: string, sourceTeamId: string | null) => {
@@ -566,7 +667,9 @@ variant: "destructive",
         })
       );
     } else {
+      // Remove from both unassigned and substitutes
       setUnassignedPlayers(prev => prev.filter(p => p.id !== player.id));
+      setSubstitutePlayers(prev => prev.filter(p => p.id !== player.id));
     }
 
     // Add to target team
@@ -578,11 +681,35 @@ variant: "destructive",
             const rankResult = getRankPointsWithManualOverride(member);
             return sum + rankResult.points;
           }, 0);
-          return { ...team, members: newMembers, totalWeight };
+      return { ...team, members: newMembers, totalWeight };
         }
         return team;
       })
     );
+
+    // Update database to mark as non-substitute when moving to team
+    updatePlayerSubstituteStatus(player.id, false);
+  };
+
+  const updatePlayerSubstituteStatus = async (userId: string, isSubstitute: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('tournament_signups')
+        .update({ is_substitute: isSubstitute })
+        .eq('tournament_id', tournamentId)
+        .eq('user_id', userId);
+
+      if (error) {
+        console.error('Error updating substitute status:', error);
+        toast({
+          title: "Warning",
+          description: "Failed to update substitute status in database",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error updating substitute status:', error);
+    }
   };
 
   // Enhanced Autobalance Algorithm with Snake Draft and detailed analysis
@@ -709,6 +836,7 @@ variant: "destructive",
       // Final state update (though the loop above should have already set the final state)
       // This ensures consistency and handles cases with very few players where the loop might not run.
       setUnassignedPlayers([]);
+      // Note: substitutes are not affected by autobalance
       setTeams(fullSnakeDraftResult.teams.map((draftedTeam, index) => {
         const originalTeam = availableTeams[index]; // Get the original team corresponding to this drafted team
         const newMembers = [...originalTeam.members, ...draftedTeam];
@@ -1125,10 +1253,25 @@ Team Balancing
             </div>
   
             <div className="space-y-4">
-              <h3 className="text-white font-medium">Unassigned Players ({unassignedPlayers.length})</h3>
-              <DroppableUnassigned players={unassignedPlayers} />
+              {/* Unassigned Players Section */}
+              <div>
+                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  Unassigned Players ({unassignedPlayers.length})
+                </h3>
+                <DroppableUnassigned players={unassignedPlayers} />
+              </div>
+
+              {/* Substitute Players Section */}
+              <div>
+                <h3 className="text-lg font-semibold text-amber-300 mb-4 flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  Substitute Players ({substitutePlayers.length})
+                </h3>
+                <DroppableSubstitutes players={substitutePlayers} />
+              </div>
             </div>
-  </div>
+          </div>
         </div>
       </DndContext>
     </ErrorBoundary>
