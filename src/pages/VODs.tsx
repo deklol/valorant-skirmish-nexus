@@ -103,7 +103,7 @@ export default function VODs() {
       .from("vods")
       .update({ view_count: vod.view_count + 1 })
       .eq("id", vod.id);
-    
+      
     setSelectedVod(vod);
   };
 
@@ -112,15 +112,35 @@ export default function VODs() {
       return vod.thumbnail_url;
     }
     
-    if (vod.video_platform === "youtube" && vod.embed_id) {
-      return `https://img.youtube.com/vi/${vod.embed_id}/maxresdefault.jpg`;
+    // Attempt to parse embed_id from video_url if not already present
+    let embedId = vod.embed_id;
+    if (!embedId && vod.video_url) {
+        if (vod.video_platform === "youtube") {
+            const youtubeMatch = vod.video_url.match(/(?:https?:\/\/)?(?:www\.)?(?:m\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=|embed\/|v\/|)([\w-]{11})(?:\S+)?/);
+            if (youtubeMatch && youtubeMatch[1]) {
+                embedId = youtubeMatch[1];
+            }
+        } else if (vod.video_platform === "twitch") {
+            const twitchMatch = vod.video_url.match(/(?:https?:\/\/)?(?:www\.)?twitch\.tv\/videos\/(\d+)/);
+            if (twitchMatch && twitchMatch[1]) {
+                embedId = twitchMatch[1];
+            }
+        }
+    }
+
+    if (vod.video_platform === "youtube" && embedId) {
+      return `https://img.youtube.com/vi/${embedId}/maxresdefault.jpg`;
     }
     
-    if (vod.video_platform === "twitch" && vod.embed_id) {
-      return `https://static-cdn.jtvnw.net/cf_vods/d1m7jfoe9zdc1j/${vod.embed_id}/thumb/thumb0.jpg`;
+    if (vod.video_platform === "twitch" && embedId) {
+      // Twitch VOD thumbnails often require a specific format including the timestamp
+      // This is a common pattern, but might need adjustment based on actual Twitch API
+      // For simplicity, using a generic thumb0.jpg, but ideally, you'd get the exact one.
+      return `https://static-cdn.jtvnw.net/cf_vods/d1m7jfoe9zdc1j/${embedId}/thumb/thumb0.jpg`;
     }
     
-    return "/placeholder.svg";
+    // Placeholder image if no thumbnail or embed_id can be determined
+    return "https://placehold.co/1280x720/1f2937/d1d5db?text=No+Thumbnail";
   };
 
   const formatDuration = (minutes: number | null) => {
@@ -140,46 +160,47 @@ export default function VODs() {
 
   return (
     <PageLayout>
-      <div className="space-y-6">
+      <div className="space-y-10 py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"> {/* Added max-w, mx-auto, and padding */}
         <div className="text-center">
-          <StandardHeading level="h1" className="mb-4">Tournament VODs</StandardHeading>
-          <StandardText className="text-muted-foreground max-w-2xl mx-auto">
+          <StandardHeading level="h1" className="mb-4 text-4xl font-extrabold tracking-tight lg:text-5xl">Tournament VODs</StandardHeading>
+          <StandardText className="text-muted-foreground max-w-3xl mx-auto text-lg">
             Watch highlights and full matches from past tournaments featuring top-tier gameplay and professional commentary.
           </StandardText>
         </div>
 
-        <PageCard>
-          <div className="flex items-center gap-4 mb-6">
+        <PageCard className="p-6 sm:p-8"> {/* Increased padding for PageCard */}
+          <div className="flex items-center gap-4 mb-8"> {/* Increased bottom margin for search */}
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" /> {/* Slightly larger icon */}
               <StandardInput
                 placeholder="Search VODs by title, tournament, casters..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                className="pl-11 pr-4 py-2.5 text-base rounded-md border border-input focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" // Adjusted padding and styling for input
               />
             </div>
           </div>
 
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {[...Array(6)].map((_, i) => (
-                <div key={i} className="animate-pulse">
-                  <div className="bg-muted rounded-lg aspect-video mb-4"></div>
-                  <div className="space-y-2">
-                    <div className="bg-muted h-4 rounded w-3/4"></div>
-                    <div className="bg-muted h-3 rounded w-1/2"></div>
+                <div key={i} className="animate-pulse rounded-lg overflow-hidden border border-border bg-card shadow-sm min-h-[250px]"> {/* Added min-h for consistent loading height */}
+                  <div className="bg-muted rounded-t-lg aspect-video mb-4"></div>
+                  <div className="p-4 space-y-3">
+                    <div className="bg-muted h-5 rounded w-3/4"></div>
+                    <div className="bg-muted h-4 rounded w-1/2"></div>
+                    <div className="bg-muted h-3 rounded w-full"></div>
                   </div>
                 </div>
               ))}
             </div>
           ) : filteredVods.length === 0 ? (
-            <div className="text-center py-12">
-              <Play className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <StandardHeading level="h3" className="mb-2">
+            <div className="text-center py-16"> {/* Increased vertical padding */}
+              <Play className="w-16 h-16 text-muted-foreground mx-auto mb-6" /> {/* Larger icon */}
+              <StandardHeading level="h3" className="mb-3 text-2xl font-semibold">
                 {searchTerm ? "No VODs found" : "No VODs available"}
               </StandardHeading>
-              <StandardText className="text-muted-foreground">
+              <StandardText className="text-muted-foreground text-base max-w-md mx-auto">
                 {searchTerm 
                   ? "Try adjusting your search terms or browse all VODs."
                   : "Check back later for tournament highlights and matches."
@@ -187,7 +208,7 @@ export default function VODs() {
               </StandardText>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredVods.map((vod) => (
                 <div
                   key={vod.id}
@@ -200,20 +221,20 @@ export default function VODs() {
                       alt={vod.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                       onError={(e) => {
-                        e.currentTarget.src = "/placeholder.svg";
+                        e.currentTarget.src = "https://placehold.co/1280x720/1f2937/d1d5db?text=No+Thumbnail"; // Fallback placeholder
                       }}
                     />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-                      <Play className="w-12 h-12 text-white" />
+                      <Play className="w-14 h-14 text-white" /> {/* Slightly larger play icon */}
                     </div>
-                    <div className="absolute top-2 left-2 flex gap-2">
+                    <div className="absolute top-3 left-3 flex gap-2"> {/* Adjusted top/left for badges */}
                       {vod.is_featured && (
-                        <StandardBadge status="warning" className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30">
+                        <StandardBadge status="warning" className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30 px-2 py-1 text-xs font-medium">
                           <Star className="w-3 h-3 mr-1" />
                           Featured
                         </StandardBadge>
                       )}
-                      <StandardBadge status="info" className="bg-background/80 backdrop-blur-sm">
+                      <StandardBadge status="info" className="bg-background/80 backdrop-blur-sm px-2 py-1 text-xs font-medium">
                         {vod.video_platform === "youtube" ? (
                           <Youtube className="w-3 h-3 mr-1" />
                         ) : (
@@ -223,22 +244,22 @@ export default function VODs() {
                       </StandardBadge>
                     </div>
                     {vod.duration_minutes && (
-                      <div className="absolute bottom-2 right-2">
-                        <StandardBadge status="neutral" className="bg-black/80 text-white border-none">
+                      <div className="absolute bottom-3 right-3"> {/* Adjusted bottom/right for duration badge */}
+                        <StandardBadge status="neutral" className="bg-black/80 text-white border-none px-2 py-1 text-xs font-medium">
                           {formatDuration(vod.duration_minutes)}
                         </StandardBadge>
                       </div>
                     )}
                   </div>
                   
-                  <div className="p-4">
-                    <StandardHeading level="h4" className="mb-2 line-clamp-2 group-hover:text-primary transition-colors">
+                  <div className="p-4 sm:p-5 space-y-2"> {/* Adjusted padding and spacing */}
+                    <StandardHeading level="h4" className="text-lg font-semibold mb-1 line-clamp-2 group-hover:text-primary transition-colors">
                       {vod.title}
                     </StandardHeading>
                     
                     {vod.tournaments && (
-                      <div className="flex items-center gap-2 mb-2">
-                        <Calendar className="w-3 h-3 text-muted-foreground" />
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-3.5 h-3.5 text-muted-foreground" /> {/* Slightly larger icon */}
                         <StandardText className="text-sm text-muted-foreground">
                           {vod.tournaments.name}
                         </StandardText>
@@ -246,19 +267,19 @@ export default function VODs() {
                     )}
                     
                     {vod.description && (
-                      <StandardText className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                      <StandardText className="text-sm text-muted-foreground line-clamp-2">
                         {vod.description}
                       </StandardText>
                     )}
                     
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border mt-3"> {/* Added top border and margin */}
                       <span>{formatDate(vod.created_at)}</span>
                       <span>{vod.view_count} views</span>
                     </div>
                     
                     {(vod.casters && vod.casters.length > 0) && (
-                      <div className="mt-2 pt-2 border-t border-border">
-                        <StandardText className="text-xs text-muted-foreground">
+                      <div className="pt-2"> {/* Adjusted padding */}
+                        <StandardText className="text-xs text-muted-foreground line-clamp-1">
                           Casters: {vod.casters.join(", ")}
                         </StandardText>
                       </div>
