@@ -1,47 +1,14 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Button } from "@/components/ui/button";
-import { StandardInput } from "@/components/ui/standard-input";
-import { StandardTextarea } from "@/components/ui/standard-textarea";
-import { StandardSelect } from "@/components/ui/standard-select"; // This is the main Select component
-import {
-  SelectTrigger,
-  SelectContent,
-  SelectItem,
-  SelectValue,
-} from "@/components/ui/select"; // Import sub-components for Select
+import { PageLayout } from "@/components/ui/page-layout";
+import { PageCard } from "@/components/ui/page-card";
 import { StandardHeading } from "@/components/ui/standard-heading";
 import { StandardText } from "@/components/ui/standard-text";
+import { StandardInput } from "@/components/ui/standard-input";
 import { StandardBadge } from "@/components/ui/standard-badge";
-import { PageCard } from "@/components/ui/page-card";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import {
-  Plus,
-  Edit,
-  Trash2,
-  Youtube,
-  Twitch,
-  Star,
-  ExternalLink,
-  Eye
-} from "lucide-react";
+import { VODModal } from "@/components/VODModal";
+import { Play, Search, Calendar, Star, Youtube, Twitch } from "lucide-react";
 
 interface VOD {
   id: string;
@@ -57,48 +24,30 @@ interface VOD {
   duration_minutes: number | null;
   view_count: number;
   is_featured: boolean;
-  is_active: boolean;
   created_at: string;
   tournaments?: {
     id: string;
     name: string;
     status: string;
+    start_time: string;
   } | null;
 }
 
-interface Tournament {
-  id: string;
-  name: string;
-  status: string;
-}
-
-export function VODManager() {
+export default function VODs() {
   const [vods, setVods] = useState<VOD[]>([]);
-  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [filteredVods, setFilteredVods] = useState<VOD[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedVod, setSelectedVod] = useState<VOD | null>(null);
   const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingVod, setEditingVod] = useState<VOD | null>(null);
   const { toast } = useToast();
-
-  // Form state
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    video_url: "",
-    thumbnail_url: "",
-    tournament_id: "",
-    casters: "",
-    production_team: "",
-    video_platform: "youtube",
-    duration_minutes: "",
-    is_featured: false,
-    is_active: true,
-  });
 
   useEffect(() => {
     fetchVods();
-    fetchTournaments();
   }, []);
+
+  useEffect(() => {
+    filterVods();
+  }, [searchTerm, vods]);
 
   const fetchVods = async () => {
     try {
@@ -109,9 +58,12 @@ export function VODManager() {
           tournaments (
             id,
             name,
-            status
+            status,
+            start_time
           )
         `)
+        .eq("is_active", true)
+        .order("is_featured", { ascending: false })
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -128,178 +80,54 @@ export function VODManager() {
     }
   };
 
-  const fetchTournaments = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("tournaments")
-        .select("id, name, status")
-        .eq("status", "completed")
-        .order("start_time", { ascending: false });
-
-      if (error) throw error;
-      setTournaments(data || []);
-    } catch (error) {
-      console.error("Error fetching tournaments:", error);
-    }
-  };
-
-  const resetForm = () => {
-    setFormData({
-      title: "",
-      description: "",
-      video_url: "",
-      thumbnail_url: "",
-      tournament_id: "",
-      casters: "",
-      production_team: "",
-      video_platform: "youtube",
-      duration_minutes: "",
-      is_featured: false,
-      is_active: true,
-    });
-    setEditingVod(null);
-  };
-
-  const handleEdit = (vod: VOD) => {
-    setEditingVod(vod);
-    setFormData({
-      title: vod.title,
-      description: vod.description || "",
-      video_url: vod.video_url,
-      thumbnail_url: vod.thumbnail_url || "",
-      tournament_id: vod.tournament_id || "",
-      casters: vod.casters?.join(", ") || "",
-      production_team: vod.production_team?.join(", ") || "",
-      video_platform: vod.video_platform,
-      duration_minutes: vod.duration_minutes?.toString() || "",
-      is_featured: vod.is_featured,
-      is_active: vod.is_active,
-    });
-    setDialogOpen(true);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!formData.title || !formData.video_url) {
-      toast({
-        title: "Error",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      });
+  const filterVods = () => {
+    if (!searchTerm) {
+      setFilteredVods(vods);
       return;
     }
 
-    try {
-      const vodData = {
-        title: formData.title,
-        description: formData.description || null,
-        video_url: formData.video_url,
-        thumbnail_url: formData.thumbnail_url || null,
-        tournament_id: formData.tournament_id || null,
-        casters: formData.casters ? formData.casters.split(",").map(c => c.trim()).filter(c => c) : null,
-        production_team: formData.production_team ? formData.production_team.split(",").map(p => p.trim()).filter(p => p) : null,
-        video_platform: formData.video_platform,
-        duration_minutes: formData.duration_minutes ? parseInt(formData.duration_minutes) : null,
-        is_featured: formData.is_featured,
-        is_active: formData.is_active,
-      };
+    const filtered = vods.filter(vod =>
+      vod.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      vod.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      vod.tournaments?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      vod.casters?.some(caster => caster.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      vod.production_team?.some(member => member.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
 
-      let error;
-      if (editingVod) {
-        ({ error } = await supabase
-          .from("vods")
-          .update(vodData)
-          .eq("id", editingVod.id));
-      } else {
-        ({ error } = await supabase
-          .from("vods")
-          .insert([vodData]));
-      }
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: `VOD ${editingVod ? "updated" : "created"} successfully`,
-      });
-
-      setDialogOpen(false);
-      resetForm();
-      fetchVods();
-    } catch (error) {
-      console.error("Error saving VOD:", error);
-      toast({
-        title: "Error",
-        description: `Failed to ${editingVod ? "update" : "create"} VOD`,
-        variant: "destructive",
-      });
-    }
+    setFilteredVods(filtered);
   };
 
-  const handleDelete = async (vodId: string) => {
-    // IMPORTANT: Replaced window.confirm with a placeholder.
-    // For a real application, you should implement a custom modal
-    // or dialog component for user confirmation instead of window.confirm.
-    // Example: A custom <ConfirmDialog> component.
-    const confirmed = await new Promise((resolve) => {
-      // This is a simplified placeholder. In a real app, you'd show a modal
-      // and resolve true/false based on user interaction with the modal buttons.
-      // For now, it will always resolve true to allow deletion for testing,
-      // but you MUST replace this with a proper UI confirmation.
-      console.warn("Using a placeholder for confirmation. Implement a custom modal for user confirmation.");
-      resolve(true); // Always confirm for now, replace with actual modal logic
-    });
-
-    if (!confirmed) return;
-
-    try {
-      const { error } = await supabase
-        .from("vods")
-        .delete()
-        .eq("id", vodId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "VOD deleted successfully",
-      });
-
-      fetchVods();
-    } catch (error) {
-      console.error("Error deleting VOD:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete VOD",
-        variant: "destructive",
-      });
-    }
+  const handleVodClick = async (vod: VOD) => {
+    // Increment view count
+    await supabase
+      .from("vods")
+      .update({ view_count: vod.view_count + 1 })
+      .eq("id", vod.id);
+    
+    setSelectedVod(vod);
   };
 
-  const toggleFeatured = async (vodId: string, currentStatus: boolean) => {
-    try {
-      const { error } = await supabase
-        .from("vods")
-        .update({ is_featured: !currentStatus })
-        .eq("id", vodId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: `VOD ${!currentStatus ? "featured" : "unfeatured"} successfully`,
-      });
-
-      fetchVods();
-    } catch (error) {
-      console.error("Error updating VOD:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update VOD",
-        variant: "destructive",
-      });
+  const getThumbnailUrl = (vod: VOD) => {
+    if (vod.thumbnail_url) {
+      return vod.thumbnail_url;
     }
+    
+    if (vod.video_platform === "youtube" && vod.embed_id) {
+      return `https://img.youtube.com/vi/${vod.embed_id}/maxresdefault.jpg`;
+    }
+    
+    if (vod.video_platform === "twitch" && vod.embed_id) {
+      return `https://static-cdn.jtvnw.net/cf_vods/d1m7jfoe9zdc1j/${vod.embed_id}/thumb/thumb0.jpg`;
+    }
+    
+    return "/placeholder.svg";
+  };
+
+  const formatDuration = (minutes: number | null) => {
+    if (!minutes) return null;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
   };
 
   const formatDate = (dateString: string) => {
@@ -311,296 +139,145 @@ export function VODManager() {
   };
 
   return (
-    <PageCard>
-      <div className="flex justify-between items-center mb-6">
-        <StandardHeading level="h2">VOD Management</StandardHeading>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={resetForm}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add VOD
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                {editingVod ? "Edit VOD" : "Add New VOD"}
-              </DialogTitle>
-            </DialogHeader>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2">
-                  <Label htmlFor="title">Title *</Label>
-                  <StandardInput
-                    id="title"
-                    value={formData.title}
-                    onChange={(e) => setFormData({...formData, title: e.target.value})}
-                    placeholder="Enter VOD title"
-                    required
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <Label htmlFor="description">Description</Label>
-                  <StandardTextarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => setFormData({...formData, description: e.target.value})}
-                    placeholder="Enter VOD description"
-                    rows={3}
-                  />
-                </div>
-
-                {/* Video Platform Select */}
-                <div>
-                  <Label htmlFor="video_platform">Platform *</Label>
-                  <StandardSelect
-                    value={formData.video_platform}
-                    onValueChange={(value) => setFormData({...formData, video_platform: value})}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a platform" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="youtube">YouTube</SelectItem>
-                      <SelectItem value="twitch">Twitch</SelectItem>
-                    </SelectContent>
-                  </StandardSelect>
-                </div>
-
-                <div>
-                  <Label htmlFor="video_url">Video URL *</Label>
-                  <StandardInput
-                    id="video_url"
-                    value={formData.video_url}
-                    onChange={(e) => setFormData({...formData, video_url: e.target.value})}
-                    placeholder="https://youtube.com/watch?v=..."
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="thumbnail_url">Custom Thumbnail URL</Label>
-                  <StandardInput
-                    id="thumbnail_url"
-                    value={formData.thumbnail_url}
-                    onChange={(e) => setFormData({...formData, thumbnail_url: e.target.value})}
-                    placeholder="https://example.com/thumbnail.jpg"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="duration_minutes">Duration (minutes)</Label>
-                  <StandardInput
-                    id="duration_minutes"
-                    type="number"
-                    value={formData.duration_minutes}
-                    onChange={(e) => setFormData({...formData, duration_minutes: e.target.value})}
-                    placeholder="120"
-                  />
-                </div>
-
-                {/* Tournament Select */}
-                <div>
-                  <Label htmlFor="tournament_id">Tournament</Label>
-                  <StandardSelect
-                    value={formData.tournament_id}
-                    onValueChange={(value) => setFormData({...formData, tournament_id: value})}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select tournament (optional)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {/* Removed SelectItem with empty string value to fix the error */}
-                      {tournaments.map((tournament) => (
-                        <SelectItem key={tournament.id} value={tournament.id}>
-                          {tournament.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </StandardSelect>
-                </div>
-
-                <div>
-                  <Label htmlFor="casters">Casters (comma-separated)</Label>
-                  <StandardInput
-                    id="casters"
-                    value={formData.casters}
-                    onChange={(e) => setFormData({...formData, casters: e.target.value})}
-                    placeholder="Caster1, Caster2, Caster3"
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <Label htmlFor="production_team">Production Team (comma-separated)</Label>
-                  <StandardInput
-                    id="production_team"
-                    value={formData.production_team}
-                    onChange={(e) => setFormData({...formData, production_team: e.target.value})}
-                    placeholder="Producer1, Editor1, Director1"
-                  />
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="is_featured"
-                    checked={formData.is_featured}
-                    onCheckedChange={(checked) => setFormData({...formData, is_featured: checked})}
-                  />
-                  <Label htmlFor="is_featured">Featured</Label>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="is_active"
-                    checked={formData.is_active}
-                    onCheckedChange={(checked) => setFormData({...formData, is_active: checked})}
-                  />
-                  <Label htmlFor="is_active">Active</Label>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-4">
-                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit">
-                  {editingVod ? "Update VOD" : "Create VOD"}
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {loading ? (
-        <div className="text-center py-8">
-          <StandardText>Loading VODs...</StandardText>
+    <PageLayout>
+      <div className="space-y-6">
+        <div className="text-center">
+          <StandardHeading level="h1" className="mb-4">Tournament VODs</StandardHeading>
+          <StandardText className="text-muted-foreground max-w-2xl mx-auto">
+            Watch highlights and full matches from past tournaments featuring top-tier gameplay and professional commentary.
+          </StandardText>
         </div>
-      ) : (
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Platform</TableHead>
-                <TableHead>Tournament</TableHead>
-                <TableHead>Views</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {vods.map((vod) => (
-                <TableRow key={vod.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
+
+        <PageCard>
+          <div className="flex items-center gap-4 mb-6">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <StandardInput
+                placeholder="Search VODs by title, tournament, casters..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="bg-muted rounded-lg aspect-video mb-4"></div>
+                  <div className="space-y-2">
+                    <div className="bg-muted h-4 rounded w-3/4"></div>
+                    <div className="bg-muted h-3 rounded w-1/2"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : filteredVods.length === 0 ? (
+            <div className="text-center py-12">
+              <Play className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <StandardHeading level="h3" className="mb-2">
+                {searchTerm ? "No VODs found" : "No VODs available"}
+              </StandardHeading>
+              <StandardText className="text-muted-foreground">
+                {searchTerm 
+                  ? "Try adjusting your search terms or browse all VODs."
+                  : "Check back later for tournament highlights and matches."
+                }
+              </StandardText>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredVods.map((vod) => (
+                <div
+                  key={vod.id}
+                  className="group cursor-pointer rounded-lg overflow-hidden bg-card border border-border hover:border-primary transition-all duration-200 hover:shadow-lg"
+                  onClick={() => handleVodClick(vod)}
+                >
+                  <div className="relative aspect-video overflow-hidden">
+                    <img
+                      src={getThumbnailUrl(vod)}
+                      alt={vod.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                      onError={(e) => {
+                        e.currentTarget.src = "/placeholder.svg";
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                      <Play className="w-12 h-12 text-white" />
+                    </div>
+                    <div className="absolute top-2 left-2 flex gap-2">
                       {vod.is_featured && (
-                        <Star className="w-4 h-4 text-yellow-500" />
-                      )}
-                      <div>
-                        <div className="font-medium">{vod.title}</div>
-                        {vod.description && (
-                          <div className="text-sm text-muted-foreground line-clamp-1">
-                            {vod.description}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      {vod.video_platform === "youtube" ? (
-                        <Youtube className="w-4 h-4 text-red-500" />
-                      ) : (
-                        <Twitch className="w-4 h-4 text-purple-500" />
-                      )}
-                      <span className="capitalize">{vod.video_platform}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {vod.tournaments ? (
-                      <StandardText className="text-sm">
-                        {vod.tournaments.name}
-                      </StandardText>
-                    ) : (
-                      <StandardText className="text-sm text-muted-foreground">
-                        No tournament
-                      </StandardText>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Eye className="w-3 h-3 text-muted-foreground" />
-                      {vod.view_count}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      <StandardBadge status={vod.is_active ? "success" : "error"}>
-                        {vod.is_active ? "Active" : "Inactive"}
-                      </StandardBadge>
-                      {vod.is_featured && (
-                        <StandardBadge status="warning">
+                        <StandardBadge status="warning" className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30">
+                          <Star className="w-3 h-3 mr-1" />
                           Featured
                         </StandardBadge>
                       )}
+                      <StandardBadge status="info" className="bg-background/80 backdrop-blur-sm">
+                        {vod.video_platform === "youtube" ? (
+                          <Youtube className="w-3 h-3 mr-1" />
+                        ) : (
+                          <Twitch className="w-3 h-3 mr-1" />
+                        )}
+                        {vod.video_platform}
+                      </StandardBadge>
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <StandardText className="text-sm">
-                      {formatDate(vod.created_at)}
-                    </StandardText>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => window.open(vod.video_url, "_blank")}
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleFeatured(vod.id, vod.is_featured)}
-                      >
-                        <Star className={`w-4 h-4 ${vod.is_featured ? "text-yellow-500" : "text-muted-foreground"}`} />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEdit(vod)}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(vod.id)}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                    {vod.duration_minutes && (
+                      <div className="absolute bottom-2 right-2">
+                        <StandardBadge status="neutral" className="bg-black/80 text-white border-none">
+                          {formatDuration(vod.duration_minutes)}
+                        </StandardBadge>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="p-4">
+                    <StandardHeading level="h4" className="mb-2 line-clamp-2 group-hover:text-primary transition-colors">
+                      {vod.title}
+                    </StandardHeading>
+                    
+                    {vod.tournaments && (
+                      <div className="flex items-center gap-2 mb-2">
+                        <Calendar className="w-3 h-3 text-muted-foreground" />
+                        <StandardText className="text-sm text-muted-foreground">
+                          {vod.tournaments.name}
+                        </StandardText>
+                      </div>
+                    )}
+                    
+                    {vod.description && (
+                      <StandardText className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                        {vod.description}
+                      </StandardText>
+                    )}
+                    
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>{formatDate(vod.created_at)}</span>
+                      <span>{vod.view_count} views</span>
                     </div>
-                  </TableCell>
-                </TableRow>
+                    
+                    {(vod.casters && vod.casters.length > 0) && (
+                      <div className="mt-2 pt-2 border-t border-border">
+                        <StandardText className="text-xs text-muted-foreground">
+                          Casters: {vod.casters.join(", ")}
+                        </StandardText>
+                      </div>
+                    )}
+                  </div>
+                </div>
               ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+            </div>
+          )}
+        </PageCard>
 
-      {!loading && vods.length === 0 && (
-        <div className="text-center py-8">
-          <StandardText className="text-muted-foreground">
-            No VODs found. Create your first VOD to get started.
-          </StandardText>
-        </div>
-      )}
-    </PageCard>
+        {selectedVod && (
+          <VODModal
+            vod={selectedVod}
+            isOpen={!!selectedVod}
+            onClose={() => setSelectedVod(null)}
+          />
+        )}
+      </div>
+    </PageLayout>
   );
 }
