@@ -79,13 +79,12 @@ export function AppSidebar() {
   const mainNavItems = [
     { title: "Home", url: "/", icon: Home },
     { title: "Tournaments", url: "/tournaments", icon: Calendar },
+    { title: "VODs", url: "/vods", icon: PlayCircle },
     { title: "Teams", url: "/teams-directory", icon: Users },
     { title: "Leaderboard", url: "/leaderboard", icon: Trophy },
     { title: "Players", url: "/players", icon: User },
     { title: "Statistics", url: "/statistics", icon: TrendingUp },
     { title: "Shop", url: "/shop", icon: ShoppingBag },
-    // Replaced "Help" with "VODs" and updated its icon
-    { title: "VODs", url: "/vods", icon: PlayCircle }, 
   ];
 
   // Admin navigation items
