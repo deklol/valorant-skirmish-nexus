@@ -84,7 +84,8 @@ export function AppSidebar() {
     { title: "Players", url: "/players", icon: User },
     { title: "Statistics", url: "/statistics", icon: TrendingUp },
     { title: "Shop", url: "/shop", icon: ShoppingBag },
-    { title: "Help", url: "/help", icon: HelpCircle },
+    // Replaced "Help" with "VODs" and updated its icon
+    { title: "VODs", url: "/vods", icon: PlayCircle }, 
   ];
 
   // Admin navigation items
@@ -220,14 +221,14 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {mainNavItems.map((item) => (
-                 <SidebarMenuItem key={item.title}>
-                   <SidebarMenuButton asChild size={isCollapsed ? "sm" : "lg"} className={isCollapsed ? "justify-center" : ""}>
-                     <NavLink to={item.url} className={`${isCollapsed ? 'py-3 flex items-center justify-center w-full' : 'py-3 px-4'} ${getNavClasses(item.url)}`}>
-                       <item.icon className={`${isCollapsed ? 'h-6 w-6' : 'h-5 w-5 mr-3'}`} />
-                       {!isCollapsed && <span className="text-base">{item.title}</span>}
-                     </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                   <SidebarMenuItem key={item.title}>
+                     <SidebarMenuButton asChild size={isCollapsed ? "sm" : "lg"} className={isCollapsed ? "justify-center" : ""}>
+                       <NavLink to={item.url} className={`${isCollapsed ? 'py-3 flex items-center justify-center w-full' : 'py-3 px-4'} ${getNavClasses(item.url)}`}>
+                         <item.icon className={`${isCollapsed ? 'h-6 w-6' : 'h-5 w-5 mr-3'}`} />
+                         {!isCollapsed && <span className="text-base">{item.title}</span>}
+                       </NavLink>
+                     </SidebarMenuButton>
+                   </SidebarMenuItem>
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
@@ -254,26 +255,26 @@ export function AppSidebar() {
            </SidebarGroup>
          )}
 
-         {/* User Navigation */}
-         {user && (
-           <SidebarGroup>
-             <SidebarGroupLabel className="text-sidebar-foreground/70 font-medium">Account</SidebarGroupLabel>
-             <SidebarGroupContent>
-               <SidebarMenu>
-                 {userNavItems.map((item) => (
-                   <SidebarMenuItem key={item.title}>
-                     <SidebarMenuButton asChild size={isCollapsed ? "sm" : "lg"} className={isCollapsed ? "justify-center" : ""}>
-                       <NavLink to={item.url} className={`${isCollapsed ? 'py-3 flex items-center justify-center w-full' : 'py-3 px-4'} ${getNavClasses(item.url)}`}>
-                         <item.icon className={`${isCollapsed ? 'h-6 w-6' : 'h-5 w-5 mr-3'}`} />
-                         {!isCollapsed && <span className="text-base">{item.title}</span>}
-                       </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
+           {/* User Navigation */}
+           {user && (
+             <SidebarGroup>
+               <SidebarGroupLabel className="text-sidebar-foreground/70 font-medium">Account</SidebarGroupLabel>
+               <SidebarGroupContent>
+                 <SidebarMenu>
+                   {userNavItems.map((item) => (
+                     <SidebarMenuItem key={item.title}>
+                       <SidebarMenuButton asChild size={isCollapsed ? "sm" : "lg"} className={isCollapsed ? "justify-center" : ""}>
+                         <NavLink to={item.url} className={`${isCollapsed ? 'py-3 flex items-center justify-center w-full' : 'py-3 px-4'} ${getNavClasses(item.url)}`}>
+                           <item.icon className={`${isCollapsed ? 'h-6 w-6' : 'h-5 w-5 mr-3'}`} />
+                           {!isCollapsed && <span className="text-base">{item.title}</span>}
+                         </NavLink>
+                       </SidebarMenuButton>
+                     </SidebarMenuItem>
+                   ))}
+                 </SidebarMenu>
+               </SidebarGroupContent>
+             </SidebarGroup>
+           )}
 
         {/* Latest Tournament - Only show when expanded */}
         {!isCollapsed && (
