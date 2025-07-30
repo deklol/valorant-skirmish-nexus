@@ -4,13 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { StandardInput } from "@/components/ui/standard-input";
 import { StandardTextarea } from "@/components/ui/standard-textarea";
-import { StandardSelect } from "@/components/ui/standard-select"; // This is the main Select component
-import {
-  SelectTrigger,
-  SelectContent,
-  SelectItem,
-  SelectValue,
-} from "@/components/ui/select"; // Import sub-components for Select
+import { StandardSelect } from "@/components/ui/standard-select";
 import { StandardHeading } from "@/components/ui/standard-heading";
 import { StandardText } from "@/components/ui/standard-text";
 import { StandardBadge } from "@/components/ui/standard-badge";
@@ -22,7 +16,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
+import { 
   Table,
   TableBody,
   TableCell,
@@ -32,12 +26,12 @@ import {
 } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import {
-  Plus,
-  Edit,
-  Trash2,
-  Youtube,
-  Twitch,
+import { 
+  Plus, 
+  Edit, 
+  Trash2, 
+  Youtube, 
+  Twitch, 
   Star,
   ExternalLink,
   Eye
@@ -180,7 +174,7 @@ export function VODManager() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    
     if (!formData.title || !formData.video_url) {
       toast({
         title: "Error",
@@ -238,10 +232,6 @@ export function VODManager() {
   };
 
   const handleDelete = async (vodId: string) => {
-    // Replaced window.confirm with a custom modal or toast action if needed,
-    // but for this example, we'll keep it simple and assume a confirmation dialog
-    // is handled by the framework or a custom component.
-    // For a real app, you'd use a custom dialog here.
     if (!confirm("Are you sure you want to delete this VOD?")) return;
 
     try {
@@ -318,7 +308,7 @@ export function VODManager() {
                 {editingVod ? "Edit VOD" : "Add New VOD"}
               </DialogTitle>
             </DialogHeader>
-
+            
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
@@ -343,20 +333,14 @@ export function VODManager() {
                   />
                 </div>
 
-                {/* Video Platform Select */}
                 <div>
                   <Label htmlFor="video_platform">Platform *</Label>
                   <StandardSelect
                     value={formData.video_platform}
                     onValueChange={(value) => setFormData({...formData, video_platform: value})}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a platform" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="youtube">YouTube</SelectItem>
-                      <SelectItem value="twitch">Twitch</SelectItem>
-                    </SelectContent>
+                    <option value="youtube">YouTube</option>
+                    <option value="twitch">Twitch</option>
                   </StandardSelect>
                 </div>
 
@@ -392,24 +376,18 @@ export function VODManager() {
                   />
                 </div>
 
-                {/* Tournament Select */}
                 <div>
                   <Label htmlFor="tournament_id">Tournament</Label>
                   <StandardSelect
                     value={formData.tournament_id}
                     onValueChange={(value) => setFormData({...formData, tournament_id: value})}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select tournament (optional)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">Select tournament (optional)</SelectItem>
-                      {tournaments.map((tournament) => (
-                        <SelectItem key={tournament.id} value={tournament.id}>
-                          {tournament.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
+                    <option value="">Select tournament (optional)</option>
+                    {tournaments.map((tournament) => (
+                      <option key={tournament.id} value={tournament.id}>
+                        {tournament.name}
+                      </option>
+                    ))}
                   </StandardSelect>
                 </div>
 
