@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { Trophy, Users, Calendar, Menu, X, LogOut, User, Settings, Shield, Youtube } from "lucide-react";
+import { Trophy, Users, Calendar, Menu, X, LogOut, User, Settings, Shield, Youtube, Video } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import MobileNav from "./MobileNav";
@@ -51,6 +51,10 @@ const Header = () => {
                 <Link to="/players" className="text-slate-300 hover:text-white transition-colors">
                   <Users className="w-4 h-4 inline mr-2" />
                   Players
+                </Link>
+                <Link to="/vods" className="text-slate-300 hover:text-white transition-colors">
+                  <Video className="w-4 h-4 inline mr-2" />
+                  VODs
                 </Link>
               </>
             ) : (

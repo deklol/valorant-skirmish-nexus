@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Users, Trophy, MessageSquare, Map, ShieldAlert, Wrench, BookOpen, FileText, Stethoscope, Play, TestTube, Award, Bot, BarChart3, Activity } from "lucide-react";
+import { Settings, Users, Trophy, MessageSquare, Map, ShieldAlert, Wrench, BookOpen, FileText, Stethoscope, Play, TestTube, Award, Bot, BarChart3, Activity, Video } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import DiscordWebhookManager from "@/components/DiscordWebhookManager";
 import CreateTournamentDialog from "@/components/CreateTournamentDialog";
@@ -29,6 +29,7 @@ import PlayerMedicManager from "@/components/medic-enhanced/PlayerMedicManager";
 import StatisticsMedicManager from "@/components/medic-enhanced/StatisticsMedicManager";
 import { ShopMedicManager } from "@/components/admin/ShopMedicManager";
 import SponsorManager from "@/components/admin/SponsorManager";
+import { VODManager } from "@/components/admin/VODManager";
 
 const Admin = () => {
   const { isAdmin } = useAuth();
@@ -90,6 +91,10 @@ const Admin = () => {
             <TabsTrigger value="sponsors" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
               <Trophy className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Sponsors</span>
+            </TabsTrigger>
+            <TabsTrigger value="vods" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
+              <Video className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">VODs</span>
             </TabsTrigger>
 
             {/* Medical Tools - Individual Tabs */}
@@ -161,6 +166,10 @@ const Admin = () => {
 
           <TabsContent value="sponsors">
             <SponsorManager />
+          </TabsContent>
+
+          <TabsContent value="vods">
+            <VODManager />
           </TabsContent>
 
           <TabsContent value="tournament-medic">

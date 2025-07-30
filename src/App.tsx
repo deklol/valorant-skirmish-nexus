@@ -31,6 +31,7 @@ import Statistics from "./pages/Statistics";
 import Help from "./pages/Help";
 import Shop from "./pages/Shop";
 import NotificationSettings from "./pages/NotificationSettings";
+import VODs from "./pages/VODs";
 import { AppSettingsProvider } from "./contexts/AppSettingsContext";
 
 const queryClient = new QueryClient();
@@ -79,6 +80,7 @@ const AppContent = () => {
                     <Route path="/statistics" element={<Statistics />} />
                     <Route path="/shop" element={<Shop />} />
                     <Route path="/help" element={<Help />} />
+                    <Route path="/vods" element={<VODs />} />
                     <Route path="/settings/notifications" element={<NotificationSettings />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>

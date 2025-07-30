@@ -15,7 +15,8 @@ import {
   ShoppingBag,
   HelpCircle,
   UsersRound,
-  ChevronRight
+  ChevronRight,
+  Video
 } from "lucide-react";
 
 interface MobileNavProps {
@@ -33,6 +34,7 @@ const MobileNav = ({ user, isAdmin, onSignOut, onClose }: MobileNavProps) => {
     { to: "/teams-directory", icon: Users, label: "Teams" },
     { to: "/leaderboard", icon: Trophy, label: "Leaderboard" },
     { to: "/players", icon: UserIcon, label: "Players" },
+    { to: "/vods", icon: Video, label: "VODs" },
     { to: "/statistics", icon: TrendingUp, label: "Statistics" },
     { to: "/shop", icon: ShoppingBag, label: "Shop" },
     { to: "/help", icon: HelpCircle, label: "Help" },

@@ -1943,6 +1943,74 @@ export type Database = {
           },
         ]
       }
+      vods: {
+        Row: {
+          casters: string[] | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          duration_minutes: number | null
+          embed_id: string | null
+          id: string
+          is_active: boolean | null
+          is_featured: boolean | null
+          production_team: string[] | null
+          thumbnail_url: string | null
+          title: string
+          tournament_id: string | null
+          updated_at: string | null
+          video_platform: string
+          video_url: string
+          view_count: number | null
+        }
+        Insert: {
+          casters?: string[] | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          duration_minutes?: number | null
+          embed_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          production_team?: string[] | null
+          thumbnail_url?: string | null
+          title: string
+          tournament_id?: string | null
+          updated_at?: string | null
+          video_platform?: string
+          video_url: string
+          view_count?: number | null
+        }
+        Update: {
+          casters?: string[] | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          duration_minutes?: number | null
+          embed_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          production_team?: string[] | null
+          thumbnail_url?: string | null
+          title?: string
+          tournament_id?: string | null
+          updated_at?: string | null
+          video_platform?: string
+          video_url?: string
+          view_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vods_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -2031,6 +2099,10 @@ export type Database = {
       disqualify_team: {
         Args: { p_team_id: string; p_reason?: string }
         Returns: Json
+      }
+      extract_video_embed_id: {
+        Args: { video_url: string; platform: string }
+        Returns: string
       }
       fix_all_bracket_progression: {
         Args: { p_tournament_id: string }
