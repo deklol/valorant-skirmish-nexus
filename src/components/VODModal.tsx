@@ -159,29 +159,29 @@ export function VODModal({ vod, isOpen, onClose }: VODModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] p-0">
-        <DialogHeader className="p-6 pb-0">
-          <DialogTitle className="flex items-center gap-3">
+      <DialogContent className="max-w-7xl max-h-[95vh] p-0 bg-background border-border">
+        <DialogHeader className="p-4 pb-0 border-b border-border/50">
+          <DialogTitle className="flex items-center justify-between">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
                 {vod.is_featured && (
-                  <StandardBadge status="warning" className="bg-yellow-500/20 text-yellow-300">
+                  <StandardBadge status="warning" className="bg-yellow-500/20 text-yellow-300 border-yellow-400/30">
                     <Star className="w-3 h-3 mr-1" />
                     Featured
                   </StandardBadge>
                 )}
-                <StandardBadge status="info">
+                <StandardBadge status="info" className="bg-blue-500/20 text-blue-300 border-blue-400/30">
                   {vod.video_platform}
                 </StandardBadge>
               </div>
-              <StandardHeading level="h3">{vod.title}</StandardHeading>
+              <StandardHeading level="h3" className="text-foreground">{vod.title}</StandardHeading>
             </div>
             <div className="flex gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => window.open(vod.video_url, "_blank")}
-                className="shrink-0"
+                className="shrink-0 border-border hover:bg-accent"
               >
                 <ExternalLink className="w-4 h-4 mr-2" />
                 Watch on {vod.video_platform}
@@ -191,7 +191,7 @@ export function VODModal({ vod, isOpen, onClose }: VODModalProps) {
                   variant="outline"
                   size="sm"
                   onClick={() => window.open(`/tournament/${vod.tournament_id}`, "_blank")}
-                  className="shrink-0"
+                  className="shrink-0 border-border hover:bg-accent"
                 >
                   <Trophy className="w-4 h-4 mr-2" />
                   Tournament
@@ -202,194 +202,211 @@ export function VODModal({ vod, isOpen, onClose }: VODModalProps) {
         </DialogHeader>
 
         <div className="flex-1 overflow-hidden">
-          <ScrollArea className="h-full">
-            <div className="p-6 pt-0">
-              {/* Video Player */}
-              {embedUrl && (
-                <div className="aspect-video w-full mb-6 rounded-lg overflow-hidden bg-black">
-                  <iframe
-                    src={embedUrl}
-                    frameBorder="0"
-                    allowFullScreen
-                    className="w-full h-full"
-                    title={vod.title}
-                  />
-                </div>
-              )}
+          <div className="h-full p-4">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
+              {/* Video Player and Main Info */}
+              <div className="lg:col-span-2 space-y-4">
+                {/* Smaller Video Player */}
+                {embedUrl && (
+                  <div className="aspect-video w-full rounded-lg overflow-hidden bg-black border border-border shadow-lg">
+                    <iframe
+                      src={embedUrl}
+                      frameBorder="0"
+                      allowFullScreen
+                      className="w-full h-full"
+                      title={vod.title}
+                    />
+                  </div>
+                )}
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Main Content */}
-                <div className="lg:col-span-2 space-y-6">
-                  {/* Video Info */}
-                  <div>
-                    {vod.description && (
-                      <StandardText className="mb-4">{vod.description}</StandardText>
+                {/* Video Info */}
+                <div className="bg-card border border-border rounded-lg p-4">
+                  {vod.description && (
+                    <StandardText className="mb-4 text-card-foreground">{vod.description}</StandardText>
+                  )}
+                  
+                  <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-4">
+                    <div className="flex items-center gap-1">
+                      <Calendar className="w-4 h-4" />
+                      {formatDate(vod.created_at)}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Eye className="w-4 h-4" />
+                      {vod.view_count} views
+                    </div>
+                    {vod.duration_minutes && (
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-4 h-4" />
+                        {formatDuration(vod.duration_minutes)}
+                      </div>
                     )}
-                    
-                    <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-4">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
-                        {formatDate(vod.created_at)}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Eye className="w-4 h-4" />
-                        {vod.view_count} views
-                      </div>
-                      {vod.duration_minutes && (
-                        <div className="flex items-center gap-1">
-                          <Clock className="w-4 h-4" />
-                          {formatDuration(vod.duration_minutes)}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Credits */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {vod.casters && vod.casters.length > 0 && (
-                        <div>
-                          <div className="flex items-center gap-2 mb-2">
-                            <Mic className="w-4 h-4 text-primary" />
-                            <StandardText className="font-medium">Casters</StandardText>
-                          </div>
-                          <div className="space-y-1">
-                            {vod.casters.map((caster, index) => (
-                              <StandardBadge key={index} status="neutral" className="mr-2 mb-1">
-                                {caster}
-                              </StandardBadge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {vod.production_team && vod.production_team.length > 0 && (
-                        <div>
-                          <div className="flex items-center gap-2 mb-2">
-                            <Video className="w-4 h-4 text-primary" />
-                            <StandardText className="font-medium">Production</StandardText>
-                          </div>
-                          <div className="space-y-1">
-                            {vod.production_team.map((member, index) => (
-                              <StandardBadge key={index} status="neutral" className="mr-2 mb-1">
-                                {member}
-                              </StandardBadge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
                   </div>
 
-                  {/* Tournament Matches */}
-                  {tournamentData && tournamentData.matches.length > 0 && (
-                    <div>
-                      <StandardHeading level="h4" className="mb-4">Tournament Matches</StandardHeading>
-                      <div className="space-y-3">
-                        {tournamentData.matches.slice(0, 10).map((match) => (
-                          <div key={match.id} className="flex items-center justify-between p-3 border border-border rounded-lg">
-                            <div className="flex items-center gap-3">
-                              <StandardBadge status="neutral" className="text-xs">
-                                R{match.round_number}
+                  {/* Credits */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {vod.casters && vod.casters.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <Mic className="w-4 h-4 text-primary" />
+                          <StandardText className="font-medium text-card-foreground">Casters</StandardText>
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {vod.casters.map((caster, index) => (
+                            <StandardBadge key={index} status="neutral" className="text-xs bg-muted/50 border-border">
+                              {caster}
+                            </StandardBadge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {vod.production_team && vod.production_team.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <Video className="w-4 h-4 text-primary" />
+                          <StandardText className="font-medium text-card-foreground">Production</StandardText>
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {vod.production_team.map((member, index) => (
+                            <StandardBadge key={index} status="neutral" className="text-xs bg-muted/50 border-border">
+                              {member}
+                            </StandardBadge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Tournament Matches */}
+                {tournamentData && tournamentData.matches.length > 0 && (
+                  <div className="bg-card border border-border rounded-lg p-4">
+                    <StandardHeading level="h4" className="mb-4 text-card-foreground">Tournament Matches</StandardHeading>
+                    <div className="space-y-2 max-h-60 overflow-y-auto mobile-scroll">
+                      {tournamentData.matches.slice(0, 10).map((match) => (
+                        <div key={match.id} className="flex items-center justify-between p-3 bg-muted/30 border border-border/50 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <StandardBadge status="neutral" className="text-xs bg-primary/20 text-primary border-primary/30">
+                              R{match.round_number}
+                            </StandardBadge>
+                            <StandardText className="text-sm text-card-foreground">
+                              {match.team1?.name || "TBD"} vs {match.team2?.name || "TBD"}
+                            </StandardText>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <StandardText className="text-sm text-muted-foreground">
+                              {match.score_team1} - {match.score_team2}
+                            </StandardText>
+                            {match.winner && (
+                              <StandardBadge status="success" className="text-xs bg-green-500/20 text-green-300 border-green-400/30">
+                                {match.winner.name}
                               </StandardBadge>
-                              <StandardText className="text-sm">
-                                {match.team1?.name || "TBD"} vs {match.team2?.name || "TBD"}
-                              </StandardText>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <StandardText className="text-sm text-muted-foreground">
-                                {match.score_team1} - {match.score_team2}
-                              </StandardText>
-                              {match.winner && (
-                                <StandardBadge status="success" className="text-xs">
-                                  {match.winner.name}
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Sidebar with Scrollable Content */}
+              <div className="bg-card border border-border rounded-lg p-4 h-fit max-h-full overflow-hidden">
+                <ScrollArea className="h-full max-h-[calc(95vh-200px)]">
+                  <div className="space-y-6 pr-2">
+                    {/* Tournament Info */}
+                    {vod.tournaments && (
+                      <div>
+                        <StandardHeading level="h4" className="mb-3 text-card-foreground flex items-center gap-2">
+                          <Trophy className="w-4 h-4" />
+                          Tournament
+                        </StandardHeading>
+                        <div className="p-3 bg-muted/30 border border-border/50 rounded-lg">
+                          <StandardText className="font-medium mb-2 text-card-foreground">{vod.tournaments.name}</StandardText>
+                          <StandardText className="text-sm text-muted-foreground mb-3">
+                            {formatDate(vod.tournaments.start_time)}
+                          </StandardText>
+                          <StandardBadge status={vod.tournaments.status === "completed" ? "success" : "neutral"} 
+                            className={vod.tournaments.status === "completed" 
+                              ? "bg-green-500/20 text-green-300 border-green-400/30" 
+                              : "bg-muted/50 border-border"
+                            }>
+                            {vod.tournaments.status}
+                          </StandardBadge>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Tournament Teams */}
+                    {tournamentData && tournamentData.teams.length > 0 && (
+                      <div>
+                        <StandardHeading level="h4" className="mb-3 text-card-foreground flex items-center gap-2">
+                          <Users className="w-4 h-4" />
+                          Teams
+                        </StandardHeading>
+                        <div className="space-y-2 max-h-72 overflow-y-auto mobile-scroll">
+                          {tournamentData.teams.map((team) => (
+                            <div key={team.id} className="p-3 bg-muted/30 border border-border/50 rounded-lg">
+                              <div className="flex items-center justify-between mb-2">
+                                <StandardText className="font-medium text-sm text-card-foreground">{team.name}</StandardText>
+                                <StandardBadge 
+                                  status={team.status === "winner" ? "success" : "neutral"} 
+                                  className={team.status === "winner" 
+                                    ? "text-xs bg-green-500/20 text-green-300 border-green-400/30" 
+                                    : "text-xs bg-muted/50 border-border"
+                                  }>
+                                  {team.status}
                                 </StandardBadge>
-                              )}
+                              </div>
+                              <div className="space-y-1">
+                                {team.team_members?.slice(0, 3).map((member: any, idx: number) => (
+                                  <StandardText key={idx} className="text-xs text-muted-foreground">
+                                    {member.users?.discord_username}
+                                  </StandardText>
+                                ))}
+                                {team.team_members?.length > 3 && (
+                                  <StandardText className="text-xs text-muted-foreground">
+                                    +{team.team_members.length - 3} more
+                                  </StandardText>
+                                )}
+                              </div>
                             </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Tournament Stats */}
+                    {tournamentData && (
+                      <div>
+                        <StandardHeading level="h4" className="mb-3 text-card-foreground">Tournament Stats</StandardHeading>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between p-2 bg-muted/20 rounded-lg">
+                            <StandardText className="text-sm text-card-foreground">Participants</StandardText>
+                            <StandardBadge status="neutral" className="bg-primary/20 text-primary border-primary/30">
+                              {tournamentData.participants.length}
+                            </StandardBadge>
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Sidebar */}
-                <div className="space-y-6">
-                  {/* Tournament Info */}
-                  {vod.tournaments && (
-                    <div>
-                      <StandardHeading level="h4" className="mb-3">Tournament</StandardHeading>
-                      <div className="p-4 border border-border rounded-lg">
-                        <StandardText className="font-medium mb-2">{vod.tournaments.name}</StandardText>
-                        <StandardText className="text-sm text-muted-foreground mb-3">
-                          {formatDate(vod.tournaments.start_time)}
-                        </StandardText>
-                        <StandardBadge status={vod.tournaments.status === "completed" ? "success" : "neutral"}>
-                          {vod.tournaments.status}
-                        </StandardBadge>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Tournament Teams */}
-                  {tournamentData && tournamentData.teams.length > 0 && (
-                    <div>
-                      <StandardHeading level="h4" className="mb-3">Teams</StandardHeading>
-                      <div className="space-y-3 max-h-64 overflow-y-auto">
-                        {tournamentData.teams.map((team) => (
-                          <div key={team.id} className="p-3 border border-border rounded-lg">
-                            <div className="flex items-center justify-between mb-2">
-                              <StandardText className="font-medium text-sm">{team.name}</StandardText>
-                              <StandardBadge status={team.status === "winner" ? "success" : "neutral"} className="text-xs">
-                                {team.status}
-                              </StandardBadge>
-                            </div>
-                            <div className="space-y-1">
-                              {team.team_members?.slice(0, 3).map((member: any, idx: number) => (
-                                <StandardText key={idx} className="text-xs text-muted-foreground">
-                                  {member.users?.discord_username}
-                                </StandardText>
-                              ))}
-                              {team.team_members?.length > 3 && (
-                                <StandardText className="text-xs text-muted-foreground">
-                                  +{team.team_members.length - 3} more
-                                </StandardText>
-                              )}
-                            </div>
+                          <div className="flex items-center justify-between p-2 bg-muted/20 rounded-lg">
+                            <StandardText className="text-sm text-card-foreground">Teams</StandardText>
+                            <StandardBadge status="neutral" className="bg-primary/20 text-primary border-primary/30">
+                              {tournamentData.teams.length}
+                            </StandardBadge>
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Tournament Stats */}
-                  {tournamentData && (
-                    <div>
-                      <StandardHeading level="h4" className="mb-3">Tournament Stats</StandardHeading>
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <StandardText className="text-sm">Participants</StandardText>
-                          <StandardBadge status="neutral">
-                            {tournamentData.participants.length}
-                          </StandardBadge>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <StandardText className="text-sm">Teams</StandardText>
-                          <StandardBadge status="neutral">
-                            {tournamentData.teams.length}
-                          </StandardBadge>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <StandardText className="text-sm">Matches</StandardText>
-                          <StandardBadge status="neutral">
-                            {tournamentData.matches.length}
-                          </StandardBadge>
+                          <div className="flex items-center justify-between p-2 bg-muted/20 rounded-lg">
+                            <StandardText className="text-sm text-card-foreground">Matches</StandardText>
+                            <StandardBadge status="neutral" className="bg-primary/20 text-primary border-primary/30">
+                              {tournamentData.matches.length}
+                            </StandardBadge>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </div>
+                </ScrollArea>
               </div>
             </div>
-          </ScrollArea>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
