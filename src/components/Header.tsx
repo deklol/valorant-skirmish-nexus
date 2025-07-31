@@ -52,9 +52,9 @@ const Header = () => {
                   <Users className="w-4 h-4 inline mr-2" />
                   Players
                 </Link>
-                <Link to="/vods" className="text-slate-300 hover:text-white transition-colors">
+                <Link to="/help" className="text-slate-300 hover:text-white transition-colors">
                   <Video className="w-4 h-4 inline mr-2" />
-                  VODs
+                  Help
                 </Link>
               </>
             ) : (

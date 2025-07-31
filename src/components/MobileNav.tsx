@@ -34,10 +34,10 @@ const MobileNav = ({ user, isAdmin, onSignOut, onClose }: MobileNavProps) => {
     { to: "/teams-directory", icon: Users, label: "Teams" },
     { to: "/leaderboard", icon: Trophy, label: "Leaderboard" },
     { to: "/players", icon: UserIcon, label: "Players" },
-    { to: "/vods", icon: Video, label: "VODs" },
+    { to: "/help", icon: HelpCircle, label: "Help" },
     { to: "/statistics", icon: TrendingUp, label: "Statistics" },
     { to: "/shop", icon: ShoppingBag, label: "Shop" },
-    { to: "/help", icon: HelpCircle, label: "Help" },
+    { to: "/vods", icon: Video, label: "VODs" },
   ];
 
   const adminNavItems = isAdmin ? [

@@ -2,6 +2,7 @@
 import { useAuth } from "@/hooks/useAuth";
 import TournamentWinnerDisplay from "@/components/TournamentWinnerDisplay";
 import TournamentRegistration from "@/components/TournamentRegistration";
+import FeaturedVODs from "@/components/FeaturedVODs";
 import { useTournamentData } from "@/hooks/useTournamentData";
 import TournamentHeader from "@/components/tournament-detail/TournamentHeader";
 import TeamsSection from "@/components/tournament-detail/TeamsSection";
@@ -32,10 +33,13 @@ const TournamentDetail = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
       <div className="container mx-auto px-4 py-8 space-y-8">
         {tournament.status === "completed" && (
-          <TournamentWinnerDisplay
-            tournamentId={tournament.id}
-            tournamentStatus={tournament.status}
-          />
+          <>
+            <TournamentWinnerDisplay
+              tournamentId={tournament.id}
+              tournamentStatus={tournament.status}
+            />
+            <FeaturedVODs tournamentId={tournament.id} />
+          </>
         )}
         <TournamentHeader tournament={tournament} />
         <TeamsSection teams={teams} tournament={tournament} />

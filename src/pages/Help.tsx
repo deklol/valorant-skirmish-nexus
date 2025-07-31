@@ -65,22 +65,30 @@ const Help = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Badge variant="outline">Tournaments</Badge>
-                    <p className="text-sm text-slate-400">Join competitive events with automated bracket generation</p>
+                    <p className="text-sm text-slate-400">Join competitive events with automated bracket generation and team balancing</p>
                   </div>
                   <div className="space-y-2">
                     <Badge variant="outline">Team Management</Badge>
                     <p className="text-sm text-slate-400">Create or join persistent teams for team tournaments</p>
                   </div>
                   <div className="space-y-2">
-                    <Badge variant="outline">Match System</Badge>
-                    <p className="text-sm text-slate-400">Report results with map veto and score tracking</p>
+                    <Badge variant="outline">Map Veto System</Badge>
+                    <p className="text-sm text-slate-400">Strategic map banning and picking for competitive matches</p>
                   </div>
                   <div className="space-y-2">
-                    <Badge variant="outline">Statistics</Badge>
-                    <p className="text-sm text-slate-400">Track your performance and earn achievements</p>
+                    <Badge variant="outline">VOD Library</Badge>
+                    <p className="text-sm text-slate-400">Watch recorded matches with integrated player and tournament data</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Badge variant="outline">Achievements & Shop</Badge>
+                    <p className="text-sm text-slate-400">Earn points and unlock cosmetic rewards for your profile</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Badge variant="outline">Real-time Analytics</Badge>
+                    <p className="text-sm text-slate-400">Track your performance, rank history, and tournament statistics</p>
                   </div>
                 </div>
               </CardContent>
@@ -104,9 +112,13 @@ const Help = () => {
                 <div className="space-y-2">
                   <h4 className="font-semibold text-white">Registration Types</h4>
                   <ul className="text-slate-400 list-disc list-inside space-y-1">
-                    <li><strong>Solo:</strong> Register individually, teams are automatically balanced</li>
-                    <li><strong>Team:</strong> Register with your existing team</li>
+                    <li><strong>Solo:</strong> Register individually, teams are automatically balanced using adaptive ranking system</li>
+                    <li><strong>Team:</strong> Register with your existing persistent team</li>
                   </ul>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-white">Adaptive Team Balancing</h4>
+                  <p className="text-slate-400">Our system uses your current rank, peak rank, and recent performance to create balanced teams. Peak rank decay ensures fair matchmaking over time.</p>
                 </div>
                 <div className="space-y-2">
                   <h4 className="font-semibold text-white">Check-in Process</h4>
@@ -134,10 +146,14 @@ const Help = () => {
                 <div className="space-y-2">
                   <h4 className="font-semibold text-white">Match Formats</h4>
                   <ul className="text-slate-400 list-disc list-inside space-y-1">
-                    <li><strong>BO1:</strong> Best of 1 - Single map</li>
-                    <li><strong>BO3:</strong> Best of 3 - First to win 2 maps</li>
-                    <li><strong>BO5:</strong> Best of 5 - First to win 3 maps</li>
+                    <li><strong>BO1:</strong> Best of 1 - Single map with competitive veto process</li>
+                    <li><strong>BO3:</strong> Best of 3 - First to win 2 maps with strategic picks and bans</li>
+                    <li><strong>BO5:</strong> Best of 5 - First to win 3 maps for championship matches</li>
                   </ul>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-white">Score Confirmation System</h4>
+                  <p className="text-slate-400">Both team captains must confirm match results. Disputes can be reviewed by tournament administrators with full audit trails.</p>
                 </div>
               </CardContent>
             </Card>
@@ -219,15 +235,19 @@ const Help = () => {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <h4 className="font-semibold text-white">Riot ID Setup</h4>
-                  <p className="text-slate-400">Add your Riot ID (Gamename#Tag) in your profile for rank verification. This helps with team balancing in tournaments.</p>
+                  <p className="text-slate-400">Add your Riot ID (Gamename#Tag) in your profile for automated rank verification. This enables our adaptive team balancing system to create fair matches.</p>
                 </div>
                 <div className="space-y-2">
                   <h4 className="font-semibold text-white">Notification Preferences</h4>
-                  <p className="text-slate-400">Customize which notifications you receive for tournament updates, match assignments, and team activities.</p>
+                  <p className="text-slate-400">Customize which notifications you receive: tournament updates, match assignments, team activities, and achievement unlocks. Available for both push and email notifications.</p>
                 </div>
                 <div className="space-y-2">
                   <h4 className="font-semibold text-white">Privacy Settings</h4>
-                  <p className="text-slate-400">Control who can see your profile information, match history, and statistics.</p>
+                  <p className="text-slate-400">Control profile visibility, match history access, and statistics sharing. Public profiles help with community engagement and team recruitment.</p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-white">Achievement & Shop System</h4>
+                  <p className="text-slate-400">Earn achievement points through tournament participation and victories. Spend points in the shop for cosmetic username effects and profile customizations.</p>
                 </div>
               </CardContent>
             </Card>
@@ -243,9 +263,11 @@ const Help = () => {
                 <div className="space-y-2">
                   <h4 className="font-semibold text-white">Common Issues</h4>
                   <ul className="text-slate-400 list-disc list-inside space-y-1">
-                    <li><strong>Can't sign up for tournament:</strong> Check if registration is open and you meet requirements</li>
-                    <li><strong>Missing from team:</strong> Contact your team captain to verify membership</li>
-                    <li><strong>Rank not updating:</strong> Ensure your Riot ID is correctly formatted</li>
+                    <li><strong>Can't sign up for tournament:</strong> Check if registration is open, you meet rank requirements, and haven't exceeded max signups</li>
+                    <li><strong>Missing from team:</strong> Contact your team captain to verify membership, or check if you're on a substitute list</li>
+                    <li><strong>Rank not updating:</strong> Ensure your Riot ID is correctly formatted (Name#TAG). Manual rank scraping may be needed for recent changes</li>
+                    <li><strong>Map veto not working:</strong> Ensure you're the team captain and it's your turn in the veto sequence</li>
+                    <li><strong>Notifications not working:</strong> Check browser permissions for push notifications and verify email settings</li>
                   </ul>
                 </div>
                 <div className="space-y-2">
@@ -261,10 +283,13 @@ const Help = () => {
                 <div>
                   <h4 className="font-semibold text-green-400">Pro Tips</h4>
                   <ul className="text-slate-400 text-sm mt-2 space-y-1">
-                    <li>Enable notifications to stay updated on tournament activities</li>
-                    <li>Complete your profile for better team balancing</li>
-                    <li>Join the Discord community for the best experience</li>
-                    <li>Practice with your team before important matches</li>
+                    <li>Enable push notifications to get real-time tournament and match updates</li>
+                    <li>Keep your Riot ID updated for accurate rank-based team balancing</li>
+                    <li>Join the Discord community for live coordination and faster support</li>
+                    <li>Practice map veto strategies with your team before important matches</li>
+                    <li>Watch featured VODs to learn from top tournament performances</li>
+                    <li>Complete achievements to earn points for cosmetic shop items</li>
+                    <li>Set your profile to public to help with team recruitment</li>
                   </ul>
                 </div>
               </div>

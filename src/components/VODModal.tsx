@@ -359,46 +359,14 @@ export function VODModal({ vod, isOpen, onClose }: VODModalProps) {
                                 </StandardBadge>
                               </div>
                               <div className="space-y-1">
-                                {team.team_members?.slice(0, 3).map((member: any, idx: number) => (
+                                {team.team_members?.map((member: any, idx: number) => (
                                   <StandardText key={idx} className="text-xs text-muted-foreground">
                                     {member.users?.discord_username}
                                   </StandardText>
                                 ))}
-                                {team.team_members?.length > 3 && (
-                                  <StandardText className="text-xs text-muted-foreground">
-                                    +{team.team_members.length - 3} more
-                                  </StandardText>
-                                )}
                               </div>
                             </div>
                           ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Tournament Stats */}
-                    {tournamentData && (
-                      <div>
-                        <StandardHeading level="h4" className="mb-3 text-card-foreground">Tournament Stats</StandardHeading>
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between p-2 bg-muted/20 rounded-lg">
-                            <StandardText className="text-sm text-card-foreground">Participants</StandardText>
-                            <StandardBadge status="neutral" className="bg-primary/20 text-primary border-primary/30">
-                              {tournamentData.participants.length}
-                            </StandardBadge>
-                          </div>
-                          <div className="flex items-center justify-between p-2 bg-muted/20 rounded-lg">
-                            <StandardText className="text-sm text-card-foreground">Teams</StandardText>
-                            <StandardBadge status="neutral" className="bg-primary/20 text-primary border-primary/30">
-                              {tournamentData.teams.length}
-                            </StandardBadge>
-                          </div>
-                          <div className="flex items-center justify-between p-2 bg-muted/20 rounded-lg">
-                            <StandardText className="text-sm text-card-foreground">Matches</StandardText>
-                            <StandardBadge status="neutral" className="bg-primary/20 text-primary border-primary/30">
-                              {tournamentData.matches.length}
-                            </StandardBadge>
-                          </div>
                         </div>
                       </div>
                     )}
