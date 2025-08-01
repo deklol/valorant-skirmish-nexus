@@ -83,6 +83,7 @@ export default function FeaturedVODs({ tournamentId }: FeaturedVODsProps) {
 
   return (
     <>
+      {/* We are removing the min-h on the Card to allow its height to be dictated by its content. */}
       <Card className="bg-gradient-to-r from-indigo-900/20 to-purple-900/20 border-indigo-600/30">
         <CardHeader>
           <div className="flex items-center gap-2">
@@ -90,16 +91,17 @@ export default function FeaturedVODs({ tournamentId }: FeaturedVODsProps) {
             <StandardHeading level="h2" className="text-foreground">Featured VODs</StandardHeading>
           </div>
         </CardHeader>
-        <CardContent className="flex flex-col flex-grow">
-          <div className="space-y-4 flex-grow">
+        <CardContent>
+          <div className="space-y-4">
             {featuredVods.map((vod) => (
               <div 
                 key={vod.id} 
-                className="bg-card border border-border rounded-lg overflow-hidden hover:border-primary/50 transition-colors min-h-[120px] md:min-h-[150px]"
+                className="bg-card border border-border rounded-lg overflow-hidden hover:border-primary/50 transition-colors"
               >
-                <div className="flex flex-col md:flex-row">
+                {/* This parent div is now always a vertical stack. */}
+                <div className="flex flex-col">
                   {vod.thumbnail_url && (
-                    <div className="relative md:w-64 aspect-video bg-muted md:shrink-0">
+                    <div className="relative w-full aspect-video bg-muted">
                       <img
                         src={vod.thumbnail_url}
                         alt={vod.title}
