@@ -90,10 +90,13 @@ export default function FeaturedVODs({ tournamentId }: FeaturedVODsProps) {
             <StandardHeading level="h2" className="text-foreground">Featured VODs</StandardHeading>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
+        <CardContent className="flex flex-col flex-grow">
+          <div className="space-y-4 flex-grow">
             {featuredVods.map((vod) => (
-              <div key={vod.id} className="bg-card border border-border rounded-lg overflow-hidden hover:border-primary/50 transition-colors">
+              <div 
+                key={vod.id} 
+                className="bg-card border border-border rounded-lg overflow-hidden hover:border-primary/50 transition-colors min-h-[120px] md:min-h-[150px]"
+              >
                 <div className="flex flex-col md:flex-row">
                   {vod.thumbnail_url && (
                     <div className="relative md:w-64 aspect-video bg-muted md:shrink-0">
