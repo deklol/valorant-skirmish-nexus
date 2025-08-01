@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -113,7 +112,8 @@ const TournamentWinnerDisplay = ({ tournamentId, tournamentStatus }: TournamentW
             <Users className="w-4 h-4" />
             <span className="font-medium">Team Members</span>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {/* Change to a single column list with vertical spacing */}
+          <div className="space-y-3">
             {winner.members.map((member) => (
               <div 
                 key={member.id}
