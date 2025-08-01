@@ -39,6 +39,7 @@ interface UserData {
   use_manual_override: boolean;
   rank_override_reason: string | null;
   rank_override_set_by: string | null;
+  spendable_points: number | null;
 }
 
 const UserManagement = () => {
@@ -59,7 +60,9 @@ const UserManagement = () => {
     bio: '',
     twitter_handle: '',
     twitch_handle: '',
-    profile_visibility: 'public'
+    profile_visibility: 'public',
+    riot_id: '',
+    spendable_points: 0
   });
   const [manualOverrideForm, setManualOverrideForm] = useState({
     manual_rank_override: null as string | null,
@@ -158,7 +161,9 @@ const UserManagement = () => {
       bio: user.bio || '',
       twitter_handle: user.twitter_handle || '',
       twitch_handle: user.twitch_handle || '',
-      profile_visibility: user.profile_visibility || 'public'
+      profile_visibility: user.profile_visibility || 'public',
+      riot_id: user.riot_id || '',
+      spendable_points: user.spendable_points || 0
     });
     setManualOverrideForm({
       manual_rank_override: user.manual_rank_override,
@@ -181,6 +186,8 @@ const UserManagement = () => {
           twitter_handle: editForm.twitter_handle || null,
           twitch_handle: editForm.twitch_handle || null,
           profile_visibility: editForm.profile_visibility,
+          riot_id: editForm.riot_id || null,
+          spendable_points: editForm.spendable_points,
           // Manual rank override fields
           manual_rank_override: manualOverrideForm.manual_rank_override,
           manual_weight_override: manualOverrideForm.manual_weight_override,
@@ -529,6 +536,33 @@ const UserManagement = () => {
                       <SelectItem value="viewer" className="text-white hover:bg-slate-600">Viewer</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="riot_id" className="text-white">Riot ID</Label>
+                    <Input
+                      id="riot_id"
+                      value={editForm.riot_id}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, riot_id: e.target.value }))}
+                      className="bg-slate-700 border-slate-600 text-white"
+                      placeholder="PlayerName#TAG"
+                    />
+                    <p className="text-xs text-slate-400">Format: PlayerName#TAG (e.g., JohnDoe#1234)</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="spendable_points" className="text-white">Achievement Points</Label>
+                    <Input
+                      id="spendable_points"
+                      type="number"
+                      min="0"
+                      value={editForm.spendable_points}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, spendable_points: parseInt(e.target.value) || 0 }))}
+                      className="bg-slate-700 border-slate-600 text-white"
+                      placeholder="0"
+                    />
+                    <p className="text-xs text-slate-400">Points the user can spend in the shop</p>
+                  </div>
                 </div>
               </div>
 

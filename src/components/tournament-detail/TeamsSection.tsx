@@ -61,11 +61,35 @@ export default function TeamsSection({ teams, tournament }: TeamsSectionProps) {
     }
   };
   return (
-    <div className="space-y-6 mb-6">
+    <div className="space-y-6">
+      {/* Tournament Info Card */}
+      <div className="bg-slate-800/90 border border-slate-700 rounded-xl p-4">
+        <h3 className="text-lg font-bold text-white mb-4">Tournament Info</h3>
+        <div className="space-y-3 text-sm">
+          <div className="flex justify-between">
+            <span className="text-slate-400">Format:</span>
+            <span className="text-white">{tournament?.bracket_type?.replace('_', ' ')}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-slate-400">Team Size:</span>
+            <span className="text-white">{tournament?.team_size}v{tournament?.team_size}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-slate-400">Max Teams:</span>
+            <span className="text-white">{tournament?.max_teams}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-slate-400">Max Players:</span>
+            <span className="text-white">{tournament?.max_players}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Teams Section */}
       <div className="bg-slate-800/90 border border-slate-700 rounded-xl">
-        <div className="p-6">
-          <div className="text-xl font-bold text-white flex gap-2 items-center mb-4">
-            <Users className="w-5 h-5" />
+        <div className="p-4">
+          <div className="text-lg font-bold text-white flex gap-2 items-center mb-4">
+            <Users className="w-4 h-4" />
             Teams &amp; Participants
           </div>
           {sortedTeams.length === 0 ? (
@@ -78,7 +102,7 @@ export default function TeamsSection({ teams, tournament }: TeamsSectionProps) {
               />
             )
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="space-y-4">
               {sortedTeams.map((team) => (
                 <div
                   key={team.id}

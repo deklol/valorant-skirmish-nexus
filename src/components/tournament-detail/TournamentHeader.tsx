@@ -9,23 +9,20 @@ type Props = {
 
 export default function TournamentHeader({ tournament }: Props) {
   return (
-    <Card className="bg-slate-800/90 border-slate-700">
-      <CardHeader>
+    <Card className="bg-slate-800/90 border-slate-700 mb-6">
+      <CardContent className="p-4">
         <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-2xl font-bold text-white">{tournament.name}</CardTitle>
+          <div className="flex-1">
+            <CardTitle className="text-xl font-bold text-white mb-1">{tournament.name}</CardTitle>
             {tournament.description && (
-              <p className="text-slate-300 mt-2">{tournament.description}</p>
+              <p className="text-slate-300 text-sm">{tournament.description}</p>
             )}
           </div>
-          <div className="flex flex-col items-end gap-2">
+          <div className="flex items-center gap-4">
             <LivePageViewCounter tournamentId={tournament.id} />
             {getStatusBadge(tournament.status)}
           </div>
         </div>
-      </CardHeader>
-      <CardContent className="text-slate-300">
-        {/** Info cards and details moved to TournamentInfoCards **/}
       </CardContent>
     </Card>
   );

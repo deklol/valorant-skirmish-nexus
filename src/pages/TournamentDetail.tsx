@@ -31,34 +31,52 @@ const TournamentDetail = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
-      <div className="container mx-auto px-4 py-8 space-y-8">
+      <div className="container mx-auto px-4 py-6">
+        {/* Compact Header */}
+        <TournamentHeader tournament={tournament} />
+        
+        {/* Winners/Champions and Featured VODs Row - Only for completed tournaments */}
         {tournament.status === "completed" && (
-          <>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             <TournamentWinnerDisplay
               tournamentId={tournament.id}
               tournamentStatus={tournament.status}
             />
             <FeaturedVODs tournamentId={tournament.id} />
-          </>
+          </div>
         )}
-        <TournamentHeader tournament={tournament} />
-        <TeamsSection teams={teams} tournament={tournament} />
+        
+        {/* Registration Banner - Only for open tournaments */}
         {tournament.status === "open" && (
-          <TournamentRegistration
-            tournamentId={tournament.id}
-            tournament={tournament}
-            onRegistrationChange={handleRefresh}
-          />
+          <div className="mb-6">
+            <TournamentRegistration
+              tournamentId={tournament.id}
+              tournament={tournament}
+              onRegistrationChange={handleRefresh}
+            />
+          </div>
         )}
-        <TournamentTabs
-          tournament={tournament}
-          matches={matches}
-          maxPlayers={tournament.max_players}
-          parsedMapVetoRounds={parsedMapVetoRounds}
-          isAdmin={isAdmin}
-          teams={teams}
-          onRefresh={handleRefresh}
-        />
+        
+        {/* Main Content Layout */}
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+          {/* Left Sidebar - Tournament Info & Teams */}
+          <div className="xl:col-span-1 space-y-6">
+            <TeamsSection teams={teams} tournament={tournament} />
+          </div>
+          
+          {/* Main Content Area - Tabs */}
+          <div className="xl:col-span-3">
+            <TournamentTabs
+              tournament={tournament}
+              matches={matches}
+              maxPlayers={tournament.max_players}
+              parsedMapVetoRounds={parsedMapVetoRounds}
+              isAdmin={isAdmin}
+              teams={teams}
+              onRefresh={handleRefresh}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

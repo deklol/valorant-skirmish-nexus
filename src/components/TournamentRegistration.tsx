@@ -257,111 +257,100 @@ const TournamentRegistration = ({ tournamentId, tournament, onRegistrationChange
     <ErrorBoundary componentName="TournamentRegistration">
       <div className="space-y-4">
         <Card className="bg-slate-800 border-slate-700">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center justify-between">
-              Tournament Registration
-              <div className="flex items-center gap-2">
-                <Badge variant={isRegistered ? "default" : "outline"} className={
-                  isRegistered 
-                    ? isSubstitute 
-                      ? "bg-yellow-600" 
-                      : "bg-green-600"
-                    : ""
-                }>
-                  {isRegistered 
-                    ? isSubstitute 
-                      ? "On Substitute List" 
-                      : "Registered"
-                    : "Not Registered"
-                  }
-                </Badge>
-                {isSubstitute && (
-                  <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/40">
-                    <Star className="w-3 h-3 mr-1" />
-                    Substitute
+          <CardContent className="p-4">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              {/* Left Side - Registration Info */}
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-3">
+                  <h3 className="text-lg font-semibold text-white">Tournament Registration</h3>
+                  <Badge variant={isRegistered ? "default" : "outline"} className={
+                    isRegistered 
+                      ? isSubstitute 
+                        ? "bg-yellow-600" 
+                        : "bg-green-600"
+                      : ""
+                  }>
+                    {isRegistered 
+                      ? isSubstitute 
+                        ? "On Substitute List" 
+                        : "Registered"
+                      : "Not Registered"
+                    }
                   </Badge>
+                  {isSubstitute && (
+                    <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/40">
+                      <Star className="w-3 h-3 mr-1" />
+                      Substitute
+                    </Badge>
+                  )}
+                </div>
+                
+                <div className="flex flex-wrap items-center gap-4 text-sm text-slate-300">
+                  <div className="flex items-center gap-1">
+                    <Users className="w-4 h-4" />
+                    <span>{registrationCount}/{tournament.max_players}</span>
+                  </div>
+                  {substituteCount > 0 && (
+                    <div className="flex items-center gap-1">
+                      <Star className="w-4 h-4" />
+                      <span>{substituteCount} substitutes</span>
+                    </div>
+                  )}
+                  {tournament.check_in_required && (
+                    <div className="flex items-center gap-1">
+                      <Clock className="w-4 h-4" />
+                      <span>{checkedInCount} checked in</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Right Side - Action Button */}
+              <div className="flex flex-col items-end gap-2">
+                <div className="text-sm text-slate-400 text-right">
+                  {status === 'closed' && 'Registration closed'}
+                  {status === 'tournament_closed' && 'Tournament no longer accepting registrations'}
+                  {status === 'open' && registrationCount >= tournament.max_players && 'Tournament full - joining substitute list'}
+                  {status === 'open' && registrationCount < tournament.max_players && 'Registration is open'}
+                </div>
+                
+                {status === 'open' && (
+                  <Button
+                    onClick={handleRegistration}
+                    disabled={loading}
+                    className={isRegistered 
+                      ? "bg-red-600 hover:bg-red-700 text-white" 
+                      : "bg-green-600 hover:bg-green-700 text-white"
+                    }
+                  >
+                    {loading ? (
+                      "Processing..."
+                    ) : isRegistered ? (
+                      <>
+                        <UserMinus className="w-4 h-4 mr-2" />
+                        {isSubstitute ? 'Leave Substitute List' : 'Unregister'}
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="w-4 h-4 mr-2" />
+                        {registrationCount >= tournament.max_players ? 'Join Substitute List' : 'Join Tournament'}
+                      </>
+                    )}
+                  </Button>
                 )}
               </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="flex items-center gap-2 text-slate-300">
-                <Users className="w-4 h-4" />
-                <span>Registered: {registrationCount}/{tournament.max_players}</span>
-              </div>
-              
-              {substituteCount > 0 && (
-                <div className="flex items-center gap-2 text-slate-300">
-                  <Star className="w-4 h-4" />
-                  <span>Substitutes: {substituteCount}</span>
-                </div>
-              )}
-              
-              {tournament.check_in_required && (
-                <div className="flex items-center gap-2 text-slate-300">
-                  <Clock className="w-4 h-4" />
-                  <span>Checked In: {checkedInCount}/{registrationCount}</span>
-                </div>
-              )}
             </div>
 
-            <div className="text-right">
-              <div className="text-sm text-slate-400">
-                {status === 'closed' && 'Registration closed'}
-                {status === 'tournament_closed' && 'Tournament no longer accepting registrations'}
-                {status === 'open' && registrationCount >= tournament.max_players && 'Tournament full - joining substitute list'}
-                {status === 'open' && registrationCount < tournament.max_players && 'Registration is open'}
-              </div>
-            </div>
-
-            {status === 'open' && (
-              <Button
-                onClick={handleRegistration}
-                disabled={loading}
-                className={isRegistered 
-                  ? "bg-red-600 hover:bg-red-700 text-white w-full" 
-                  : "bg-green-600 hover:bg-green-700 text-white w-full"
-                }
-              >
-                {loading ? (
-                  "Processing..."
-                ) : isRegistered ? (
-                  <>
-                    <UserMinus className="w-4 h-4 mr-2" />
-                    {isSubstitute ? 'Leave Substitute List' : 'Unregister'}
-                  </>
-                ) : (
-                  <>
-                    <UserPlus className="w-4 h-4 mr-2" />
-                    {registrationCount >= tournament.max_players ? 'Join Substitute List' : 'Join Tournament'}
-                  </>
-                )}
-              </Button>
-            )}
-
-
-            {status === 'closed' && (
-              <div className="text-center text-slate-400">
-                Registration has closed for this tournament
-              </div>
-            )}
-
-            {status === 'tournament_closed' && (
-              <div className="text-center text-slate-400">
-                This tournament is no longer accepting registrations
-              </div>
-            )}
-
+            {/* Additional Info Sections */}
             {registrationCount >= tournament.max_players && status === 'open' && !isRegistered && (
-              <div className="flex items-center gap-2 text-yellow-400 text-sm">
+              <div className="flex items-center gap-2 text-yellow-400 text-sm mt-3 pt-3 border-t border-slate-700">
                 <Star className="w-4 h-4" />
                 <span>Tournament is full - you can join the substitute list</span>
               </div>
             )}
 
             {isSubstitute && (
-              <div className="p-3 bg-yellow-900/20 border border-yellow-500/30 rounded-lg">
+              <div className="p-3 bg-yellow-900/20 border border-yellow-500/30 rounded-lg mt-3">
                 <div className="flex items-center gap-2">
                   <Star className="w-4 h-4 text-yellow-400" />
                   <span className="text-yellow-400 font-medium">Substitute Player</span>
