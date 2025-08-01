@@ -161,16 +161,6 @@ export default function TeamsSection({ teams, tournament }: TeamsSectionProps) {
           )}
         </div>
       </div>
-
-      {/* Balance Analysis Section */}
-      {tournament?.balance_analysis && (
-        <div className="mt-6">
-          <TournamentBalanceTransparency 
-            balanceAnalysis={tournament.balance_analysis as any}
-            teams={teams}
-          />
-        </div>
-      )}
     </div>
   );
 }

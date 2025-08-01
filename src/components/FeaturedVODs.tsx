@@ -91,59 +91,61 @@ export default function FeaturedVODs({ tournamentId }: FeaturedVODsProps) {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="space-y-4">
             {featuredVods.map((vod) => (
               <div key={vod.id} className="bg-card border border-border rounded-lg overflow-hidden hover:border-primary/50 transition-colors">
-                {vod.thumbnail_url && (
-                  <div className="relative aspect-video bg-muted">
-                    <img
-                      src={vod.thumbnail_url}
-                      alt={vod.title}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                      <Play className="w-12 h-12 text-white" />
+                <div className="flex flex-col md:flex-row">
+                  {vod.thumbnail_url && (
+                    <div className="relative md:w-64 aspect-video bg-muted md:shrink-0">
+                      <img
+                        src={vod.thumbnail_url}
+                        alt={vod.title}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                        <Play className="w-12 h-12 text-white" />
+                      </div>
+                      <div className="absolute top-2 left-2">
+                        <StandardBadge status="warning" className="bg-yellow-500/20 text-yellow-300 border-yellow-400/30">
+                          <Star className="w-3 h-3 mr-1" />
+                          Featured
+                        </StandardBadge>
+                      </div>
                     </div>
-                    <div className="absolute top-2 left-2">
-                      <StandardBadge status="warning" className="bg-yellow-500/20 text-yellow-300 border-yellow-400/30">
-                        <Star className="w-3 h-3 mr-1" />
-                        Featured
+                  )}
+                  
+                  <div className="p-4 space-y-3 flex-1">
+                    <StandardHeading level="h4" className="text-card-foreground line-clamp-2">
+                      {vod.title}
+                    </StandardHeading>
+                    
+                    <div className="flex items-center justify-between text-sm text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <Video className="w-4 h-4" />
+                        <span>{formatDuration(vod.duration_minutes)}</span>
+                      </div>
+                      <StandardBadge status="info" className="bg-slate-500/20 text-slate-300 border-slate-400/30">
+                        {vod.video_platform}
                       </StandardBadge>
                     </div>
-                  </div>
-                )}
-                
-                <div className="p-4 space-y-3">
-                  <StandardHeading level="h4" className="text-card-foreground line-clamp-2">
-                    {vod.title}
-                  </StandardHeading>
-                  
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                      <Video className="w-4 h-4" />
-                      <span>{formatDuration(vod.duration_minutes)}</span>
+                    
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => setSelectedVod(vod)}
+                        size="sm"
+                        className="flex-1"
+                      >
+                        <Play className="w-4 h-4 mr-2" />
+                        Watch
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open(vod.video_url, "_blank")}
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </Button>
                     </div>
-                    <StandardBadge status="info" className="bg-blue-500/20 text-blue-300 border-blue-400/30">
-                      {vod.video_platform}
-                    </StandardBadge>
-                  </div>
-                  
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={() => setSelectedVod(vod)}
-                      size="sm"
-                      className="flex-1"
-                    >
-                      <Play className="w-4 h-4 mr-2" />
-                      Watch
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => window.open(vod.video_url, "_blank")}
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                    </Button>
                   </div>
                 </div>
               </div>

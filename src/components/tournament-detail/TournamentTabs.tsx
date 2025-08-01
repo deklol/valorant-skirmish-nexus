@@ -61,7 +61,7 @@ export default function TournamentTabs({
         )}
       </StandardTabsList>
       <StandardTabsContent value="overview" className="space-y-6">
-        <OverviewTab tournament={tournament} parsedMapVetoRounds={parsedMapVetoRounds} />
+        <OverviewTab tournament={tournament} parsedMapVetoRounds={parsedMapVetoRounds} teams={teams} />
       </StandardTabsContent>
       {matches.length > 0 && (
         <StandardTabsContent value="bracket" className="space-y-6">
