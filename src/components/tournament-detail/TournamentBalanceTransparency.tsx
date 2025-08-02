@@ -159,7 +159,12 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
     const uniqueCalculations = calculations.filter((calc, index, self) => 
       index === self.findIndex(c => c.userId === calc.userId)
     );
-    return uniqueCalculations;
+    // Only show adaptive calculations for players who were actually balanced (appear in balance steps)
+    const balancedPlayerIds = balanceSteps.map(step => step.player.id);
+    const balancedCalculations = uniqueCalculations.filter(calc => 
+      balancedPlayerIds.includes(calc.userId)
+    );
+    return balancedCalculations;
   };
   
   const qualityScore = getQualityScore();
