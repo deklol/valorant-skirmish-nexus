@@ -273,19 +273,19 @@ export default function MapManager() {
             <div className="mb-6 p-4 bg-slate-900/50 rounded-lg border border-slate-600">
               <h4 className="font-medium text-white mb-3">Add New Map</h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <Input
+                <StandardInput
                   placeholder="Map name (e.g., de_dust2)"
                   value={newMap.name}
                   onChange={(e) => setNewMap({ ...newMap, name: e.target.value })}
                   className="bg-slate-800 border-slate-600 text-white"
                 />
-                <Input
+                <StandardInput
                   placeholder="Display name (e.g., Dust 2)"
                   value={newMap.display_name}
                   onChange={(e) => setNewMap({ ...newMap, display_name: e.target.value })}
                   className="bg-slate-800 border-slate-600 text-white"
                 />
-                <Input
+                <StandardInput
                   placeholder="Thumbnail URL (optional)"
                   value={newMap.thumbnail_url}
                   onChange={(e) => setNewMap({ ...newMap, thumbnail_url: e.target.value })}
@@ -382,19 +382,19 @@ export default function MapManager() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-              <Input
+              <StandardInput
                 placeholder="Map name"
                 value={editingMap.name}
                 onChange={(e) => setEditingMap({ ...editingMap, name: e.target.value })}
                 className="bg-slate-800 border-slate-600 text-white"
               />
-              <Input
+              <StandardInput
                 placeholder="Display name"
                 value={editingMap.display_name}
                 onChange={(e) => setEditingMap({ ...editingMap, display_name: e.target.value })}
                 className="bg-slate-800 border-slate-600 text-white"
               />
-              <Input
+              <StandardInput
                 placeholder="Thumbnail URL"
                 value={editingMap.thumbnail_url || ""}
                 onChange={(e) => setEditingMap({ ...editingMap, thumbnail_url: e.target.value })}

@@ -409,7 +409,7 @@ export default function MatchMedicManager() {
         <CardContent>
           {/* Search and filter controls */}
           <div className="mb-4 flex flex-wrap gap-2 items-center">
-            <Input
+            <StandardInput
               type="text"
               placeholder="Search by team, tournament, or match ID"
               value={search}

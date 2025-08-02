@@ -170,7 +170,7 @@ const MatchResultsSubmission = ({
         <div className="grid grid-cols-3 gap-4 items-center">
           <div className="text-center">
             <div className="text-white font-medium mb-2">{team1.name}</div>
-            <Input
+            <StandardInput
               type="number"
               min="0"
               value={scores.team1}
@@ -186,7 +186,7 @@ const MatchResultsSubmission = ({
           
           <div className="text-center">
             <div className="text-white font-medium mb-2">{team2.name}</div>
-            <Input
+            <StandardInput
               type="number"
               min="0"
               value={scores.team2}

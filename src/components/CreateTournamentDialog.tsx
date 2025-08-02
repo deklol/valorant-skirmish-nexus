@@ -187,7 +187,7 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name" className="text-white">Tournament Name</Label>
-                <Input
+                <StandardInput
                   id="name"
                   value={formData.name}
                   onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
@@ -198,7 +198,7 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
 
               <div className="space-y-2">
                 <Label htmlFor="description" className="text-white">Description</Label>
-                <Textarea
+                <StandardTextarea
                   id="description"
                   value={formData.description}
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
@@ -251,7 +251,7 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
 
                 <div className="space-y-2">
                   <Label htmlFor="max_players" className="text-white">Max Players</Label>
-                  <Input
+                  <StandardInput
                     id="max_players"
                     type="number"
                     value={formData.max_players}
@@ -273,7 +273,7 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="prize_pool" className="text-white">Prize Pool</Label>
-                  <Input
+                  <StandardInput
                     id="prize_pool"
                     value={formData.prize_pool}
                     onChange={(e) => setFormData(prev => ({ ...prev, prize_pool: e.target.value }))}
@@ -284,7 +284,7 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
 
                 <div className="space-y-2">
                   <Label htmlFor="start_time" className="text-white">Start Time</Label>
-                  <Input
+                  <StandardInput
                     id="start_time"
                     type="datetime-local"
                     value={formData.start_time}
@@ -305,7 +305,7 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="registration_opens_at" className="text-white">Registration Opens</Label>
-                  <Input
+                  <StandardInput
                     id="registration_opens_at"
                     type="datetime-local"
                     value={formData.registration_opens_at}
@@ -316,7 +316,7 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
 
                 <div className="space-y-2">
                   <Label htmlFor="registration_closes_at" className="text-white">Registration Closes</Label>
-                  <Input
+                  <StandardInput
                     id="registration_closes_at"
                     type="datetime-local"
                     value={formData.registration_closes_at}
@@ -343,7 +343,7 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="check_in_starts_at" className="text-white">Check-in Starts</Label>
-                    <Input
+                    <StandardInput
                       id="check_in_starts_at"
                       type="datetime-local"
                       value={formData.check_in_starts_at}
@@ -354,7 +354,7 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
 
                   <div className="space-y-2">
                     <Label htmlFor="check_in_ends_at" className="text-white">Check-in Ends</Label>
-                    <Input
+                    <StandardInput
                       id="check_in_ends_at"
                       type="datetime-local"
                       value={formData.check_in_ends_at}

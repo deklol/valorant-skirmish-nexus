@@ -175,7 +175,7 @@ const DiscordWebhookManager = () => {
               Discord Webhook URL (Optional)
             </Label>
             <div className="flex gap-2 mt-1">
-              <Input
+              <StandardInput
                 id="webhook-url"
                 type="url"
                 placeholder="https://discord.com/api/webhooks/..."
@@ -210,7 +210,7 @@ const DiscordWebhookManager = () => {
         <CardContent className="space-y-4">
           <div>
             <Label htmlFor="title" className="text-slate-300">Title</Label>
-            <Input
+            <StandardInput
               id="title"
               placeholder="Announcement title..."
               value={title}
@@ -221,7 +221,7 @@ const DiscordWebhookManager = () => {
 
           <div>
             <Label htmlFor="content" className="text-slate-300">Content</Label>
-            <Textarea
+            <StandardTextarea
               id="content"
               placeholder="Announcement content..."
               value={content}
