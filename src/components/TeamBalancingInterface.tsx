@@ -61,7 +61,7 @@ const DraggablePlayer = ({ player, enableAdaptiveWeights }: { player: Player, en
 
   // Use enhanced ranking system that supports manual overrides and adaptive weights
   const rankResult = enableAdaptiveWeights 
-    ? calculateAdaptiveWeight(player, { enableAdaptiveWeights: true, baseFactor: 0.5, decayMultiplier: 1.2, timeWeightDays: 90 })
+    ? calculateAdaptiveWeight(player, { enableAdaptiveWeights: true, baseFactor: 0.5, decayMultiplier: 0.15, timeWeightDays: 90 })
     : getRankPointsWithManualOverride(player);
   const fallbackResult = getRankPointsWithFallback(player.current_rank, player.peak_rank);
 
@@ -330,7 +330,7 @@ fetchTeamsAndPlayers();
       prevTeams.map(team => {
         const totalWeight = team.members.reduce((sum, member) => {
           const rankResult = useAdaptiveWeights
-            ? calculateAdaptiveWeight(member, { enableAdaptiveWeights: true, baseFactor: 0.5, decayMultiplier: 1.2, timeWeightDays: 90 })
+            ? calculateAdaptiveWeight(member, { enableAdaptiveWeights: true, baseFactor: 0.5, decayMultiplier: 0.15, timeWeightDays: 90 })
             : getRankPointsWithManualOverride(member);
           return sum + rankResult.points;
         }, 0);
@@ -423,7 +423,7 @@ try {
 
         const totalWeight = members.reduce((sum, member) => {
           const rankResult = enableAdaptiveWeights
-            ? calculateAdaptiveWeight(member, { enableAdaptiveWeights: true, baseFactor: 0.5, decayMultiplier: 1.2, timeWeightDays: 90 })
+            ? calculateAdaptiveWeight(member, { enableAdaptiveWeights: true, baseFactor: 0.5, decayMultiplier: 0.15, timeWeightDays: 90 })
             : getRankPointsWithManualOverride(member);
           return sum + rankResult.points;
         }, 0);
@@ -448,7 +448,7 @@ try {
         .filter(user => user && !allAssignedUserIds.has(user.id))
         .map(user => {
           const rankResult = enableAdaptiveWeights
-            ? calculateAdaptiveWeight(user, { enableAdaptiveWeights: true, baseFactor: 0.5, decayMultiplier: 1.2, timeWeightDays: 90 })
+            ? calculateAdaptiveWeight(user, { enableAdaptiveWeights: true, baseFactor: 0.5, decayMultiplier: 0.15, timeWeightDays: 90 })
             : getRankPointsWithManualOverride(user);
           return {
             id: user.id,
@@ -472,7 +472,7 @@ try {
         .filter(user => user && !allAssignedUserIds.has(user.id))
         .map(user => {
           const rankResult = enableAdaptiveWeights
-            ? calculateAdaptiveWeight(user, { enableAdaptiveWeights: true, baseFactor: 0.5, decayMultiplier: 1.2, timeWeightDays: 90 })
+            ? calculateAdaptiveWeight(user, { enableAdaptiveWeights: true, baseFactor: 0.5, decayMultiplier: 0.15, timeWeightDays: 90 })
             : getRankPointsWithManualOverride(user);
           return {
             id: user.id,
@@ -746,7 +746,7 @@ variant: "destructive",
       const targetTeam = targetTeamId ? teams.find(t => t.id === targetTeamId) : null;
       
       const rankResult = enableAdaptiveWeights 
-        ? calculateAdaptiveWeight(player, { enableAdaptiveWeights: true, baseFactor: 0.5, decayMultiplier: 1.2, timeWeightDays: 90 })
+        ? calculateAdaptiveWeight(player, { enableAdaptiveWeights: true, baseFactor: 0.5, decayMultiplier: 0.15, timeWeightDays: 90 })
         : getRankPointsWithManualOverride(player);
 
       const adjustmentData = {
@@ -852,8 +852,8 @@ variant: "destructive",
         let aRankResult, bRankResult;
         
         if (tournament?.enable_adaptive_weights) {
-          aRankResult = calculateAdaptiveWeight(a, { enableAdaptiveWeights: true, baseFactor: 0.5, decayMultiplier: 1.2, timeWeightDays: 90 });
-          bRankResult = calculateAdaptiveWeight(b, { enableAdaptiveWeights: true, baseFactor: 0.5, decayMultiplier: 1.2, timeWeightDays: 90 });
+          aRankResult = calculateAdaptiveWeight(a, { enableAdaptiveWeights: true, baseFactor: 0.5, decayMultiplier: 0.15, timeWeightDays: 90 });
+          bRankResult = calculateAdaptiveWeight(b, { enableAdaptiveWeights: true, baseFactor: 0.5, decayMultiplier: 0.15, timeWeightDays: 90 });
         } else {
           aRankResult = getRankPointsWithManualOverride(a);
           bRankResult = getRankPointsWithManualOverride(b);
@@ -881,7 +881,7 @@ variant: "destructive",
         tournament?.enable_adaptive_weights ? {
           enableAdaptiveWeights: true,
           baseFactor: 0.5,
-          decayMultiplier: 1.2,
+          decayMultiplier: 0.15, // Use consistent decay multiplier
           timeWeightDays: 90
         } : undefined
       );
@@ -917,13 +917,15 @@ variant: "destructive",
             // Remove player from unassigned list
             tempUnassignedPlayers = tempUnassignedPlayers.filter(p => p.id !== playerToMove.id);
 
-            // Find the target team (using its original ID or placeholder ID)
-            const targetTeam = tempTeams.find(t => t.id === step.assignedTeam || t.id === `placeholder-${step.assignedTeam}`);
+            // Find the target team (using team index from snake draft)
+            const targetTeam = tempTeams[step.assignedTeam];
             if (targetTeam) {
-              // Add player to the target team and update its total weight
+              // Add player to the target team and update its total weight using consistent calculation
               targetTeam.members.push(playerToMove);
               targetTeam.totalWeight = targetTeam.members.reduce((sum, m) => {
-                const mRankResult = getRankPointsWithManualOverride(m);
+                const mRankResult = tournament?.enable_adaptive_weights
+                  ? calculateAdaptiveWeight(m, { enableAdaptiveWeights: true, baseFactor: 0.5, decayMultiplier: 1.2, timeWeightDays: 90 })
+                  : getRankPointsWithManualOverride(m);
                 return sum + mRankResult.points;
               }, 0);
             }

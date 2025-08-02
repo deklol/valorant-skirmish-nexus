@@ -44,7 +44,7 @@ const DraggablePlayer = ({ player, enableAdaptiveWeights }: DraggablePlayerProps
 
   // Calculate the appropriate rank result based on adaptive weights setting
   const rankResult = enableAdaptiveWeights 
-    ? calculateAdaptiveWeight(player, { enableAdaptiveWeights: true, baseFactor: 0.5, decayMultiplier: 1.2, timeWeightDays: 90 })
+    ? calculateAdaptiveWeight(player, { enableAdaptiveWeights: true, baseFactor: 0.5, decayMultiplier: 0.15, timeWeightDays: 90 })
     : getRankPointsWithManualOverride(player);
 
   return (
