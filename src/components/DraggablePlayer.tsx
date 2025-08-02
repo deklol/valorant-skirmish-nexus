@@ -70,16 +70,22 @@ const DraggablePlayer = ({ player, enableAdaptiveWeights }: DraggablePlayerProps
                 </span>
                 <span className="text-slate-300">-</span>
                 <span className="text-slate-300 text-sm font-medium">
-                  {rankResult.points}
+                  {rankResult.points} pts
                 </span>
                 {rankResult.source === 'adaptive_weight' && (
-                  <span className="text-emerald-400 text-xs font-medium">(ADAPTIVE RATING)</span>
+                  <Badge variant="outline" className="text-emerald-400 border-emerald-400 text-xs">
+                    Adaptive
+                  </Badge>
                 )}
                 {rankResult.source === 'manual_override' && (
-                  <span className="text-purple-400 text-xs font-medium">(OVERRIDE)</span>
+                  <Badge variant="outline" className="text-purple-400 border-purple-400 text-xs">
+                    Override
+                  </Badge>
                 )}
                 {rankResult.source === 'peak_rank' && (
-                  <span className="text-amber-400 text-xs font-medium">(PEAK RANK)</span>
+                  <Badge variant="outline" className="text-amber-400 border-amber-400 text-xs">
+                    Peak
+                  </Badge>
                 )}
               </div>
             </div>
