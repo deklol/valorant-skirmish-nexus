@@ -100,6 +100,7 @@ interface TournamentBalanceTransparencyProps {
 
 const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBalanceTransparencyProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isAdaptiveExpanded, setIsAdaptiveExpanded] = useState(false);
   
   // Helper functions to handle both old and new formats
   const getQualityScore = () => {
@@ -270,54 +271,69 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
         {(balanceAnalysis.adaptiveWeightCalculations || balanceAnalysis.adaptive_weight_calculations) && 
          (balanceAnalysis.adaptiveWeightCalculations?.length > 0 || balanceAnalysis.adaptive_weight_calculations?.length > 0) && (
           <div className="space-y-3 border-t border-border pt-4">
-            <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-blue-400" />
-              Adaptive Weight Calculations
-            </h4>
-            <div className="space-y-3">
-              {(balanceAnalysis.adaptiveWeightCalculations || balanceAnalysis.adaptive_weight_calculations || []).map((calc, index) => {
-                const player = balanceSteps.find(step => step.player.id === calc.userId);
-                return (
-                  <div key={index} className="p-3 rounded-lg bg-blue-50/50 border border-blue-200/50">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-foreground">
-                        {player?.player.discord_username || 'Unknown Player'}
-                      </span>
-                      <Badge className="bg-blue-600 text-white text-xs">
-                        {calc.calculation.calculatedAdaptiveWeight} pts (ADAPTIVE)
-                      </Badge>
-                    </div>
-                    <div className="text-sm text-muted-foreground mb-2">
-                      <strong>Calculation:</strong> {calc.calculation.calculationReasoning}
-                    </div>
-                    <div className="grid grid-cols-2 gap-4 text-xs text-muted-foreground">
-                      <div>
-                        <span className="font-medium">Current:</span> {calc.calculation.currentRank || 'Unranked'} ({calc.calculation.currentRankPoints} pts)
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsAdaptiveExpanded(!isAdaptiveExpanded)}
+              className="w-full flex items-center justify-between p-2 h-auto"
+            >
+              <span className="text-sm font-medium text-foreground flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-blue-400" />
+                Adaptive Weight Calculations ({(balanceAnalysis.adaptiveWeightCalculations || balanceAnalysis.adaptive_weight_calculations || []).length} players)
+              </span>
+              {isAdaptiveExpanded ? (
+                <ChevronUp className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              )}
+            </Button>
+            
+            {isAdaptiveExpanded && (
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {(balanceAnalysis.adaptiveWeightCalculations || balanceAnalysis.adaptive_weight_calculations || []).map((calc, index) => {
+                  const player = balanceSteps.find(step => step.player.id === calc.userId);
+                  return (
+                    <div key={index} className="p-3 rounded-lg bg-muted/30 border border-border">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-foreground">
+                          {player?.player.discord_username || 'Unknown Player'}
+                        </span>
+                        <Badge className="bg-blue-600 text-white text-xs">
+                          {calc.calculation.calculatedAdaptiveWeight} pts (ADAPTIVE)
+                        </Badge>
                       </div>
-                      <div>
-                        <span className="font-medium">Peak:</span> {calc.calculation.peakRank || 'N/A'} ({calc.calculation.peakRankPoints} pts)
+                      <div className="text-sm text-muted-foreground mb-2">
+                        <strong>Calculation:</strong> {calc.calculation.calculationReasoning}
                       </div>
-                      <div>
-                        <span className="font-medium">Adaptive Factor:</span> {Math.round(calc.calculation.adaptiveFactor * 100)}%
-                      </div>
-                      <div>
-                        <span className="font-medium">Source:</span> {calc.calculation.weightSource.replace('_', ' ')}
-                      </div>
-                      {calc.calculation.rankDecayFactor !== undefined && (
+                      <div className="grid grid-cols-2 gap-4 text-xs text-muted-foreground">
                         <div>
-                          <span className="font-medium">Rank Decay:</span> {Math.round(calc.calculation.rankDecayFactor * 100)}%
+                          <span className="font-medium">Current:</span> {calc.calculation.currentRank || 'Unranked'} ({calc.calculation.currentRankPoints} pts)
                         </div>
-                      )}
-                      {calc.calculation.timeSincePeakDays && (
                         <div>
-                          <span className="font-medium">Days Since Peak:</span> {calc.calculation.timeSincePeakDays}
+                          <span className="font-medium">Peak:</span> {calc.calculation.peakRank || 'N/A'} ({calc.calculation.peakRankPoints} pts)
                         </div>
-                      )}
+                        <div>
+                          <span className="font-medium">Adaptive Factor:</span> {Math.round(calc.calculation.adaptiveFactor * 100)}%
+                        </div>
+                        <div>
+                          <span className="font-medium">Source:</span> {calc.calculation.weightSource.replace('_', ' ')}
+                        </div>
+                        {calc.calculation.rankDecayFactor !== undefined && (
+                          <div>
+                            <span className="font-medium">Rank Decay:</span> {Math.round(calc.calculation.rankDecayFactor * 100)}%
+                          </div>
+                        )}
+                        {calc.calculation.timeSincePeakDays && (
+                          <div>
+                            <span className="font-medium">Days Since Peak:</span> {calc.calculation.timeSincePeakDays}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
