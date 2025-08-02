@@ -440,10 +440,10 @@ export default function AchievementMedicManager() {
   return (
     <div className="w-full px-1 md:px-2 pt-8">
       {/* Header */}
-      <Card className="bg-slate-800/95 border border-slate-700 rounded-xl mb-8 shadow-lg">
+      <Card className="bg-card border border-border rounded-xl mb-8 shadow-lg">
         <CardHeader className="flex flex-row items-center gap-3 pt-6 pb-2 px-6">
           <Trophy className="w-7 h-7 text-yellow-400" />
-          <CardTitle className="text-2xl font-semibold text-white">Achievement Medic</CardTitle>
+          <CardTitle className="text-2xl font-semibold text-foreground">Achievement Medic</CardTitle>
         </CardHeader>
         <CardContent className="px-6 pb-6 pt-2">
           <p className="text-slate-200 mb-2 leading-tight">
@@ -456,7 +456,7 @@ export default function AchievementMedicManager() {
       </Card>
 
       {/* Controls */}
-      <Card className="bg-slate-800/95 border border-slate-700 rounded-xl mb-6">
+      <Card className="bg-card border border-border rounded-xl mb-6">
         <CardHeader className="pb-4">
           <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
             <div className="flex flex-col sm:flex-row gap-2 flex-1">
@@ -466,11 +466,11 @@ export default function AchievementMedicManager() {
                   placeholder="Search achievements..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-10 bg-slate-700 border-slate-600 text-white"
+                  className="pl-10 bg-input border-input text-foreground"
                 />
               </div>
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="w-40 bg-slate-700 border-slate-600 text-white">
+                <SelectTrigger className="w-40 bg-input border-input text-foreground">
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
                 <SelectContent>
@@ -481,7 +481,7 @@ export default function AchievementMedicManager() {
                 </SelectContent>
               </Select>
               <Select value={rarityFilter} onValueChange={setRarityFilter}>
-                <SelectTrigger className="w-40 bg-slate-700 border-slate-600 text-white">
+                <SelectTrigger className="w-40 bg-input border-input text-foreground">
                   <SelectValue placeholder="Rarity" />
                 </SelectTrigger>
                 <SelectContent>
@@ -497,19 +497,19 @@ export default function AchievementMedicManager() {
                 onClick={() => setRefreshKey(prev => prev + 1)}
                 variant="outline"
                 size="sm"
-                className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
+                className="bg-muted border-input text-foreground hover:bg-muted/80"
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Refresh
               </Button>
               <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button className="bg-yellow-600 hover:bg-yellow-700 text-white">
+                  <Button className="bg-yellow-600 hover:bg-yellow-700 text-foreground">
                     <Plus className="w-4 h-4 mr-2" />
                     Create Achievement
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="bg-slate-800 border-slate-700">
+                <DialogContent className="bg-card border-border">
                   <DialogHeader>
                     <DialogTitle className="text-white">Create New Achievement</DialogTitle>
                     <DialogDescription className="text-slate-400">
