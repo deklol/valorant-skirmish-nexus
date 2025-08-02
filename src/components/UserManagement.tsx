@@ -473,7 +473,7 @@ const UserManagement = () => {
 
         {/* Edit User Dialog with Enhanced Manual Override Section */}
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-          <DialogContent className="bg-slate-800 border-slate-700 max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="bg-slate-800 border-slate-700 max-w-4xl max-h-[95vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-white">Edit User</DialogTitle>
             </DialogHeader>
