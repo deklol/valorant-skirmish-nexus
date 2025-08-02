@@ -306,6 +306,9 @@ fetchTeamsAndPlayers();
       
       setEnableAdaptiveWeights(checked);
       
+      // Recalculate team totals with new weight system
+      recalculateTeamTotals(checked);
+      
       toast({
         title: checked ? "Adaptive Weights Enabled" : "Adaptive Weights Disabled",
         description: checked 
@@ -320,6 +323,24 @@ fetchTeamsAndPlayers();
         variant: "destructive",
       });
     }
+  };
+
+  const recalculateTeamTotals = (useAdaptiveWeights: boolean) => {
+    setTeams(prevTeams => 
+      prevTeams.map(team => {
+        const totalWeight = team.members.reduce((sum, member) => {
+          const rankResult = useAdaptiveWeights
+            ? calculateAdaptiveWeight(member, { enableAdaptiveWeights: true, baseFactor: 0.5, decayMultiplier: 1.2, timeWeightDays: 90 })
+            : getRankPointsWithManualOverride(member);
+          return sum + rankResult.points;
+        }, 0);
+        
+        return {
+          ...team,
+          totalWeight
+        };
+      })
+    );
   };
 
 const fetchTeamsAndPlayers = async () => {
@@ -401,7 +422,9 @@ try {
           });
 
         const totalWeight = members.reduce((sum, member) => {
-          const rankResult = getRankPointsWithManualOverride(member);
+          const rankResult = enableAdaptiveWeights
+            ? calculateAdaptiveWeight(member, { enableAdaptiveWeights: true, baseFactor: 0.5, decayMultiplier: 1.2, timeWeightDays: 90 })
+            : getRankPointsWithManualOverride(member);
           return sum + rankResult.points;
         }, 0);
 
@@ -424,7 +447,9 @@ try {
         .map(participant => participant.users)
         .filter(user => user && !allAssignedUserIds.has(user.id))
         .map(user => {
-          const rankResult = getRankPointsWithManualOverride(user);
+          const rankResult = enableAdaptiveWeights
+            ? calculateAdaptiveWeight(user, { enableAdaptiveWeights: true, baseFactor: 0.5, decayMultiplier: 1.2, timeWeightDays: 90 })
+            : getRankPointsWithManualOverride(user);
           return {
             id: user.id,
             discord_username: user.discord_username || 'Unknown',
@@ -446,7 +471,9 @@ try {
         .map(participant => participant.users)
         .filter(user => user && !allAssignedUserIds.has(user.id))
         .map(user => {
-          const rankResult = getRankPointsWithManualOverride(user);
+          const rankResult = enableAdaptiveWeights
+            ? calculateAdaptiveWeight(user, { enableAdaptiveWeights: true, baseFactor: 0.5, decayMultiplier: 1.2, timeWeightDays: 90 })
+            : getRankPointsWithManualOverride(user);
           return {
             id: user.id,
             discord_username: user.discord_username || 'Unknown',

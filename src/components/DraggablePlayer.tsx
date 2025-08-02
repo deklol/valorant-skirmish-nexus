@@ -89,21 +89,13 @@ const DraggablePlayer = ({ player, enableAdaptiveWeights }: DraggablePlayerProps
             </div>
             <div className="text-xs text-slate-400">
               {rankResult.source === 'manual_override' ? (
-                <span>
-                  Override: {rankResult.rank} • {rankResult.overrideReason || 'Admin set'}
-                </span>
+                <span>{rankResult.rank} • {rankResult.overrideReason || 'Admin override'}</span>
               ) : rankResult.source === 'adaptive_weight' ? (
-                <span>
-                  Adaptive: {rankResult.rank} • {(rankResult as any).adaptiveCalculation?.calculationReasoning || 'Blended weight'}
-                </span>
+                <span>{rankResult.rank} • Adaptive calculation</span>
               ) : rankResult.source === 'peak_rank' ? (
-                <span>
-                  {player.current_rank || 'Unrated'} → {rankResult.rank}
-                </span>
+                <span>{player.current_rank || 'Unrated'} → {rankResult.rank}</span>
               ) : (
-                <span>
-                  {player.current_rank || 'Unranked'} • {player.riot_id || 'No Riot ID'}
-                </span>
+                <span>{player.current_rank || 'Unranked'} • {player.riot_id || 'Standard weight'}</span>
               )}
             </div>
           </div>
