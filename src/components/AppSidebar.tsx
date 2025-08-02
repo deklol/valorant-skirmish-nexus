@@ -319,7 +319,7 @@ export function AppSidebar() {
                     </div>
                     <NavLink to={`/tournament/${latestTournament.id}`}>
                       <Button size="sm" className="w-full bg-red-500 hover:bg-red-600 text-white text-xs">
-                        Join Tournament
+                        {latestTournament.status === 'completed' ? 'View Tournament' : 'Join Tournament'}
                         <ChevronRight className="w-3 h-3 ml-1" />
                       </Button>
                     </NavLink>
