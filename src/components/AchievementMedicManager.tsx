@@ -2,9 +2,8 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { StandardInput, StandardTextarea } from "@/components/ui";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -463,7 +462,7 @@ export default function AchievementMedicManager() {
             <div className="flex flex-col sm:flex-row gap-2 flex-1">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-                <Input
+                <StandardInput
                   placeholder="Search achievements..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
@@ -742,7 +741,7 @@ export default function AchievementMedicManager() {
           <div className="space-y-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-              <Input
+              <StandardInput
                 placeholder="Search players..."
                 value={userSearch}
                 onChange={(e) => setUserSearch(e.target.value)}
@@ -795,7 +794,7 @@ function AchievementForm({ formData, setFormData, isEditing }: {
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label className="text-white">Name</Label>
-          <Input
+          <StandardInput
             value={formData.name}
             onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
             className="bg-slate-700 border-slate-600 text-white"
@@ -804,7 +803,7 @@ function AchievementForm({ formData, setFormData, isEditing }: {
         </div>
         <div>
           <Label className="text-white">Points</Label>
-          <Input
+          <StandardInput
             type="number"
             value={formData.points}
             onChange={(e) => setFormData(prev => ({ ...prev, points: parseInt(e.target.value) || 0 }))}
@@ -816,7 +815,7 @@ function AchievementForm({ formData, setFormData, isEditing }: {
       
       <div>
         <Label className="text-white">Description</Label>
-        <Textarea
+        <StandardTextarea
           value={formData.description}
           onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
           className="bg-slate-700 border-slate-600 text-white"
@@ -905,7 +904,7 @@ function AchievementForm({ formData, setFormData, isEditing }: {
 
       <div>
         <Label className="text-white">Requirement Value</Label>
-        <Input
+        <StandardInput
           type="number"
           value={formData.requirement_value}
           onChange={(e) => setFormData(prev => ({ ...prev, requirement_value: parseInt(e.target.value) || 0 }))}

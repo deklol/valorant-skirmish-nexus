@@ -8,9 +8,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import { StandardInput, StandardTextarea } from "@/components/ui";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -175,7 +174,7 @@ export default function CloneTournamentDialog({
             <div className="grid grid-cols-1 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="name" className="text-slate-300">Tournament Name</Label>
-                <Input
+                <StandardInput
                   id="name"
                   value={formData.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
@@ -185,7 +184,7 @@ export default function CloneTournamentDialog({
               </div>
               <div className="space-y-2">
                 <Label htmlFor="description" className="text-slate-300">Description</Label>
-                <Textarea
+                <StandardTextarea
                   id="description"
                   value={formData.description}
                   onChange={(e) => handleInputChange('description', e.target.value)}
@@ -208,13 +207,13 @@ export default function CloneTournamentDialog({
             <div className="space-y-2">
               <Label className="text-slate-300">Tournament Start Time</Label>
               <div className="grid grid-cols-2 gap-2">
-                <Input
+                <StandardInput
                   type="date"
                   value={formData.startDate}
                   onChange={(e) => handleInputChange('startDate', e.target.value)}
                   className="bg-slate-700 border-slate-600 text-white"
                 />
-                <Input
+                <StandardInput
                   type="time"
                   value={formData.startTime}
                   onChange={(e) => handleInputChange('startTime', e.target.value)}
@@ -227,13 +226,13 @@ export default function CloneTournamentDialog({
             <div className="space-y-2">
               <Label className="text-slate-300">Registration Opens</Label>
               <div className="grid grid-cols-2 gap-2">
-                <Input
+                <StandardInput
                   type="date"
                   value={formData.registrationOpensDate}
                   onChange={(e) => handleInputChange('registrationOpensDate', e.target.value)}
                   className="bg-slate-700 border-slate-600 text-white"
                 />
-                <Input
+                <StandardInput
                   type="time"
                   value={formData.registrationOpensTime}
                   onChange={(e) => handleInputChange('registrationOpensTime', e.target.value)}
@@ -246,13 +245,13 @@ export default function CloneTournamentDialog({
             <div className="space-y-2">
               <Label className="text-slate-300">Registration Closes</Label>
               <div className="grid grid-cols-2 gap-2">
-                <Input
+                <StandardInput
                   type="date"
                   value={formData.registrationClosesDate}
                   onChange={(e) => handleInputChange('registrationClosesDate', e.target.value)}
                   className="bg-slate-700 border-slate-600 text-white"
                 />
-                <Input
+                <StandardInput
                   type="time"
                   value={formData.registrationClosesTime}
                   onChange={(e) => handleInputChange('registrationClosesTime', e.target.value)}
@@ -267,13 +266,13 @@ export default function CloneTournamentDialog({
                 <div className="space-y-2">
                   <Label className="text-slate-300">Check-in Starts</Label>
                   <div className="grid grid-cols-2 gap-2">
-                    <Input
+                    <StandardInput
                       type="date"
                       value={formData.checkInStartsDate}
                       onChange={(e) => handleInputChange('checkInStartsDate', e.target.value)}
                       className="bg-slate-700 border-slate-600 text-white"
                     />
-                    <Input
+                    <StandardInput
                       type="time"
                       value={formData.checkInStartsTime}
                       onChange={(e) => handleInputChange('checkInStartsTime', e.target.value)}
@@ -286,13 +285,13 @@ export default function CloneTournamentDialog({
                 <div className="space-y-2">
                   <Label className="text-slate-300">Check-in Ends</Label>
                   <div className="grid grid-cols-2 gap-2">
-                    <Input
+                    <StandardInput
                       type="date"
                       value={formData.checkInEndsDate}
                       onChange={(e) => handleInputChange('checkInEndsDate', e.target.value)}
                       className="bg-slate-700 border-slate-600 text-white"
                     />
-                    <Input
+                    <StandardInput
                       type="time"
                       value={formData.checkInEndsTime}
                       onChange={(e) => handleInputChange('checkInEndsTime', e.target.value)}

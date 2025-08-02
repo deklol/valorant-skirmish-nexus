@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
+import { StandardInput } from "@/components/ui";
 import { Label } from "@/components/ui/label";
 import { AlertTriangle, Settings, Calendar, Trophy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -228,7 +228,7 @@ const AdminMatchControls = ({ match, onMatchUpdate }: AdminMatchControlsProps) =
         <div className="space-y-2">
           <Label className="text-slate-300">Reschedule Match</Label>
           <div className="flex gap-2">
-            <Input
+            <StandardInput
               type="datetime-local"
               value={newScheduledTime}
               onChange={(e) => setNewScheduledTime(e.target.value)}
@@ -251,7 +251,7 @@ const AdminMatchControls = ({ match, onMatchUpdate }: AdminMatchControlsProps) =
           <div className="grid grid-cols-2 gap-2">
             <div>
               <Label className="text-xs text-slate-400">{match.team1?.name || 'Team 1'} Score</Label>
-              <Input
+              <StandardInput
                 type="number"
                 value={overrideScore1}
                 onChange={(e) => setOverrideScore1(parseInt(e.target.value) || 0)}
@@ -260,7 +260,7 @@ const AdminMatchControls = ({ match, onMatchUpdate }: AdminMatchControlsProps) =
             </div>
             <div>
               <Label className="text-xs text-slate-400">{match.team2?.name || 'Team 2'} Score</Label>
-              <Input
+              <StandardInput
                 type="number"
                 value={overrideScore2}
                 onChange={(e) => setOverrideScore2(parseInt(e.target.value) || 0)}

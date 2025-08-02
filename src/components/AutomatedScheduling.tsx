@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { StandardInput } from "@/components/ui";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Clock, Calendar, Zap, Settings } from "lucide-react";
@@ -133,7 +133,7 @@ const AutomatedScheduling = ({ tournamentId, onScheduleCreated }: AutomatedSched
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="startTime" className="text-slate-300">Tournament Start Time</Label>
-            <Input
+            <StandardInput
               id="startTime"
               type="datetime-local"
               value={scheduleConfig.startTime}
