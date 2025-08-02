@@ -9,16 +9,13 @@ const RiotIdSetupManager = () => {
 
   useEffect(() => {
     if (user && profile && needsRiotIdSetup) {
-      console.log('User needs Riot ID setup, opening dialog');
       setIsDialogOpen(true);
     } else {
-      console.log('Riot ID setup not needed or user/profile not loaded');
       setIsDialogOpen(false);
     }
   }, [user, profile, needsRiotIdSetup]);
 
   const handleComplete = async () => {
-    console.log('Riot ID setup completed, refreshing profile');
     await refreshProfile();
     setIsDialogOpen(false);
   };

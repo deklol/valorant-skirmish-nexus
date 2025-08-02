@@ -39,7 +39,7 @@ const queryClient = new QueryClient();
 const AppContent = () => {
   const { loading } = useAuth();
 
-  console.log('App loading state:', loading);
+  // App loading state management
 
   // Show loading state while auth is being determined
   if (loading) {

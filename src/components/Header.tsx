@@ -7,8 +7,7 @@ import { Trophy, Users, Calendar, Menu, X, LogOut, User, Settings, Shield, Youtu
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import MobileNav from "./MobileNav";
-// import RealTimeNotifications from "./RealTimeNotifications";
-import NotificationCenter from "./NotificationCenter";
+import { EnhancedNotificationCenter } from "./notifications";
 import { useAppSettings } from "@/contexts/AppSettingsContext";
 
 const Header = () => {
@@ -95,7 +94,7 @@ const Header = () => {
             >
               Discord
             </a>
-            {user && <NotificationCenter />}
+            {user && <EnhancedNotificationCenter />}
             
             {user ? (
               <div className="flex items-center space-x-4">

@@ -10,7 +10,7 @@ import CreateTournamentDialog from "@/components/CreateTournamentDialog";
 import TournamentManagement from "@/components/TournamentManagement";
 import AdminLogoutAll from "@/components/AdminLogoutAll";
 import MapManager from "@/components/MapManager";
-import UserPlayerManagement from "@/components/UserPlayerManagement";
+import UserManagement from "@/components/UserManagement";
 import VetoMedicManager from "@/components/VetoMedicManager";
 import MatchMedicManager from "@/components/MatchMedicManager";
 import TournamentMedicManager from "@/components/TournamentMedicManager";
@@ -157,7 +157,7 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="users">
-            <UserPlayerManagement />
+            <UserManagement />
           </TabsContent>
 
           <TabsContent value="maps">
