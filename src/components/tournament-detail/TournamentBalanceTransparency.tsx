@@ -303,51 +303,143 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
             </Button>
             
             {isAdaptiveExpanded && (
-              <div className="space-y-3 max-h-96 overflow-y-auto">
+              <div className="space-y-4 max-h-96 overflow-y-auto">
+                {/* Why Adaptive is Better Section */}
+                <div className="p-4 rounded-lg bg-blue-50/50 border border-blue-200/50 dark:bg-blue-950/30 dark:border-blue-800/30">
+                  <h5 className="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-2 flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4" />
+                    Why Adaptive Weighting is Superior
+                  </h5>
+                  <div className="text-xs text-blue-700 dark:text-blue-400 space-y-1">
+                    <div>• <strong>Tier-aware decay:</strong> Considers rank tier gaps, not just point differences</div>
+                    <div>• <strong>Time-based degradation:</strong> Exponential skill decay modeling over time</div>
+                    <div>• <strong>Confidence scoring:</strong> Higher weight for significant peak advantages</div>
+                    <div>• <strong>Smart penalties:</strong> Tier-appropriate unranked penalties</div>
+                    <div>• <strong>Variance reduction:</strong> Smoother transitions for consistent balancing</div>
+                  </div>
+                </div>
+
+                {/* Individual Calculations */}
                 {adaptiveCalculations.map((calc, index) => {
-                  // Find player in balance steps - try multiple ways to match
                   const stepPlayer = balanceSteps.find(step => 
                     step.player.id === calc.userId || 
                     step.player.id === calc.userId ||
                     (step.player as any).user_id === calc.userId
                   );
                   const playerName = stepPlayer?.player.discord_username || stepPlayer?.player.name || `Player ${index + 1}`;
+                  
+                  // Calculate what standard system would give
+                  const standardPoints = calc.calculation.currentRank === 'Unranked' || !calc.calculation.currentRank 
+                    ? calc.calculation.peakRankPoints || 150
+                    : calc.calculation.currentRankPoints;
+                  const adaptiveAdvantage = calc.calculation.calculatedAdaptiveWeight - standardPoints;
+                  
                   return (
-                    <div key={index} className="p-3 rounded-lg bg-muted/30 border border-border">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-foreground">
-                          {playerName}
-                        </span>
-                        <Badge className="bg-blue-600 text-white text-xs">
+                    <div key={index} className="p-4 rounded-lg bg-card border border-border shadow-sm">
+                      {/* Player Header */}
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-foreground">
+                            {playerName}
+                          </span>
+                          {adaptiveAdvantage !== 0 && (
+                            <Badge 
+                              variant="outline" 
+                              className={`text-xs ${
+                                adaptiveAdvantage > 0 
+                                  ? 'border-green-400 text-green-600 dark:text-green-400' 
+                                  : 'border-orange-400 text-orange-600 dark:text-orange-400'
+                              }`}
+                            >
+                              {adaptiveAdvantage > 0 ? '+' : ''}{adaptiveAdvantage} pts vs standard
+                            </Badge>
+                          )}
+                        </div>
+                        <Badge className="bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs font-medium">
                           {calc.calculation.calculatedAdaptiveWeight} pts (ADAPTIVE)
                         </Badge>
                       </div>
-                      <div className="text-sm text-muted-foreground mb-2">
-                        <strong>Calculation:</strong> {calc.calculation.calculationReasoning}
+
+                      {/* Reasoning */}
+                      <div className="text-sm text-foreground/80 mb-3 p-2 rounded bg-muted/30">
+                        {calc.calculation.calculationReasoning.split('. ').map((line, i) => (
+                          <div key={i} className="py-0.5">{line.trim()}</div>
+                        ))}
                       </div>
-                      <div className="grid grid-cols-2 gap-4 text-xs text-muted-foreground">
-                        <div>
-                          <span className="font-medium">Current:</span> {calc.calculation.currentRank || 'Unranked'} ({calc.calculation.currentRankPoints} pts)
+
+                      {/* Detailed Metrics Grid */}
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+                        <div className="space-y-1">
+                          <div className="text-muted-foreground font-medium">Current Rank</div>
+                          <div className="text-foreground font-semibold">
+                            {calc.calculation.currentRank || 'Unranked'}
+                          </div>
+                          <div className="text-muted-foreground">
+                            {calc.calculation.currentRankPoints} points
+                          </div>
                         </div>
-                        <div>
-                          <span className="font-medium">Peak:</span> {calc.calculation.peakRank || 'N/A'} ({calc.calculation.peakRankPoints} pts)
+                        
+                        <div className="space-y-1">
+                          <div className="text-muted-foreground font-medium">Peak Rank</div>
+                          <div className="text-foreground font-semibold">
+                            {calc.calculation.peakRank || 'N/A'}
+                          </div>
+                          <div className="text-muted-foreground">
+                            {calc.calculation.peakRankPoints} points
+                          </div>
                         </div>
-                        <div>
-                          <span className="font-medium">Adaptive Factor:</span> {Math.round(calc.calculation.adaptiveFactor * 100)}%
+                        
+                        <div className="space-y-1">
+                          <div className="text-muted-foreground font-medium">Adaptive Blend</div>
+                          <div className="text-foreground font-semibold">
+                            {Math.round(calc.calculation.adaptiveFactor * 100)}% peak
+                          </div>
+                          <div className="text-muted-foreground">
+                            {Math.round((1 - calc.calculation.adaptiveFactor) * 100)}% current
+                          </div>
                         </div>
-                        <div>
-                          <span className="font-medium">Source:</span> {calc.calculation.weightSource.replace('_', ' ')}
-                        </div>
+                        
                         {calc.calculation.rankDecayFactor !== undefined && (
-                          <div>
-                            <span className="font-medium">Rank Decay:</span> {Math.round(calc.calculation.rankDecayFactor * 100)}%
+                          <div className="space-y-1">
+                            <div className="text-muted-foreground font-medium">Tier Decay</div>
+                            <div className="text-foreground font-semibold">
+                              {Math.round(calc.calculation.rankDecayFactor * 100)}%
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              Tier-based adjustment
+                            </div>
                           </div>
                         )}
+                        
                         {calc.calculation.timeSincePeakDays && (
-                          <div>
-                            <span className="font-medium">Days Since Peak:</span> {calc.calculation.timeSincePeakDays}
+                          <div className="space-y-1">
+                            <div className="text-muted-foreground font-medium">Time Factor</div>
+                            <div className="text-foreground font-semibold">
+                              {calc.calculation.timeSincePeakDays} days
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              Since peak rank
+                            </div>
                           </div>
                         )}
+                        
+                        <div className="space-y-1">
+                          <div className="text-muted-foreground font-medium">Standard vs Adaptive</div>
+                          <div className="text-foreground font-semibold">
+                            {standardPoints} → {calc.calculation.calculatedAdaptiveWeight}
+                          </div>
+                          <div className={`text-xs ${
+                            adaptiveAdvantage > 0 
+                              ? 'text-green-600 dark:text-green-400' 
+                              : adaptiveAdvantage < 0
+                                ? 'text-orange-600 dark:text-orange-400'
+                                : 'text-muted-foreground'
+                          }`}>
+                            {adaptiveAdvantage === 0 ? 'No change' : 
+                             adaptiveAdvantage > 0 ? `+${adaptiveAdvantage} more accurate` : 
+                             `${adaptiveAdvantage} more conservative`}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   );

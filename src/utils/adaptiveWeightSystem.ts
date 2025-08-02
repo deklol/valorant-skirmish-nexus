@@ -29,32 +29,61 @@ export interface EnhancedAdaptiveResult extends EnhancedRankPointsResult {
 
 const DEFAULT_CONFIG: AdaptiveWeightConfig = {
   enableAdaptiveWeights: true,
-  baseFactor: 0.5, // 50/50 blend
-  decayMultiplier: 0.15, // Increases adaptive factor based on rank decay
-  timeWeightDays: 90 // Consider time weighting after 90 days
+  baseFactor: 0.3, // More conservative 30% blend for stability
+  decayMultiplier: 0.25, // Higher multiplier for more responsive decay adjustment
+  timeWeightDays: 60 // More aggressive time consideration after 60 days
 };
 
 /**
- * Calculate rank decay factor based on how far current rank has fallen from peak
+ * Enhanced rank decay calculation with tier-based weighting
+ * Considers both absolute point difference and tier gaps for more nuanced decay
  */
 function calculateRankDecay(currentPoints: number, peakPoints: number): number {
   if (peakPoints <= currentPoints) return 0; // No decay, current is equal or better
   
-  const maxDecay = peakPoints - 10; // Maximum possible decay (to Iron 1)
-  const actualDecay = peakPoints - currentPoints;
+  const pointDifference = peakPoints - currentPoints;
   
-  return Math.min(actualDecay / maxDecay, 1); // Normalized 0-1
+  // Calculate tier-based decay - larger gaps between tiers should have more impact
+  const tierGaps = {
+    50: 0.2,   // Minor tier drop (e.g., Gold 3 to Gold 2)
+    100: 0.4,  // Major tier drop (e.g., Diamond to Platinum)
+    200: 0.6,  // Severe drop (e.g., Immortal to Gold)
+    300: 0.8   // Extreme drop (e.g., Radiant to Silver)
+  };
+  
+  let decayFactor = 0;
+  for (const [threshold, factor] of Object.entries(tierGaps)) {
+    if (pointDifference >= parseInt(threshold)) {
+      decayFactor = factor;
+    }
+  }
+  
+  // Add progressive scaling for very large gaps
+  if (pointDifference > 300) {
+    const extraDecay = Math.min((pointDifference - 300) / 200, 0.15);
+    decayFactor = Math.min(decayFactor + extraDecay, 0.95); // Cap at 95%
+  }
+  
+  return decayFactor;
 }
 
 /**
- * Calculate time-based weighting for peak rank relevance
+ * Enhanced time-based weighting with exponential decay curve
+ * Models realistic skill degradation over time
  */
 function calculateTimeWeight(timeSincePeakDays: number, config: AdaptiveWeightConfig): number {
   if (timeSincePeakDays <= config.timeWeightDays) return 0;
   
-  // Linear increase from 0 to 0.2 over next 90 days
   const extraDays = timeSincePeakDays - config.timeWeightDays;
-  return Math.min(extraDays / 450, 0.2); // Max 20% time penalty
+  
+  // Exponential decay curve - skill degrades faster initially, then plateaus
+  // Formula: 1 - e^(-x/k) where k controls decay rate
+  const decayConstant = 120; // Days for ~63% of max decay
+  const maxTimeWeight = 0.25; // Max 25% time penalty
+  
+  const timeWeight = maxTimeWeight * (1 - Math.exp(-extraDays / decayConstant));
+  
+  return Math.min(timeWeight, maxTimeWeight);
 }
 
 /**
@@ -122,8 +151,16 @@ export function calculateAdaptiveWeight(
   const isCurrentUnranked = !currentRank || currentRank === 'Unranked' || currentRank === 'Unrated';
   
   if (isCurrentUnranked) {
-    // Use peak rank with slight penalty for being unranked
-    const adaptiveWeight = Math.floor(peakRankPoints * 0.85); // 15% penalty for being unranked
+    // Enhanced unranked penalty based on peak rank tier
+    let unrankedPenalty = 0.15; // Base 15% penalty
+    
+    // Higher penalty for higher peak ranks (skill should be maintained)
+    if (peakRankPoints >= 400) unrankedPenalty = 0.25; // Immortal+ loses 25%
+    else if (peakRankPoints >= 265) unrankedPenalty = 0.22; // Ascendant loses 22%
+    else if (peakRankPoints >= 190) unrankedPenalty = 0.20; // Diamond loses 20%
+    else if (peakRankPoints >= 130) unrankedPenalty = 0.18; // Platinum loses 18%
+    
+    const adaptiveWeight = Math.floor(peakRankPoints * (1 - unrankedPenalty));
     
     return {
       points: adaptiveWeight,
@@ -140,10 +177,10 @@ export function calculateAdaptiveWeight(
         peakRank,
         currentRankPoints: 150, // Default for unranked
         peakRankPoints,
-        adaptiveFactor: 0.85,
+        adaptiveFactor: 1 - unrankedPenalty,
         calculatedAdaptiveWeight: adaptiveWeight,
         weightSource: 'adaptive_weight',
-        calculationReasoning: `Adaptive weight: ${peakRank} peak rank with 15% unranked penalty (${peakRankPoints} → ${adaptiveWeight} points)`,
+        calculationReasoning: `Enhanced unranked weighting: ${peakRank} peak (${peakRankPoints} pts) with ${Math.round(unrankedPenalty * 100)}% tier-appropriate penalty → ${adaptiveWeight} points`,
         manualOverrideApplied: false
       }
     };
@@ -160,30 +197,43 @@ export function calculateAdaptiveWeight(
     timeWeight = calculateTimeWeight(timeSincePeakDays, config);
   }
 
-  // Calculate adaptive factor: higher decay = more peak rank influence
-  const adaptiveFactor = Math.min(
-    config.baseFactor + (rankDecay * config.decayMultiplier) + timeWeight,
-    0.8 // Max 80% peak rank influence
-  );
-
-  // Calculate blended weight
-  const adaptiveWeight = Math.floor(
-    (currentRankPoints * (1 - adaptiveFactor)) + (peakRankPoints * adaptiveFactor)
-  );
+  // Enhanced adaptive factor calculation with confidence scoring
+  let adaptiveFactor = config.baseFactor + (rankDecay * config.decayMultiplier) + timeWeight;
+  
+  // Confidence boost: if peak is significantly higher, trust it more
+  const rankGap = peakRankPoints - currentRankPoints;
+  const confidenceBoost = Math.min(rankGap / 500, 0.15); // Up to 15% boost for large gaps
+  adaptiveFactor += confidenceBoost;
+  
+  // Cap the adaptive factor
+  adaptiveFactor = Math.min(adaptiveFactor, 0.75); // Max 75% peak influence for stability
+  
+  // Smart blending with variance consideration
+  const baseBlend = (currentRankPoints * (1 - adaptiveFactor)) + (peakRankPoints * adaptiveFactor);
+  
+  // Add small variance reduction for more consistent results
+  const varianceReduction = Math.min(rankGap * 0.02, 10); // Small adjustment for smoother transitions
+  const adaptiveWeight = Math.floor(baseBlend - varianceReduction);
 
   const reasoningParts = [
-    `Adaptive blend: ${Math.round((1 - adaptiveFactor) * 100)}% current rank (${currentRank}, ${currentRankPoints} pts)`,
-    `+ ${Math.round(adaptiveFactor * 100)}% peak rank (${peakRank}, ${peakRankPoints} pts)`,
-    `= ${adaptiveWeight} points`
+    `🧠 Enhanced Adaptive Algorithm:`,
+    `Current: ${currentRank} (${currentRankPoints} pts) • Peak: ${peakRank} (${peakRankPoints} pts)`,
+    `Smart blend: ${Math.round((1 - adaptiveFactor) * 100)}% current + ${Math.round(adaptiveFactor * 100)}% peak`
   ];
 
   if (rankDecay > 0) {
-    reasoningParts.push(`Rank decay factor: ${Math.round(rankDecay * 100)}%`);
+    reasoningParts.push(`📉 Tier-based decay: ${Math.round(rankDecay * 100)}% (${rankGap} point gap)`);
+  }
+  
+  if (confidenceBoost > 0) {
+    reasoningParts.push(`🎯 Confidence boost: +${Math.round(confidenceBoost * 100)}% (significant peak advantage)`);
   }
   
   if (timeWeight > 0) {
-    reasoningParts.push(`Time penalty (${timeSincePeakDays} days): ${Math.round(timeWeight * 100)}%`);
+    reasoningParts.push(`⏰ Time decay: ${Math.round(timeWeight * 100)}% (${timeSincePeakDays} days since peak)`);
   }
+  
+  reasoningParts.push(`🎲 Final adaptive weight: ${adaptiveWeight} points`);
 
   return {
     points: adaptiveWeight,
