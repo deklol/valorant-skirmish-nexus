@@ -152,12 +152,22 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
   const getBalanceSteps = () => {
     return balanceAnalysis.balanceSteps ?? balanceAnalysis.balance_steps ?? [];
   };
+
+  const getAdaptiveCalculations = () => {
+    const calculations = balanceAnalysis.adaptiveWeightCalculations || balanceAnalysis.adaptive_weight_calculations || [];
+    // Remove duplicates based on userId
+    const uniqueCalculations = calculations.filter((calc, index, self) => 
+      index === self.findIndex(c => c.userId === calc.userId)
+    );
+    return uniqueCalculations;
+  };
   
   const qualityScore = getQualityScore();
   const maxPointDifference = getMaxPointDifference();
   const avgPointDifference = getAvgPointDifference();
   const finalTeamStats = getFinalTeamStats();
   const balanceSteps = getBalanceSteps();
+  const adaptiveCalculations = getAdaptiveCalculations();
   
   const getQualityColor = (score: number) => {
     if (score >= 85) return "text-emerald-600 bg-emerald-50 border-emerald-200";
@@ -268,8 +278,7 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
         </div>
 
         {/* Adaptive Weight Calculations (if used) */}
-        {(balanceAnalysis.adaptiveWeightCalculations || balanceAnalysis.adaptive_weight_calculations) && 
-         (balanceAnalysis.adaptiveWeightCalculations?.length > 0 || balanceAnalysis.adaptive_weight_calculations?.length > 0) && (
+        {adaptiveCalculations.length > 0 && (
           <div className="space-y-3 border-t border-border pt-4">
             <Button
               variant="ghost"
@@ -279,7 +288,7 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
             >
               <span className="text-sm font-medium text-foreground flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-blue-400" />
-                Adaptive Weight Calculations ({(balanceAnalysis.adaptiveWeightCalculations || balanceAnalysis.adaptive_weight_calculations || []).length} players)
+                Adaptive Weight Calculations ({adaptiveCalculations.length} players)
               </span>
               {isAdaptiveExpanded ? (
                 <ChevronUp className="h-4 w-4 text-muted-foreground" />
@@ -290,13 +299,19 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
             
             {isAdaptiveExpanded && (
               <div className="space-y-3 max-h-96 overflow-y-auto">
-                {(balanceAnalysis.adaptiveWeightCalculations || balanceAnalysis.adaptive_weight_calculations || []).map((calc, index) => {
-                  const player = balanceSteps.find(step => step.player.id === calc.userId);
+                {adaptiveCalculations.map((calc, index) => {
+                  // Find player in balance steps - try multiple ways to match
+                  const stepPlayer = balanceSteps.find(step => 
+                    step.player.id === calc.userId || 
+                    step.player.id === calc.userId ||
+                    (step.player as any).user_id === calc.userId
+                  );
+                  const playerName = stepPlayer?.player.discord_username || stepPlayer?.player.name || `Player ${index + 1}`;
                   return (
                     <div key={index} className="p-3 rounded-lg bg-muted/30 border border-border">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-medium text-foreground">
-                          {player?.player.discord_username || 'Unknown Player'}
+                          {playerName}
                         </span>
                         <Badge className="bg-blue-600 text-white text-xs">
                           {calc.calculation.calculatedAdaptiveWeight} pts (ADAPTIVE)
