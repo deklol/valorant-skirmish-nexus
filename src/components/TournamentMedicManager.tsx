@@ -7,6 +7,7 @@ import { Wrench, RefreshCw, Edit, ShieldAlert, Trophy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import TournamentMedicEditModal from "./TournamentMedicEditModal";
+import CloneTournamentDialog from "./CloneTournamentDialog";
 import { Tournament } from "@/types/tournament";
 
 // Remove local Tournament type, use the imported one
@@ -199,6 +200,10 @@ export default function TournamentMedicManager() {
                     >
                       <Edit className="w-4 h-4 mr-1" /> Edit Tournament
                     </Button>
+                    <CloneTournamentDialog 
+                      tournament={t}
+                      onTournamentCloned={() => setRefreshKey(k => k + 1)}
+                    />
                   </div>
                 </div>
               ))}
