@@ -538,31 +538,30 @@ const UserManagement = () => {
                   </Select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="riot_id" className="text-white">Riot ID</Label>
-                    <Input
-                      id="riot_id"
-                      value={editForm.riot_id}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, riot_id: e.target.value }))}
-                      className="bg-slate-700 border-slate-600 text-white"
-                      placeholder="PlayerName#TAG"
-                    />
-                    <p className="text-xs text-slate-400">Format: PlayerName#TAG (e.g., JohnDoe#1234)</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="spendable_points" className="text-white">Achievement Points</Label>
-                    <Input
-                      id="spendable_points"
-                      type="number"
-                      min="0"
-                      value={editForm.spendable_points}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, spendable_points: parseInt(e.target.value) || 0 }))}
-                      className="bg-slate-700 border-slate-600 text-white"
-                      placeholder="0"
-                    />
-                    <p className="text-xs text-slate-400">Points the user can spend in the shop</p>
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="riot_id" className="text-white">Riot ID</Label>
+                  <Input
+                    id="riot_id"
+                    value={editForm.riot_id}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, riot_id: e.target.value }))}
+                    className="bg-slate-700 border-slate-600 text-white"
+                    placeholder="PlayerName#TAG"
+                  />
+                  <p className="text-xs text-slate-400">Format: PlayerName#TAG (e.g., JohnDoe#1234)</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="spendable_points" className="text-white">Achievement Points</Label>
+                  <Input
+                    id="spendable_points"
+                    type="number"
+                    min="0"
+                    value={editForm.spendable_points}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, spendable_points: parseInt(e.target.value) || 0 }))}
+                    className="bg-slate-700 border-slate-600 text-white"
+                    placeholder="0"
+                  />
+                  <p className="text-xs text-slate-400">Points the user can spend in the shop</p>
                 </div>
               </div>
 
