@@ -101,14 +101,27 @@ export function AppSidebar() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Get latest tournament
-        const { data: tournamentData } = await supabase
+        // Get latest tournament - prioritize open/live, fallback to completed
+        let { data: tournamentData } = await supabase
           .from('tournaments')
           .select('id, name, start_time, status, max_players, tournament_signups(count)')
-          .in('status', ['open'])
+          .in('status', ['open', 'live'])
           .order('start_time', { ascending: true })
           .limit(1)
           .single();
+
+        // If no open/live tournaments, get most recent completed tournament
+        if (!tournamentData) {
+          const { data: completedTournament } = await supabase
+            .from('tournaments')
+            .select('id, name, start_time, status, max_players, tournament_signups(count)')
+            .eq('status', 'completed')
+            .order('start_time', { ascending: false })
+            .limit(1)
+            .single();
+          
+          tournamentData = completedTournament;
+        }
 
         setLatestTournament(tournamentData);
 
