@@ -49,8 +49,8 @@ interface Team {
   isPlaceholder?: boolean;
 }
 
-// Enhanced Draggable Player Component with manual override and peak rank indicators
-const DraggablePlayer = ({ player }: { player: Player }) => {
+// Enhanced Draggable Player Component with manual override, peak rank, and adaptive weight indicators
+const DraggablePlayer = ({ player, enableAdaptiveWeights }: { player: Player, enableAdaptiveWeights?: boolean }) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: player.id,
   });
@@ -59,8 +59,10 @@ const DraggablePlayer = ({ player }: { player: Player }) => {
     transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
   } : undefined;
 
-  // Use enhanced ranking system that supports manual overrides
-  const rankResult = getRankPointsWithManualOverride(player);
+  // Use enhanced ranking system that supports manual overrides and adaptive weights
+  const rankResult = enableAdaptiveWeights 
+    ? calculateAdaptiveWeight(player, { enableAdaptiveWeights: true, baseFactor: 0.5, decayMultiplier: 1.2, timeWeightDays: 90 })
+    : getRankPointsWithManualOverride(player);
   const fallbackResult = getRankPointsWithFallback(player.current_rank, player.peak_rank);
 
   return (
@@ -90,11 +92,21 @@ const DraggablePlayer = ({ player }: { player: Player }) => {
                 Peak: {rankResult.rank}
               </Badge>
             )}
+            {rankResult.source === 'adaptive_weight' && (
+              <Badge className="bg-emerald-600 text-white text-xs flex items-center gap-1">
+                <Zap className="w-3 h-3" />
+                Adaptive: {rankResult.rank}
+              </Badge>
+            )}
           </div>
           <div className="text-xs text-slate-400">
             {rankResult.source === 'manual_override' ? (
               <span>
                 Override: {rankResult.rank} ({rankResult.points} pts) • {rankResult.overrideReason || 'Admin set'}
+              </span>
+            ) : rankResult.source === 'adaptive_weight' ? (
+              <span>
+                Adaptive: {rankResult.rank} ({rankResult.points} pts) • {(rankResult as any).adaptiveCalculation?.calculationReasoning || 'Blended weight'}
               </span>
             ) : rankResult.source === 'peak_rank' ? (
               <span>
@@ -113,7 +125,7 @@ const DraggablePlayer = ({ player }: { player: Player }) => {
 };
 
 // Droppable Team Component
-const DroppableTeam = ({ team, teamSize }: { team: Team; teamSize: number }) => {
+const DroppableTeam = ({ team, teamSize, enableAdaptiveWeights }: { team: Team; teamSize: number; enableAdaptiveWeights?: boolean }) => {
   const { isOver, setNodeRef } = useDroppable({
     id: team.isPlaceholder ? `placeholder-${team.id}` : `team-${team.id}`,
   });
@@ -149,7 +161,7 @@ const DroppableTeam = ({ team, teamSize }: { team: Team; teamSize: number }) => 
             </p>
           ) : (
             team.members.map((player, playerIndex) => (
-              <DraggablePlayer key={player.id} player={player} />
+              <DraggablePlayer key={player.id} player={player} enableAdaptiveWeights={enableAdaptiveWeights} />
             ))
           )}
         </div>
@@ -159,7 +171,7 @@ const DroppableTeam = ({ team, teamSize }: { team: Team; teamSize: number }) => 
 };
 
 // Droppable Unassigned Area
-const DroppableUnassigned = ({ players }: { players: Player[] }) => {
+const DroppableUnassigned = ({ players, enableAdaptiveWeights }: { players: Player[]; enableAdaptiveWeights?: boolean }) => {
   const { isOver, setNodeRef } = useDroppable({
     id: 'unassigned',
   });
@@ -179,7 +191,7 @@ const DroppableUnassigned = ({ players }: { players: Player[] }) => {
             </p>
           ) : (
             players.map(player => (
-              <DraggablePlayer key={player.id} player={player} />
+              <DraggablePlayer key={player.id} player={player} enableAdaptiveWeights={enableAdaptiveWeights} />
             ))
           )}
         </div>
@@ -189,7 +201,7 @@ const DroppableUnassigned = ({ players }: { players: Player[] }) => {
 };
 
 // Droppable Substitutes Area
-const DroppableSubstitutes = ({ players }: { players: Player[] }) => {
+const DroppableSubstitutes = ({ players, enableAdaptiveWeights }: { players: Player[]; enableAdaptiveWeights?: boolean }) => {
   const { isOver, setNodeRef } = useDroppable({
     id: 'substitutes',
   });
@@ -209,7 +221,7 @@ const DroppableSubstitutes = ({ players }: { players: Player[] }) => {
             </p>
           ) : (
             players.map(player => (
-              <DraggablePlayer key={player.id} player={player} />
+              <DraggablePlayer key={player.id} player={player} enableAdaptiveWeights={enableAdaptiveWeights} />
             ))
           )}
         </div>
@@ -619,6 +631,9 @@ variant: "destructive",
 
     // Update database to mark as non-substitute
     updatePlayerSubstituteStatus(player.id, false);
+    
+    // Log manual adjustment
+    logManualTeamAdjustment(player, sourceTeamId, null, 'drag_to_unassigned');
   };
 
   const movePlayerToSubstitutes = (player: Player, sourceTeamId: string | null) => {
@@ -649,6 +664,9 @@ variant: "destructive",
 
     // Update database to mark as substitute
     updatePlayerSubstituteStatus(player.id, true);
+    
+    // Log manual adjustment
+    logManualTeamAdjustment(player, sourceTeamId, null, 'drag_to_substitutes');
   };
 
   const movePlayerToTeam = (player: Player, targetTeamId: string, sourceTeamId: string | null) => {
@@ -690,6 +708,62 @@ variant: "destructive",
 
     // Update database to mark as non-substitute when moving to team
     updatePlayerSubstituteStatus(player.id, false);
+    
+    // Log manual team adjustment
+    logManualTeamAdjustment(player, sourceTeamId, targetTeamId, 'drag_to_team');
+  };
+
+  const logManualTeamAdjustment = async (player: Player, sourceTeamId: string | null, targetTeamId: string | null, action: string) => {
+    try {
+      const sourceTeam = sourceTeamId ? teams.find(t => t.id === sourceTeamId) : null;
+      const targetTeam = targetTeamId ? teams.find(t => t.id === targetTeamId) : null;
+      
+      const rankResult = enableAdaptiveWeights 
+        ? calculateAdaptiveWeight(player, { enableAdaptiveWeights: true, baseFactor: 0.5, decayMultiplier: 1.2, timeWeightDays: 90 })
+        : getRankPointsWithManualOverride(player);
+
+      const adjustmentData = {
+        timestamp: new Date().toISOString(),
+        tournament_id: tournamentId,
+        action: `manual_team_adjustment_${action}`,
+        player: {
+          id: player.id,
+          discord_username: player.discord_username,
+          current_rank: player.current_rank,
+          rank_points: rankResult.points,
+          weight_source: rankResult.source,
+          adaptive_reasoning: (rankResult as any).adaptiveCalculation?.calculationReasoning,
+          manual_override: player.use_manual_override ? {
+            rank: player.manual_rank_override,
+            weight: player.manual_weight_override,
+            reason: player.rank_override_reason
+          } : null
+        },
+        source_team: sourceTeam ? { id: sourceTeam.id, name: sourceTeam.name } : null,
+        target_team: targetTeam ? { id: targetTeam.id, name: targetTeam.name } : null,
+        reason: action === 'drag_to_team' ? `Player manually moved to ${targetTeam?.name}` :
+                action === 'drag_to_unassigned' ? 'Player manually moved to unassigned' :
+                action === 'drag_to_substitutes' ? 'Player manually moved to substitutes' : 'Manual adjustment'
+      };
+
+      // Insert audit log
+      const { error } = await supabase
+        .from('audit_logs')
+        .insert({
+          table_name: 'team_balancing_manual_adjustments',
+          action: 'MANUAL_TEAM_ADJUSTMENT',
+          record_id: tournamentId,
+          user_id: null, // Will be filled by RLS if user is authenticated
+          new_values: adjustmentData,
+          created_at: new Date().toISOString()
+        });
+
+      if (error) {
+        console.error('Error logging manual team adjustment:', error);
+      }
+    } catch (error) {
+      console.error('Failed to log manual team adjustment:', error);
+    }
   };
 
   const updatePlayerSubstituteStatus = async (userId: string, isSubstitute: boolean) => {
@@ -751,8 +825,8 @@ variant: "destructive",
         let aRankResult, bRankResult;
         
         if (tournament?.enable_adaptive_weights) {
-          aRankResult = calculateAdaptiveWeight(a);
-          bRankResult = calculateAdaptiveWeight(b);
+          aRankResult = calculateAdaptiveWeight(a, { enableAdaptiveWeights: true, baseFactor: 0.5, decayMultiplier: 1.2, timeWeightDays: 90 });
+          bRankResult = calculateAdaptiveWeight(b, { enableAdaptiveWeights: true, baseFactor: 0.5, decayMultiplier: 1.2, timeWeightDays: 90 });
         } else {
           aRankResult = getRankPointsWithManualOverride(a);
           bRankResult = getRankPointsWithManualOverride(b);
@@ -775,7 +849,14 @@ variant: "destructive",
         },
         () => {
           // console.log("Validation phase (internal)");
-        }
+        },
+        undefined, // onAdaptiveWeightCalculation callback
+        tournament?.enable_adaptive_weights ? {
+          enableAdaptiveWeights: true,
+          baseFactor: 0.5,
+          decayMultiplier: 1.2,
+          timeWeightDays: 90
+        } : undefined
       );
       
       // Store the balance analysis for later saving
@@ -999,53 +1080,64 @@ try {
         }
       }
 
-      // Save balance analysis if autobalance was used
-      if (balanceAnalysis) {
-        const balanceData = {
-          timestamp: new Date().toISOString(),
-          method: `Snake Draft Algorithm${enableAdaptiveWeights ? ' with Adaptive Weights' : ''}`,
-          tournament_info: {
-            max_teams: maxTeams,
-            team_size: teamSize,
-            total_players: balanceAnalysis.balanceSteps.length,
-            teams_balanced: teamsWithMembers.length
-          },
-          balance_steps: balanceAnalysis.balanceSteps.map(step => ({
-            step: step.step,
-            player: {
-              id: step.player.id,
-              discord_username: step.player.discord_username,
-              points: step.player.points,
-              rank: step.player.rank,
-              source: step.player.source
+        // Save balance analysis and adaptive weight calculations if autobalance was used
+        if (balanceAnalysis) {
+          const balanceData = {
+            timestamp: new Date().toISOString(),
+            method: `Snake Draft Algorithm${enableAdaptiveWeights ? ' with Adaptive Weights' : ''}`,
+            tournament_info: {
+              max_teams: maxTeams,
+              team_size: teamSize,
+              total_players: balanceAnalysis.balanceSteps.length,
+              teams_balanced: teamsWithMembers.length,
+              adaptive_weights_enabled: enableAdaptiveWeights
             },
-            assignedTeam: step.assignedTeam,
-            reasoning: step.reasoning,
-            teamStatesAfter: step.teamStatesAfter.map(state => ({
-              teamIndex: state.teamIndex,
-              totalPoints: state.totalPoints,
-              playerCount: state.playerCount
-            }))
-          })),
-          final_balance: {
-            averageTeamPoints: balanceAnalysis.finalBalance.averageTeamPoints,
-            minTeamPoints: balanceAnalysis.finalBalance.minTeamPoints,
-            maxTeamPoints: balanceAnalysis.finalBalance.maxTeamPoints,
-            maxPointDifference: balanceAnalysis.finalBalance.maxPointDifference,
-            balanceQuality: balanceAnalysis.finalBalance.balanceQuality
-          },
-          teams_created: teamsWithMembers.map((team, index) => ({
-            name: team.name,
-            members: team.members.map(m => ({
-              discord_username: m.discord_username,
-              rank: getRankPointsWithManualOverride(m).rank,
-              points: getRankPointsWithManualOverride(m).points,
-              source: getRankPointsWithManualOverride(m).source
+            balance_steps: balanceAnalysis.balanceSteps.map(step => ({
+              step: step.step,
+              player: {
+                id: step.player.id,
+                discord_username: step.player.discord_username,
+                points: step.player.points,
+                rank: step.player.rank,
+                source: step.player.source,
+                adaptiveWeight: step.player.adaptiveWeight,
+                weightSource: step.player.weightSource,
+                adaptiveReasoning: step.player.adaptiveReasoning
+              },
+              assignedTeam: step.assignedTeam,
+              reasoning: step.reasoning,
+              teamStatesAfter: step.teamStatesAfter.map(state => ({
+                teamIndex: state.teamIndex,
+                totalPoints: state.totalPoints,
+                playerCount: state.playerCount
+              }))
             })),
-            total_points: team.totalWeight,
-            seed: index + 1
-          }))
-        };
+            final_balance: {
+              averageTeamPoints: balanceAnalysis.finalBalance.averageTeamPoints,
+              minTeamPoints: balanceAnalysis.finalBalance.minTeamPoints,
+              maxTeamPoints: balanceAnalysis.finalBalance.maxTeamPoints,
+              maxPointDifference: balanceAnalysis.finalBalance.maxPointDifference,
+              balanceQuality: balanceAnalysis.finalBalance.balanceQuality
+            },
+            teams_created: teamsWithMembers.map((team, index) => ({
+              name: team.name,
+              members: team.members.map(m => {
+                const rankResult = enableAdaptiveWeights 
+                  ? calculateAdaptiveWeight(m, { enableAdaptiveWeights: true, baseFactor: 0.5, decayMultiplier: 1.2, timeWeightDays: 90 })
+                  : getRankPointsWithManualOverride(m);
+                return {
+                  discord_username: m.discord_username,
+                  rank: rankResult.rank,
+                  points: rankResult.points,
+                  source: rankResult.source,
+                  adaptiveReasoning: (rankResult as any).adaptiveCalculation?.calculationReasoning
+                };
+              }),
+              total_points: team.totalWeight,
+              seed: index + 1
+            })),
+            adaptive_weight_calculations: balanceAnalysis.adaptiveWeightCalculations || []
+          };
 
         // Update tournament with balance analysis
         const { error: balanceError } = await supabase
@@ -1058,9 +1150,40 @@ try {
           // Don't fail the whole save for this
         }
 
-        // Clear the analysis after saving
-        setBalanceAnalysis(null);
-      }
+          // Store adaptive weight calculations in database if available
+          if (balanceAnalysis.adaptiveWeightCalculations && balanceAnalysis.adaptiveWeightCalculations.length > 0) {
+            const adaptiveWeightData = balanceAnalysis.adaptiveWeightCalculations.map(calc => ({
+              tournament_id: tournamentId,
+              user_id: calc.userId,
+              current_rank_points: calc.calculation.currentRankPoints,
+              peak_rank_points: calc.calculation.peakRankPoints,
+              calculated_adaptive_weight: calc.calculation.points,
+              adaptive_factor: calc.calculation.adaptiveFactor,
+              rank_decay_factor: calc.calculation.rankDecayFactor,
+              time_since_peak_days: calc.calculation.timeSincePeakDays,
+              current_rank: calc.calculation.currentRank,
+              peak_rank: calc.calculation.peakRank,
+              weight_source: calc.calculation.source,
+              calculation_reasoning: calc.calculation.calculationReasoning,
+              manual_override_applied: calc.calculation.source === 'manual_override'
+            }));
+
+            try {
+              const { error: adaptiveError } = await supabase
+                .from('tournament_adaptive_weights')
+                .insert(adaptiveWeightData);
+              
+              if (adaptiveError) {
+                console.error('Error saving adaptive weight calculations:', adaptiveError);
+              }
+            } catch (err) {
+              console.error('Failed to save adaptive weight calculations:', err);
+            }
+          }
+
+          // Clear the analysis after saving
+          setBalanceAnalysis(null);
+        }
 
 toast({
         title: "Teams Updated",
@@ -1249,7 +1372,7 @@ Team Balancing
                 Teams ({teams.length}/{maxTeams})
               </h3>
               {teams.map((team) => (
-                <DroppableTeam key={team.id} team={team} teamSize={teamSize} />
+                <DroppableTeam key={team.id} team={team} teamSize={teamSize} enableAdaptiveWeights={enableAdaptiveWeights} />
               ))}
             </div>
   
@@ -1260,7 +1383,7 @@ Team Balancing
                   <Users className="w-5 h-5" />
                   Unassigned Players ({unassignedPlayers.length})
                 </h3>
-                <DroppableUnassigned players={unassignedPlayers} />
+                <DroppableUnassigned players={unassignedPlayers} enableAdaptiveWeights={enableAdaptiveWeights} />
               </div>
 
               {/* Substitute Players Section - Always show even if empty */}
@@ -1269,7 +1392,7 @@ Team Balancing
                   <Users className="w-5 h-5" />
                   Substitute Players ({substitutePlayers.length})
                 </h3>
-                <DroppableSubstitutes players={substitutePlayers} />
+                <DroppableSubstitutes players={substitutePlayers} enableAdaptiveWeights={enableAdaptiveWeights} />
               </div>
             </div>
           </div>

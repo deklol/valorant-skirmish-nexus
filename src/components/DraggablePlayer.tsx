@@ -3,21 +3,31 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { GripVertical } from "lucide-react";
+import { GripVertical, Settings, TrendingUp, Zap } from "lucide-react";
 import { StyledUsername } from "./StyledUsername";
+import { getRankPointsWithManualOverride } from "@/utils/rankingSystemWithOverrides";
+import { calculateAdaptiveWeight } from "@/utils/adaptiveWeightSystem";
 
 interface Player {
   id: string;
   discord_username: string;
   rank_points: number;
   riot_id?: string;
+  current_rank?: string;
+  peak_rank?: string;
+  manual_rank_override?: string | null;
+  manual_weight_override?: number | null;
+  use_manual_override?: boolean;
+  rank_override_reason?: string | null;
+  weight_rating?: number;
 }
 
 interface DraggablePlayerProps {
   player: Player;
+  enableAdaptiveWeights?: boolean;
 }
 
-const DraggablePlayer = ({ player }: DraggablePlayerProps) => {
+const DraggablePlayer = ({ player, enableAdaptiveWeights }: DraggablePlayerProps) => {
   const {
     attributes,
     listeners,
@@ -32,6 +42,11 @@ const DraggablePlayer = ({ player }: DraggablePlayerProps) => {
     transition,
   };
 
+  // Calculate the appropriate rank result based on adaptive weights setting
+  const rankResult = enableAdaptiveWeights 
+    ? calculateAdaptiveWeight(player, { enableAdaptiveWeights: true, baseFactor: 0.5, decayMultiplier: 1.2, timeWeightDays: 90 })
+    : getRankPointsWithManualOverride(player);
+
   return (
     <div
       ref={setNodeRef}
@@ -45,16 +60,52 @@ const DraggablePlayer = ({ player }: DraggablePlayerProps) => {
           <GripVertical className="w-4 h-4 text-slate-400" />
           <div className="flex-1">
             <div className="flex items-center justify-between">
-              <span className="text-white font-medium">
-                <StyledUsername username={player.discord_username} userId={player.id} />
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-white font-medium">
+                  <StyledUsername username={player.discord_username} userId={player.id} />
+                </span>
+                {rankResult.source === 'manual_override' && (
+                  <Badge className="bg-purple-600 text-white text-xs flex items-center gap-1">
+                    <Settings className="w-3 h-3" />
+                    Override
+                  </Badge>
+                )}
+                {rankResult.source === 'peak_rank' && (
+                  <Badge className="bg-amber-600 text-white text-xs flex items-center gap-1">
+                    <TrendingUp className="w-3 h-3" />
+                    Peak
+                  </Badge>
+                )}
+                {rankResult.source === 'adaptive_weight' && (
+                  <Badge className="bg-emerald-600 text-white text-xs flex items-center gap-1">
+                    <Zap className="w-3 h-3" />
+                    Adaptive
+                  </Badge>
+                )}
+              </div>
               <Badge variant="outline" className="text-slate-300 border-slate-500">
-                {player.rank_points} pts
+                {rankResult.points} pts
               </Badge>
             </div>
-            {player.riot_id && (
-              <p className="text-sm text-slate-400">{player.riot_id}</p>
-            )}
+            <div className="text-xs text-slate-400">
+              {rankResult.source === 'manual_override' ? (
+                <span>
+                  Override: {rankResult.rank} • {rankResult.overrideReason || 'Admin set'}
+                </span>
+              ) : rankResult.source === 'adaptive_weight' ? (
+                <span>
+                  Adaptive: {rankResult.rank} • {(rankResult as any).adaptiveCalculation?.calculationReasoning || 'Blended weight'}
+                </span>
+              ) : rankResult.source === 'peak_rank' ? (
+                <span>
+                  {player.current_rank || 'Unrated'} → {rankResult.rank}
+                </span>
+              ) : (
+                <span>
+                  {player.current_rank || 'Unranked'} • {player.riot_id || 'No Riot ID'}
+                </span>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
