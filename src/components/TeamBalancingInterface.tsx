@@ -297,6 +297,7 @@ fetchTeamsAndPlayers();
 
   const handleAdaptiveWeightsChange = async (checked: boolean) => {
     try {
+      // First update the database
       const { error } = await supabase
         .from('tournaments')
         .update({ enable_adaptive_weights: checked })
@@ -304,10 +305,13 @@ fetchTeamsAndPlayers();
       
       if (error) throw error;
       
+      // Only update state and recalculate after successful database update
       setEnableAdaptiveWeights(checked);
       
-      // Recalculate team totals with new weight system
-      recalculateTeamTotals(checked);
+      console.log(`Adaptive weights ${checked ? 'enabled' : 'disabled'}, recalculating team totals...`);
+      
+      // Force immediate recalculation with the new setting
+      await recalculateTeamTotals(checked);
       
       toast({
         title: checked ? "Adaptive Weights Enabled" : "Adaptive Weights Disabled",
@@ -325,15 +329,20 @@ fetchTeamsAndPlayers();
     }
   };
 
-  const recalculateTeamTotals = (useAdaptiveWeights: boolean) => {
+  const recalculateTeamTotals = async (useAdaptiveWeights: boolean) => {
+    console.log(`Recalculating team totals with adaptive weights: ${useAdaptiveWeights}`);
+    
     setTeams(prevTeams => 
-      prevTeams.map(team => {
+      prevTeams.map((team, teamIndex) => {
         const totalWeight = team.members.reduce((sum, member) => {
           const rankResult = useAdaptiveWeights
             ? calculateAdaptiveWeight(member, { enableAdaptiveWeights: true, baseFactor: 0.5, decayMultiplier: 0.15, timeWeightDays: 90 })
             : getRankPointsWithManualOverride(member);
+          console.log(`Team ${teamIndex + 1} - ${member.discord_username}: ${rankResult.points} pts (${rankResult.source})`);
           return sum + rankResult.points;
         }, 0);
+        
+        console.log(`Team ${teamIndex + 1} total: ${totalWeight} pts`);
         
         return {
           ...team,
@@ -341,6 +350,10 @@ fetchTeamsAndPlayers();
         };
       })
     );
+    
+    // Also update unassigned and substitute player calculations for consistency
+    setUnassignedPlayers(prevPlayers => [...prevPlayers]); // Trigger re-render
+    setSubstitutePlayers(prevPlayers => [...prevPlayers]); // Trigger re-render
   };
 
 const fetchTeamsAndPlayers = async () => {

@@ -233,6 +233,60 @@ const DetailedBalanceAnalysis = ({ balanceResult, tournamentName }: DetailedBala
             </div>
           </div>
 
+          {/* Adaptive Weight Calculations Section */}
+          {balanceResult.adaptiveWeightCalculations && balanceResult.adaptiveWeightCalculations.length > 0 && (
+            <div className="space-y-3">
+              <h4 className="text-white font-medium flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-emerald-400" />
+                Adaptive Weight Calculations
+              </h4>
+              <div className="space-y-3">
+                {balanceResult.adaptiveWeightCalculations.map((calc, index) => {
+                  const player = balanceSteps.find(step => step.player.id === calc.userId);
+                  return (
+                    <div key={index} className="bg-slate-700 rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-white font-medium">
+                          {player?.player.discord_username || 'Unknown Player'}
+                        </span>
+                        <Badge className="bg-emerald-600 text-white">
+                          {calc.calculation.calculatedAdaptiveWeight} pts (ADAPTIVE)
+                        </Badge>
+                      </div>
+                      <div className="text-sm text-slate-300 mb-2">
+                        <strong>Calculation:</strong> {calc.calculation.calculationReasoning}
+                      </div>
+                      <div className="grid grid-cols-2 gap-4 text-xs text-slate-400">
+                        <div>
+                          <span className="font-medium">Current:</span> {calc.calculation.currentRank || 'Unranked'} ({calc.calculation.currentRankPoints} pts)
+                        </div>
+                        <div>
+                          <span className="font-medium">Peak:</span> {calc.calculation.peakRank || 'N/A'} ({calc.calculation.peakRankPoints} pts)
+                        </div>
+                        <div>
+                          <span className="font-medium">Adaptive Factor:</span> {Math.round(calc.calculation.adaptiveFactor * 100)}%
+                        </div>
+                        <div>
+                          <span className="font-medium">Source:</span> {calc.calculation.weightSource.replace('_', ' ')}
+                        </div>
+                        {calc.calculation.rankDecayFactor !== undefined && (
+                          <div>
+                            <span className="font-medium">Rank Decay:</span> {Math.round(calc.calculation.rankDecayFactor * 100)}%
+                          </div>
+                        )}
+                        {calc.calculation.timeSincePeakDays && (
+                          <div>
+                            <span className="font-medium">Days Since Peak:</span> {calc.calculation.timeSincePeakDays}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Assignment Steps (Expandable) */}
           {balanceSteps.length > 0 && (
             <div className="space-y-3">
@@ -249,13 +303,27 @@ const DetailedBalanceAnalysis = ({ balanceResult, tournamentName }: DetailedBala
               {expandedSteps && (
                 <div className="bg-slate-700 rounded-lg p-4 max-h-96 overflow-y-auto">
                   <div className="space-y-2">
-                    {balanceSteps.map((step, index) => (
-                      <div key={index} className="text-sm">
-                        <div className="text-slate-300">
-                          <span className="font-medium text-white">Step {step.step}:</span> {step.reasoning}
-                        </div>
-                      </div>
-                    ))}
+                     {balanceSteps.map((step, index) => (
+                       <div key={index} className="text-sm border-l-2 border-slate-600 pl-3 mb-3">
+                         <div className="text-slate-300">
+                           <span className="font-medium text-white">Step {step.step}:</span> 
+                           <span className="text-emerald-400 ml-2">{step.player.discord_username}</span>
+                           <span className="text-slate-400 ml-2">
+                             ({step.player.rank} • {step.player.points} pts
+                             {step.player.weightSource === 'adaptive_weight' && <span className="text-emerald-400"> • ADAPTIVE</span>}
+                             {step.player.weightSource === 'manual_override' && <span className="text-purple-400"> • OVERRIDE</span>}
+                             {step.player.weightSource === 'peak_rank' && <span className="text-amber-400"> • PEAK</span>}
+                             ) → Team {step.assignedTeam + 1}
+                           </span>
+                         </div>
+                         <div className="text-xs text-slate-500 mt-1">{step.reasoning}</div>
+                         {step.player.adaptiveReasoning && (
+                           <div className="text-xs text-emerald-300 mt-1 italic">
+                             Adaptive: {step.player.adaptiveReasoning}
+                           </div>
+                         )}
+                       </div>
+                     ))}
                   </div>
                 </div>
               )}

@@ -64,39 +64,24 @@ const DraggablePlayer = ({ player, enableAdaptiveWeights }: DraggablePlayerProps
                 <span className="text-white font-medium">
                   <StyledUsername username={player.discord_username} userId={player.id} />
                 </span>
+                <span className="text-slate-300">-</span>
+                <span className="text-slate-300 text-sm">
+                  {player.current_rank || 'Unranked'}
+                </span>
+                <span className="text-slate-300">-</span>
+                <span className="text-slate-300 text-sm font-medium">
+                  {rankResult.points}
+                </span>
+                {rankResult.source === 'adaptive_weight' && (
+                  <span className="text-emerald-400 text-xs font-medium">(ADAPTIVE RATING)</span>
+                )}
                 {rankResult.source === 'manual_override' && (
-                  <Badge className="bg-purple-600 text-white text-xs flex items-center gap-1">
-                    <Settings className="w-3 h-3" />
-                    Override
-                  </Badge>
+                  <span className="text-purple-400 text-xs font-medium">(OVERRIDE)</span>
                 )}
                 {rankResult.source === 'peak_rank' && (
-                  <Badge className="bg-amber-600 text-white text-xs flex items-center gap-1">
-                    <TrendingUp className="w-3 h-3" />
-                    Peak
-                  </Badge>
-                )}
-                {rankResult.source === 'adaptive_weight' && (
-                  <Badge className="bg-emerald-600 text-white text-xs flex items-center gap-1">
-                    <Zap className="w-3 h-3" />
-                    Adaptive
-                  </Badge>
+                  <span className="text-amber-400 text-xs font-medium">(PEAK RANK)</span>
                 )}
               </div>
-              <Badge variant="outline" className="text-slate-300 border-slate-500">
-                {rankResult.points} pts
-              </Badge>
-            </div>
-            <div className="text-xs text-slate-400">
-              {rankResult.source === 'manual_override' ? (
-                <span>{rankResult.rank} • {rankResult.overrideReason || 'Admin override'}</span>
-              ) : rankResult.source === 'adaptive_weight' ? (
-                <span>{rankResult.rank} • Adaptive calculation</span>
-              ) : rankResult.source === 'peak_rank' ? (
-                <span>{player.current_rank || 'Unrated'} → {rankResult.rank}</span>
-              ) : (
-                <span>{player.current_rank || 'Unranked'} • {player.riot_id || 'Standard weight'}</span>
-              )}
             </div>
           </div>
         </CardContent>
