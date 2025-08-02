@@ -86,6 +86,7 @@ interface BalanceAnalysis {
   
   // Adaptive weight calculations
   adaptiveWeightCalculations?: AdaptiveWeightCalculation[];
+  adaptive_weight_calculations?: AdaptiveWeightCalculation[]; // Database format
   
   // Common properties
   method: string;
@@ -266,14 +267,15 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
         </div>
 
         {/* Adaptive Weight Calculations (if used) */}
-        {balanceAnalysis.adaptiveWeightCalculations && balanceAnalysis.adaptiveWeightCalculations.length > 0 && (
+        {(balanceAnalysis.adaptiveWeightCalculations || balanceAnalysis.adaptive_weight_calculations) && 
+         (balanceAnalysis.adaptiveWeightCalculations?.length > 0 || balanceAnalysis.adaptive_weight_calculations?.length > 0) && (
           <div className="space-y-3 border-t border-border pt-4">
             <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-blue-400" />
               Adaptive Weight Calculations
             </h4>
             <div className="space-y-3">
-              {balanceAnalysis.adaptiveWeightCalculations.map((calc, index) => {
+              {(balanceAnalysis.adaptiveWeightCalculations || balanceAnalysis.adaptive_weight_calculations || []).map((calc, index) => {
                 const player = balanceSteps.find(step => step.player.id === calc.userId);
                 return (
                   <div key={index} className="p-3 rounded-lg bg-blue-50/50 border border-blue-200/50">
