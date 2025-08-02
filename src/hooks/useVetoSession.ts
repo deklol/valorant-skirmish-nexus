@@ -51,6 +51,7 @@ export interface UseVetoSessionReturn {
   userTeamId: string | null;
   phase: 'dice_roll' | 'banning' | 'side_choice' | 'completed';
   refresh: () => Promise<void>;
+  refreshAfterAction: () => Promise<void>;
   connectionStatus: 'connecting' | 'connected' | 'disconnected' | 'error';
   lastUpdate: Date | null;
 }
@@ -64,6 +65,8 @@ export function useVetoSession(matchId: string): UseVetoSessionReturn {
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('connecting');
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const subscriptionsRef = useRef<{ session?: any; actions?: any }>({});
+  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastConnectionStatusRef = useRef<string>('connecting');
 
   // Fetch session data - removed from dependency arrays to prevent circular updates
   const fetchSession = useCallback(async () => {
@@ -135,6 +138,23 @@ export function useVetoSession(matchId: string): UseVetoSessionReturn {
     }
   }, [matchId, user]);
 
+  // Enhanced refresh with action confirmation
+  const refreshAfterAction = useCallback(async () => {
+    console.log('VETO AUTO-REFRESH: Action-triggered refresh initiated');
+    
+    // Clear any existing timeout
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current);
+    }
+    
+    // Refresh after a 2-second delay to allow server processing
+    refreshTimeoutRef.current = setTimeout(async () => {
+      await fetchSession();
+      console.log('VETO AUTO-REFRESH: Action confirmation refresh completed');
+    }, 2000);
+  }, [fetchSession]);
+
+
   // Cleanup function for subscriptions
   const cleanupSubscriptions = useCallback(() => {
     console.log('VETO REALTIME: Cleaning up all subscriptions');
@@ -201,6 +221,68 @@ export function useVetoSession(matchId: string): UseVetoSessionReturn {
 
     return cleanupSubscriptions;
   }, [matchId]);
+
+  // Enhanced auto-refresh system with smart triggers
+  useEffect(() => {
+    // Track connection status changes
+    const prevStatus = lastConnectionStatusRef.current;
+    lastConnectionStatusRef.current = connectionStatus;
+    
+    // Auto-refresh when connection recovers
+    if (prevStatus === 'disconnected' && connectionStatus === 'connected') {
+      console.log('VETO AUTO-REFRESH: Connection recovered, refreshing...');
+      fetchSession();
+    }
+  }, [connectionStatus, fetchSession]);
+
+  // Tab visibility auto-refresh
+  useEffect(() => {
+    let lastRefreshTime = 0;
+    const REFRESH_COOLDOWN = 5000; // 5 seconds cooldown
+    
+    const handleVisibilityChange = () => {
+      if (!document.hidden && session && session.status !== 'completed') {
+        const now = Date.now();
+        if (now - lastRefreshTime > REFRESH_COOLDOWN) {
+          console.log('VETO AUTO-REFRESH: Tab became visible, refreshing...');
+          lastRefreshTime = now;
+          fetchSession();
+        }
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [session, fetchSession]);
+
+  // Network recovery auto-refresh
+  useEffect(() => {
+    let lastRefreshTime = 0;
+    const REFRESH_COOLDOWN = 5000; // 5 seconds cooldown
+    
+    const handleOnline = () => {
+      if (session && session.status !== 'completed') {
+        const now = Date.now();
+        if (now - lastRefreshTime > REFRESH_COOLDOWN) {
+          console.log('VETO AUTO-REFRESH: Network came back online, refreshing...');
+          lastRefreshTime = now;
+          fetchSession();
+        }
+      }
+    };
+    
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, [session, fetchSession]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Set up real-time subscriptions for veto actions (only when we have a session)
   useEffect(() => {
@@ -294,6 +376,7 @@ export function useVetoSession(matchId: string): UseVetoSessionReturn {
     userTeamId,
     phase,
     refresh: fetchSession,
+    refreshAfterAction,
     connectionStatus,
     lastUpdate
   };

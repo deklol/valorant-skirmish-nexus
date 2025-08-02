@@ -35,6 +35,7 @@ export function VetoDialog({
     canAct,
     userTeamId,
     refresh,
+    refreshAfterAction,
     connectionStatus,
     lastUpdate 
   } = useVetoSession(matchId);
@@ -158,7 +159,7 @@ export function VetoDialog({
             <DiceRollPhase
               matchId={matchId}
               canAct={canAct}
-              onRollComplete={refresh}
+              onRollComplete={refreshAfterAction}
             />
           )}
 
@@ -168,7 +169,7 @@ export function VetoDialog({
               session={session}
               isMyTurn={isMyTurn}
               canAct={canAct}
-              onBanComplete={refresh}
+              onBanComplete={refreshAfterAction}
               bestOf={bestOf}
             />
           )}
@@ -180,7 +181,7 @@ export function VetoDialog({
               isMyTurn={isMyTurn}
               canAct={canAct}
               userTeamId={userTeamId}
-              onSideChosen={refresh}
+              onSideChosen={refreshAfterAction}
             />
           )}
 
