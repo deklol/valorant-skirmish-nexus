@@ -118,40 +118,40 @@ const AutomatedScheduling = ({ tournamentId, onScheduleCreated }: AutomatedSched
   };
 
   return (
-    <Card className="bg-slate-800 border-slate-700">
+    <Card className="bg-card border-border">
       <CardHeader>
-        <CardTitle className="text-white flex items-center gap-2">
+        <CardTitle className="text-foreground flex items-center gap-2">
           <Clock className="w-5 h-5" />
           Automated Scheduling
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="text-slate-300 text-sm">
+        <div className="text-muted-foreground text-sm">
           <p>Automatically schedule all tournament matches based on your preferences.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="startTime" className="text-slate-300">Tournament Start Time</Label>
+            <Label htmlFor="startTime" className="text-foreground">Tournament Start Time</Label>
             <StandardInput
               id="startTime"
               type="datetime-local"
               value={scheduleConfig.startTime}
               onChange={(e) => setScheduleConfig(prev => ({ ...prev, startTime: e.target.value }))}
-              className="bg-slate-700 border-slate-600 text-white"
+              className="bg-input border-input text-foreground"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="matchDuration" className="text-slate-300">Match Duration (minutes)</Label>
+            <Label htmlFor="matchDuration" className="text-foreground">Match Duration (minutes)</Label>
             <Select 
               value={scheduleConfig.matchDuration} 
               onValueChange={(value) => setScheduleConfig(prev => ({ ...prev, matchDuration: value }))}
             >
-              <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+              <SelectTrigger className="bg-input border-input text-foreground">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-slate-700 border-slate-600">
+              <SelectContent className="bg-card border-input">
                 <SelectItem value="20">20 minutes</SelectItem>
                 <SelectItem value="30">30 minutes</SelectItem>
                 <SelectItem value="45">45 minutes</SelectItem>
@@ -161,15 +161,15 @@ const AutomatedScheduling = ({ tournamentId, onScheduleCreated }: AutomatedSched
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="breakBetweenMatches" className="text-slate-300">Break Between Matches (minutes)</Label>
+            <Label htmlFor="breakBetweenMatches" className="text-foreground">Break Between Matches (minutes)</Label>
             <Select 
               value={scheduleConfig.breakBetweenMatches} 
               onValueChange={(value) => setScheduleConfig(prev => ({ ...prev, breakBetweenMatches: value }))}
             >
-              <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+              <SelectTrigger className="bg-input border-input text-foreground">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-slate-700 border-slate-600">
+              <SelectContent className="bg-card border-input">
                 <SelectItem value="5">5 minutes</SelectItem>
                 <SelectItem value="10">10 minutes</SelectItem>
                 <SelectItem value="15">15 minutes</SelectItem>
@@ -179,15 +179,15 @@ const AutomatedScheduling = ({ tournamentId, onScheduleCreated }: AutomatedSched
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="breakBetweenRounds" className="text-slate-300">Break Between Rounds (minutes)</Label>
+            <Label htmlFor="breakBetweenRounds" className="text-foreground">Break Between Rounds (minutes)</Label>
             <Select 
               value={scheduleConfig.breakBetweenRounds} 
               onValueChange={(value) => setScheduleConfig(prev => ({ ...prev, breakBetweenRounds: value }))}
             >
-              <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+              <SelectTrigger className="bg-input border-input text-foreground">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-slate-700 border-slate-600">
+              <SelectContent className="bg-card border-input">
                 <SelectItem value="10">10 minutes</SelectItem>
                 <SelectItem value="15">15 minutes</SelectItem>
                 <SelectItem value="30">30 minutes</SelectItem>
@@ -197,15 +197,15 @@ const AutomatedScheduling = ({ tournamentId, onScheduleCreated }: AutomatedSched
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="simultaneousMatches" className="text-slate-300">Simultaneous Matches</Label>
+            <Label htmlFor="simultaneousMatches" className="text-foreground">Simultaneous Matches</Label>
             <Select 
               value={scheduleConfig.simultaneousMatches} 
               onValueChange={(value) => setScheduleConfig(prev => ({ ...prev, simultaneousMatches: value }))}
             >
-              <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+              <SelectTrigger className="bg-input border-input text-foreground">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-slate-700 border-slate-600">
+              <SelectContent className="bg-card border-input">
                 <SelectItem value="1">1 match at a time</SelectItem>
                 <SelectItem value="2">2 matches at a time</SelectItem>
                 <SelectItem value="3">3 matches at a time</SelectItem>
@@ -224,9 +224,9 @@ const AutomatedScheduling = ({ tournamentId, onScheduleCreated }: AutomatedSched
           {loading ? "Generating Schedule..." : "Generate Automatic Schedule"}
         </Button>
 
-        <div className="bg-slate-700 p-3 rounded-lg">
-          <div className="text-sm text-slate-400 mb-2">Schedule Preview:</div>
-          <ul className="text-xs text-slate-300 space-y-1">
+        <div className="bg-muted p-3 rounded-lg">
+          <div className="text-sm text-muted-foreground mb-2">Schedule Preview:</div>
+          <ul className="text-xs text-muted-foreground space-y-1">
             <li>• Matches will be scheduled sequentially by round</li>
             <li>• {scheduleConfig.simultaneousMatches} match(es) can run simultaneously</li>
             <li>• {scheduleConfig.matchDuration} minutes allocated per match</li>

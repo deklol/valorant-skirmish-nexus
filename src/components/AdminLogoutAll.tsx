@@ -64,9 +64,9 @@ const AdminLogoutAll = () => {
   };
 
   return (
-    <Card className="bg-slate-800 border-slate-700">
+    <Card className="bg-card border-border">
       <CardHeader>
-        <CardTitle className="text-white flex items-center gap-2">
+        <CardTitle className="text-foreground flex items-center gap-2">
           <LogOut className="w-5 h-5" />
           User Session Management
         </CardTitle>
@@ -87,9 +87,9 @@ const AdminLogoutAll = () => {
               {isLoading ? "Logging out all users..." : "Logout All Users"}
             </Button>
           </AlertDialogTrigger>
-          <AlertDialogContent className="bg-slate-800 border-slate-700">
+          <AlertDialogContent className="bg-card border-border">
             <AlertDialogHeader>
-              <AlertDialogTitle className="text-white">Confirm Logout All Users</AlertDialogTitle>
+              <AlertDialogTitle className="text-foreground">Confirm Logout All Users</AlertDialogTitle>
               <AlertDialogDescription className="text-slate-400">
                 This action will immediately sign out ALL users from the system. 
                 This cannot be undone and users will need to sign in again.
@@ -97,7 +97,7 @@ const AdminLogoutAll = () => {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel className="bg-slate-700 text-white border-slate-600">
+              <AlertDialogCancel className="bg-muted text-foreground border-input">
                 Cancel
               </AlertDialogCancel>
               <AlertDialogAction 

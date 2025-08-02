@@ -511,7 +511,7 @@ export default function AchievementMedicManager() {
                 </DialogTrigger>
                 <DialogContent className="bg-card border-border">
                   <DialogHeader>
-                    <DialogTitle className="text-white">Create New Achievement</DialogTitle>
+                    <DialogTitle className="text-foreground">Create New Achievement</DialogTitle>
                     <DialogDescription className="text-slate-400">
                       Create a new achievement for players to earn
                     </DialogDescription>
@@ -525,13 +525,13 @@ export default function AchievementMedicManager() {
                     <Button
                       onClick={() => setIsCreateDialogOpen(false)}
                       variant="outline"
-                      className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
+                      className="bg-muted border-input text-foreground hover:bg-muted/80"
                     >
                       Cancel
                     </Button>
                     <Button
                       onClick={handleCreateAchievement}
-                      className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                      className="bg-yellow-600 hover:bg-yellow-700 text-foreground"
                     >
                       Create Achievement
                     </Button>
@@ -548,21 +548,21 @@ export default function AchievementMedicManager() {
         {filteredAchievements.map(achievement => {
           const IconComponent = getIconComponent(achievement.icon);
           return (
-            <Card key={achievement.id} className="bg-slate-800/95 border border-slate-700">
+            <Card key={achievement.id} className="bg-card border border-border">
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <div className={`p-2 rounded-lg ${getRarityColor(achievement.rarity)}`}>
-                      <IconComponent className="w-5 h-5 text-white" />
+                      <IconComponent className="w-5 h-5 text-foreground" />
                     </div>
                     <div>
-                      <h3 className="text-white font-medium">{achievement.name}</h3>
+                      <h3 className="text-foreground font-medium">{achievement.name}</h3>
                       <Badge variant="outline" className="text-xs">
                         {achievement.category}
                       </Badge>
                     </div>
                   </div>
-                  <Badge className={`${getRarityColor(achievement.rarity)} text-white text-xs`}>
+                  <Badge className={`${getRarityColor(achievement.rarity)} text-foreground text-xs`}>
                     {achievement.rarity}
                   </Badge>
                 </div>
@@ -580,7 +580,7 @@ export default function AchievementMedicManager() {
                     onClick={() => openEditDialog(achievement)}
                     size="sm"
                     variant="outline"
-                    className="flex-1 bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
+                    className="flex-1 bg-muted border-input text-foreground hover:bg-muted/80"
                   >
                     <Edit className="w-4 h-4 mr-2" />
                     Edit
@@ -591,7 +591,7 @@ export default function AchievementMedicManager() {
                       setAwardDialogOpen(true);
                     }}
                     size="sm"
-                    className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-foreground"
                   >
                     <Award className="w-4 h-4 mr-2" />
                     Award
@@ -606,20 +606,20 @@ export default function AchievementMedicManager() {
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </AlertDialogTrigger>
-                    <AlertDialogContent className="bg-slate-800 border-slate-700">
+                    <AlertDialogContent className="bg-card border-border">
                       <AlertDialogHeader>
-                        <AlertDialogTitle className="text-white">Delete Achievement</AlertDialogTitle>
+                        <AlertDialogTitle className="text-foreground">Delete Achievement</AlertDialogTitle>
                         <AlertDialogDescription className="text-slate-400">
                           Are you sure you want to delete "{achievement.name}"? This will also remove it from all players who have earned it.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600">
+                        <AlertDialogCancel className="bg-muted border-input text-foreground hover:bg-muted/80">
                           Cancel
                         </AlertDialogCancel>
                         <AlertDialogAction
                           onClick={() => handleDeleteAchievement(achievement.id)}
-                          className="bg-red-600 hover:bg-red-700 text-white"
+                          className="bg-red-600 hover:bg-red-700 text-foreground"
                         >
                           Delete
                         </AlertDialogAction>
@@ -634,9 +634,9 @@ export default function AchievementMedicManager() {
       </div>
 
       {/* Recent Awards */}
-      <Card className="bg-slate-800/95 border border-slate-700 rounded-xl">
+      <Card className="bg-card border border-border rounded-xl">
         <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
+          <CardTitle className="text-foreground flex items-center gap-2">
             <Award className="w-5 h-5 text-yellow-400" />
             Recent Awards
           </CardTitle>
@@ -646,13 +646,13 @@ export default function AchievementMedicManager() {
             {userAchievements.map(userAchievement => {
               const IconComponent = getIconComponent(userAchievement.achievements.icon);
               return (
-                <div key={userAchievement.id} className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
+                <div key={userAchievement.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
                   <div className="flex items-center gap-3">
                     <div className={`p-2 rounded-lg ${getRarityColor(userAchievement.achievements.rarity)}`}>
-                      <IconComponent className="w-4 h-4 text-white" />
+                      <IconComponent className="w-4 h-4 text-foreground" />
                     </div>
                     <div>
-                      <p className="text-white font-medium">{userAchievement.discord_username}</p>
+                      <p className="text-foreground font-medium">{userAchievement.discord_username}</p>
                       <p className="text-slate-400 text-sm">earned "{userAchievement.achievements.name}"</p>
                     </div>
                   </div>
@@ -666,20 +666,20 @@ export default function AchievementMedicManager() {
                           <CircleX className="w-4 h-4" />
                         </Button>
                       </AlertDialogTrigger>
-                      <AlertDialogContent className="bg-slate-800 border-slate-700">
+                      <AlertDialogContent className="bg-card border-border">
                         <AlertDialogHeader>
-                          <AlertDialogTitle className="text-white">Revoke Achievement</AlertDialogTitle>
+                          <AlertDialogTitle className="text-foreground">Revoke Achievement</AlertDialogTitle>
                           <AlertDialogDescription className="text-slate-400">
                             Are you sure you want to revoke this achievement from {userAchievement.discord_username}?
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                          <AlertDialogCancel className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600">
+                          <AlertDialogCancel className="bg-muted border-input text-foreground hover:bg-muted/80">
                             Cancel
                           </AlertDialogCancel>
                           <AlertDialogAction
                             onClick={() => handleRevokeAchievement(userAchievement.id)}
-                            className="bg-red-600 hover:bg-red-700 text-white"
+                            className="bg-red-600 hover:bg-red-700 text-foreground"
                           >
                             Revoke
                           </AlertDialogAction>
@@ -699,9 +699,9 @@ export default function AchievementMedicManager() {
 
       {/* Edit Achievement Dialog */}
       <Dialog open={!!editingAchievement} onOpenChange={() => setEditingAchievement(null)}>
-        <DialogContent className="bg-slate-800 border-slate-700">
+        <DialogContent className="bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="text-white">Edit Achievement</DialogTitle>
+            <DialogTitle className="text-foreground">Edit Achievement</DialogTitle>
             <DialogDescription className="text-slate-400">
               Modify the achievement details
             </DialogDescription>
@@ -715,13 +715,13 @@ export default function AchievementMedicManager() {
             <Button
               onClick={() => setEditingAchievement(null)}
               variant="outline"
-              className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
+              className="bg-muted border-input text-foreground hover:bg-muted/80"
             >
               Cancel
             </Button>
             <Button
               onClick={handleUpdateAchievement}
-              className="bg-yellow-600 hover:bg-yellow-700 text-white"
+              className="bg-yellow-600 hover:bg-yellow-700 text-foreground"
             >
               Update Achievement
             </Button>
@@ -731,9 +731,9 @@ export default function AchievementMedicManager() {
 
       {/* Award Achievement Dialog */}
       <Dialog open={awardDialogOpen} onOpenChange={setAwardDialogOpen}>
-        <DialogContent className="bg-slate-800 border-slate-700">
+        <DialogContent className="bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="text-white">Award Achievement</DialogTitle>
+            <DialogTitle className="text-foreground">Award Achievement</DialogTitle>
             <DialogDescription className="text-slate-400">
               Select a player to award "{selectedAchievement?.name}" to
             </DialogDescription>
@@ -745,11 +745,11 @@ export default function AchievementMedicManager() {
                 placeholder="Search players..."
                 value={userSearch}
                 onChange={(e) => setUserSearch(e.target.value)}
-                className="pl-10 bg-slate-700 border-slate-600 text-white"
+                className="pl-10 bg-input border-input text-foreground"
               />
             </div>
             <Select value={selectedUser} onValueChange={setSelectedUser}>
-              <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+              <SelectTrigger className="bg-input border-input text-foreground">
                 <SelectValue placeholder="Select a player" />
               </SelectTrigger>
               <SelectContent>
@@ -765,14 +765,14 @@ export default function AchievementMedicManager() {
             <Button
               onClick={() => setAwardDialogOpen(false)}
               variant="outline"
-              className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
+              className="bg-muted border-input text-foreground hover:bg-muted/80"
             >
               Cancel
             </Button>
             <Button
               onClick={handleAwardAchievement}
               disabled={!selectedUser}
-              className="bg-green-600 hover:bg-green-700 text-white"
+              className="bg-green-600 hover:bg-green-700 text-foreground"
             >
               Award Achievement
             </Button>
@@ -793,32 +793,32 @@ function AchievementForm({ formData, setFormData, isEditing }: {
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="text-white">Name</Label>
+          <Label className="text-foreground">Name</Label>
           <StandardInput
             value={formData.name}
             onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-            className="bg-slate-700 border-slate-600 text-white"
+            className="bg-input border-input text-foreground"
             placeholder="Achievement name"
           />
         </div>
         <div>
-          <Label className="text-white">Points</Label>
+          <Label className="text-foreground">Points</Label>
           <StandardInput
             type="number"
             value={formData.points}
             onChange={(e) => setFormData(prev => ({ ...prev, points: parseInt(e.target.value) || 0 }))}
-            className="bg-slate-700 border-slate-600 text-white"
+            className="bg-input border-input text-foreground"
             min="1"
           />
         </div>
       </div>
       
       <div>
-        <Label className="text-white">Description</Label>
+        <Label className="text-foreground">Description</Label>
         <StandardTextarea
           value={formData.description}
           onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-          className="bg-slate-700 border-slate-600 text-white"
+          className="bg-input border-input text-foreground"
           placeholder="Achievement description"
           rows={3}
         />
@@ -826,12 +826,12 @@ function AchievementForm({ formData, setFormData, isEditing }: {
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="text-white">Category</Label>
+          <Label className="text-foreground">Category</Label>
           <Select 
             value={formData.category} 
             onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
           >
-            <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+            <SelectTrigger className="bg-input border-input text-foreground">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -842,12 +842,12 @@ function AchievementForm({ formData, setFormData, isEditing }: {
           </Select>
         </div>
         <div>
-          <Label className="text-white">Rarity</Label>
+          <Label className="text-foreground">Rarity</Label>
           <Select 
             value={formData.rarity} 
             onValueChange={(value) => setFormData(prev => ({ ...prev, rarity: value }))}
           >
-            <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+            <SelectTrigger className="bg-input border-input text-foreground">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -861,12 +861,12 @@ function AchievementForm({ formData, setFormData, isEditing }: {
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="text-white">Icon</Label>
+          <Label className="text-foreground">Icon</Label>
           <Select 
             value={formData.icon} 
             onValueChange={(value) => setFormData(prev => ({ ...prev, icon: value }))}
           >
-            <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+            <SelectTrigger className="bg-input border-input text-foreground">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -885,12 +885,12 @@ function AchievementForm({ formData, setFormData, isEditing }: {
           </Select>
         </div>
         <div>
-          <Label className="text-white">Requirement Type</Label>
+          <Label className="text-foreground">Requirement Type</Label>
           <Select 
             value={formData.requirement_type} 
             onValueChange={(value) => setFormData(prev => ({ ...prev, requirement_type: value }))}
           >
-            <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+            <SelectTrigger className="bg-input border-input text-foreground">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -903,12 +903,12 @@ function AchievementForm({ formData, setFormData, isEditing }: {
       </div>
 
       <div>
-        <Label className="text-white">Requirement Value</Label>
+        <Label className="text-foreground">Requirement Value</Label>
         <StandardInput
           type="number"
           value={formData.requirement_value}
           onChange={(e) => setFormData(prev => ({ ...prev, requirement_value: parseInt(e.target.value) || 0 }))}
-          className="bg-slate-700 border-slate-600 text-white"
+          className="bg-input border-input text-foreground"
           min="1"
         />
       </div>
@@ -921,7 +921,7 @@ function AchievementForm({ formData, setFormData, isEditing }: {
           onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.checked }))}
           className="w-4 h-4"
         />
-        <Label htmlFor="is_active" className="text-white">Active</Label>
+        <Label htmlFor="is_active" className="text-foreground">Active</Label>
       </div>
     </div>
   );

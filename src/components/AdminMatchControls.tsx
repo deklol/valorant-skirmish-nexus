@@ -193,7 +193,7 @@ const AdminMatchControls = ({ match, onMatchUpdate }: AdminMatchControlsProps) =
   return (
     <Card className="bg-red-900/20 border-red-500/30">
       <CardHeader>
-        <CardTitle className="text-white flex items-center gap-2">
+        <CardTitle className="text-foreground flex items-center gap-2">
           <Settings className="w-5 h-5" />
           Admin Match Controls
           <AlertTriangle className="w-4 h-4 text-yellow-400" />
@@ -205,13 +205,13 @@ const AdminMatchControls = ({ match, onMatchUpdate }: AdminMatchControlsProps) =
           <Label className="text-slate-300">Force Status Change</Label>
           <div className="flex gap-2">
             <Select value={newStatus} onValueChange={setNewStatus}>
-              <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
+              <SelectTrigger className="bg-input border-input text-foreground">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-600">
-                <SelectItem value="pending" className="text-white hover:bg-slate-700">Pending</SelectItem>
-                <SelectItem value="live" className="text-white hover:bg-slate-700">Live</SelectItem>
-                <SelectItem value="completed" className="text-white hover:bg-slate-700">Completed</SelectItem>
+              <SelectContent className="bg-card border-input">
+                <SelectItem value="pending" className="text-foreground hover:bg-muted">Pending</SelectItem>
+                <SelectItem value="live" className="text-foreground hover:bg-muted">Live</SelectItem>
+                <SelectItem value="completed" className="text-foreground hover:bg-muted">Completed</SelectItem>
               </SelectContent>
             </Select>
             <Button
@@ -232,7 +232,7 @@ const AdminMatchControls = ({ match, onMatchUpdate }: AdminMatchControlsProps) =
               type="datetime-local"
               value={newScheduledTime}
               onChange={(e) => setNewScheduledTime(e.target.value)}
-              className="bg-slate-800 border-slate-600 text-white"
+              className="bg-input border-input text-foreground"
             />
             <Button
               onClick={rescheduleMatch}
@@ -255,7 +255,7 @@ const AdminMatchControls = ({ match, onMatchUpdate }: AdminMatchControlsProps) =
                 type="number"
                 value={overrideScore1}
                 onChange={(e) => setOverrideScore1(parseInt(e.target.value) || 0)}
-                className="bg-slate-800 border-slate-600 text-white"
+                className="bg-input border-input text-foreground"
               />
             </div>
             <div>
@@ -264,20 +264,20 @@ const AdminMatchControls = ({ match, onMatchUpdate }: AdminMatchControlsProps) =
                 type="number"
                 value={overrideScore2}
                 onChange={(e) => setOverrideScore2(parseInt(e.target.value) || 0)}
-                className="bg-slate-800 border-slate-600 text-white"
+                className="bg-input border-input text-foreground"
               />
             </div>
           </div>
           <Select value={overrideWinner} onValueChange={setOverrideWinner}>
-            <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
+            <SelectTrigger className="bg-input border-input text-foreground">
               <SelectValue placeholder="Select winner" />
             </SelectTrigger>
-            <SelectContent className="bg-slate-800 border-slate-600">
+            <SelectContent className="bg-card border-input">
               {match.team1 && (
-                <SelectItem value={match.team1_id} className="text-white hover:bg-slate-700">{match.team1.name}</SelectItem>
+                <SelectItem value={match.team1_id} className="text-foreground hover:bg-muted">{match.team1.name}</SelectItem>
               )}
               {match.team2 && (
-                <SelectItem value={match.team2_id} className="text-white hover:bg-slate-700">{match.team2.name}</SelectItem>
+                <SelectItem value={match.team2_id} className="text-foreground hover:bg-muted">{match.team2.name}</SelectItem>
               )}
             </SelectContent>
           </Select>
