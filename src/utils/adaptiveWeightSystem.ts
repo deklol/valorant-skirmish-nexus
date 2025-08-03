@@ -185,19 +185,22 @@ export function calculateAdaptiveWeight(
   config: AdaptiveWeightConfig = DEFAULT_CONFIG,
   lastRankUpdate?: Date
 ): EnhancedAdaptiveResult {
-  console.log('🔍 calculateAdaptiveWeight called for:', (userData as any).discord_username, {
+  // CRITICAL: Ensure config is properly set with defaults
+  const finalConfig = {
+    ...DEFAULT_CONFIG,
+    ...config,
+    tournamentWinnerPenalties: {
+      ...DEFAULT_CONFIG.tournamentWinnerPenalties,
+      ...(config.tournamentWinnerPenalties || {})
+    }
+  };
+
+  console.log('🔍 ADAPTIVE WEIGHT DEBUG:', (userData as any).discord_username, {
+    tournaments_won: userData.tournaments_won,
     current_rank: userData.current_rank,
     peak_rank: userData.peak_rank,
-    tournaments_won: userData.tournaments_won,
-    manual_override: userData.manual_rank_override,
-    enableAdaptiveWeights: config.enableAdaptiveWeights,
-    tournamentPenaltiesEnabled: config.tournamentWinnerPenalties?.enabled
+    penaltiesEnabled: finalConfig.tournamentWinnerPenalties?.enabled
   });
-
-  // CRITICAL DEBUG: Check if tournament winner penalties are working
-  if (userData.tournaments_won && userData.tournaments_won > 0) {
-    console.log(`🏆 TOURNAMENT WINNER DETECTED: ${(userData as any).discord_username} has ${userData.tournaments_won} wins - penalties should apply!`);
-  }
 
   // First, get the manual override result
   const manualResult = getRankPointsWithManualOverride(userData);
@@ -222,7 +225,7 @@ export function calculateAdaptiveWeight(
   }
 
   // If adaptive weights are disabled, use existing system
-  if (!config.enableAdaptiveWeights) {
+  if (!finalConfig.enableAdaptiveWeights) {
     return manualResult;
   }
 
@@ -266,7 +269,7 @@ export function calculateAdaptiveWeight(
     else if (peakRankPoints >= 130) unrankedPenalty = 0.18; // Platinum loses 18%
     
     // Calculate tournament winner penalty for unranked players
-    const tournamentPenalty = calculateTournamentWinnerPenalty(userData, config, isCurrentUnranked);
+    const tournamentPenalty = calculateTournamentWinnerPenalty(userData, finalConfig, isCurrentUnranked);
     
     // Combine penalties: unranked penalty + tournament winner penalty
     const totalPenalty = Math.min(unrankedPenalty + tournamentPenalty.penalty, 0.75); // Cap at 75%
@@ -339,7 +342,7 @@ export function calculateAdaptiveWeight(
   let adaptiveWeight = Math.floor(baseBlend - varianceReduction);
   
   // Apply tournament winner penalty to ranked players as well
-  const tournamentPenalty = calculateTournamentWinnerPenalty(userData, config, isCurrentUnranked);
+  const tournamentPenalty = calculateTournamentWinnerPenalty(userData, finalConfig, isCurrentUnranked);
   if (tournamentPenalty.penalty > 0) {
     adaptiveWeight = Math.floor(adaptiveWeight * (1 - tournamentPenalty.penalty));
   }

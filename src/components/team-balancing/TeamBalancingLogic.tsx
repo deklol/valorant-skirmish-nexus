@@ -86,6 +86,11 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
       .sort((a, b) => {
         let aRankResult, bRankResult;
         
+        // DEBUG: Log user data to check tournaments_won
+        if (a.users?.discord_username?.includes('kera')) {
+          console.log('🏆 KERA USER DATA:', a.users);
+        }
+        
         if (tournament.enable_adaptive_weights) {
           aRankResult = calculateAdaptiveWeight(a.users);
           bRankResult = calculateAdaptiveWeight(b.users);
