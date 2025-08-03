@@ -22,6 +22,8 @@ import { enhancedSnakeDraft, type EnhancedTeamResult, type BalanceStep } from "@
 import { evidenceBasedSnakeDraft, type EvidenceTeamResult, type EvidenceBalanceStep } from "@/components/team-balancing/EvidenceBasedSnakeDraft";
 import { AutobalanceProgress } from "@/components/team-balancing/AutobalanceProgress";
 import { AtlasDecisionSystem, type AtlasAnalysis } from "@/utils/miniAiDecisionSystem";
+import AtlasDecisionDisplay from "@/components/team-balancing/AtlasDecisionDisplay";
+import BalancingControlPanel from "@/components/team-balancing/BalancingControlPanel";
 
 interface TeamBalancingInterfaceProps {
   tournamentId: string;
@@ -1378,115 +1380,55 @@ Team Balancing
             onTeamsUpdated={fetchTeamsAndPlayers}
           />
 
+          {/* ATLAS Decision Display (Persistent for Admins) */}
+          <AtlasDecisionDisplay 
+            balanceResult={balanceAnalysis}
+            isVisible={!!balanceAnalysis}
+            tournamentName={tournament?.name}
+          />
+
+          {/* Simplified Control Panel */}
+          <BalancingControlPanel
+            enableAdaptiveWeights={enableAdaptiveWeights}
+            onAdaptiveWeightsChange={handleAdaptiveWeightsChange}
+            onAutobalance={autobalanceUnassignedPlayers}
+            onSave={saveTeamChanges}
+            onCreateTeams={createEmptyTeams}
+            autobalancing={autobalancing}
+            saving={saving}
+            creatingTeams={creatingTeams}
+            hasPlaceholderTeams={hasPlaceholderTeams}
+            unassignedPlayersCount={unassignedPlayers.length}
+            maxTeams={maxTeams}
+            balance={balance}
+            loadingAdaptiveSettings={loadingAdaptiveSettings}
+          />
+
           <Card className="bg-slate-800 border-slate-700">
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
                 <Users className="w-5 h-5" />
-                Manual Team Balancing
+                Manual Team Assignment
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="text-slate-300 text-sm">
-                <p>Drag and drop players between teams to manually balance them.</p>
+                <p>Drag and drop players between teams for fine-tuning.</p>
                 <p className="mt-1">
                   Tournament setup: {maxTeams} teams, {teamSize}v{teamSize} format
                   {teamSize === 1 ? ' (1v1 - each player gets their own team)' : ` (${teamSize} players per team)`}
                 </p>
               </div>
 
-              {/* Adaptive Weights Toggle */}
-              <div className="flex items-center space-x-2 p-3 bg-slate-700 rounded-lg">
-                <Checkbox
-                  id="adaptive-weights-manual"
-                  checked={enableAdaptiveWeights}
-                  onCheckedChange={handleAdaptiveWeightsChange}
-                  disabled={loadingAdaptiveSettings || autobalancing || saving}
-                />
-                <label 
-                  htmlFor="adaptive-weights-manual" 
-                  className="text-sm font-medium text-slate-300 cursor-pointer flex items-center gap-2"
-                >
-                  <Zap className="w-4 h-4" />
-                  Enable Adaptive Weight System
-                </label>
-                <Badge variant="outline" className="text-xs ml-auto">
-                  {enableAdaptiveWeights ? 'Enhanced' : 'Standard'}
-                </Badge>
-              </div>
-              <div className="text-xs text-slate-400 ml-6">
-                Intelligently blends current and peak ranks based on rank decay and time factors
-              </div>
-  
-              {balance && (
-                <div className="flex items-center justify-between p-3 bg-slate-700 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-yellow-400" />
-                    <span className="text-white text-sm">Balance Status:</span>
-                    <Badge className={`${balance.statusColor} bg-slate-600 border-slate-500`}>
-                      {balance.balanceStatus.toUpperCase()}
-                    </Badge>
-  </div>
-                  <div className="text-right">
-                    <span className="text-slate-300 text-sm">
-                      Weight difference: {balance.delta} points
-                    </span>
-                    <p className={`text-xs ${balance.statusColor} mt-1`}>
-                      {balance.statusMessage}
-                    </p>
-  </div>
-                </div>
-              )}
-  
-          <div className="space-y-4">
-            <AutobalanceProgress
-              isVisible={showProgress}
-              totalPlayers={unassignedPlayers.length}
-              currentStep={progressStep}
-              lastStep={lastProgressStep}
-              phase={currentPhase}
-              atlasEnabled={enableAdaptiveWeights}
-            />
-  
-            <div className="flex gap-2">
-                <Button
-                  onClick={autobalanceUnassignedPlayers}
-                  disabled={autobalancing || hasPlaceholderTeams || unassignedPlayers.length === 0}
-                  variant="secondary"
-                  className="bg-yellow-600 hover:bg-yellow-700 text-white"
-                >
-                  <Zap className="w-4 h-4 mr-2" />
-                  {autobalancing ? "Suggesting..." : "Autobalance"}
-                </Button>
-                
-                {hasPlaceholderTeams && (
-                  <Button
-                    onClick={createEmptyTeams}
-                    disabled={creatingTeams}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    {creatingTeams ? 'Creating...' : 'Create Team Slots'}
-                  </Button>
-                )}
-                
-                <Button
-                  onClick={saveTeamChanges}
-                  disabled={saving || hasPlaceholderTeams}
-                  className="bg-green-600 hover:bg-green-700 text-white"
-                >
-                  <Save className="w-4 h-4 mr-2" />
-                  {saving ? 'Saving...' : 'Save Changes'}
-                </Button>
-              </div>
-  
-              {hasPlaceholderTeams && (
-                <div className="p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg">
-                  <p className="text-blue-400 text-sm">
-                    Click "Create Team Slots" to create {maxTeams} empty teams for manual player assignment.
-                  </p>
-                </div>
-              )}
-            </div>
+              {/* Enhanced Progress Display */}
+              <AutobalanceProgress
+                isVisible={showProgress}
+                totalPlayers={unassignedPlayers.length}
+                currentStep={progressStep}
+                lastStep={lastProgressStep}
+                phase={currentPhase}
+                atlasEnabled={enableAdaptiveWeights}
+              />
             </CardContent>
           </Card>
   
