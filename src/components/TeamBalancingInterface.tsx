@@ -466,7 +466,8 @@ try {
               manual_rank_override: user.manual_rank_override,
               manual_weight_override: user.manual_weight_override,
               use_manual_override: user.use_manual_override,
-              rank_override_reason: user.rank_override_reason
+              rank_override_reason: user.rank_override_reason,
+              tournaments_won: user.tournaments_won
             };
           });
 
@@ -510,7 +511,8 @@ try {
             manual_rank_override: user.manual_rank_override,
             manual_weight_override: user.manual_weight_override,
             use_manual_override: user.use_manual_override,
-            rank_override_reason: user.rank_override_reason
+            rank_override_reason: user.rank_override_reason,
+            tournaments_won: user.tournaments_won
           };
         });
 
@@ -534,7 +536,8 @@ try {
             manual_rank_override: user.manual_rank_override,
             manual_weight_override: user.manual_weight_override,
             use_manual_override: user.use_manual_override,
-            rank_override_reason: user.rank_override_reason
+            rank_override_reason: user.rank_override_reason,
+            tournaments_won: user.tournaments_won
           };
         });
 
