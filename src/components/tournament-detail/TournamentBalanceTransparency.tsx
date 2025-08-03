@@ -318,6 +318,56 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
       factors.push({ label: "Team Selection", value: "Joined team with lowest total points", type: "balance" });
     }
 
+    // Parse tournament winner bonuses
+    if (reasoning.includes("Tournament bonus:")) {
+      const bonusMatch = reasoning.match(/Tournament bonus:\s*\+(\d+)\s*pts/);
+      if (bonusMatch) {
+        const bonusPoints = bonusMatch[1];
+        factors.push({ label: "Tournament Winner Bonus", value: `+${bonusPoints} points`, type: "achievement" });
+        explanation += ` This player has proven their competitive skill through tournament victories and receives a bonus reflecting their demonstrated ability.`;
+      }
+    }
+
+    // Parse specific tournament win counts from reasoning
+    if (reasoning.includes("Tournament Winner Bonus:") || reasoning.includes("🏆")) {
+      const winCountMatch = reasoning.match(/(\d+)\s*wins?/);
+      const bonusAmountMatch = reasoning.match(/\+(\d+)\s*(?:total|base)/);
+      
+      if (winCountMatch && bonusAmountMatch) {
+        const wins = winCountMatch[1];
+        const bonus = bonusAmountMatch[1];
+        factors.push({ 
+          label: "Competitive History", 
+          value: `${wins} tournament win${wins !== '1' ? 's' : ''} (+${bonus} pts)`, 
+          type: "achievement" 
+        });
+      }
+    }
+
+    // Parse recent winner bonuses
+    if (reasoning.includes("recent winner bonus")) {
+      const recentMatch = reasoning.match(/\+(\d+)\s*recent winner bonus/);
+      if (recentMatch) {
+        factors.push({ 
+          label: "Recent Achievement", 
+          value: `+${recentMatch[1]} recent winner bonus`, 
+          type: "achievement" 
+        });
+      }
+    }
+
+    // Parse elite winner bonuses
+    if (reasoning.includes("elite winner bonus")) {
+      const eliteMatch = reasoning.match(/\+(\d+)\s*elite winner bonus/);
+      if (eliteMatch) {
+        factors.push({ 
+          label: "Elite Competitor", 
+          value: `+${eliteMatch[1]} elite winner bonus`, 
+          type: "achievement" 
+        });
+      }
+    }
+
     return {
       playerName,
       rank,
@@ -687,16 +737,17 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                                     <div className="grid grid-cols-1 gap-1.5">
                                       {atlasData.factors.map((factor, i) => (
                                         <div key={i} className="flex items-center justify-between py-1.5 px-2 bg-background/50 rounded border border-border/50">
-                                          <div className="flex items-center gap-1.5">
-                                            <div className={`w-1.5 h-1.5 rounded-full ${
-                                              factor.type === 'skill' ? 'bg-blue-500' :
-                                              factor.type === 'peak' ? 'bg-amber-500' :
-                                              factor.type === 'balance' ? 'bg-green-500' :
-                                              factor.type === 'rule' ? 'bg-purple-500' :
-                                              'bg-gray-500'
-                                            }`} />
-                                            <span className="text-xs font-medium text-foreground">{factor.label}</span>
-                                          </div>
+                                           <div className="flex items-center gap-1.5">
+                                             <div className={`w-1.5 h-1.5 rounded-full ${
+                                               factor.type === 'skill' ? 'bg-blue-500' :
+                                               factor.type === 'peak' ? 'bg-amber-500' :
+                                               factor.type === 'balance' ? 'bg-green-500' :
+                                               factor.type === 'rule' ? 'bg-purple-500' :
+                                               factor.type === 'achievement' ? 'bg-yellow-500' :
+                                               'bg-gray-500'
+                                             }`} />
+                                             <span className="text-xs font-medium text-foreground">{factor.label}</span>
+                                           </div>
                                           <span className="text-xs text-muted-foreground">{factor.value}</span>
                                         </div>
                                       ))}
