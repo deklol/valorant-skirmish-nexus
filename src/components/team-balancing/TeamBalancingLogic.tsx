@@ -3,7 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
 import { getRankPointsWithManualOverride } from "@/utils/rankingSystemWithOverrides";
 import { enhancedSnakeDraft } from "./EnhancedSnakeDraft";
+import { evidenceBasedSnakeDraft } from "./EvidenceBasedSnakeDraft";
 import { calculateAdaptiveWeight, ExtendedUserRankData } from "@/utils/adaptiveWeightSystem";
+import { calculateEvidenceBasedWeight, EvidenceBasedConfig } from "@/utils/evidenceBasedWeightSystem";
 
 interface UseTeamBalancingProps {
   tournamentId: string;
@@ -90,8 +92,34 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
         let aRankResult, bRankResult;
         
         if (tournament.enable_adaptive_weights) {
-          aRankResult = calculateAdaptiveWeight(a.users);
-          bRankResult = calculateAdaptiveWeight(b.users);
+          aRankResult = calculateEvidenceBasedWeight({
+            ...a.users,
+            tournaments_won: a.users.tournaments_won || 0
+          }, {
+            enableEvidenceBasedWeights: true,
+            tournamentWinBonus: 15,
+            rankDecayThreshold: 2,
+            maxDecayPercent: 0.25,
+            skillTierCaps: {
+              enabled: true,
+              eliteThreshold: 400,
+              maxElitePerTeam: 1
+            }
+          } as EvidenceBasedConfig);
+          bRankResult = calculateEvidenceBasedWeight({
+            ...b.users,
+            tournaments_won: b.users.tournaments_won || 0
+          }, {
+            enableEvidenceBasedWeights: true,
+            tournamentWinBonus: 15,
+            rankDecayThreshold: 2,
+            maxDecayPercent: 0.25,
+            skillTierCaps: {
+              enabled: true,
+              eliteThreshold: 400,
+              maxElitePerTeam: 1
+            }
+          } as EvidenceBasedConfig);
         } else {
           aRankResult = getRankPointsWithManualOverride(a.users);
           bRankResult = getRankPointsWithManualOverride(b.users);
@@ -139,7 +167,20 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
       const player = sortedPlayers[i];
       const teamName = `${player.users?.discord_username || 'Player'} (Solo)`;
       const rankResult = tournament?.enable_adaptive_weights 
-        ? calculateAdaptiveWeight(player.users)
+        ? calculateEvidenceBasedWeight({
+            ...player.users,
+            tournaments_won: player.users.tournaments_won || 0
+          }, {
+            enableEvidenceBasedWeights: true,
+            tournamentWinBonus: 15,
+            rankDecayThreshold: 2,
+            maxDecayPercent: 0.25,
+            skillTierCaps: {
+              enabled: true,
+              eliteThreshold: 400,
+              maxElitePerTeam: 1
+            }
+          } as EvidenceBasedConfig)
         : getRankPointsWithManualOverride(player.users);
       
       // Create team
@@ -182,11 +223,44 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
       .eq('id', tournamentId)
       .single();
 
-    // Use enhanced snake draft with detailed logging
-    const playerData = sortedPlayers.map(signup => signup.users);
-    const result = enhancedSnakeDraft(playerData, teamsToCreate, teamSize);
+    // Use evidence-based draft if adaptive weights enabled, otherwise enhanced snake draft
+    const playerData = sortedPlayers.map(signup => ({
+      ...signup.users,
+      tournaments_won: signup.users.tournaments_won || 0
+    }));
     
-    const { teams, balanceSteps, finalBalance } = result;
+    const result = tournament?.enable_adaptive_weights
+      ? evidenceBasedSnakeDraft(
+          playerData,
+          teamsToCreate,
+          teamSize,
+          (step, currentStep, totalSteps) => {
+            console.log(`Evidence-based balancing step ${currentStep}/${totalSteps}:`, step.reasoning);
+          },
+          () => {
+            console.log('Starting evidence-based validation...');
+          },
+          (phase, current, total) => {
+            console.log(`Evidence calculation ${phase}: ${current}/${total}`);
+          },
+          {
+            enableEvidenceBasedWeights: true,
+            tournamentWinBonus: 15,
+            rankDecayThreshold: 2,
+            maxDecayPercent: 0.25,
+            skillTierCaps: {
+              enabled: true,
+              eliteThreshold: 400,
+              maxElitePerTeam: 1
+            }
+          } as EvidenceBasedConfig
+        )
+      : enhancedSnakeDraft(playerData, teamsToCreate, teamSize);
+    
+    const { teams, balanceSteps } = result;
+    const finalBalance = tournament?.enable_adaptive_weights 
+      ? (result as any).finalAnalysis?.pointBalance || { maxPointDifference: 0, balanceQuality: 'ideal' }
+      : (result as any).finalBalance || { maxPointDifference: 0, balanceQuality: 'ideal' };
 
     // Helper to ensure unique team names
     const usedNames = new Set<string>();
@@ -212,10 +286,23 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
       }
       usedNames.add(teamName);
 
-      // Calculate total weight using enhanced ranking system with optional adaptive weights
+      // Calculate total weight using evidence-based system if adaptive weights enabled
       const totalWeight = teams[i].reduce((sum, player) => {
         const rankResult = tournament?.enable_adaptive_weights 
-          ? calculateAdaptiveWeight(player)
+          ? calculateEvidenceBasedWeight({
+              ...player,
+              tournaments_won: player.tournaments_won || 0
+            }, {
+              enableEvidenceBasedWeights: true,
+              tournamentWinBonus: 15,
+              rankDecayThreshold: 2,
+              maxDecayPercent: 0.25,
+              skillTierCaps: {
+                enabled: true,
+                eliteThreshold: 400,
+                maxElitePerTeam: 1
+              }
+            } as EvidenceBasedConfig)
           : getRankPointsWithManualOverride(player);
         return sum + rankResult.points;
       }, 0);
@@ -306,7 +393,7 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
         validationTime: validationResult.validationTime,
         totalSwaps: validationResult.adjustmentsMade.swaps.length
       } : null,
-      method: `Snake Draft (${teamSize}v${teamSize})${adaptiveWeightsEnabled ? ' with Adaptive Weights' : ''}${validationResult?.adjustmentsMade.swaps.length > 0 ? ' + Post-Balance Optimization' : ''}`,
+      method: `${adaptiveWeightsEnabled ? 'Evidence-Based Draft' : 'Snake Draft'} (${teamSize}v${teamSize})${adaptiveWeightsEnabled ? ' with Skill Distribution' : ''}${validationResult?.adjustmentsMade ? (validationResult.adjustmentsMade.swaps?.length > 0 || validationResult.adjustmentsMade.redistributions?.length > 0 ? ' + Mini-AI Optimization' : '') : ''}`,
       timestamp: new Date().toISOString()
     };
 
