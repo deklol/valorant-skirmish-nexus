@@ -309,7 +309,7 @@ async function performAtlasValidation(
       points: player.evidenceWeight || 150,
       isElite: (player.evidenceWeight || 150) >= config.skillTierCaps.eliteThreshold,
       skillTier: (player.evidenceWeight || 150) >= 400 ? 'elite' : 
-                 (player.evidenceWeight || 150) >= 300 ? 'high' :
+                 (player.evidenceWeight || 150) >= 350 ? 'high' : // Immortal 2+
                  (player.evidenceWeight || 150) >= 200 ? 'medium' : 'low'
     }))
   );

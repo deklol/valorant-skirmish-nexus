@@ -60,7 +60,7 @@ export interface GlobalBalance {
  */
 export class TeamCompositionAnalyzer {
   private readonly ELITE_THRESHOLD = 400;
-  private readonly HIGH_TIER_THRESHOLD = 300;
+  private readonly HIGH_TIER_THRESHOLD = 350; // Immortal 2+
   private readonly MEDIUM_TIER_THRESHOLD = 200;
 
   /**

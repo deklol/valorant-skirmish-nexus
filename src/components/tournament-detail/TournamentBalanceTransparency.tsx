@@ -206,14 +206,30 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
     if (eliteDistMatch) {
       [, playerName, , teamName] = eliteDistMatch;
       points = parseInt(eliteDistMatch[2]);
-      type = "Elite Player Distribution";
-      rank = "Elite"; // Default for elite
-      explanation = `${playerName} is an elite player who was distributed strategically to prevent skill stacking and maintain competitive balance across teams.`;
       
-      factors.push({ label: "Player Category", value: "Elite Tier (500+ points)", type: "skill" });
+      // Determine if this is elite (400+) or high (350+) tier
+      if (points >= 400) {
+        type = "Elite Player Distribution";
+        rank = "Elite";
+        explanation = `${playerName} is an elite player who was distributed strategically to prevent skill stacking and maintain competitive balance across teams.`;
+        factors.push({ label: "Player Category", value: "Elite Tier (400+ points)", type: "skill" });
+        impact = "Elite players distributed evenly for fair competition";
+      } else if (points >= 350) {
+        type = "High-Level Player Distribution";
+        rank = "High-Level";
+        explanation = `${playerName} is a high-level player (Immortal 2+) who was distributed strategically to prevent skill stacking and maintain competitive balance across teams.`;
+        factors.push({ label: "Player Category", value: "High Tier (350+ points)", type: "skill" });
+        impact = "High-level players distributed evenly for fair competition";
+      } else {
+        type = "Elite Player Distribution";
+        rank = "Elite";
+        explanation = `${playerName} is an elite player who was distributed strategically to prevent skill stacking and maintain competitive balance across teams.`;
+        factors.push({ label: "Player Category", value: "Elite Tier (400+ points)", type: "skill" });
+        impact = "Elite players distributed evenly for fair competition";
+      }
+      
       factors.push({ label: "Distribution Strategy", value: "Round-robin to prevent stacking", type: "rule" });
-      factors.push({ label: "Team Limit", value: "Maximum 1 elite per team", type: "rule" });
-      impact = "Elite players distributed evenly for fair competition";
+      factors.push({ label: "Team Limit", value: "Maximum 1 per team", type: "rule" });
       
     } else if (smartBalanceMatch) {
       [, playerName, , teamName] = smartBalanceMatch;
@@ -616,11 +632,12 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                                   {/* Compact Assignment Header */}
                                   <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
-                                      <div className={`w-2 h-2 rounded-full ${
-                                        atlasData.type === 'Elite Player Distribution' ? 'bg-purple-500' :
-                                        atlasData.type === 'Smart Team Balancing' ? 'bg-blue-500' :
-                                        'bg-green-500'
-                                      }`} />
+                                       <div className={`w-2 h-2 rounded-full ${
+                                         atlasData.type === 'Elite Player Distribution' ? 'bg-purple-500' :
+                                         atlasData.type === 'High-Level Player Distribution' ? 'bg-orange-500' :
+                                         atlasData.type === 'Smart Team Balancing' ? 'bg-blue-500' :
+                                         'bg-green-500'
+                                       }`} />
                                       <span className="text-sm font-semibold text-foreground">{atlasData.type}</span>
                                     </div>
                                     <Badge variant="outline" className="text-xs">
