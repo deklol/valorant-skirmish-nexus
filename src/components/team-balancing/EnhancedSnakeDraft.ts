@@ -103,12 +103,12 @@ export const enhancedSnakeDraft = (
           weight_rating: player.weight_rating
         });
 
-    const adaptiveCalculation = (adaptiveResult as any).adaptiveCalculation;
-    if (adaptiveCalculation) {
-      adaptiveCalculation.userId = player.user_id || player.id;
+    // Check for adaptive calculation from evidence-based system
+    const evidenceCalculation = (adaptiveResult as any).evidenceResult?.evidenceCalculation;
+    if (evidenceCalculation) {
       adaptiveWeightCalculations.push({
         userId: player.user_id || player.id,
-        calculation: adaptiveCalculation
+        calculation: evidenceCalculation
       });
     }
 
@@ -116,7 +116,7 @@ export const enhancedSnakeDraft = (
       ...player,
       adaptiveWeight: adaptiveResult.points,
       weightSource: adaptiveResult.source,
-      adaptiveCalculation
+      adaptiveCalculation: evidenceCalculation
     };
   });
 
