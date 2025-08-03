@@ -62,6 +62,16 @@ const DraggablePlayer = ({ player, enableAdaptiveWeights }: DraggablePlayerProps
       })
     : getRankPointsWithManualOverride(player);
 
+  // Debug logging for Keras
+  if (player.discord_username === 'keratasf') {
+    console.log('Keras DraggablePlayer data:', {
+      player: player,
+      enableAdaptiveWeights,
+      rankResult,
+      tournaments_won: player.tournaments_won
+    });
+  }
+
   return (
     <div
       ref={setNodeRef}
