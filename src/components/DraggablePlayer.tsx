@@ -45,8 +45,22 @@ const DraggablePlayer = ({ player, enableAdaptiveWeights }: DraggablePlayerProps
   };
 
   // Calculate the appropriate rank result based on adaptive weights setting
+  // Use the same configuration as the actual balancing algorithm
   const rankResult = enableAdaptiveWeights 
-    ? calculateAdaptiveWeight(player as ExtendedUserRankData)
+    ? calculateAdaptiveWeight(player as ExtendedUserRankData, {
+        enableAdaptiveWeights: true,
+        baseFactor: 0.3, // Match DEFAULT_CONFIG
+        decayMultiplier: 0.25,
+        timeWeightDays: 60,
+        tournamentWinnerPenalties: {
+          enabled: true,
+          oneWin: 0.15,
+          twoWins: 0.25,
+          threeOrMoreWins: 0.35,
+          recentWinMultiplier: 1.5,
+          unrankedWinnerMultiplier: 2.0
+        }
+      })
     : getRankPointsWithManualOverride(player);
 
   return (

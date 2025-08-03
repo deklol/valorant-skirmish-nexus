@@ -65,8 +65,22 @@ const DraggablePlayer = ({ player, enableAdaptiveWeights }: { player: Player, en
   } : undefined;
 
   // Use enhanced ranking system that supports manual overrides and adaptive weights
+  // Use the same configuration as the actual balancing algorithm  
   const rankResult = enableAdaptiveWeights 
-    ? calculateAdaptiveWeight(player, { enableAdaptiveWeights: true, baseFactor: 0.5, decayMultiplier: 0.15, timeWeightDays: 90 })
+    ? calculateAdaptiveWeight(player, {
+        enableAdaptiveWeights: true,
+        baseFactor: 0.3, // Match DEFAULT_CONFIG
+        decayMultiplier: 0.25,
+        timeWeightDays: 60,
+        tournamentWinnerPenalties: {
+          enabled: true,
+          oneWin: 0.15,
+          twoWins: 0.25,
+          threeOrMoreWins: 0.35,
+          recentWinMultiplier: 1.5,
+          unrankedWinnerMultiplier: 2.0
+        }
+      })
     : getRankPointsWithManualOverride(player);
   const fallbackResult = getRankPointsWithFallback(player.current_rank, player.peak_rank);
 
