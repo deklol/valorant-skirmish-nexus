@@ -44,7 +44,10 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
           manual_weight_override,
           use_manual_override,
           rank_override_reason,
-          tournaments_won
+          tournaments_won,
+          tournaments_played,
+          wins,
+          losses
         )
       `)
       .eq('tournament_id', tournamentId)
@@ -85,11 +88,6 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
       .filter(signup => signup.users)
       .sort((a, b) => {
         let aRankResult, bRankResult;
-        
-        // DEBUG: Log user data to check tournaments_won
-        if (a.users?.discord_username?.includes('kera')) {
-          console.log('🔍 KERA RAW DATABASE DATA:', a.users);
-        }
         
         if (tournament.enable_adaptive_weights) {
           aRankResult = calculateAdaptiveWeight(a.users);
