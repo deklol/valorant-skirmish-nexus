@@ -64,7 +64,7 @@ export interface EnhancedTeamResult {
 }
 
 /**
- * Enhanced snake draft algorithm with tier-aware distribution to prevent skill stacking
+ * Enhanced snake draft with CUMULATIVE BALANCE SYSTEM - distributes based on running team totals
  */
 export const enhancedSnakeDraft = (
   players: any[], 
@@ -120,70 +120,38 @@ export const enhancedSnakeDraft = (
     };
   });
 
-  // Categorize players by skill tiers to prevent stacking
-  const getSkillTier = (points: number): string => {
-    if (points >= 300) return 'high';     // Immortal+ tier (300+)
-    if (points >= 240) return 'mid-high'; // Ascendant tier (240-299)
-    if (points >= 180) return 'mid';      // Diamond tier (180-239)
-    return 'low';                         // Below Diamond (<180)
-  };
-
-  const playersByTier = {
-    high: playersWithAdaptiveWeights.filter(p => getSkillTier(p.adaptiveWeight) === 'high').sort((a, b) => b.adaptiveWeight - a.adaptiveWeight),
-    'mid-high': playersWithAdaptiveWeights.filter(p => getSkillTier(p.adaptiveWeight) === 'mid-high').sort((a, b) => b.adaptiveWeight - a.adaptiveWeight),
-    mid: playersWithAdaptiveWeights.filter(p => getSkillTier(p.adaptiveWeight) === 'mid').sort((a, b) => b.adaptiveWeight - a.adaptiveWeight),
-    low: playersWithAdaptiveWeights.filter(p => getSkillTier(p.adaptiveWeight) === 'low').sort((a, b) => b.adaptiveWeight - a.adaptiveWeight)
-  };
+  // Sort players by points (highest first)
+  const sortedPlayers = playersWithAdaptiveWeights.sort((a, b) => b.adaptiveWeight - a.adaptiveWeight);
 
   // Initialize teams
   const teams: any[][] = Array(numTeams).fill(null).map(() => []);
   const balanceSteps: BalanceStep[] = [];
   let stepCounter = 0;
 
-  // Helper function to find the best team for a player (tier-aware)
-  const findBestTeamForPlayer = (player: any, reasoning: string): number => {
-    const playerTier = getSkillTier(player.adaptiveWeight);
+  // CUMULATIVE BALANCE ASSIGNMENT: Always assign to the team with the lowest current total
+  const assignPlayerToLowestTeam = (player: any): number => {
+    const teamTotals = teams.map(team => 
+      team.reduce((sum, p) => sum + p.adaptiveWeight, 0)
+    );
     
-    let bestTeamIndex = 0;
-    let bestScore = Infinity;
+    // Find team with lowest total that still has space
+    let lowestTeamIndex = 0;
+    let lowestTotal = Infinity;
     
-    for (let teamIndex = 0; teamIndex < numTeams; teamIndex++) {
-      // Skip teams that are already full
-      if (teams[teamIndex].length >= teamSize) {
-        continue;
-      }
-      
-      const team = teams[teamIndex];
-      const teamTierCounts = {
-        high: team.filter(p => getSkillTier(p.adaptiveWeight) === 'high').length,
-        'mid-high': team.filter(p => getSkillTier(p.adaptiveWeight) === 'mid-high').length,
-        mid: team.filter(p => getSkillTier(p.adaptiveWeight) === 'mid').length,
-        low: team.filter(p => getSkillTier(p.adaptiveWeight) === 'low').length
-      };
-      
-      // Calculate score (lower is better)
-      const totalPoints = team.reduce((sum, p) => sum + p.adaptiveWeight, 0);
-      
-      // Heavy penalty for adding to same tier (prevents stacking)
-      const tierPenalty = teamTierCounts[playerTier] * 10000;
-      
-      // Moderate penalty for uneven team sizes
-      const sizePenalty = Math.abs(team.length - (players.length / numTeams)) * 100;
-      
-      const score = totalPoints + tierPenalty + sizePenalty;
-      
-      if (score < bestScore) {
-        bestScore = score;
-        bestTeamIndex = teamIndex;
+    for (let i = 0; i < numTeams; i++) {
+      if (teams[i].length < teamSize && teamTotals[i] < lowestTotal) {
+        lowestTotal = teamTotals[i];
+        lowestTeamIndex = i;
       }
     }
     
-    return bestTeamIndex;
+    return lowestTeamIndex;
   };
 
-  // Helper function to assign player and log the step
-  const assignPlayerToTeam = (player: any, teamIndex: number, reasoning: string) => {
-    teams[teamIndex].push(player);
+  // Assign each player to the team with the lowest current total
+  sortedPlayers.forEach(player => {
+    const targetTeamIndex = assignPlayerToLowestTeam(player);
+    teams[targetTeamIndex].push(player);
     
     const teamStatesAfter = teams.map((team, index) => ({
       teamIndex: index,
@@ -203,8 +171,8 @@ export const enhancedSnakeDraft = (
         weightSource: player.weightSource,
         adaptiveReasoning: (player.adaptiveCalculation as any)?.calculationReasoning
       },
-      assignedTeam: teamIndex,
-      reasoning: `${reasoning} (${getSkillTier(player.adaptiveWeight).toUpperCase()} TIER: ${player.adaptiveWeight}pts)`,
+      assignedTeam: targetTeamIndex,
+      reasoning: `CUMULATIVE BALANCE: Assigned ${player.discord_username} (${player.adaptiveWeight}pts) to Team ${targetTeamIndex + 1} (lowest total: ${teamStatesAfter[targetTeamIndex].totalPoints - player.adaptiveWeight}pts → ${teamStatesAfter[targetTeamIndex].totalPoints}pts)`,
       teamStatesAfter
     };
 
@@ -213,27 +181,9 @@ export const enhancedSnakeDraft = (
     if (onProgress) {
       onProgress(balanceStep, stepCounter, players.length);
     }
-  };
-
-  // Phase 1: Distribute high-tier players first (round-robin to prevent clustering)
-  playersByTier.high.forEach((player, index) => {
-    const teamIndex = index % numTeams;
-    assignPlayerToTeam(player, teamIndex, `HIGH-TIER ROUND-ROBIN: Preventing skill stacking by distributing high-tier players evenly`);
   });
 
-  // Phase 2: Distribute remaining tiers using tier-aware intelligent assignment
-  const remainingPlayers = [
-    ...playersByTier['mid-high'],
-    ...playersByTier.mid,
-    ...playersByTier.low
-  ];
-
-  remainingPlayers.forEach(player => {
-    const bestTeamIndex = findBestTeamForPlayer(player, 'TIER-AWARE ASSIGNMENT');
-    assignPlayerToTeam(player, bestTeamIndex, `TIER-AWARE ASSIGNMENT: Chose team with best balance and no tier conflicts`);
-  });
-
-  // Post-balance validation (minimal since tier distribution is handled upfront)
+  // Minimal post-balance validation
   let validationResult: ValidationResult | undefined;
   if (onValidationStart) {
     onValidationStart();
@@ -242,7 +192,6 @@ export const enhancedSnakeDraft = (
   const initialBalance = calculateFinalBalance(teams);
   const validationStartTime = Date.now();
 
-  // Simplified validation focusing only on point balance
   const validatedTeams = performSimplifiedPostValidation(teams, balanceSteps);
   const finalBalance = calculateFinalBalance(validatedTeams.teams);
 
