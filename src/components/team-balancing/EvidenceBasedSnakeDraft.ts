@@ -1,7 +1,7 @@
 // Evidence-Based Snake Draft with Smart Skill Distribution and Mini-AI Decision System
 import { getRankPointsWithManualOverride } from "@/utils/rankingSystemWithOverrides";
 import { calculateEvidenceBasedWeight, calculateEvidenceBasedWeightWithMiniAi, assignWithSkillDistribution, EvidenceBasedConfig, EnhancedEvidenceResult } from "@/utils/evidenceBasedWeightSystem";
-import { MiniAiDecisionSystem, MiniAiDecision } from "@/utils/miniAiDecisionSystem";
+import { AtlasDecisionSystem, AtlasDecision } from "@/utils/miniAiDecisionSystem";
 import { TeamPlayer } from "@/utils/teamCompositionAnalyzer";
 
 export interface EvidenceBalanceStep {
@@ -25,7 +25,7 @@ export interface EvidenceBalanceStep {
     playerCount: number;
     eliteCount: number;
   }[];
-  phase: 'elite_distribution' | 'regular_distribution' | 'mini_ai_adjustment';
+  phase: 'elite_distribution' | 'regular_distribution' | 'mini_ai_adjustment' | 'atlas_adjustment';
 }
 
 export interface EvidenceValidationResult {
@@ -51,7 +51,7 @@ export interface EvidenceValidationResult {
       balanceQuality: 'ideal' | 'good' | 'warning' | 'poor';
     };
   };
-  miniAiDecisions: MiniAiDecision[];
+  miniAiDecisions: AtlasDecision[];
   validationTime: number;
 }
 
@@ -108,7 +108,7 @@ export interface EvidenceTeamResult {
 /**
  * Evidence-Based Snake Draft with Mini-AI Decision System
  */
-export const evidenceBasedSnakeDraft = (
+export const evidenceBasedSnakeDraft = async (
   players: any[], 
   numTeams: number, 
   teamSize: number,
@@ -116,7 +116,7 @@ export const evidenceBasedSnakeDraft = (
   onValidationStart?: () => void,
   onEvidenceCalculation?: (phase: string, current: number, total: number) => void,
   evidenceConfig?: EvidenceBasedConfig
-): EvidenceTeamResult => {
+): Promise<EvidenceTeamResult> => {
   
   const config = evidenceConfig || {
     enableEvidenceBasedWeights: true,
@@ -130,11 +130,11 @@ export const evidenceBasedSnakeDraft = (
     }
   };
 
-  console.log('🎯 STARTING EVIDENCE-BASED DRAFT WITH MINI-AI');
+  console.log('🏛️ STARTING EVIDENCE-BASED DRAFT WITH ATLAS (Adaptive Tournament League Analysis System)');
 
-  // Phase 1: Calculate evidence-based weights with Mini-AI enhancement for all players
+  // Phase 1: Calculate evidence-based weights with ATLAS enhancement for all players
   const evidenceCalculations: Array<{ userId: string; calculation: any }> = [];
-  const miniAiEnhancements: MiniAiEnhancedResult = {
+  const atlasEnhancements: MiniAiEnhancedResult = {
     playerAdjustments: [],
     redistributionRecommendations: []
   };
@@ -142,10 +142,10 @@ export const evidenceBasedSnakeDraft = (
   const playersWithEvidenceWeights = await Promise.all(
     players.map(async (player, index) => {
       if (onEvidenceCalculation) {
-        onEvidenceCalculation('calculating', index + 1, players.length);
+        onEvidenceCalculation('🏛️ ATLAS analyzing player', index + 1, players.length);
       }
 
-      // Use Mini-AI enhanced calculation for more intelligent weight assignment
+      // Use ATLAS enhanced calculation for more intelligent weight assignment
       const evidenceResult = await calculateEvidenceBasedWeightWithMiniAi({
         current_rank: player.current_rank,
         peak_rank: player.peak_rank,
@@ -167,11 +167,11 @@ export const evidenceBasedSnakeDraft = (
         });
       }
 
-      // Track Mini-AI adjustments
+      // Track ATLAS adjustments
       if (evidenceResult.miniAiRecommendations && evidenceResult.miniAiRecommendations.length > 0) {
         evidenceResult.miniAiRecommendations.forEach(rec => {
           if (rec.type === 'player_adjustment') {
-            miniAiEnhancements.playerAdjustments.push({
+            atlasEnhancements.playerAdjustments.push({
               playerId: player.user_id || player.id,
               username: player.discord_username || 'Unknown',
               originalPoints: evidenceResult.evidenceResult.evidenceCalculation?.basePoints || 150,
@@ -194,7 +194,7 @@ export const evidenceBasedSnakeDraft = (
     })
   );
 
-  console.log('🏆 EVIDENCE WEIGHTS CALCULATED:', {
+  console.log('🏛️ ATLAS WEIGHT CALCULATIONS COMPLETE:', {
     totalPlayers: playersWithEvidenceWeights.length,
     elitePlayers: playersWithEvidenceWeights.filter(p => p.isElite).length,
     averageWeight: Math.round(playersWithEvidenceWeights.reduce((sum, p) => sum + p.evidenceWeight, 0) / playersWithEvidenceWeights.length)
@@ -239,66 +239,69 @@ export const evidenceBasedSnakeDraft = (
     return balanceStep;
   });
 
-  // Phase 3: Mini-AI validation and adjustment
+  // Phase 3: ATLAS validation and adjustment
   let validationResult: EvidenceValidationResult | undefined;
   if (onValidationStart) {
     onValidationStart();
   }
 
   const validationStartTime = Date.now();
-  const miniAiResult = await performMiniAiValidation(distributionResult.teams, config, miniAiEnhancements);
+  const atlasResult = await performAtlasValidation(distributionResult.teams, config, atlasEnhancements);
   
   validationResult = {
     originalSkillDistribution: distributionResult.finalDistribution,
-    adjustmentsMade: miniAiResult.adjustments,
+    adjustmentsMade: atlasResult.adjustments,
     finalDistribution: {
-      elitePlayersPerTeam: miniAiResult.teams.map(team => 
+      elitePlayersPerTeam: atlasResult.teams.map(team => 
         team.filter(p => (p.evidenceWeight || 150) >= config.skillTierCaps.eliteThreshold).length
       ),
-      skillStackingViolations: miniAiResult.teams.filter(team => 
+      skillStackingViolations: atlasResult.teams.filter(team => 
         team.filter(p => (p.evidenceWeight || 150) >= config.skillTierCaps.eliteThreshold).length > 1
       ).length,
-      pointBalance: calculatePointBalance(miniAiResult.teams)
+      pointBalance: calculatePointBalance(atlasResult.teams)
     },
-    miniAiDecisions: miniAiResult.decisions,
+    miniAiDecisions: atlasResult.decisions,
     validationTime: Date.now() - validationStartTime
   };
 
   // Add validation steps to balance steps
-  const allBalanceSteps = [...balanceSteps, ...miniAiResult.validationSteps];
+  const allBalanceSteps = [...balanceSteps, ...atlasResult.validationSteps];
 
-  // Calculate final analysis with Mini-AI summary
-  const finalAnalysis = calculateFinalAnalysis(miniAiResult.teams, config, miniAiEnhancements);
+  // Calculate final analysis with ATLAS summary
+  const finalAnalysis = calculateFinalAnalysis(atlasResult.teams, config, atlasEnhancements);
 
   return {
-    teams: miniAiResult.teams,
+    teams: atlasResult.teams,
     balanceSteps: allBalanceSteps,
     validationResult,
     evidenceCalculations,
-    miniAiEnhancements,
+    miniAiEnhancements: atlasEnhancements,
     finalAnalysis
   };
 };
 
 /**
- * Mini-AI Enhanced Validation System
+ * ATLAS Enhanced Validation System
+ * (Adaptive Tournament League Analysis System)
  */
-async function performMiniAiValidation(
+async function performAtlasValidation(
   teams: any[][],
   config: EvidenceBasedConfig,
-  miniAiEnhancements: MiniAiEnhancedResult
+  atlasEnhancements: MiniAiEnhancedResult
 ): Promise<{
   teams: any[][];
   adjustments: { redistributions: Array<{ player: string; fromTeam: number; toTeam: number; reason: string; type: 'skill_fix' | 'balance_fix' }> };
-  decisions: MiniAiDecision[];
+  decisions: AtlasDecision[];
   validationSteps: EvidenceBalanceStep[];
 }> {
   let adjustedTeams = JSON.parse(JSON.stringify(teams));
   const adjustments: { redistributions: Array<{ player: string; fromTeam: number; toTeam: number; reason: string; type: 'skill_fix' | 'balance_fix' }> } = { redistributions: [] };
-  const decisions: MiniAiDecision[] = [];
+  const decisions: AtlasDecision[] = [];
   const validationSteps: EvidenceBalanceStep[] = [];
 
-  // Convert teams to TeamPlayer format for Mini-AI analysis
+  console.log('🏛️ ATLAS VALIDATION STARTING: Analyzing team composition...');
+
+  // Convert teams to TeamPlayer format for ATLAS analysis
   const teamPlayers: TeamPlayer[][] = adjustedTeams.map(team => 
     team.map(player => ({
       id: player.id,
@@ -312,8 +315,8 @@ async function performMiniAiValidation(
   );
 
   try {
-    // Initialize Mini-AI Decision System
-    const miniAi = new MiniAiDecisionSystem({
+    // Initialize ATLAS Decision System
+    const atlas = new AtlasDecisionSystem({
       enableTeamRedistribution: true,
       enablePlayerSwaps: true,
       aggressivenessLevel: 'moderate',
@@ -327,13 +330,13 @@ async function performMiniAiValidation(
       }
     });
 
-    // Run Mini-AI analysis on current team composition
-    const miniAiAnalysis = await miniAi.analyzeAndDecide([], teamPlayers);
+    // Run ATLAS analysis on current team composition
+    const atlasAnalysis = await atlas.analyzeAndDecide([], teamPlayers);
     
-    console.log('🤖 MINI-AI TEAM ANALYSIS COMPLETE:', miniAiAnalysis.summary);
+    console.log('🏛️ ATLAS TEAM ANALYSIS COMPLETE:', atlasAnalysis.summary);
 
-    // Process Mini-AI decisions
-    for (const decision of miniAiAnalysis.decisions) {
+    // Process ATLAS decisions
+    for (const decision of atlasAnalysis.decisions) {
       decisions.push(decision);
       
       if (decision.type === 'team_redistribution' && decision.action?.playerId && decision.action?.toTeam !== undefined) {
@@ -364,7 +367,7 @@ async function performMiniAiValidation(
               discord_username: playerToMove.discord_username || 'Unknown',
               points: playerToMove.evidenceWeight || 150,
               rank: playerToMove.current_rank || 'Unknown',
-              source: 'mini_ai_redistribution',
+              source: 'atlas_redistribution',
               evidenceWeight: playerToMove.evidenceWeight,
               isElite: (playerToMove.evidenceWeight || 150) >= config.skillTierCaps.eliteThreshold
             },
@@ -376,14 +379,14 @@ async function performMiniAiValidation(
               playerCount: team.length,
               eliteCount: team.filter(p => (p.evidenceWeight || 150) >= config.skillTierCaps.eliteThreshold).length
             })),
-            phase: 'mini_ai_adjustment'
+            phase: 'atlas_adjustment'
           });
         }
       }
     }
 
   } catch (error) {
-    console.error('Mini-AI validation failed, using fallback logic:', error);
+    console.error('ATLAS validation failed, using fallback logic:', error);
     
     // Fallback to basic skill stacking detection
     const stackingTeams = adjustedTeams.map((team, index) => ({
@@ -398,7 +401,7 @@ async function performMiniAiValidation(
         type: 'team_redistribution',
         priority: 'critical',
         description: `Fallback skill stacking fix for ${stackingTeams.length} teams`,
-        reasoning: 'Mini-AI failed, using basic redistribution logic',
+        reasoning: 'ATLAS failed, using basic redistribution logic',
         confidence: 70,
         impact: {
           expectedImprovement: 40,
@@ -406,7 +409,7 @@ async function performMiniAiValidation(
           affectedTeams: stackingTeams.map(t => t.teamIndex)
         },
         timestamp: new Date()
-      } as MiniAiDecision);
+      } as AtlasDecision);
     }
   }
 
@@ -441,9 +444,9 @@ function calculatePointBalance(teams: any[][]) {
 }
 
 /**
- * Calculate comprehensive final analysis with Mini-AI enhancements
+ * Calculate comprehensive final analysis with ATLAS enhancements
  */
-function calculateFinalAnalysis(teams: any[][], config: EvidenceBasedConfig, miniAiEnhancements?: MiniAiEnhancedResult) {
+function calculateFinalAnalysis(teams: any[][], config: EvidenceBasedConfig, atlasEnhancements?: MiniAiEnhancedResult) {
   const teamTotals = teams.map(team => 
     team.reduce((sum, player) => sum + (player.evidenceWeight || 150), 0)
   );
@@ -467,13 +470,13 @@ function calculateFinalAnalysis(teams: any[][], config: EvidenceBasedConfig, min
     overallQuality = 'needs_improvement';
   }
 
-  // Calculate Mini-AI summary
+  // Calculate ATLAS summary
   let miniAiSummary = undefined;
-  if (miniAiEnhancements) {
-    const totalAdjustments = miniAiEnhancements.playerAdjustments.length;
-    const totalRedistributions = miniAiEnhancements.redistributionRecommendations.length;
+  if (atlasEnhancements) {
+    const totalAdjustments = atlasEnhancements.playerAdjustments.length;
+    const totalRedistributions = atlasEnhancements.redistributionRecommendations.length;
     const averageConfidence = totalAdjustments > 0 
-      ? miniAiEnhancements.playerAdjustments.reduce((sum, adj) => sum + adj.confidence, 0) / totalAdjustments
+      ? atlasEnhancements.playerAdjustments.reduce((sum, adj) => sum + adj.confidence, 0) / totalAdjustments
       : 100;
 
     miniAiSummary = {

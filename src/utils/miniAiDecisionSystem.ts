@@ -1,8 +1,8 @@
-// Mini-AI Decision System - Comprehensive decision engine for team balancing
+// ATLAS Decision System - Comprehensive decision engine for team balancing (Adaptive Tournament League Analysis System)
 import { PlayerAnalysisEngine, PlayerAnalysis, PlayerSkillData } from './playerAnalysisEngine';
 import { TeamCompositionAnalyzer, TeamCompositionAnalysis, GlobalBalance, TeamPlayer } from './teamCompositionAnalyzer';
 
-export interface MiniAiDecision {
+export interface AtlasDecision {
   id: string;
   type: 'player_adjustment' | 'team_redistribution' | 'player_swap' | 'no_action';
   priority: 'low' | 'medium' | 'high' | 'critical';
@@ -24,11 +24,11 @@ export interface MiniAiDecision {
   timestamp: Date;
 }
 
-export interface MiniAiAnalysis {
+export interface AtlasAnalysis {
   playerAnalyses: PlayerAnalysis[];
   teamCompositionAnalysis: TeamCompositionAnalysis[];
   globalBalance: GlobalBalance;
-  decisions: MiniAiDecision[];
+  decisions: AtlasDecision[];
   executionPlan: ExecutionStep[];
   summary: {
     totalPlayersAnalyzed: number;
@@ -47,7 +47,7 @@ export interface ExecutionStep {
   details: any;
 }
 
-export interface MiniAiConfig {
+export interface AtlasConfig {
   enablePlayerAnalysis: boolean;
   enableTeamRedistribution: boolean;
   enablePlayerSwaps: boolean;
@@ -64,16 +64,16 @@ export interface MiniAiConfig {
 }
 
 /**
- * Mini-AI Decision System
+ * ATLAS Decision System
  * Comprehensive AI system for analyzing players and teams, making intelligent decisions
  */
-export class MiniAiDecisionSystem {
+export class AtlasDecisionSystem {
   private playerEngine: PlayerAnalysisEngine;
   private teamAnalyzer: TeamCompositionAnalyzer;
-  private config: MiniAiConfig;
-  private decisions: MiniAiDecision[];
+  private config: AtlasConfig;
+  private decisions: AtlasDecision[];
 
-  constructor(config?: Partial<MiniAiConfig>) {
+  constructor(config?: Partial<AtlasConfig>) {
     this.playerEngine = new PlayerAnalysisEngine();
     this.teamAnalyzer = new TeamCompositionAnalyzer();
     this.decisions = [];
@@ -99,8 +99,8 @@ export class MiniAiDecisionSystem {
   /**
    * Main analysis and decision-making function
    */
-  async analyzeAndDecide(players: PlayerSkillData[], currentTeams?: TeamPlayer[][]): Promise<MiniAiAnalysis> {
-    this.log('🤖 MINI-AI ANALYSIS STARTING');
+  async analyzeAndDecide(players: PlayerSkillData[], currentTeams?: TeamPlayer[][]): Promise<AtlasAnalysis> {
+    this.log('🏛️ ATLAS ANALYSIS STARTING');
     this.decisions = [];
 
     // Phase 1: Analyze individual players
@@ -130,7 +130,7 @@ export class MiniAiDecisionSystem {
     // Phase 5: Calculate summary
     const summary = this.calculateSummary(playerAnalyses, this.decisions);
 
-    const analysis: MiniAiAnalysis = {
+    const analysis: AtlasAnalysis = {
       playerAnalyses,
       teamCompositionAnalysis,
       globalBalance: globalBalance || this.createEmptyGlobalBalance(),
@@ -139,7 +139,7 @@ export class MiniAiDecisionSystem {
       summary
     };
 
-    this.log('🤖 MINI-AI ANALYSIS COMPLETE', analysis.summary);
+    this.log('🏛️ ATLAS ANALYSIS COMPLETE', analysis.summary);
     return analysis;
   }
 
@@ -192,7 +192,7 @@ export class MiniAiDecisionSystem {
       
       // Only make decisions above confidence threshold
       if (analysis.confidenceScore >= this.config.confidenceThreshold) {
-        const decision: MiniAiDecision = {
+        const decision: AtlasDecision = {
           id: `player_adj_${analysis.userId}`,
           type: 'player_adjustment',
           priority: this.determinePriority(analysis),
@@ -262,7 +262,7 @@ export class MiniAiDecisionSystem {
         const elitePlayer = excessElites[i];
         const targetTeam = availableTeams[i];
         
-        const decision: MiniAiDecision = {
+        const decision: AtlasDecision = {
           id: `redistribute_${elitePlayer.id}_${targetTeam.index}`,
           type: 'team_redistribution',
           priority: 'critical',
@@ -314,7 +314,7 @@ export class MiniAiDecisionSystem {
           const newSpread = Math.abs(newStrongTotal - newWeakTotal);
           
           if (newSpread < globalBalance.pointSpread - 50) { // Significant improvement
-            const decision: MiniAiDecision = {
+            const decision: AtlasDecision = {
               id: `swap_${strongPlayer.id}_${weakPlayer.id}`,
               type: 'player_swap',
               priority: 'high',
@@ -346,7 +346,7 @@ export class MiniAiDecisionSystem {
   /**
    * Convert team recommendation to decision
    */
-  private convertRecommendationToDecision(recommendation: any): MiniAiDecision {
+  private convertRecommendationToDecision(recommendation: any): AtlasDecision {
     return {
       id: `rec_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       type: recommendation.type === 'redistribute_player' ? 'team_redistribution' : 'player_swap',
@@ -437,7 +437,7 @@ export class MiniAiDecisionSystem {
   /**
    * Calculate analysis summary
    */
-  private calculateSummary(playerAnalyses: PlayerAnalysis[], decisions: MiniAiDecision[]) {
+  private calculateSummary(playerAnalyses: PlayerAnalysis[], decisions: AtlasDecision[]) {
     const playersAdjusted = decisions.filter(d => d.type === 'player_adjustment').length;
     const redistributionsNeeded = decisions.filter(d => d.type === 'team_redistribution').length;
     const swapsNeeded = decisions.filter(d => d.type === 'player_swap').length;
@@ -489,7 +489,7 @@ export class MiniAiDecisionSystem {
 
   private log(message: string, data?: any): void {
     if (this.config.logging.enableDetailedLogging) {
-      console.log(`🤖 MINI-AI: ${message}`, data || '');
+      console.log(`🏛️ ATLAS: ${message}`, data || '');
     }
   }
 }

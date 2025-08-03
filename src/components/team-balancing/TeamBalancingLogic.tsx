@@ -230,18 +230,18 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
     }));
     
     const result = tournament?.enable_adaptive_weights
-      ? evidenceBasedSnakeDraft(
+      ? await evidenceBasedSnakeDraft(
           playerData,
           teamsToCreate,
           teamSize,
           (step, currentStep, totalSteps) => {
-            console.log(`Evidence-based balancing step ${currentStep}/${totalSteps}:`, step.reasoning);
+            console.log(`🏛️ ATLAS balancing step ${currentStep}/${totalSteps}:`, step.reasoning);
           },
           () => {
-            console.log('Starting evidence-based validation...');
+            console.log('🏛️ Starting ATLAS validation...');
           },
           (phase, current, total) => {
-            console.log(`Evidence calculation ${phase}: ${current}/${total}`);
+            console.log(`🏛️ ${phase}: ${current}/${total}`);
           },
           {
             enableEvidenceBasedWeights: true,
@@ -356,6 +356,9 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
   };
 
   const saveBalanceAnalysis = async (balanceSteps: any[], finalBalance: any, createdTeams: any[], teamSize: number, adaptiveWeightsEnabled: boolean, validationResult?: any) => {
+    // Enhanced analysis for ATLAS system
+    const atlasEnhanced = adaptiveWeightsEnabled && validationResult;
+    
     const analysis = {
       qualityScore: Math.round(
         finalBalance.balanceQuality === 'ideal' ? 95 :
@@ -363,21 +366,33 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
         finalBalance.balanceQuality === 'warning' ? 65 : 45
       ),
       maxPointDifference: finalBalance.maxPointDifference,
-      avgPointDifference: finalBalance.maxPointDifference / 2, // Approximate
+      avgPointDifference: finalBalance.maxPointDifference / 2,
+      
+      // ATLAS System Information
+      systemUsed: adaptiveWeightsEnabled ? 'ATLAS (Adaptive Tournament League Analysis System)' : 'Standard Snake Draft',
+      atlasEnhanced,
+      
+      // Enhanced balance steps with ATLAS decision transparency
       balanceSteps: balanceSteps.map(step => ({
         round: Math.floor(step.step / createdTeams.length) + 1,
         player: {
           name: step.player.discord_username,
           rank: step.player.rank,
-          points: step.player.points
+          points: step.player.points,
+          isElite: step.player.isElite || false,
+          evidenceWeight: step.player.evidenceWeight,
+          weightSource: step.player.weightSource,
+          evidenceReasoning: step.player.evidenceReasoning
         },
         assignedTo: `Team ${step.assignedTeam + 1}`,
         reasoning: step.reasoning,
-        teamStates: step.teamStatesAfter.map((state, index) => ({
+        phase: step.phase || 'standard',
+        teamStates: step.teamStatesAfter?.map((state, index) => ({
           name: `Team ${index + 1}`,
           totalPoints: state.totalPoints,
-          playerCount: state.playerCount
-        }))
+          playerCount: state.playerCount,
+          eliteCount: state.eliteCount || 0
+        })) || []
       })),
       finalTeamStats: createdTeams.map((team, index) => ({
         name: team.name,
@@ -385,15 +400,27 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
         playerCount: team.players.length,
         avgPoints: Math.round(team.total_rank_points / team.players.length)
       })),
-      // Add post-balance validation results for transparency
-      postBalanceValidation: validationResult ? {
-        originalBalance: validationResult.originalBalance,
-        swapsMade: validationResult.adjustmentsMade.swaps,
-        finalBalance: validationResult.finalBalance,
-        validationTime: validationResult.validationTime,
-        totalSwaps: validationResult.adjustmentsMade.swaps.length
+      // ATLAS Enhanced Validation Results  
+      atlasValidation: atlasEnhanced ? {
+        originalSkillDistribution: validationResult.originalSkillDistribution,
+        skillStackingViolations: validationResult.finalDistribution?.skillStackingViolations || 0,
+        elitePlayersPerTeam: validationResult.finalDistribution?.elitePlayersPerTeam || [],
+        redistributions: validationResult.adjustmentsMade?.redistributions || [],
+        atlasDecisions: validationResult.miniAiDecisions?.map(decision => ({
+          type: decision.type,
+          priority: decision.priority,
+          description: decision.description,
+          reasoning: decision.reasoning,
+          confidence: decision.confidence,
+          expectedImprovement: decision.impact?.expectedImprovement || 0,
+          affectedPlayers: decision.impact?.affectedPlayers || [],
+          affectedTeams: decision.impact?.affectedTeams || []
+        })) || [],
+        validationTime: validationResult.validationTime || 0,
+        totalDecisions: validationResult.miniAiDecisions?.length || 0
       } : null,
-      method: `${adaptiveWeightsEnabled ? 'Evidence-Based Draft' : 'Snake Draft'} (${teamSize}v${teamSize})${adaptiveWeightsEnabled ? ' with Skill Distribution' : ''}${validationResult?.adjustmentsMade ? (validationResult.adjustmentsMade.swaps?.length > 0 || validationResult.adjustmentsMade.redistributions?.length > 0 ? ' + Mini-AI Optimization' : '') : ''}`,
+      
+      method: `${adaptiveWeightsEnabled ? 'ATLAS Evidence-Based Draft' : 'Snake Draft'} (${teamSize}v${teamSize})${adaptiveWeightsEnabled ? ' with ATLAS Intelligence' : ''}${validationResult?.adjustmentsMade ? (validationResult.adjustmentsMade.swaps?.length > 0 || validationResult.adjustmentsMade.redistributions?.length > 0 ? ' + ATLAS Optimization' : '') : ''}`,
       timestamp: new Date().toISOString()
     };
 

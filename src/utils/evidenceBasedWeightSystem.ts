@@ -1,7 +1,7 @@
 // Evidence-Based Weight System - focuses on boosting skilled players, not penalizing them
 import { RANK_POINT_MAPPING } from "./rankingSystem";
 import { getRankPointsWithManualOverride, EnhancedRankPointsResult, UserRankData } from "./rankingSystemWithOverrides";
-import { MiniAiDecisionSystem, MiniAiAnalysis } from "./miniAiDecisionSystem";
+import { AtlasDecisionSystem, AtlasAnalysis } from "./miniAiDecisionSystem";
 import { PlayerSkillData } from "./playerAnalysisEngine";
 
 // Extended interface for tournament winner data
@@ -39,7 +39,7 @@ export interface EvidenceBasedCalculation {
 
 export interface EnhancedEvidenceResult extends EnhancedRankPointsResult {
   evidenceCalculation?: EvidenceBasedCalculation;
-  miniAiAnalysis?: MiniAiAnalysis;
+  miniAiAnalysis?: AtlasAnalysis;
 }
 
 export interface EvidenceWithMiniAi {
@@ -98,41 +98,41 @@ export function calculateEvidenceBasedWeightWithMiniAi(
         weightRating: userData.weight_rating
       };
 
-      // Run Mini-AI analysis
-      const miniAi = new MiniAiDecisionSystem({
+      // Run ATLAS analysis
+      const atlas = new AtlasDecisionSystem({
         aggressivenessLevel: 'moderate',
         confidenceThreshold: 75,
         maxAdjustmentPercent: 0.30,
         logging: { enableDetailedLogging: true, logPlayerAnalysis: true, logTeamAnalysis: false, logDecisions: true }
       });
 
-      const miniAiAnalysis = await miniAi.analyzeAndDecide([playerSkillData]);
-      const playerAnalysis = miniAiAnalysis.playerAnalyses[0];
+      const atlasAnalysis = await atlas.analyzeAndDecide([playerSkillData]);
+      const playerAnalysis = atlasAnalysis.playerAnalyses[0];
       
       let finalPoints = evidenceResult.points;
       let adjustmentReasoning = evidenceResult.evidenceCalculation?.calculationReasoning || '';
       
       if (playerAnalysis && playerAnalysis.adjustedPoints !== playerAnalysis.originalPoints) {
         finalPoints = playerAnalysis.adjustedPoints;
-        adjustmentReasoning += ` | MINI-AI: ${playerAnalysis.adjustmentReason} (Confidence: ${playerAnalysis.confidenceScore}%)`;
+        adjustmentReasoning += ` | ATLAS: ${playerAnalysis.adjustmentReason} (Confidence: ${playerAnalysis.confidenceScore}%)`;
       }
 
       resolve({
         evidenceResult: {
           ...evidenceResult,
           points: finalPoints,
-          miniAiAnalysis
+          miniAiAnalysis: atlasAnalysis
         },
-        miniAiRecommendations: miniAiAnalysis.decisions,
+        miniAiRecommendations: atlasAnalysis.decisions,
         finalAdjustedPoints: finalPoints,
         adjustmentReasoning
       });
     } catch (error) {
-      console.error('Mini-AI analysis failed, falling back to evidence-based:', error);
+      console.error('ATLAS analysis failed, falling back to evidence-based:', error);
       resolve({
         evidenceResult,
         finalAdjustedPoints: evidenceResult.points,
-        adjustmentReasoning: evidenceResult.evidenceCalculation?.calculationReasoning || 'Evidence-based calculation (Mini-AI failed)'
+        adjustmentReasoning: evidenceResult.evidenceCalculation?.calculationReasoning || 'Evidence-based calculation (ATLAS failed)'
       });
     }
   });
