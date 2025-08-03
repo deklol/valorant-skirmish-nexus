@@ -97,6 +97,10 @@ const DetailedBalanceAnalysis = ({ balanceResult, tournamentName }: DetailedBala
     report += `TEAM BREAKDOWN:\n`;
     teams.forEach((team, index) => {
       const teamTotal = team.reduce((sum, player) => {
+        // Use ATLAS weights when available for consistency with UI
+        if (player.adaptiveWeight) {
+          return sum + player.adaptiveWeight;
+        }
         const result = getRankPointsWithManualOverride(player);
         return sum + result.points;
       }, 0);
@@ -198,6 +202,10 @@ const DetailedBalanceAnalysis = ({ balanceResult, tournamentName }: DetailedBala
             <div className="grid gap-3">
               {teams.map((team, index) => {
                 const teamTotal = team.reduce((sum, player) => {
+                  // Use ATLAS weights when available for consistency with UI
+                  if (player.adaptiveWeight) {
+                    return sum + player.adaptiveWeight;
+                  }
                   const result = getRankPointsWithManualOverride(player);
                   return sum + result.points;
                 }, 0);

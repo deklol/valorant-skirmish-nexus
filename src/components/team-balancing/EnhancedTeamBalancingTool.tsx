@@ -232,6 +232,10 @@ const EnhancedTeamBalancingTool = ({
         const teamName = teamSize === 1 ? `${captainName} (Solo)` : `Team ${captainName}`;
 
         const totalPoints = team.reduce((sum, player) => {
+          // Use ATLAS weights when enabled for consistency with UI
+          if (enableAdaptiveWeights && player.adaptiveWeight) {
+            return sum + player.adaptiveWeight;
+          }
           const result = getRankPointsWithManualOverride(player);
           return sum + result.points;
         }, 0);
@@ -317,6 +321,10 @@ const EnhancedTeamBalancingTool = ({
             source: getRankPointsWithManualOverride(m).source
           })),
           total_points: team.reduce((sum, player) => {
+            // Use ATLAS weights when enabled for consistency with UI
+            if (enableAdaptiveWeights && player.adaptiveWeight) {
+              return sum + player.adaptiveWeight;
+            }
             const result = getRankPointsWithManualOverride(player);
             return sum + result.points;
           }, 0),

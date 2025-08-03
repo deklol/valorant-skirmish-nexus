@@ -286,8 +286,14 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
       }
       usedNames.add(teamName);
 
-      // Calculate total weight using evidence-based system if adaptive weights enabled
+      // Calculate total weight using ATLAS weights when available for consistency
       const totalWeight = teams[i].reduce((sum, player) => {
+        // Use player's already calculated adaptive weight if available (from ATLAS)
+        if (player.adaptiveWeight || player.evidenceWeight) {
+          return sum + (player.adaptiveWeight || player.evidenceWeight);
+        }
+        
+        // Fallback to calculating weights
         const rankResult = tournament?.enable_adaptive_weights 
           ? calculateEvidenceBasedWeight({
               ...player,
