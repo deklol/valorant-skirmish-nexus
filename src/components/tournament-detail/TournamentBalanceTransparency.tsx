@@ -612,60 +612,54 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                             
                             if (atlasData) {
                               return (
-                                 <div className="space-y-3 p-3 bg-background/50 rounded-lg border border-border">
-                                   {/* Assignment Type Header */}
-                                   <div className="flex items-center gap-2 mb-3">
-                                     <div className={`w-2 h-2 rounded-full ${
-                                       atlasData.type === 'Elite Player Distribution' ? 'bg-purple-500' :
-                                       atlasData.type === 'Smart Team Balancing' ? 'bg-blue-500' :
-                                       'bg-green-500'
-                                     }`} />
-                                     <span className="text-sm font-semibold text-foreground">{atlasData.type}</span>
-                                   </div>
+                                <div className="bg-muted/20 rounded-lg border border-border p-3 space-y-3">
+                                  {/* Compact Assignment Header */}
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                      <div className={`w-2 h-2 rounded-full ${
+                                        atlasData.type === 'Elite Player Distribution' ? 'bg-purple-500' :
+                                        atlasData.type === 'Smart Team Balancing' ? 'bg-blue-500' :
+                                        'bg-green-500'
+                                      }`} />
+                                      <span className="text-sm font-semibold text-foreground">{atlasData.type}</span>
+                                    </div>
+                                    <Badge variant="outline" className="text-xs">
+                                      {atlasData.points} pts
+                                    </Badge>
+                                  </div>
 
-                                   {/* Human-Readable Explanation */}
-                                   <div className="bg-muted/30 p-3 rounded-lg">
-                                     <p className="text-sm text-foreground">{atlasData.explanation}</p>
-                                   </div>
+                                  {/* Condensed Explanation */}
+                                  <p className="text-sm text-muted-foreground leading-relaxed">
+                                    {atlasData.explanation}
+                                  </p>
 
-                                   {/* Factor Cards */}
-                                   {atlasData.factors.length > 0 && (
-                                     <div className="space-y-2">
-                                       <div className="flex items-center gap-2">
-                                         <Target className="h-4 w-4 text-primary" />
-                                         <span className="text-sm font-medium text-foreground">Decision Factors</span>
-                                       </div>
-                                       <div className="grid gap-2">
-                                         {atlasData.factors.map((factor, i) => (
-                                           <div key={i} className="flex items-center justify-between p-2 bg-card border border-border rounded-lg">
-                                             <div className="flex items-center gap-2">
-                                               <div className={`w-1.5 h-1.5 rounded-full ${
-                                                 factor.type === 'skill' ? 'bg-blue-500' :
-                                                 factor.type === 'peak' ? 'bg-amber-500' :
-                                                 factor.type === 'balance' ? 'bg-green-500' :
-                                                 factor.type === 'rule' ? 'bg-purple-500' :
-                                                 'bg-gray-500'
-                                               }`} />
-                                               <span className="text-sm font-medium text-foreground">{factor.label}</span>
-                                             </div>
-                                             <span className="text-sm text-muted-foreground">{factor.value}</span>
-                                           </div>
-                                         ))}
-                                       </div>
-                                     </div>
-                                   )}
+                                  {/* Compact Factor Grid */}
+                                  {atlasData.factors.length > 0 && (
+                                    <div className="grid grid-cols-1 gap-1.5">
+                                      {atlasData.factors.map((factor, i) => (
+                                        <div key={i} className="flex items-center justify-between py-1.5 px-2 bg-background/50 rounded border border-border/50">
+                                          <div className="flex items-center gap-1.5">
+                                            <div className={`w-1.5 h-1.5 rounded-full ${
+                                              factor.type === 'skill' ? 'bg-blue-500' :
+                                              factor.type === 'peak' ? 'bg-amber-500' :
+                                              factor.type === 'balance' ? 'bg-green-500' :
+                                              factor.type === 'rule' ? 'bg-purple-500' :
+                                              'bg-gray-500'
+                                            }`} />
+                                            <span className="text-xs font-medium text-foreground">{factor.label}</span>
+                                          </div>
+                                          <span className="text-xs text-muted-foreground">{factor.value}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
 
-                                   {/* Balance Impact */}
-                                   <div className="space-y-2">
-                                     <div className="flex items-center gap-2">
-                                       <Shield className="h-4 w-4 text-green-500" />
-                                       <span className="text-sm font-medium text-foreground">Balance Result</span>
-                                     </div>
-                                     <div className="bg-green-50 dark:bg-green-950/30 p-2 rounded border border-green-200 dark:border-green-800">
-                                       <p className="text-sm text-green-800 dark:text-green-400">{atlasData.impact}</p>
-                                     </div>
-                                   </div>
-                                 </div>
+                                  {/* Compact Balance Result */}
+                                  <div className="flex items-start gap-2 p-2 bg-green-50 dark:bg-green-950/30 rounded border border-green-200/50 dark:border-green-800/30">
+                                    <Shield className="h-3 w-3 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
+                                    <p className="text-xs text-green-800 dark:text-green-400 leading-relaxed">{atlasData.impact}</p>
+                                  </div>
+                                </div>
                               );
                             } else {
                               // Fallback for non-ATLAS reasoning
