@@ -21,7 +21,6 @@ interface Player {
   rank_override_reason?: string | null;
   weight_rating?: number;
   tournaments_won?: number;
-  last_tournament_win?: Date | string | null;
 }
 
 interface DraggablePlayerProps {

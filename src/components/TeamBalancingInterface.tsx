@@ -395,7 +395,7 @@ const fetchTeamsAndPlayers = async () => {
 try {
       console.log('Fetching teams and players for tournament:', tournamentId);
       
-      // Fetch teams with their members including manual override fields
+      // Fetch teams with their members including manual override fields and tournament win data
       const { data: teamsData, error: teamsError } = await supabase
 .from('teams')
 .select(`
@@ -414,7 +414,8 @@ try {
               manual_rank_override,
               manual_weight_override,
               use_manual_override,
-              rank_override_reason
+              rank_override_reason,
+              tournaments_won
            )
          )
        `)
@@ -422,7 +423,7 @@ try {
 
       if (teamsError) throw teamsError;
 
-      // Fetch tournament participants to find unassigned players including manual override fields
+      // Fetch tournament participants to find unassigned players including manual override fields and tournament win data
       const { data: participantsData, error: participantsError } = await supabase
         .from('tournament_signups')
         .select(`
@@ -439,7 +440,8 @@ try {
             manual_rank_override,
             manual_weight_override,
             use_manual_override,
-            rank_override_reason
+            rank_override_reason,
+            tournaments_won
           )
         `)
         .eq('tournament_id', tournamentId);
