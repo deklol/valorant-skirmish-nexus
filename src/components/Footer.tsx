@@ -290,7 +290,7 @@ const Footer = () => {
                         <div className="text-sm space-y-3">
                           <div className="p-3 bg-slate-600 rounded border border-slate-500">
                             <code className="text-green-400 font-mono text-xs">
-                              calculateAdaptiveWeight()
+                              calculateEvidenceBasedWeightWithMiniAi()
                             </code>
                             <p className="text-xs text-slate-300 mt-2">
                               Enhanced weighting with tournament history, rank decay, and time-based penalties

@@ -1,7 +1,6 @@
 // Enhanced Snake Draft Algorithm with adaptive weights and proper alternating pattern
 import { getRankPointsWithManualOverride } from "@/utils/rankingSystemWithOverrides";
-import { calculateAdaptiveWeight, EnhancedAdaptiveResult, AdaptiveWeightConfig } from "@/utils/adaptiveWeightSystem";
-import { calculateEvidenceBasedWeightWithMiniAi, EvidenceBasedConfig } from "@/utils/evidenceBasedWeightSystem";
+import { calculateEvidenceBasedWeightWithMiniAi, EvidenceWithMiniAi, EvidenceBasedConfig } from "@/utils/evidenceBasedWeightSystem";
 import { AtlasDecisionSystem } from "@/utils/miniAiDecisionSystem";
 
 export interface BalanceStep {
@@ -75,7 +74,7 @@ export const enhancedSnakeDraft = async (
   onProgress?: (step: BalanceStep, currentStep: number, totalSteps: number) => void,
   onValidationStart?: () => void,
   onAdaptiveWeightCalculation?: (phase: string, current: number, total: number) => void,
-  adaptiveConfig?: AdaptiveWeightConfig
+  adaptiveConfig?: EvidenceBasedConfig
 ): Promise<EnhancedTeamResult> => {
   
   // Calculate evidence-based weights with ATLAS for all players
@@ -86,7 +85,7 @@ export const enhancedSnakeDraft = async (
     }
 
     // Use ATLAS evidence-based calculation when adaptive weights are enabled
-    const adaptiveResult = adaptiveConfig?.enableAdaptiveWeights 
+    const adaptiveResult = adaptiveConfig?.enableEvidenceBasedWeights
       ? await calculateEvidenceBasedWeightWithMiniAi({
           current_rank: player.current_rank,
           peak_rank: player.peak_rank,
@@ -188,7 +187,7 @@ export const enhancedSnakeDraft = async (
 
   // Assign each player using ATLAS intelligent logic or fallback to cumulative balance
   sortedPlayers.forEach(player => {
-    const targetTeamIndex = adaptiveConfig?.enableAdaptiveWeights 
+    const targetTeamIndex = adaptiveConfig?.enableEvidenceBasedWeights
       ? assignPlayerWithAtlasLogic(player, sortedPlayers)
       : assignPlayerToLowestTeam(player);
     teams[targetTeamIndex].push(player);
@@ -212,7 +211,7 @@ export const enhancedSnakeDraft = async (
         adaptiveReasoning: (player.adaptiveCalculation as any)?.calculationReasoning
       },
       assignedTeam: targetTeamIndex,
-      reasoning: adaptiveConfig?.enableAdaptiveWeights 
+      reasoning: adaptiveConfig?.enableEvidenceBasedWeights 
         ? `🏛️ ATLAS: Assigned ${player.discord_username} (${player.adaptiveWeight}pts, ${player.isElite ? 'Elite' : 'Regular'}) to Team ${targetTeamIndex + 1} using intelligent analysis`
         : `CUMULATIVE BALANCE: Assigned ${player.discord_username} (${player.adaptiveWeight}pts) to Team ${targetTeamIndex + 1} (lowest total: ${teamStatesAfter[targetTeamIndex].totalPoints - player.adaptiveWeight}pts → ${teamStatesAfter[targetTeamIndex].totalPoints}pts)`,
       teamStatesAfter
@@ -230,7 +229,7 @@ export const enhancedSnakeDraft = async (
   let finalBalance = calculateFinalBalance(teams);
   let allBalanceSteps = balanceSteps;
 
-  if (!adaptiveConfig?.enableAdaptiveWeights) {
+  if (!adaptiveConfig?.enableEvidenceBasedWeights) {
     if (onValidationStart) {
       onValidationStart();
     }

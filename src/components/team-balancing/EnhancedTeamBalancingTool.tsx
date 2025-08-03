@@ -169,17 +169,14 @@ const EnhancedTeamBalancingTool = ({
           setProgressStep(current);
         },
         enableAdaptiveWeights ? {
-          enableAdaptiveWeights: true,
-          baseFactor: 0.3,
-          decayMultiplier: 0.25,
-          timeWeightDays: 60,
-          tournamentWinnerBonuses: {
+          enableEvidenceBasedWeights: true,
+          tournamentWinBonus: 15,
+          rankDecayThreshold: 2,
+          maxDecayPercent: 0.25,
+          skillTierCaps: {
             enabled: true,
-            oneWin: 15,
-            twoWins: 25,
-            threeOrMoreWins: 35,
-            recentWinMultiplier: 1.5,
-            eliteWinnerMultiplier: 1.2
+            eliteThreshold: 400,
+            maxElitePerTeam: 1
           }
         } : undefined
       );

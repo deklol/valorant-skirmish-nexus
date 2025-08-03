@@ -1,4 +1,5 @@
 
+import { useState, useEffect } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { GripVertical, Settings, TrendingUp, Zap } from "lucide-react";
 import { StyledUsername } from "./StyledUsername";
 import { getRankPointsWithManualOverride } from "@/utils/rankingSystemWithOverrides";
-import { calculateAdaptiveWeight, ExtendedUserRankData } from "@/utils/adaptiveWeightSystem";
+import { calculateEvidenceBasedWeightWithMiniAi, ExtendedUserRankData } from "@/utils/evidenceBasedWeightSystem";
 
 interface Player {
   id: string;
@@ -43,24 +44,38 @@ const DraggablePlayer = ({ player, enableAdaptiveWeights }: DraggablePlayerProps
     transition,
   };
 
-  // Calculate the appropriate rank result based on adaptive weights setting
+  // Calculate the appropriate rank result based on ATLAS system
   // Use the same configuration as the actual balancing algorithm
-  const rankResult = enableAdaptiveWeights 
-    ? calculateAdaptiveWeight(player as ExtendedUserRankData, {
-        enableAdaptiveWeights: true,
-        baseFactor: 0.3, // Match DEFAULT_CONFIG
-        decayMultiplier: 0.25,
-        timeWeightDays: 60,
-        tournamentWinnerBonuses: {
-          enabled: true,
-          oneWin: 15,
-          twoWins: 25,
-          threeOrMoreWins: 35,
-          recentWinMultiplier: 1.5,
-          eliteWinnerMultiplier: 1.2
-        }
-      })
-    : getRankPointsWithManualOverride(player);
+  const [rankResult, setRankResult] = useState({ points: 150, source: 'loading', rank: 'Unranked' });
+  
+  useEffect(() => {
+    const calculateWeight = async () => {
+      if (enableAdaptiveWeights) {
+        // Use ATLAS evidence-based system
+        const result = await calculateEvidenceBasedWeightWithMiniAi(player as ExtendedUserRankData, {
+          enableEvidenceBasedWeights: true,
+          tournamentWinBonus: 15,
+          rankDecayThreshold: 2,
+          maxDecayPercent: 0.25,
+          skillTierCaps: {
+            enabled: true,
+            eliteThreshold: 400,
+            maxElitePerTeam: 1
+          }
+        }, true);
+        setRankResult({
+          points: result.finalAdjustedPoints,
+          source: 'evidence_based',
+          rank: result.evidenceResult.rank
+        });
+      } else {
+        // Use standard system
+        const result = getRankPointsWithManualOverride(player);
+        setRankResult(result);
+      }
+    };
+    calculateWeight();
+  }, [enableAdaptiveWeights, player]);
 
   // Debug logging for Keras
   if (player.discord_username === 'keratasf') {
@@ -97,9 +112,9 @@ const DraggablePlayer = ({ player, enableAdaptiveWeights }: DraggablePlayerProps
                 <span className="text-slate-300 text-sm font-medium">
                   {rankResult.points} pts
                 </span>
-                {rankResult.source === 'adaptive_weight' && (
+                {rankResult.source === 'evidence_based' && (
                   <Badge variant="outline" className="text-emerald-400 border-emerald-400 text-xs">
-                    Adaptive
+                    ATLAS
                   </Badge>
                 )}
                 {rankResult.source === 'manual_override' && (
