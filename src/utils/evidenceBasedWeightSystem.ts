@@ -319,9 +319,21 @@ export function assignWithSkillDistribution(
 
   console.log(`🏆 SKILL DISTRIBUTION: ${elitePlayers.length} elite players, ${regularPlayers.length} regular players`);
 
-  // Phase 1: Distribute elite players first (max 1 per team)
+  // Phase 1: Distribute elite players using snake draft pattern for better balance
   elitePlayers.forEach((player, index) => {
-    const targetTeam = index % numTeams; // Round-robin elite distribution
+    // Snake draft: 0,1,2,1,0 pattern for better balance instead of round-robin
+    let targetTeam: number;
+    const cycle = Math.floor(index / numTeams);
+    const position = index % numTeams;
+    
+    if (cycle % 2 === 0) {
+      // Even cycles: 0,1,2... (normal order)
+      targetTeam = position;
+    } else {
+      // Odd cycles: 2,1,0... (reverse order)
+      targetTeam = numTeams - 1 - position;
+    }
+    
     teams[targetTeam].push(player);
 
     const eliteCountsAfter = teams.map(team => 
