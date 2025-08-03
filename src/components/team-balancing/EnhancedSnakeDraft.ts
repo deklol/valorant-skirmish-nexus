@@ -111,6 +111,15 @@ export const enhancedSnakeDraft = (
         calculation: evidenceCalculation
       });
     }
+    
+    // Also collect regular adaptive weight calculations when ATLAS is enabled
+    if (adaptiveConfig?.enableAdaptiveWeights && (adaptiveResult as any).adaptiveCalculation) {
+      const adaptiveCalculation = (adaptiveResult as any).adaptiveCalculation;
+      adaptiveWeightCalculations.push({
+        userId: player.user_id || player.id,
+        calculation: adaptiveCalculation
+      });
+    }
 
     return {
       ...player,

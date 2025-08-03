@@ -505,7 +505,7 @@ const DetailedBalanceAnalysis = ({ balanceResult, tournamentName }: DetailedBala
                             </div>
                           )}
                           
-                          {/* Adaptive Reasoning (if present) */}
+                           {/* Adaptive Reasoning (if present) */}
                           {step.player.adaptiveReasoning && (
                             <div className="mt-3 bg-emerald-900/20 border border-emerald-500/30 rounded p-3">
                               <div className="flex items-center gap-2 mb-2">
@@ -515,6 +515,21 @@ const DetailedBalanceAnalysis = ({ balanceResult, tournamentName }: DetailedBala
                               <p className="text-emerald-300 text-sm italic">{step.player.adaptiveReasoning}</p>
                             </div>
                           )}
+                          
+                          {/* Current Team State After Assignment */}
+                          <div className="mt-3 pt-2 border-t border-slate-600">
+                            <div className="text-xs text-slate-400 mb-1">Teams after assignment:</div>
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              {step.teamStatesAfter.slice(0, 4).map((teamState, teamIdx) => (
+                                <div key={teamIdx} className={`flex justify-between p-1 rounded ${
+                                  teamState.teamIndex === step.assignedTeam ? 'bg-blue-600/20 border border-blue-500/30' : 'bg-slate-700/30'
+                                }`}>
+                                  <span className="text-slate-300">Team {teamState.teamIndex + 1}</span>
+                                  <span className="text-white font-medium">{teamState.totalPoints}pts</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
                         </div>
                        );
                      })}
