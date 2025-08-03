@@ -185,14 +185,19 @@ export function calculateAdaptiveWeight(
   config: AdaptiveWeightConfig = DEFAULT_CONFIG,
   lastRankUpdate?: Date
 ): EnhancedAdaptiveResult {
-  console.log('calculateAdaptiveWeight called with:', {
-    discord_username: (userData as any).discord_username,
+  console.log('🔍 calculateAdaptiveWeight called for:', (userData as any).discord_username, {
     current_rank: userData.current_rank,
     peak_rank: userData.peak_rank,
     tournaments_won: userData.tournaments_won,
+    manual_override: userData.manual_rank_override,
     enableAdaptiveWeights: config.enableAdaptiveWeights,
     tournamentPenaltiesEnabled: config.tournamentWinnerPenalties?.enabled
   });
+
+  // CRITICAL DEBUG: Check if tournament winner penalties are working
+  if (userData.tournaments_won && userData.tournaments_won > 0) {
+    console.log(`🏆 TOURNAMENT WINNER DETECTED: ${(userData as any).discord_username} has ${userData.tournaments_won} wins - penalties should apply!`);
+  }
 
   // First, get the manual override result
   const manualResult = getRankPointsWithManualOverride(userData);
