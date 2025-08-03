@@ -255,7 +255,7 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
             }
           } as EvidenceBasedConfig
         )
-      : enhancedSnakeDraft(playerData, teamsToCreate, teamSize);
+      : await enhancedSnakeDraft(playerData, teamsToCreate, teamSize);
     
     const { teams, balanceSteps } = result;
     const finalBalance = tournament?.enable_adaptive_weights 
@@ -352,7 +352,7 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
     }
 
     // Save balance analysis to tournament (including post-validation swaps)
-    await saveBalanceAnalysis(balanceSteps, finalBalance, createdTeams, teamSize, tournament?.enable_adaptive_weights || false, result.validationResult);
+    await saveBalanceAnalysis(balanceSteps, finalBalance, createdTeams, teamSize, tournament?.enable_adaptive_weights || false, (result as any).validationResult);
   };
 
   const saveBalanceAnalysis = async (balanceSteps: any[], finalBalance: any, createdTeams: any[], teamSize: number, adaptiveWeightsEnabled: boolean, validationResult?: any) => {

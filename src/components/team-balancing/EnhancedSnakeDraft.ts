@@ -1,6 +1,8 @@
 // Enhanced Snake Draft Algorithm with adaptive weights and proper alternating pattern
 import { getRankPointsWithManualOverride } from "@/utils/rankingSystemWithOverrides";
 import { calculateAdaptiveWeight, EnhancedAdaptiveResult, AdaptiveWeightConfig } from "@/utils/adaptiveWeightSystem";
+import { calculateEvidenceBasedWeightWithMiniAi, EvidenceBasedConfig } from "@/utils/evidenceBasedWeightSystem";
+import { AtlasDecisionSystem } from "@/utils/miniAiDecisionSystem";
 
 export interface BalanceStep {
   step: number;
@@ -66,7 +68,7 @@ export interface EnhancedTeamResult {
 /**
  * Enhanced snake draft with CUMULATIVE BALANCE SYSTEM - distributes based on running team totals
  */
-export const enhancedSnakeDraft = (
+export const enhancedSnakeDraft = async (
   players: any[], 
   numTeams: number, 
   teamSize: number,
@@ -74,17 +76,39 @@ export const enhancedSnakeDraft = (
   onValidationStart?: () => void,
   onAdaptiveWeightCalculation?: (phase: string, current: number, total: number) => void,
   adaptiveConfig?: AdaptiveWeightConfig
-): EnhancedTeamResult => {
+): Promise<EnhancedTeamResult> => {
   
-  // Calculate adaptive weights for all players
+  // Calculate evidence-based weights with ATLAS for all players
   const adaptiveWeightCalculations: Array<{ userId: string; calculation: any }> = [];
-  const playersWithAdaptiveWeights = players.map((player, index) => {
+  const playersWithAdaptiveWeights = await Promise.all(players.map(async (player, index) => {
     if (onAdaptiveWeightCalculation) {
-      onAdaptiveWeightCalculation('calculating', index + 1, players.length);
+      onAdaptiveWeightCalculation('🏛️ ATLAS analyzing', index + 1, players.length);
     }
 
+    // Use ATLAS evidence-based calculation when adaptive weights are enabled
     const adaptiveResult = adaptiveConfig?.enableAdaptiveWeights 
-      ? calculateAdaptiveWeight({
+      ? await calculateEvidenceBasedWeightWithMiniAi({
+          current_rank: player.current_rank,
+          peak_rank: player.peak_rank,
+          manual_rank_override: player.manual_rank_override,
+          manual_weight_override: player.manual_weight_override,
+          use_manual_override: player.use_manual_override,
+          rank_override_reason: player.rank_override_reason,
+          weight_rating: player.weight_rating,
+          tournaments_won: player.tournaments_won,
+          last_tournament_win: player.last_tournament_win
+        }, {
+          enableEvidenceBasedWeights: true,
+          tournamentWinBonus: 15,
+          rankDecayThreshold: 2,
+          maxDecayPercent: 0.25,
+          skillTierCaps: {
+            enabled: true,
+            eliteThreshold: 400,
+            maxElitePerTeam: 1
+          }
+        }, true)
+      : { finalAdjustedPoints: getRankPointsWithManualOverride({
           current_rank: player.current_rank,
           peak_rank: player.peak_rank,
           manual_rank_override: player.manual_rank_override,
@@ -92,42 +116,26 @@ export const enhancedSnakeDraft = (
           use_manual_override: player.use_manual_override,
           rank_override_reason: player.rank_override_reason,
           weight_rating: player.weight_rating
-        }, adaptiveConfig, player.last_rank_update ? new Date(player.last_rank_update) : undefined)
-      : getRankPointsWithManualOverride({
-          current_rank: player.current_rank,
-          peak_rank: player.peak_rank,
-          manual_rank_override: player.manual_rank_override,
-          manual_weight_override: player.manual_weight_override,
-          use_manual_override: player.use_manual_override,
-          rank_override_reason: player.rank_override_reason,
-          weight_rating: player.weight_rating
-        });
+        }).points, evidenceResult: { source: 'fallback' } };
 
-    // Check for adaptive calculation from evidence-based system
+    // Extract evidence-based calculation for tracking
     const evidenceCalculation = (adaptiveResult as any).evidenceResult?.evidenceCalculation;
     if (evidenceCalculation) {
+      evidenceCalculation.userId = player.user_id || player.id;
       adaptiveWeightCalculations.push({
         userId: player.user_id || player.id,
         calculation: evidenceCalculation
       });
     }
-    
-    // Also collect regular adaptive weight calculations when ATLAS is enabled
-    if (adaptiveConfig?.enableAdaptiveWeights && (adaptiveResult as any).adaptiveCalculation) {
-      const adaptiveCalculation = (adaptiveResult as any).adaptiveCalculation;
-      adaptiveWeightCalculations.push({
-        userId: player.user_id || player.id,
-        calculation: adaptiveCalculation
-      });
-    }
 
     return {
       ...player,
-      adaptiveWeight: adaptiveResult.points,
-      weightSource: adaptiveResult.source,
-      adaptiveCalculation: evidenceCalculation
+      adaptiveWeight: adaptiveResult.finalAdjustedPoints || 150,
+      weightSource: adaptiveResult.evidenceResult?.source || 'fallback',
+      adaptiveCalculation: evidenceCalculation,
+      isElite: (adaptiveResult.finalAdjustedPoints || 150) >= 400
     };
-  });
+  }));
 
   // Sort players by points (highest first)
   const sortedPlayers = playersWithAdaptiveWeights.sort((a, b) => b.adaptiveWeight - a.adaptiveWeight);
@@ -137,13 +145,35 @@ export const enhancedSnakeDraft = (
   const balanceSteps: BalanceStep[] = [];
   let stepCounter = 0;
 
-  // CUMULATIVE BALANCE ASSIGNMENT: Always assign to the team with the lowest current total
-  const assignPlayerToLowestTeam = (player: any): number => {
+  // ATLAS INTELLIGENT ASSIGNMENT: Prevent elite stacking and use strategic placement
+  const assignPlayerWithAtlasLogic = (player: any, allPlayers: any[]): number => {
     const teamTotals = teams.map(team => 
       team.reduce((sum, p) => sum + p.adaptiveWeight, 0)
     );
     
-    // Find team with lowest total that still has space
+    // For elite players (400+ points), ensure no more than 1 per team
+    if (player.isElite) {
+      const teamsWithElite = teams.map((team, index) => ({
+        index,
+        hasElite: team.some(p => p.isElite),
+        total: teamTotals[index],
+        playerCount: team.length
+      }));
+      
+      // Find teams without elite players first
+      const teamsWithoutElite = teamsWithElite.filter(t => !t.hasElite && t.playerCount < teamSize);
+      
+      if (teamsWithoutElite.length > 0) {
+        // Assign to team without elite that has lowest total
+        const targetTeam = teamsWithoutElite.reduce((min, team) => 
+          team.total < min.total ? team : min
+        );
+        console.log(`🏛️ ATLAS: Elite player ${player.discord_username} (${player.adaptiveWeight}pts) → Team ${targetTeam.index + 1} (anti-stacking)`);
+        return targetTeam.index;
+      }
+    }
+    
+    // For regular players, find team with lowest total that has space
     let lowestTeamIndex = 0;
     let lowestTotal = Infinity;
     
@@ -157,9 +187,11 @@ export const enhancedSnakeDraft = (
     return lowestTeamIndex;
   };
 
-  // Assign each player to the team with the lowest current total
+  // Assign each player using ATLAS intelligent logic or fallback to cumulative balance
   sortedPlayers.forEach(player => {
-    const targetTeamIndex = assignPlayerToLowestTeam(player);
+    const targetTeamIndex = adaptiveConfig?.enableAdaptiveWeights 
+      ? assignPlayerWithAtlasLogic(player, sortedPlayers)
+      : assignPlayerToLowestTeam(player);
     teams[targetTeamIndex].push(player);
     
     const teamStatesAfter = teams.map((team, index) => ({
@@ -181,7 +213,9 @@ export const enhancedSnakeDraft = (
         adaptiveReasoning: (player.adaptiveCalculation as any)?.calculationReasoning
       },
       assignedTeam: targetTeamIndex,
-      reasoning: `CUMULATIVE BALANCE: Assigned ${player.discord_username} (${player.adaptiveWeight}pts) to Team ${targetTeamIndex + 1} (lowest total: ${teamStatesAfter[targetTeamIndex].totalPoints - player.adaptiveWeight}pts → ${teamStatesAfter[targetTeamIndex].totalPoints}pts)`,
+      reasoning: adaptiveConfig?.enableAdaptiveWeights 
+        ? `🏛️ ATLAS: Assigned ${player.discord_username} (${player.adaptiveWeight}pts, ${player.isElite ? 'Elite' : 'Regular'}) to Team ${targetTeamIndex + 1} using intelligent analysis`
+        : `CUMULATIVE BALANCE: Assigned ${player.discord_username} (${player.adaptiveWeight}pts) to Team ${targetTeamIndex + 1} (lowest total: ${teamStatesAfter[targetTeamIndex].totalPoints - player.adaptiveWeight}pts → ${teamStatesAfter[targetTeamIndex].totalPoints}pts)`,
       teamStatesAfter
     };
 
@@ -218,7 +252,26 @@ export const enhancedSnakeDraft = (
     allBalanceSteps = [...balanceSteps, ...validatedTeams.validationSteps];
     teams = validatedTeams.teams;
   } else {
-    console.log("🤖 ATLAS enabled - skipping post-validation to preserve strategic team composition");
+    console.log("🏛️ ATLAS enabled - skipping post-validation to preserve strategic team composition");
+  }
+
+  // Add missing assignPlayerToLowestTeam function for non-ATLAS mode
+  function assignPlayerToLowestTeam(player: any): number {
+    const teamTotals = teams.map(team => 
+      team.reduce((sum, p) => sum + p.adaptiveWeight, 0)
+    );
+    
+    let lowestTeamIndex = 0;
+    let lowestTotal = Infinity;
+    
+    for (let i = 0; i < numTeams; i++) {
+      if (teams[i].length < teamSize && teamTotals[i] < lowestTotal) {
+        lowestTotal = teamTotals[i];
+        lowestTeamIndex = i;
+      }
+    }
+    
+    return lowestTeamIndex;
   }
 
   return {

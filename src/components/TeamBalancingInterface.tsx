@@ -64,24 +64,49 @@ const DraggablePlayer = ({ player, enableAdaptiveWeights }: { player: Player, en
     transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
   } : undefined;
 
-  // Use enhanced ranking system that supports manual overrides and adaptive weights
-  // Use the same configuration as the actual balancing algorithm  
-  const rankResult = enableAdaptiveWeights 
-    ? calculateAdaptiveWeight(player, {
-        enableAdaptiveWeights: true,
-        baseFactor: 0.3, // Match DEFAULT_CONFIG
-        decayMultiplier: 0.25,
-        timeWeightDays: 60,
-        tournamentWinnerBonuses: {
+  // Use evidence-based ATLAS system when adaptive weights are enabled to match balancing algorithm
+  const [displayWeight, setDisplayWeight] = useState<number>(150);
+  const [displaySource, setDisplaySource] = useState<string>('loading');
+  
+  // Calculate weight asynchronously for ATLAS
+  useEffect(() => {
+    if (enableAdaptiveWeights) {
+      calculateEvidenceBasedWeightWithMiniAi({
+        current_rank: player.current_rank,
+        peak_rank: player.peak_rank,
+        manual_rank_override: player.manual_rank_override,
+        manual_weight_override: player.manual_weight_override,
+        use_manual_override: player.use_manual_override,
+        rank_override_reason: player.rank_override_reason,
+        weight_rating: player.weight_rating,
+        tournaments_won: (player as any).tournaments_won,
+        last_tournament_win: (player as any).last_tournament_win
+      }, {
+        enableEvidenceBasedWeights: true,
+        tournamentWinBonus: 15,
+        rankDecayThreshold: 2,
+        maxDecayPercent: 0.25,
+        skillTierCaps: {
           enabled: true,
-          oneWin: 15,
-          twoWins: 25,
-          threeOrMoreWins: 35,
-          recentWinMultiplier: 1.5,
-          eliteWinnerMultiplier: 1.2
+          eliteThreshold: 400,
+          maxElitePerTeam: 1
         }
-      })
-    : getRankPointsWithManualOverride(player);
+      }, true).then(result => {
+        setDisplayWeight(result.finalAdjustedPoints);
+        setDisplaySource('atlas_evidence');
+      });
+    } else {
+      const fallbackResult = getRankPointsWithManualOverride(player);
+      setDisplayWeight(fallbackResult.points);
+      setDisplaySource(fallbackResult.source);
+    }
+  }, [enableAdaptiveWeights, player]);
+
+  const rankResult = {
+    points: displayWeight,
+    source: displaySource,
+    rank: player.current_rank || 'Unranked'
+  };
   const fallbackResult = getRankPointsWithFallback(player.current_rank, player.peak_rank);
 
   return (
@@ -111,21 +136,21 @@ const DraggablePlayer = ({ player, enableAdaptiveWeights }: { player: Player, en
                 Peak: {rankResult.rank}
               </Badge>
             )}
-            {rankResult.source === 'adaptive_weight' && (
-              <Badge className="bg-emerald-600 text-white text-xs flex items-center gap-1">
+            {rankResult.source === 'atlas_evidence' && (
+              <Badge className="bg-purple-600 text-white text-xs flex items-center gap-1">
                 <Zap className="w-3 h-3" />
-                Adaptive: {rankResult.rank}
+                ATLAS: {rankResult.points}pts
               </Badge>
             )}
           </div>
           <div className="text-xs text-slate-400">
             {rankResult.source === 'manual_override' ? (
               <span>
-                Override: {rankResult.rank} ({rankResult.points} pts) • {rankResult.overrideReason || 'Admin set'}
+                Override: {rankResult.rank} ({rankResult.points} pts) • Admin set
               </span>
-            ) : rankResult.source === 'adaptive_weight' ? (
+            ) : rankResult.source === 'atlas_evidence' ? (
               <span>
-                Adaptive: {rankResult.rank} ({rankResult.points} pts)
+                ATLAS: {rankResult.points} pts (AI-enhanced calculation)
               </span>
             ) : rankResult.source === 'peak_rank' ? (
               <span>
@@ -364,26 +389,58 @@ fetchTeamsAndPlayers();
   };
 
   const recalculateTeamTotals = async (useAdaptiveWeights: boolean) => {
-    console.log(`Recalculating team totals with adaptive weights: ${useAdaptiveWeights}`);
+    console.log(`Recalculating team totals with ATLAS: ${useAdaptiveWeights}`);
     
-    setTeams(prevTeams => 
-      prevTeams.map((team, teamIndex) => {
-        const totalWeight = team.members.reduce((sum, member) => {
-          const rankResult = useAdaptiveWeights
-            ? calculateAdaptiveWeight(member, { enableAdaptiveWeights: true, baseFactor: 0.5, decayMultiplier: 0.15, timeWeightDays: 90 })
-            : getRankPointsWithManualOverride(member);
-          console.log(`Team ${teamIndex + 1} - ${member.discord_username}: ${rankResult.points} pts (${rankResult.source})`);
-          return sum + rankResult.points;
-        }, 0);
-        
-        console.log(`Team ${teamIndex + 1} total: ${totalWeight} pts`);
-        
-        return {
-          ...team,
-          totalWeight
-        };
-      })
-    );
+    if (useAdaptiveWeights) {
+      // Use ATLAS for calculation
+      const newTeams = await Promise.all(
+        teams.map(async (team, teamIndex) => {
+          let totalWeight = 0;
+          for (const member of team.members) {
+            const result = await calculateEvidenceBasedWeightWithMiniAi({
+              current_rank: member.current_rank,
+              peak_rank: member.peak_rank,
+              manual_rank_override: member.manual_rank_override,
+              manual_weight_override: member.manual_weight_override,
+              use_manual_override: member.use_manual_override,
+              rank_override_reason: member.rank_override_reason,
+              weight_rating: member.weight_rating,
+              tournaments_won: (member as any).tournaments_won,
+              last_tournament_win: (member as any).last_tournament_win
+            }, {
+              enableEvidenceBasedWeights: true,
+              tournamentWinBonus: 15,
+              rankDecayThreshold: 2,
+              maxDecayPercent: 0.25,
+              skillTierCaps: {
+                enabled: true,
+                eliteThreshold: 400,
+                maxElitePerTeam: 1
+              }
+            }, true);
+            totalWeight += result.finalAdjustedPoints;
+            console.log(`Team ${teamIndex + 1} - ${member.discord_username}: ${result.finalAdjustedPoints} pts (ATLAS)`);
+          }
+          console.log(`Team ${teamIndex + 1} total: ${totalWeight} pts`);
+          return { ...team, totalWeight };
+        })
+      );
+      setTeams(newTeams);
+    } else {
+      // Use standard calculation
+      setTeams(prevTeams => 
+        prevTeams.map((team, teamIndex) => {
+          const totalWeight = team.members.reduce((sum, member) => {
+            const rankResult = getRankPointsWithManualOverride(member);
+            console.log(`Team ${teamIndex + 1} - ${member.discord_username}: ${rankResult.points} pts (${rankResult.source})`);
+            return sum + rankResult.points;
+          }, 0);
+          
+          console.log(`Team ${teamIndex + 1} total: ${totalWeight} pts`);
+          return { ...team, totalWeight };
+        })
+      );
+    }
     
     // Also update unassigned and substitute player calculations for consistency
     setUnassignedPlayers(prevPlayers => [...prevPlayers]); // Trigger re-render
@@ -955,7 +1012,7 @@ variant: "destructive",
         fullSnakeDraftResult = atlasResult;
       } else {
         // Use standard enhanced snake draft
-        fullSnakeDraftResult = enhancedSnakeDraft(
+        fullSnakeDraftResult = await enhancedSnakeDraft(
           sortedPlayers, 
           numTeams, 
           teamSize,

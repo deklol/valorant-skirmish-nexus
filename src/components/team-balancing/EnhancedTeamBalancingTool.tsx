@@ -153,7 +153,7 @@ const EnhancedTeamBalancingTool = ({
       }
 
       // Run enhanced balance analysis with progress tracking
-      const result = enhancedSnakeDraft(
+      const result = await enhancedSnakeDraft(
         players, 
         teamsToCreate, 
         teamSize,
@@ -163,7 +163,25 @@ const EnhancedTeamBalancingTool = ({
         },
         () => {
           setPhase('validating');
-        }
+        },
+        (phase: string, current: number, total: number) => {
+          // ATLAS calculation progress
+          setProgressStep(current);
+        },
+        enableAdaptiveWeights ? {
+          enableAdaptiveWeights: true,
+          baseFactor: 0.3,
+          decayMultiplier: 0.25,
+          timeWeightDays: 60,
+          tournamentWinnerBonuses: {
+            enabled: true,
+            oneWin: 15,
+            twoWins: 25,
+            threeOrMoreWins: 35,
+            recentWinMultiplier: 1.5,
+            eliteWinnerMultiplier: 1.2
+          }
+        } : undefined
       );
       
       setBalanceResult(result);
