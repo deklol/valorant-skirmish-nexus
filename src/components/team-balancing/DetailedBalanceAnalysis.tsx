@@ -233,59 +233,108 @@ const DetailedBalanceAnalysis = ({ balanceResult, tournamentName }: DetailedBala
             </div>
           </div>
 
-          {/* Adaptive Weight Calculations Section */}
-          {balanceResult.adaptiveWeightCalculations && balanceResult.adaptiveWeightCalculations.length > 0 && (
-            <div className="space-y-3">
-              <h4 className="text-white font-medium flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-emerald-400" />
-                Adaptive Weight Calculations
-              </h4>
+          {/* Adaptive Weight Calculations Section - Works for both ATLAS and regular adaptive */}
+          {(() => {
+            // Check for ATLAS evidence calculations first (Evidence-based ATLAS)
+            const evidenceCalculations = (balanceResult as any).evidenceCalculations;
+            // Check for regular adaptive weight calculations (Enhanced ATLAS)
+            const adaptiveCalculations = balanceResult.adaptiveWeightCalculations;
+            
+            const calculations = evidenceCalculations || adaptiveCalculations;
+            
+            if (!calculations || calculations.length === 0) return null;
+            
+            const isAtlasEvidence = !!evidenceCalculations;
+            const title = isAtlasEvidence ? "ATLAS Evidence Weight Calculations" : "Adaptive Weight Calculations";
+            
+            return (
               <div className="space-y-3">
-                {balanceResult.adaptiveWeightCalculations.map((calc, index) => {
-                  const player = balanceSteps.find(step => step.player.id === calc.userId);
-                  return (
-                    <div key={index} className="bg-slate-700 rounded-lg p-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-white font-medium">
-                          {player?.player.discord_username || 'Unknown Player'}
-                        </span>
-                        <Badge className="bg-emerald-600 text-white">
-                          {calc.calculation.calculatedAdaptiveWeight} pts (ADAPTIVE)
-                        </Badge>
-                      </div>
-                      <div className="text-sm text-slate-300 mb-2">
-                        <strong>Calculation:</strong> {calc.calculation.calculationReasoning}
-                      </div>
-                      <div className="grid grid-cols-2 gap-4 text-xs text-slate-400">
-                        <div>
-                          <span className="font-medium">Current:</span> {calc.calculation.currentRank || 'Unranked'} ({calc.calculation.currentRankPoints} pts)
+                <h4 className="text-white font-medium flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-emerald-400" />
+                  {title}
+                </h4>
+                <div className="space-y-3">
+                  {calculations.map((calc, index) => {
+                    const player = balanceSteps.find(step => step.player.id === calc.userId);
+                    const calculation = calc.calculation;
+                    
+                    return (
+                      <div key={index} className="bg-slate-700 rounded-lg p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-white font-medium">
+                            {player?.player.discord_username || 'Unknown Player'}
+                          </span>
+                          <Badge className="bg-emerald-600 text-white">
+                            {calculation.calculatedAdaptiveWeight || calculation.finalPoints} pts ({isAtlasEvidence ? 'ATLAS' : 'ADAPTIVE'})
+                          </Badge>
                         </div>
-                        <div>
-                          <span className="font-medium">Peak:</span> {calc.calculation.peakRank || 'N/A'} ({calc.calculation.peakRankPoints} pts)
+                        <div className="text-sm text-slate-300 mb-2">
+                          <strong>{isAtlasEvidence ? 'ATLAS Analysis:' : 'Calculation:'}</strong> {calculation.calculationReasoning}
                         </div>
-                        <div>
-                          <span className="font-medium">Adaptive Factor:</span> {Math.round(calc.calculation.adaptiveFactor * 100)}%
-                        </div>
-                        <div>
-                          <span className="font-medium">Source:</span> {calc.calculation.weightSource.replace('_', ' ')}
-                        </div>
-                        {calc.calculation.rankDecayFactor !== undefined && (
+                        <div className="grid grid-cols-2 gap-4 text-xs text-slate-400">
                           <div>
-                            <span className="font-medium">Rank Decay:</span> {Math.round(calc.calculation.rankDecayFactor * 100)}%
+                            <span className="font-medium">Current:</span> {calculation.currentRank || 'Unranked'} ({calculation.currentRankPoints || calculation.basePoints} pts)
+                          </div>
+                          <div>
+                            <span className="font-medium">Peak:</span> {calculation.peakRank || 'N/A'} ({calculation.peakRankPoints} pts)
+                          </div>
+                          {calculation.adaptiveFactor !== undefined && (
+                            <div>
+                              <span className="font-medium">Adaptive Factor:</span> {Math.round(calculation.adaptiveFactor * 100)}%
+                            </div>
+                          )}
+                          <div>
+                            <span className="font-medium">Source:</span> {calculation.weightSource?.replace('_', ' ') || 'ATLAS'}
+                          </div>
+                          {calculation.rankDecayFactor !== undefined && (
+                            <div>
+                              <span className="font-medium">Rank Decay:</span> {Math.round(calculation.rankDecayFactor * 100)}%
+                            </div>
+                          )}
+                          {calculation.rankDecayApplied !== undefined && (
+                            <div>
+                              <span className="font-medium">Decay Applied:</span> -{calculation.rankDecayApplied} pts
+                            </div>
+                          )}
+                          {calculation.tournamentBonus > 0 && (
+                            <div>
+                              <span className="font-medium">Tournament Bonus:</span> +{calculation.tournamentBonus} pts
+                            </div>
+                          )}
+                          {calculation.tournamentsWon > 0 && (
+                            <div>
+                              <span className="font-medium">Tournaments Won:</span> {calculation.tournamentsWon}
+                            </div>
+                          )}
+                          {calculation.timeSincePeakDays && (
+                            <div>
+                              <span className="font-medium">Days Since Peak:</span> {calculation.timeSincePeakDays}
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Evidence factors for ATLAS */}
+                        {calculation.evidenceFactors && calculation.evidenceFactors.length > 0 && (
+                          <div className="mt-2 pt-2 border-t border-slate-600">
+                            <div className="text-xs text-slate-400">
+                              <span className="font-medium">Evidence Factors:</span>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {calculation.evidenceFactors.map((factor: string, i: number) => (
+                                  <Badge key={i} variant="outline" className="text-xs border-emerald-500 text-emerald-400">
+                                    {factor}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
                           </div>
                         )}
-                        {calc.calculation.timeSincePeakDays && (
-                          <div>
-                            <span className="font-medium">Days Since Peak:</span> {calc.calculation.timeSincePeakDays}
-                          </div>
-                        )}
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Assignment Steps (Expandable) */}
           {balanceSteps.length > 0 && (
