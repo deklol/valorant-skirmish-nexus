@@ -57,25 +57,22 @@ const TournamentDetail = () => {
           </div>
         )}
         
-        {/* Main Content Layout */}
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-          {/* Left Sidebar - Tournament Info & Teams */}
-          <div className="xl:col-span-1 space-y-6">
-            <TeamsSection teams={teams} tournament={tournament} />
-          </div>
-          
-          {/* Main Content Area - Tabs */}
-          <div className="xl:col-span-3">
-            <TournamentTabs
-              tournament={tournament}
-              matches={matches}
-              maxPlayers={tournament.max_players}
-              parsedMapVetoRounds={parsedMapVetoRounds}
-              isAdmin={isAdmin}
-              teams={teams}
-              onRefresh={handleRefresh}
-            />
-          </div>
+        {/* Teams Section - Horizontal Layout */}
+        <div className="mb-6">
+          <TeamsSection teams={teams} tournament={tournament} />
+        </div>
+        
+        {/* Main Content Area - Tabs */}
+        <div className="w-full">
+          <TournamentTabs
+            tournament={tournament}
+            matches={matches}
+            maxPlayers={tournament.max_players}
+            parsedMapVetoRounds={parsedMapVetoRounds}
+            isAdmin={isAdmin}
+            teams={teams}
+            onRefresh={handleRefresh}
+          />
         </div>
       </div>
     </div>
