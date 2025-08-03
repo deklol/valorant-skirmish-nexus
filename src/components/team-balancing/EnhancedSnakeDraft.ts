@@ -410,12 +410,43 @@ const calculateFinalBalance = (teams: any[][]) => {
   const maxTeamPoints = Math.max(...teamTotals);
   const maxPointDifference = maxTeamPoints - minTeamPoints;
 
+  // Calculate skill distribution penalty for avoiding "skill stacking"
+  let skillDistributionPenalty = 0;
+  teams.forEach((team, teamIndex) => {
+    const teamPoints = team.map(player => player.adaptiveWeight || getRankPointsWithManualOverride(player).points);
+    
+    // Count players in different skill tiers
+    const highTierPlayers = teamPoints.filter(points => points >= 300).length; // Immortal+ tier
+    const upperMidTierPlayers = teamPoints.filter(points => points >= 240 && points < 300).length; // Ascendant tier
+    
+    // Penalize teams with too many high-tier players clustered together
+    if (highTierPlayers >= 3) {
+      skillDistributionPenalty += (highTierPlayers - 2) * 30; // 30 point penalty per extra high-tier player
+    }
+    
+    // Penalize teams with both high-tier stacking AND upper-mid stacking
+    if (highTierPlayers >= 2 && upperMidTierPlayers >= 2) {
+      skillDistributionPenalty += 25; // Additional penalty for tier stacking
+    }
+    
+    // Calculate skill variance within team (prefer smoother skill curves)
+    const teamAvg = teamPoints.reduce((sum, points) => sum + points, 0) / teamPoints.length;
+    const skillVariance = teamPoints.reduce((sum, points) => sum + Math.pow(points - teamAvg, 2), 0) / teamPoints.length;
+    
+    // Reward teams with better skill distribution (lower variance)
+    if (skillVariance < 8000) { // Well-distributed skill levels
+      skillDistributionPenalty -= 15; // 15 point bonus for good distribution
+    }
+  });
+
+  const adjustedPointDifference = maxPointDifference + skillDistributionPenalty;
+
   let balanceQuality: 'ideal' | 'good' | 'warning' | 'poor';
-  if (maxPointDifference <= 50) {
+  if (adjustedPointDifference <= 50) {
     balanceQuality = 'ideal';
-  } else if (maxPointDifference <= 100) {
+  } else if (adjustedPointDifference <= 100) {
     balanceQuality = 'good';
-  } else if (maxPointDifference <= 150) {
+  } else if (adjustedPointDifference <= 150) {
     balanceQuality = 'warning';
   } else {
     balanceQuality = 'poor';
@@ -425,7 +456,8 @@ const calculateFinalBalance = (teams: any[][]) => {
     averageTeamPoints: Math.round(averageTeamPoints),
     minTeamPoints,
     maxTeamPoints,
-    maxPointDifference,
-    balanceQuality
+    maxPointDifference: adjustedPointDifference,
+    balanceQuality,
+    skillDistributionPenalty
   };
 };
