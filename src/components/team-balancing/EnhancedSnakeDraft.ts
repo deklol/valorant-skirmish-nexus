@@ -64,7 +64,7 @@ export interface EnhancedTeamResult {
 }
 
 /**
- * Enhanced snake draft algorithm with adaptive weights, detailed progress tracking and post-balance validation
+ * Enhanced snake draft algorithm with tier-aware distribution to prevent skill stacking
  */
 export const enhancedSnakeDraft = (
   players: any[], 
@@ -76,10 +76,9 @@ export const enhancedSnakeDraft = (
   adaptiveConfig?: AdaptiveWeightConfig
 ): EnhancedTeamResult => {
   
-  // Calculate adaptive weights for all players if enabled
+  // Calculate adaptive weights for all players
   const adaptiveWeightCalculations: Array<{ userId: string; calculation: any }> = [];
   const playersWithAdaptiveWeights = players.map((player, index) => {
-    // Call progress callback for adaptive weight calculation
     if (onAdaptiveWeightCalculation) {
       onAdaptiveWeightCalculation('calculating', index + 1, players.length);
     }
@@ -104,7 +103,6 @@ export const enhancedSnakeDraft = (
           weight_rating: player.weight_rating
         });
 
-    // Store adaptive calculation if available (only for EnhancedAdaptiveResult)
     const adaptiveCalculation = (adaptiveResult as any).adaptiveCalculation;
     if (adaptiveCalculation) {
       adaptiveCalculation.userId = player.user_id || player.id;
@@ -122,108 +120,120 @@ export const enhancedSnakeDraft = (
     };
   });
 
-  // Sort players by adaptive weight (highest first)
-  const sortedPlayers = [...playersWithAdaptiveWeights].sort((a, b) => {
-    return b.adaptiveWeight - a.adaptiveWeight;
-  });
+  // Categorize players by skill tiers to prevent stacking
+  const getSkillTier = (points: number): string => {
+    if (points >= 300) return 'high';     // Immortal+ tier (300+)
+    if (points >= 240) return 'mid-high'; // Ascendant tier (240-299)
+    if (points >= 180) return 'mid';      // Diamond tier (180-239)
+    return 'low';                         // Below Diamond (<180)
+  };
+
+  const playersByTier = {
+    high: playersWithAdaptiveWeights.filter(p => getSkillTier(p.adaptiveWeight) === 'high').sort((a, b) => b.adaptiveWeight - a.adaptiveWeight),
+    'mid-high': playersWithAdaptiveWeights.filter(p => getSkillTier(p.adaptiveWeight) === 'mid-high').sort((a, b) => b.adaptiveWeight - a.adaptiveWeight),
+    mid: playersWithAdaptiveWeights.filter(p => getSkillTier(p.adaptiveWeight) === 'mid').sort((a, b) => b.adaptiveWeight - a.adaptiveWeight),
+    low: playersWithAdaptiveWeights.filter(p => getSkillTier(p.adaptiveWeight) === 'low').sort((a, b) => b.adaptiveWeight - a.adaptiveWeight)
+  };
 
   // Initialize teams
   const teams: any[][] = Array(numTeams).fill(null).map(() => []);
   const balanceSteps: BalanceStep[] = [];
-  
-  let currentTeamIndex = 0;
-  let direction = 1;
-  let round = 1;
+  let stepCounter = 0;
 
-  for (let i = 0; i < sortedPlayers.length; i++) {
-    const player = sortedPlayers[i];
-    const playerPoints = player.adaptiveWeight;
+  // Helper function to find the best team for a player (tier-aware)
+  const findBestTeamForPlayer = (player: any, reasoning: string): number => {
+    const playerTier = getSkillTier(player.adaptiveWeight);
     
-    // Find next available team that has space
-    let attempts = 0;
-    while (teams[currentTeamIndex].length >= teamSize && attempts < numTeams) {
-      // Move to next team in snake pattern
-      currentTeamIndex += direction;
-      
-      // Handle direction reversal at boundaries
-      if (currentTeamIndex >= numTeams) {
-        currentTeamIndex = numTeams - 1;
-        direction = -1;
-      } else if (currentTeamIndex < 0) {
-        currentTeamIndex = 0;
-        direction = 1;
-        round++;
+    let bestTeamIndex = 0;
+    let bestScore = Infinity;
+    
+    for (let teamIndex = 0; teamIndex < numTeams; teamIndex++) {
+      // Skip teams that are already full
+      if (teams[teamIndex].length >= teamSize) {
+        continue;
       }
       
-      attempts++;
+      const team = teams[teamIndex];
+      const teamTierCounts = {
+        high: team.filter(p => getSkillTier(p.adaptiveWeight) === 'high').length,
+        'mid-high': team.filter(p => getSkillTier(p.adaptiveWeight) === 'mid-high').length,
+        mid: team.filter(p => getSkillTier(p.adaptiveWeight) === 'mid').length,
+        low: team.filter(p => getSkillTier(p.adaptiveWeight) === 'low').length
+      };
+      
+      // Calculate score (lower is better)
+      const totalPoints = team.reduce((sum, p) => sum + p.adaptiveWeight, 0);
+      
+      // Heavy penalty for adding to same tier (prevents stacking)
+      const tierPenalty = teamTierCounts[playerTier] * 10000;
+      
+      // Moderate penalty for uneven team sizes
+      const sizePenalty = Math.abs(team.length - (players.length / numTeams)) * 100;
+      
+      const score = totalPoints + tierPenalty + sizePenalty;
+      
+      if (score < bestScore) {
+        bestScore = score;
+        bestTeamIndex = teamIndex;
+      }
     }
     
-    // If no teams have space, stop
-    if (teams[currentTeamIndex].length >= teamSize) {
-      break;
-    }
+    return bestTeamIndex;
+  };
 
-    // Assign player to current team
-    teams[currentTeamIndex].push(player);
-
-    // Calculate team points after assignment using adaptive weights
+  // Helper function to assign player and log the step
+  const assignPlayerToTeam = (player: any, teamIndex: number, reasoning: string) => {
+    teams[teamIndex].push(player);
+    
     const teamStatesAfter = teams.map((team, index) => ({
       teamIndex: index,
-      totalPoints: team.reduce((sum, p) => sum + (p.adaptiveWeight || 150), 0),
+      totalPoints: team.reduce((sum, p) => sum + p.adaptiveWeight, 0),
       playerCount: team.length
     }));
 
-    // Enhanced reasoning with adaptive weight information
-    const reasoning = generateEnhancedReasoning(
-      player, 
-      currentTeamIndex, 
-      teamStatesAfter, 
-      direction, 
-      round,
-      i
-    );
-
     const balanceStep: BalanceStep = {
-      step: i + 1,
+      step: ++stepCounter,
       player: {
         id: player.id,
         discord_username: player.discord_username || 'Unknown',
-        points: playerPoints,
+        points: player.adaptiveWeight,
         rank: (player.adaptiveCalculation as any)?.rank || player.current_rank || 'Unranked',
         source: player.weightSource,
-        adaptiveWeight: playerPoints,
+        adaptiveWeight: player.adaptiveWeight,
         weightSource: player.weightSource,
         adaptiveReasoning: (player.adaptiveCalculation as any)?.calculationReasoning
       },
-      assignedTeam: currentTeamIndex,
-      reasoning,
-      teamStatesAfter,
-      round,
-      direction: direction === 1 ? 'ascending' : 'descending'
+      assignedTeam: teamIndex,
+      reasoning: `${reasoning} (${getSkillTier(player.adaptiveWeight).toUpperCase()} TIER: ${player.adaptiveWeight}pts)`,
+      teamStatesAfter
     };
 
     balanceSteps.push(balanceStep);
 
-    // Call progress callback if provided
     if (onProgress) {
-      onProgress(balanceStep, i + 1, sortedPlayers.length);
+      onProgress(balanceStep, stepCounter, players.length);
     }
+  };
 
-    // Move to next team in snake pattern for next iteration
-    currentTeamIndex += direction;
-    
-    // Handle direction reversal at boundaries
-    if (currentTeamIndex >= numTeams) {
-      currentTeamIndex = numTeams - 1;
-      direction = -1;
-    } else if (currentTeamIndex < 0) {
-      currentTeamIndex = 0;
-      direction = 1;
-      round++;
-    }
-  }
+  // Phase 1: Distribute high-tier players first (round-robin to prevent clustering)
+  playersByTier.high.forEach((player, index) => {
+    const teamIndex = index % numTeams;
+    assignPlayerToTeam(player, teamIndex, `HIGH-TIER ROUND-ROBIN: Preventing skill stacking by distributing high-tier players evenly`);
+  });
 
-  // Post-balance validation phase
+  // Phase 2: Distribute remaining tiers using tier-aware intelligent assignment
+  const remainingPlayers = [
+    ...playersByTier['mid-high'],
+    ...playersByTier.mid,
+    ...playersByTier.low
+  ];
+
+  remainingPlayers.forEach(player => {
+    const bestTeamIndex = findBestTeamForPlayer(player, 'TIER-AWARE ASSIGNMENT');
+    assignPlayerToTeam(player, bestTeamIndex, `TIER-AWARE ASSIGNMENT: Chose team with best balance and no tier conflicts`);
+  });
+
+  // Post-balance validation (minimal since tier distribution is handled upfront)
   let validationResult: ValidationResult | undefined;
   if (onValidationStart) {
     onValidationStart();
@@ -232,8 +242,8 @@ export const enhancedSnakeDraft = (
   const initialBalance = calculateFinalBalance(teams);
   const validationStartTime = Date.now();
 
-  // Perform validation and potential adjustments
-  const validatedTeams = performPostBalanceValidation(teams, initialBalance);
+  // Simplified validation focusing only on point balance
+  const validatedTeams = performSimplifiedPostValidation(teams, balanceSteps);
   const finalBalance = calculateFinalBalance(validatedTeams.teams);
 
   validationResult = {
@@ -243,7 +253,6 @@ export const enhancedSnakeDraft = (
     validationTime: Date.now() - validationStartTime
   };
 
-  // Add validation steps to the main balance steps array
   const allBalanceSteps = [...balanceSteps, ...validatedTeams.validationSteps];
 
   return {
@@ -282,6 +291,144 @@ const generateEnhancedReasoning = (
                     weightSource === 'peak_rank' ? ' [Peak]' : '';
   
   return `Snake draft Round ${round} (${directionText}): Assigned ${playerName} (${rank}, ${playerPoints}pts${sourceText}) to Team ${teamIndex + 1}. Team total: ${currentTeamPoints}pts.`;
+};
+
+const calculateSimplifiedBalance = (teams: any[][]) => {
+  const teamTotals = teams.map(team => 
+    team.reduce((sum, player) => sum + (player.adaptiveWeight || 150), 0)
+  );
+
+  const maxPointDifference = Math.max(...teamTotals) - Math.min(...teamTotals);
+  
+  let balanceQuality: 'ideal' | 'good' | 'warning' | 'poor';
+  if (maxPointDifference <= 50) {
+    balanceQuality = 'ideal';
+  } else if (maxPointDifference <= 100) {
+    balanceQuality = 'good';
+  } else if (maxPointDifference <= 150) {
+    balanceQuality = 'warning';
+  } else {
+    balanceQuality = 'poor';
+  }
+
+  return {
+    maxPointDifference,
+    balanceQuality
+  };
+};
+
+const performSimplifiedPostValidation = (
+  teams: any[][],
+  balanceSteps: BalanceStep[]
+): { teams: any[][], adjustments: { swaps: Array<{ player1: string; player2: string; fromTeam: number; toTeam: number; reason: string; }> }, validationSteps: BalanceStep[] } => {
+  // Since tier distribution is handled upfront, this only does minimal point balancing
+  let adjustedTeams = JSON.parse(JSON.stringify(teams));
+  const adjustments: { swaps: Array<{ player1: string; player2: string; fromTeam: number; toTeam: number; reason: string; }> } = { swaps: [] };
+  const validationSteps: BalanceStep[] = [];
+
+  const currentBalance = calculateSimplifiedBalance(adjustedTeams);
+  
+  // Only proceed if balance is poor (>150 point difference)
+  if (currentBalance.maxPointDifference <= 150) {
+    return {
+      teams: adjustedTeams,
+      adjustments,
+      validationSteps
+    };
+  }
+
+  // Find the single best swap to improve balance (limited to 1 iteration)
+  const teamTotals = adjustedTeams.map(team =>
+    team.reduce((sum, player) => sum + (player.adaptiveWeight || 150), 0)
+  );
+
+  let bestSwap: { playerA: any; playerB: any; fromTeam: number; toTeam: number; newMaxDiff: number } | null = null;
+  let bestNewMaxDiff = currentBalance.maxPointDifference;
+
+  for (let teamA = 0; teamA < adjustedTeams.length; teamA++) {
+    for (let teamB = teamA + 1; teamB < adjustedTeams.length; teamB++) {
+      if (adjustedTeams[teamA].length === 0 || adjustedTeams[teamB].length === 0) {
+        continue;
+      }
+
+      for (const playerA of adjustedTeams[teamA]) {
+        for (const playerB of adjustedTeams[teamB]) {
+          const playerAPoints = playerA.adaptiveWeight || 150;
+          const playerBPoints = playerB.adaptiveWeight || 150;
+
+          const hypotheticalTeamAPoints = teamTotals[teamA] - playerAPoints + playerBPoints;
+          const hypotheticalTeamBPoints = teamTotals[teamB] - playerBPoints + playerAPoints;
+
+          const tempTeamTotals = [...teamTotals];
+          tempTeamTotals[teamA] = hypotheticalTeamAPoints;
+          tempTeamTotals[teamB] = hypotheticalTeamBPoints;
+
+          const hypotheticalMaxDiff = Math.max(...tempTeamTotals) - Math.min(...tempTeamTotals);
+
+          if (hypotheticalMaxDiff < bestNewMaxDiff) {
+            bestNewMaxDiff = hypotheticalMaxDiff;
+            bestSwap = {
+              playerA,
+              playerB,
+              fromTeam: teamA,
+              toTeam: teamB,
+              newMaxDiff: hypotheticalMaxDiff
+            };
+          }
+        }
+      }
+    }
+  }
+
+  // Apply the best swap if found
+  if (bestSwap) {
+    adjustedTeams[bestSwap.fromTeam] = adjustedTeams[bestSwap.fromTeam].filter(
+      (p: any) => p.id !== bestSwap.playerA.id
+    );
+    adjustedTeams[bestSwap.fromTeam].push(bestSwap.playerB);
+
+    adjustedTeams[bestSwap.toTeam] = adjustedTeams[bestSwap.toTeam].filter(
+      (p: any) => p.id !== bestSwap.playerB.id
+    );
+    adjustedTeams[bestSwap.toTeam].push(bestSwap.playerA);
+
+    const swapReason = `MINIMAL POST-BALANCE: Swapped ${bestSwap.playerA.discord_username} (${bestSwap.playerA.adaptiveWeight}pts) with ${bestSwap.playerB.discord_username} (${bestSwap.playerB.adaptiveWeight}pts) to improve point balance only.`;
+
+    const swapStep: BalanceStep = {
+      step: balanceSteps.length + 1,
+      player: {
+        id: `simplified-swap-1`,
+        discord_username: `${bestSwap.playerA.discord_username} ↔ ${bestSwap.playerB.discord_username}`,
+        points: 0,
+        rank: 'MINIMAL POST-BALANCE SWAP',
+        source: 'simplified_post_validation',
+        adaptiveWeight: 0
+      },
+      assignedTeam: -1,
+      reasoning: swapReason,
+      teamStatesAfter: adjustedTeams.map((team, index) => ({
+        teamIndex: index,
+        totalPoints: team.reduce((sum, p) => sum + (p.adaptiveWeight || 150), 0),
+        playerCount: team.length
+      }))
+    };
+
+    validationSteps.push(swapStep);
+
+    adjustments.swaps.push({
+      player1: bestSwap.playerA.discord_username,
+      player2: bestSwap.playerB.discord_username,
+      fromTeam: bestSwap.fromTeam + 1,
+      toTeam: bestSwap.toTeam + 1,
+      reason: swapReason
+    });
+  }
+
+  return {
+    teams: adjustedTeams,
+    adjustments,
+    validationSteps
+  };
 };
 
 const performPostBalanceValidation = (
@@ -426,7 +573,6 @@ const performPostBalanceValidation = (
 const calculateFinalBalance = (teams: any[][]) => {
   const teamTotals = teams.map(team => 
     team.reduce((sum, player) => {
-      // Use adaptive weight if available, otherwise fall back to manual override system
       const points = player.adaptiveWeight || getRankPointsWithManualOverride(player).points;
       return sum + points;
     }, 0)
@@ -437,53 +583,13 @@ const calculateFinalBalance = (teams: any[][]) => {
   const maxTeamPoints = Math.max(...teamTotals);
   const maxPointDifference = maxTeamPoints - minTeamPoints;
 
-  // Calculate skill distribution penalty for avoiding "skill stacking"
-  let skillDistributionPenalty = 0;
-  teams.forEach((team, teamIndex) => {
-    const teamPoints = team.map(player => player.adaptiveWeight || getRankPointsWithManualOverride(player).points);
-    
-    // Count players in different skill tiers
-    const highTierPlayers = teamPoints.filter(points => points >= 300).length; // Immortal+ tier
-    const upperMidTierPlayers = teamPoints.filter(points => points >= 240 && points < 300).length; // Ascendant tier
-    
-    // MUCH stronger penalty for skill stacking to match user's preferred distribution
-    if (highTierPlayers >= 3) {
-      skillDistributionPenalty += (highTierPlayers - 2) * 100; // 100 point penalty per extra high-tier player
-    }
-    
-    if (highTierPlayers >= 2) {
-      skillDistributionPenalty += (highTierPlayers - 1) * 60; // 60 point penalty for having 2+ high-tier players
-    }
-    
-    // Penalize teams with both high-tier stacking AND upper-mid stacking
-    if (highTierPlayers >= 2 && upperMidTierPlayers >= 2) {
-      skillDistributionPenalty += 80; // Additional penalty for tier stacking
-    }
-    
-    // Calculate combined high-tier points (300+) - this should be spread evenly
-    const highTierTotalPoints = teamPoints.filter(points => points >= 300).reduce((sum, points) => sum + points, 0);
-    if (highTierTotalPoints > 650) { // More than ~2.2 high-tier players worth
-      skillDistributionPenalty += (highTierTotalPoints - 650) / 5; // Penalty for concentrating too much high-tier skill
-    }
-    
-    // Calculate skill variance within team (prefer smoother skill curves)
-    const teamAvg = teamPoints.reduce((sum, points) => sum + points, 0) / teamPoints.length;
-    const skillVariance = teamPoints.reduce((sum, points) => sum + Math.pow(points - teamAvg, 2), 0) / teamPoints.length;
-    
-    // Reward teams with better skill distribution (lower variance)
-    if (skillVariance < 8000) { // Well-distributed skill levels
-      skillDistributionPenalty -= 15; // 15 point bonus for good distribution
-    }
-  });
-
-  const adjustedPointDifference = maxPointDifference + skillDistributionPenalty;
-
+  // Since tier distribution is handled upfront, we only focus on point balance
   let balanceQuality: 'ideal' | 'good' | 'warning' | 'poor';
-  if (adjustedPointDifference <= 50) {
+  if (maxPointDifference <= 50) {
     balanceQuality = 'ideal';
-  } else if (adjustedPointDifference <= 100) {
+  } else if (maxPointDifference <= 100) {
     balanceQuality = 'good';
-  } else if (adjustedPointDifference <= 150) {
+  } else if (maxPointDifference <= 150) {
     balanceQuality = 'warning';
   } else {
     balanceQuality = 'poor';
@@ -493,8 +599,7 @@ const calculateFinalBalance = (teams: any[][]) => {
     averageTeamPoints: Math.round(averageTeamPoints),
     minTeamPoints,
     maxTeamPoints,
-    maxPointDifference: adjustedPointDifference,
-    balanceQuality,
-    skillDistributionPenalty
+    maxPointDifference,
+    balanceQuality
   };
 };
