@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { GripVertical, Settings, TrendingUp, Zap } from "lucide-react";
 import { StyledUsername } from "./StyledUsername";
 import { getRankPointsWithManualOverride } from "@/utils/rankingSystemWithOverrides";
-import { calculateAdaptiveWeight } from "@/utils/adaptiveWeightSystem";
+import { calculateAdaptiveWeight, ExtendedUserRankData } from "@/utils/adaptiveWeightSystem";
 
 interface Player {
   id: string;
@@ -20,6 +20,8 @@ interface Player {
   use_manual_override?: boolean;
   rank_override_reason?: string | null;
   weight_rating?: number;
+  tournaments_won?: number;
+  last_tournament_win?: Date | string | null;
 }
 
 interface DraggablePlayerProps {
@@ -44,7 +46,7 @@ const DraggablePlayer = ({ player, enableAdaptiveWeights }: DraggablePlayerProps
 
   // Calculate the appropriate rank result based on adaptive weights setting
   const rankResult = enableAdaptiveWeights 
-    ? calculateAdaptiveWeight(player, { enableAdaptiveWeights: true, baseFactor: 0.5, decayMultiplier: 0.15, timeWeightDays: 90 })
+    ? calculateAdaptiveWeight(player as ExtendedUserRankData)
     : getRankPointsWithManualOverride(player);
 
   return (

@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
 import { getRankPointsWithManualOverride } from "@/utils/rankingSystemWithOverrides";
 import { enhancedSnakeDraft } from "./EnhancedSnakeDraft";
-import { calculateAdaptiveWeight } from "@/utils/adaptiveWeightSystem";
+import { calculateAdaptiveWeight, ExtendedUserRankData } from "@/utils/adaptiveWeightSystem";
 
 interface UseTeamBalancingProps {
   tournamentId: string;
@@ -27,13 +27,14 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
     const teamSize = tournament.team_size || 5; // Default to 5v5 if not set
     console.log(`Tournament team size: ${teamSize}v${teamSize}`);
 
-    // Get all signups with user details including manual override fields
+    // Get all signups with user details including manual override fields and tournament wins
     const { data: signups } = await supabase
       .from('tournament_signups')
       .select(`
         user_id,
         is_checked_in,
         users:user_id (
+          id,
           discord_username,
           rank_points,
           current_rank,
@@ -42,7 +43,8 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
           manual_rank_override,
           manual_weight_override,
           use_manual_override,
-          rank_override_reason
+          rank_override_reason,
+          tournaments_won
         )
       `)
       .eq('tournament_id', tournamentId)
