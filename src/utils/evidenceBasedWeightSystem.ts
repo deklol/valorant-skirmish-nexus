@@ -319,22 +319,34 @@ export function assignWithSkillDistribution(
 
   console.log(`🏆 SKILL DISTRIBUTION: ${elitePlayers.length} elite players, ${regularPlayers.length} regular players`);
 
-  // Phase 1: Distribute elite players using snake draft pattern for better balance
+  // Phase 1: ATLAS Smart Elite Distribution - Prevent ALL forms of skill stacking
   elitePlayers.forEach((player, index) => {
-    // Snake draft: 0,1,2,1,0 pattern for better balance instead of round-robin
-    let targetTeam: number;
-    const cycle = Math.floor(index / numTeams);
-    const position = index % numTeams;
+    // ATLAS Strategy: Always assign to the team with the lowest total points that doesn't already have high-value players
+    const teamTotals = teams.map(team => 
+      team.reduce((sum, p) => sum + (p.evidenceWeight || p.adaptiveWeight || 150), 0)
+    );
     
-    if (cycle % 2 === 0) {
-      // Even cycles: 0,1,2... (normal order)
-      targetTeam = position;
-    } else {
-      // Odd cycles: 2,1,0... (reverse order)
-      targetTeam = numTeams - 1 - position;
+    // Find the best team for this elite player to prevent stacking
+    let bestTeamIndex = 0;
+    let bestScore = Infinity;
+    
+    for (let teamIndex = 0; teamIndex < numTeams; teamIndex++) {
+      const currentTotal = teamTotals[teamIndex];
+      const highValuePlayersCount = teams[teamIndex].filter(p => 
+        (p.evidenceWeight || p.adaptiveWeight || 150) >= 250
+      ).length;
+      
+      // Score = current team total + penalty for existing high-value players
+      const stackingPenalty = highValuePlayersCount * 100; // Heavy penalty for stacking
+      const totalScore = currentTotal + stackingPenalty;
+      
+      if (totalScore < bestScore) {
+        bestScore = totalScore;
+        bestTeamIndex = teamIndex;
+      }
     }
     
-    teams[targetTeam].push(player);
+    teams[bestTeamIndex].push(player);
 
     const eliteCountsAfter = teams.map(team => 
       team.filter(p => (p.evidenceWeight || p.adaptiveWeight || 150) >= config.skillTierCaps.eliteThreshold).length
@@ -344,8 +356,8 @@ export function assignWithSkillDistribution(
       step: ++stepCounter,
       action: 'initial_assignment',
       player: player.discord_username || 'Unknown',
-      toTeam: targetTeam,
-      reason: generateElitePlayerReasoning(player, targetTeam, index),
+      toTeam: bestTeamIndex,
+      reason: `🏛️ ATLAS: Elite player ${player.discord_username || 'Unknown'} (${player.evidenceWeight || 150}pts) assigned to Team ${bestTeamIndex + 1} - prevents skill stacking (team total: ${teamTotals[bestTeamIndex]} → ${teamTotals[bestTeamIndex] + (player.evidenceWeight || 150)})`,
       skillAnalysis: {
         elitePlayersPerTeam: eliteCountsAfter,
         balanceQuality: eliteCountsAfter.every(count => count <= 1) ? 'ideal' : 'poor'
