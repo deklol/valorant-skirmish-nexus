@@ -259,20 +259,28 @@ export function calculateAdaptiveWeight(
   const isCurrentUnranked = !currentRank || currentRank === 'Unranked' || currentRank === 'Unrated';
   
   if (isCurrentUnranked) {
-    // Enhanced unranked penalty based on peak rank tier
-    let unrankedPenalty = 0.15; // Base 15% penalty
+    // For Radiant/Immortal peaks, only apply penalties if they have tournament wins
+    // High skill peaks should maintain their weight unless proven otherwise
+    let unrankedPenalty = 0;
     
-    // Higher penalty for higher peak ranks (skill should be maintained)
-    if (peakRankPoints >= 400) unrankedPenalty = 0.25; // Immortal+ loses 25%
-    else if (peakRankPoints >= 265) unrankedPenalty = 0.22; // Ascendant loses 22%
-    else if (peakRankPoints >= 190) unrankedPenalty = 0.20; // Diamond loses 20%
+    // Only apply unranked penalty for lower peaks or tournament winners
+    if (peakRankPoints >= 400) { // Immortal/Radiant - maintain full weight unless tournament winner
+      unrankedPenalty = 0; // No penalty for high skill peaks
+    } else if (peakRankPoints >= 265) unrankedPenalty = 0.10; // Ascendant loses 10%
+    else if (peakRankPoints >= 190) unrankedPenalty = 0.15; // Diamond loses 15%
     else if (peakRankPoints >= 130) unrankedPenalty = 0.18; // Platinum loses 18%
+    else unrankedPenalty = 0.20; // Lower ranks lose 20%
     
     // Calculate tournament winner penalty for unranked players
     const tournamentPenalty = calculateTournamentWinnerPenalty(userData, finalConfig, isCurrentUnranked);
     
+    // For high peaks with tournament wins, apply moderate penalty
+    if (peakRankPoints >= 400 && tournamentPenalty.penalty > 0) {
+      unrankedPenalty = 0.15; // 15% penalty for Immortal/Radiant tournament winners who are now unranked
+    }
+    
     // Combine penalties: unranked penalty + tournament winner penalty
-    const totalPenalty = Math.min(unrankedPenalty + tournamentPenalty.penalty, 0.75); // Cap at 75%
+    const totalPenalty = Math.min(unrankedPenalty + tournamentPenalty.penalty, 0.50); // Cap at 50% for high peaks
     const adaptiveWeight = Math.floor(peakRankPoints * (1 - totalPenalty));
     
     const reasoningParts = [
