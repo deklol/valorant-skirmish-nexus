@@ -188,15 +188,14 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
 
   // Parse ATLAS reasoning into human-readable explanations
   const parseAtlasReasoning = (reasoning: string) => {
-    // Handle the actual format from the screenshot: "ATLAS Elite Distribution: keratasf (465pts) → Team 1"
     let playerName = "";
     let rank = "";
     let points = 0;
     let teamName = "";
-    let type = "Smart Assignment";
+    let type = "Standard Assignment"; // Default to a more neutral type
     let explanation = "";
     let factors = [];
-    let impact = "";
+    let impact = "Player assigned to optimize overall team balance."; // Default impact
 
     // Try to extract player info from various formats
     const eliteDistMatch = reasoning.match(/ATLAS Elite Distribution:\s*(\w+)\s*\((\d+)pts\)\s*→\s*(.+?)\./);
@@ -220,74 +219,57 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
     };
 
     // Helper function to process any player match and determine notification type
-    const processPlayerMatch = (playerName: string, points: number, teamName: string) => {
+    const processPlayerMatch = (name: string, pts: number, team: string, initialRank: string) => {
+      playerName = name;
+      points = pts;
+      teamName = team;
+      rank = initialRank; // Set initial rank from the balance step
+
       // Determine classification based on actual rank or points
       const isEliteByRank = isEliteRank(actualRank);
       const isHighLevelByRank = isHighLevelRank(actualRank);
-      const isEliteByPoints = points >= 400;
-      const isHighLevelByPoints = points >= 350;
+      const isEliteByPoints = pts >= 400;
+      const isHighLevelByPoints = pts >= 350;
       
       if (isEliteByRank || (isEliteByPoints && !isHighLevelByRank)) {
         type = "Elite Player Distribution";
-        rank = actualRank || "Elite";
+        rank = actualRank || "Elite"; // Use actualRank if available, otherwise 'Elite'
         explanation = `${playerName} is an elite player who was distributed strategically to prevent skill stacking and maintain competitive balance across teams.`;
-        factors.push({ label: "Player Category", value: "Elite Tier (Immortal 2+ / 350+ points)", type: "skill" });
+        factors.push({ label: "Player Category", value: `Elite Tier (${actualRank || 'Immortal 2+'}/ ${pts} points)`, type: "skill" });
         impact = "Elite players distributed evenly for fair competition";
       } else if (isHighLevelByRank || isHighLevelByPoints) {
         type = "High-Level Player Distribution";
-        rank = actualRank || "High-Level";
+        rank = actualRank || "High-Level"; // Use actualRank if available, otherwise 'High-Level'
         explanation = `${playerName} is a high-level player (Immortal 1) who was distributed strategically to prevent skill stacking and maintain competitive balance across teams.`;
-        factors.push({ label: "Player Category", value: "High Tier (Immortal 1 / 300+ points)", type: "skill" });
+        factors.push({ label: "Player Category", value: `High Tier (${actualRank || 'Immortal 1'}/ ${pts} points)`, type: "skill" });
         impact = "High-level players distributed evenly for fair competition";
       } else {
-        type = "Elite Player Distribution";
-        rank = actualRank || "Elite";
-        explanation = `${playerName} is an elite player who was distributed strategically to prevent skill stacking and maintain competitive balance across teams.`;
-        factors.push({ label: "Player Category", value: "Elite Tier (Immortal 3+ / 400+ points)", type: "skill" });
-        impact = "Elite players distributed evenly for fair competition";
+        // This is the updated default for non-elite/high-level players
+        type = "Standard Assignment";
+        rank = actualRank || initialRank; // Prefer actualRank, fallback to initial rank from step
+        explanation = `${playerName} was assigned to ${teamName} to contribute to the overall team balance based on their ${rank} rank.`;
+        factors.push({ label: "Player Category", value: `${rank} Tier (${pts} points)`, type: "skill" });
+        impact = "Player assigned for optimal team balance";
       }
     };
 
+    // Prioritize specific ATLAS distribution matches
     if (eliteDistMatch) {
-      [, playerName, , teamName] = eliteDistMatch;
-      points = parseInt(eliteDistMatch[2]);
-      processPlayerMatch(playerName, points, teamName);
-      
+      processPlayerMatch(eliteDistMatch[1], parseInt(eliteDistMatch[2]), eliteDistMatch[3], eliteDistMatch[1]); // Pass player name as initial rank for now, will be updated
       factors.push({ label: "Distribution Strategy", value: "Round-robin to prevent stacking", type: "rule" });
       factors.push({ label: "Team Limit", value: "Maximum 1 per team", type: "rule" });
-      
     } else if (smartBalanceMatch) {
-      [, playerName, , teamName] = smartBalanceMatch;
-      points = parseInt(smartBalanceMatch[2]);
-      processPlayerMatch(playerName, points, teamName);
-      
-      // If not set to elite/high-level by processPlayerMatch, default to smart balancing
-      if (!type || type === "Smart Assignment") {
-        type = "Smart Team Balancing";
-        rank = "Balanced";
-        explanation = `${playerName} was assigned to ${teamName} based on skill analysis to create the most balanced team composition.`;
-        factors.push({ label: "Assignment Method", value: "Optimal team balancing", type: "balance" });
-        factors.push({ label: "Team Selection", value: "Joined team needing their skill level", type: "balance" });
-        impact = "Team strengths optimized for competitive balance";
-      } else {
-        // Keep the elite/high-level classification but add balancing context
-        factors.push({ label: "Assignment Method", value: "Smart balancing for elite distribution", type: "balance" });
-      }
-      
+      processPlayerMatch(smartBalanceMatch[1], parseInt(smartBalanceMatch[2]), smartBalanceMatch[3], smartBalanceMatch[1]); // Pass player name as initial rank
+      factors.push({ label: "Assignment Method", value: "Optimal team balancing", type: "balance" });
+      factors.push({ label: "Team Selection", value: "Joined team needing their skill level", type: "balance" });
     } else if (generalMatch) {
-      [, playerName, rank] = generalMatch;
-      points = parseInt(generalMatch[3]);
-      teamName = "Team (auto-assigned)";
-      explanation = `${playerName} (${rank} rank) was assigned to balance team compositions.`;
-      
-      factors.push({ label: "Player Rank", value: rank, type: "skill" });
-      factors.push({ label: "Point Value", value: `${points} points`, type: "skill" });
-      impact = "Player assigned for optimal team balance";
+      // General match is a weaker indicator, so we process it but allow processPlayerMatch to re-evaluate type
+      processPlayerMatch(generalMatch[1], parseInt(generalMatch[3]), "Team (auto-assigned)", generalMatch[2]);
     } else {
       return null; // Couldn't parse
     }
 
-    // Extract additional details from the reasoning text
+    // Extract additional details from the reasoning text, regardless of initial classification
     if (reasoning.includes("Current rank Unrated") || reasoning.includes("Unrated")) {
       rank = "Unrated";
       factors.push({ label: "Current Rank", value: "Unrated", type: "skill" });
@@ -303,7 +285,8 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
     }
     
     if (reasoning.includes("Elite Tier Player")) {
-      factors.push({ label: "Classification", value: "Elite Tier Player (500+ pts)", type: "skill" });
+      // This factor indicates an explicit mention in the reasoning, which is separate from our derived category
+      factors.push({ label: "Classification Source", value: "Explicitly marked as Elite in source data", type: "rule" });
     }
     
     if (reasoning.includes("Round-robin assignment")) {
@@ -324,7 +307,9 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
       if (bonusMatch) {
         const bonusPoints = bonusMatch[1];
         factors.push({ label: "Tournament Winner Bonus", value: `+${bonusPoints} points`, type: "achievement" });
-        explanation += ` This player has proven their competitive skill through tournament victories and receives a bonus reflecting their demonstrated ability.`;
+        if (!explanation.includes("This player has proven their competitive skill")) { // Avoid duplicate explanation
+          explanation += ` This player has proven their competitive skill through tournament victories and receives a bonus reflecting their demonstrated ability.`;
+        }
       }
     }
 
@@ -715,11 +700,11 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                                   <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                        <div className={`w-2 h-2 rounded-full ${
-                                         atlasData.type === 'Elite Player Distribution' ? 'bg-purple-500' :
-                                         atlasData.type === 'High-Level Player Distribution' ? 'bg-orange-500' :
-                                         atlasData.type === 'Smart Team Balancing' ? 'bg-blue-500' :
-                                         'bg-green-500'
-                                       }`} />
+                                          atlasData.type === 'Elite Player Distribution' ? 'bg-purple-500' :
+                                          atlasData.type === 'High-Level Player Distribution' ? 'bg-orange-500' :
+                                          atlasData.type === 'Smart Team Balancing' ? 'bg-blue-500' :
+                                          'bg-green-500' // Default for 'Standard Assignment'
+                                        }`} />
                                       <span className="text-sm font-semibold text-foreground">{atlasData.type}</span>
                                     </div>
                                     <Badge variant="outline" className="text-xs">
@@ -737,17 +722,17 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                                     <div className="grid grid-cols-1 gap-1.5">
                                       {atlasData.factors.map((factor, i) => (
                                         <div key={i} className="flex items-center justify-between py-1.5 px-2 bg-background/50 rounded border border-border/50">
-                                           <div className="flex items-center gap-1.5">
-                                             <div className={`w-1.5 h-1.5 rounded-full ${
-                                               factor.type === 'skill' ? 'bg-blue-500' :
-                                               factor.type === 'peak' ? 'bg-amber-500' :
-                                               factor.type === 'balance' ? 'bg-green-500' :
-                                               factor.type === 'rule' ? 'bg-purple-500' :
-                                               factor.type === 'achievement' ? 'bg-yellow-500' :
-                                               'bg-gray-500'
-                                             }`} />
-                                             <span className="text-xs font-medium text-foreground">{factor.label}</span>
-                                           </div>
+                                            <div className="flex items-center gap-1.5">
+                                               <div className={`w-1.5 h-1.5 rounded-full ${
+                                                  factor.type === 'skill' ? 'bg-blue-500' :
+                                                  factor.type === 'peak' ? 'bg-amber-500' :
+                                                  factor.type === 'balance' ? 'bg-green-500' :
+                                                  factor.type === 'rule' ? 'bg-purple-500' :
+                                                  factor.type === 'achievement' ? 'bg-yellow-500' :
+                                                  'bg-gray-500'
+                                                }`} />
+                                              <span className="text-xs font-medium text-foreground">{factor.label}</span>
+                                            </div>
                                           <span className="text-xs text-muted-foreground">{factor.value}</span>
                                         </div>
                                       ))}
