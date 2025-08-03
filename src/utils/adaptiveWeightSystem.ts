@@ -125,6 +125,13 @@ function calculateTournamentWinnerPenalty(
   }
 
   const tournamentsWon = userData.tournaments_won || 0;
+  console.log(`Tournament penalty check for user:`, { 
+    tournamentsWon, 
+    isCurrentUnranked,
+    penaltiesEnabled: penalties?.enabled,
+    userData: userData
+  });
+  
   if (tournamentsWon === 0) {
     return { penalty: 0, reasoning: '' };
   }
@@ -252,15 +259,15 @@ export function calculateAdaptiveWeight(
     const adaptiveWeight = Math.floor(peakRankPoints * (1 - totalPenalty));
     
     const reasoningParts = [
-      `Enhanced unranked weighting: ${peakRank} peak (${peakRankPoints} pts) with ${Math.round(unrankedPenalty * 100)}% tier-appropriate penalty`
+      `${peakRank} peak (${peakRankPoints} pts)`
     ];
     
     if (tournamentPenalty.penalty > 0) {
-      reasoningParts.push(tournamentPenalty.reasoning);
-      reasoningParts.push(`Combined penalty: ${Math.round(totalPenalty * 100)}%`);
+      reasoningParts.push(`Tournament penalty: ${Math.round(tournamentPenalty.penalty * 100)}%`);
     }
     
-    reasoningParts.push(`Final result: ${adaptiveWeight} points`);
+    reasoningParts.push(`Unranked penalty: ${Math.round(unrankedPenalty * 100)}%`);
+    reasoningParts.push(`Final: ${adaptiveWeight} pts`);
     
     return {
       points: adaptiveWeight,
@@ -324,28 +331,18 @@ export function calculateAdaptiveWeight(
   }
 
   const reasoningParts = [
-    `🧠 Enhanced Adaptive Algorithm:`,
-    `Current: ${currentRank} (${currentRankPoints} pts) • Peak: ${peakRank} (${peakRankPoints} pts)`,
-    `Smart blend: ${Math.round((1 - adaptiveFactor) * 100)}% current + ${Math.round(adaptiveFactor * 100)}% peak = ${Math.floor(baseBlend - varianceReduction)} pts`
+    `Adaptive: ${Math.round((1 - adaptiveFactor) * 100)}%/${Math.round(adaptiveFactor * 100)}% blend`
   ];
 
-  if (rankDecay > 0) {
-    reasoningParts.push(`📉 Tier-based decay: ${Math.round(rankDecay * 100)}% (${rankGap} point gap)`);
-  }
-  
-  if (confidenceBoost > 0) {
-    reasoningParts.push(`🎯 Confidence boost: +${Math.round(confidenceBoost * 100)}% (significant peak advantage)`);
-  }
-  
-  if (timeWeight > 0) {
-    reasoningParts.push(`⏰ Time decay: ${Math.round(timeWeight * 100)}% (${timeSincePeakDays} days since peak)`);
-  }
-  
   if (tournamentPenalty.penalty > 0) {
-    reasoningParts.push(tournamentPenalty.reasoning);
+    reasoningParts.push(`Tournament penalty: ${Math.round(tournamentPenalty.penalty * 100)}%`);
   }
   
-  reasoningParts.push(`🎲 Final adaptive weight: ${adaptiveWeight} points`);
+  if (rankDecay > 0) {
+    reasoningParts.push(`Decay: ${Math.round(rankDecay * 100)}%`);
+  }
+  
+  reasoningParts.push(`Final: ${adaptiveWeight} pts`);
 
   return {
     points: adaptiveWeight,

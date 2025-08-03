@@ -106,7 +106,7 @@ const DraggablePlayer = ({ player, enableAdaptiveWeights }: { player: Player, en
               </span>
             ) : rankResult.source === 'adaptive_weight' ? (
               <span>
-                Adaptive: {rankResult.rank} ({rankResult.points} pts) • {(rankResult as any).adaptiveCalculation?.calculationReasoning || 'Blended weight'}
+                Adaptive: {rankResult.rank} ({rankResult.points} pts)
               </span>
             ) : rankResult.source === 'peak_rank' ? (
               <span>
