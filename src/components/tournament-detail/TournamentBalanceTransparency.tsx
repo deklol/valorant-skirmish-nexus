@@ -602,7 +602,7 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                             </Badge>
                           )}
                         </div>
-                        <div className="space-y-3">
+                        <div className="w-full space-y-3">
                           <p className="text-xs text-muted-foreground">
                             Assigned to <span className="font-medium text-foreground">{assignedTo}</span>
                           </p>
