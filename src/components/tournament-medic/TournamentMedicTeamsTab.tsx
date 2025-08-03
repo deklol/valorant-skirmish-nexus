@@ -6,7 +6,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import TeamBalancingInterface from "@/components/TeamBalancingInterface";
+import EnhancedTeamBalancingTool from "@/components/team-balancing/EnhancedTeamBalancingTool";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -291,14 +291,14 @@ export default function TournamentMedicTeamsTab({
           </button>
         </div>
         {activeSection === 'team_builder' && (
-          <TeamBalancingInterface
+          <EnhancedTeamBalancingTool
             tournamentId={tournament.id}
             maxTeams={tournament.max_teams}
-            teamSize={tournament.team_size}
-            onTeamsUpdated={() => {
+            onTeamsBalanced={() => {
               onRefresh();
               fetchTeams();
             }}
+            tournamentName={tournament.name}
           />
         )}
         {activeSection === 'quick_actions' && (
