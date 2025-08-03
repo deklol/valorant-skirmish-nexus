@@ -186,47 +186,102 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
     return "Fair";
   };
 
-  // Parse ATLAS reasoning into structured components
+  // Parse ATLAS reasoning into human-readable explanations
   const parseAtlasReasoning = (reasoning: string) => {
-    const sections = reasoning.split('🎯').filter(Boolean);
-    if (sections.length < 2) return null;
-
-    const [playerInfo, ...rest] = sections;
-    const content = rest.join('🎯');
-
-    // Extract player assignment info
-    const playerMatch = playerInfo.match(/Assigning (.+?) \((.+?)\) to (.+?) \((\d+)\spts?\)/);
-    if (!playerMatch) return null;
+    // Extract basic player assignment info
+    const playerMatch = reasoning.match(/Assigning (.+?) \((.+?)\) to (.+?) \((\d+)\spts?\)/);
+    if (!playerMatch) {
+      // Try alternative formats
+      const altMatch = reasoning.match(/(\w+)\s+\((\w+)\s+(\d+)pts\)/);
+      if (!altMatch) return null;
+      
+      return {
+        playerName: altMatch[1],
+        rank: altMatch[2],
+        points: parseInt(altMatch[3]),
+        teamName: "Team (assignment detected)",
+        type: "Unknown Assignment",
+        explanation: "This player was assigned to balance the teams.",
+        factors: [],
+        impact: "Team balance optimized"
+      };
+    }
 
     const [, playerName, rank, teamName, points] = playerMatch;
 
-    // Extract evidence factors
-    const evidenceFactors = [];
-    const evidenceRegex = /📊 ([^:]+): ([^📊🎯🔄⚖️]+)/g;
-    let evidenceMatch;
-    while ((evidenceMatch = evidenceRegex.exec(content)) !== null) {
-      evidenceFactors.push({
-        factor: evidenceMatch[1].trim(),
-        value: evidenceMatch[2].trim()
-      });
+    // Determine assignment type and create human explanation
+    let type = "Smart Assignment";
+    let explanation = "";
+    let factors = [];
+    let impact = "";
+
+    // Parse for Elite Distribution
+    if (reasoning.includes("Elite Distribution") || reasoning.includes("Elite skill distribution")) {
+      type = "Elite Player Distribution";
+      explanation = `${playerName} is a high-skill player (${rank} rank) who was carefully placed to prevent skill stacking and ensure fair competition.`;
+      
+      if (reasoning.includes("Round-robin assignment")) {
+        factors.push({ label: "Distribution Method", value: "Round-robin to prevent stacking", type: "info" });
+      }
+      if (reasoning.includes("max 1 elite per team")) {
+        factors.push({ label: "Elite Limit", value: "Max 1 elite player per team", type: "rule" });
+      }
+    }
+    
+    // Parse for Smart Balancing
+    else if (reasoning.includes("Smart Balancing")) {
+      type = "Smart Team Balancing";
+      explanation = `${playerName} was assigned to the team that needed their skill level most to create balanced competition.`;
+      
+      // Extract specific factors
+      if (reasoning.includes("Current Rank:")) {
+        const currentRankMatch = reasoning.match(/Current Rank: (\w+) \((\d+) base points\)/);
+        if (currentRankMatch) {
+          factors.push({ 
+            label: "Current Skill", 
+            value: `${currentRankMatch[1]} (${currentRankMatch[2]} points)`, 
+            type: "skill" 
+          });
+        }
+      }
+      
+      if (reasoning.includes("Peak Rank:")) {
+        const peakRankMatch = reasoning.match(/Peak Rank: (\w+) \((\d+) base points\)/);
+        if (peakRankMatch) {
+          factors.push({ 
+            label: "Peak Performance", 
+            value: `${peakRankMatch[1]} (${peakRankMatch[2]} points)`, 
+            type: "peak" 
+          });
+        }
+      }
+      
+      if (reasoning.includes("lowest total")) {
+        factors.push({ label: "Team Selection", value: "Joined weakest team for balance", type: "balance" });
+      }
     }
 
-    // Extract team selection logic
-    const teamLogicMatch = content.match(/🎯\s*(.+?)(?=🔄|⚖️|$)/s);
-    const teamLogic = teamLogicMatch ? teamLogicMatch[1].trim() : '';
-
     // Extract balance impact
-    const balanceMatch = content.match(/⚖️\s*(.+?)$/s);
-    const balanceImpact = balanceMatch ? balanceMatch[1].trim() : '';
+    if (reasoning.includes("Balance impact")) {
+      const impactMatch = reasoning.match(/Balance impact[^:]*:\s*(.+?)(?=\.|$)/s);
+      if (impactMatch) {
+        impact = impactMatch[1].trim();
+      }
+    } else if (reasoning.includes("Post-assignment")) {
+      impact = "Team strengths have been equalized";
+    } else {
+      impact = "Overall team balance improved";
+    }
 
     return {
       playerName,
       rank,
       teamName,
       points: parseInt(points),
-      evidenceFactors,
-      teamLogic,
-      balanceImpact
+      type,
+      explanation,
+      factors,
+      impact
     };
   };
 
@@ -560,51 +615,60 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                             
                             if (atlasData) {
                               return (
-                                <div className="space-y-3 p-3 bg-background/50 rounded-lg border border-border">
-                                  {/* ATLAS Evidence Factors */}
-                                  {atlasData.evidenceFactors.length > 0 && (
-                                    <div className="space-y-2">
-                                      <div className="flex items-center gap-2">
-                                        <Target className="h-3 w-3 text-blue-500" />
-                                        <span className="text-xs font-medium text-foreground">ATLAS Evaluation</span>
-                                      </div>
-                                      <div className="grid grid-cols-1 gap-2">
-                                        {atlasData.evidenceFactors.map((factor, i) => (
-                                          <div key={i} className="flex justify-between items-center text-xs p-2 bg-muted/50 rounded">
-                                            <span className="font-medium text-foreground">{factor.factor}</span>
-                                            <span className="text-muted-foreground">{factor.value}</span>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
+                                 <div className="space-y-3 p-3 bg-background/50 rounded-lg border border-border">
+                                   {/* Assignment Type Header */}
+                                   <div className="flex items-center gap-2 mb-3">
+                                     <div className={`w-2 h-2 rounded-full ${
+                                       atlasData.type === 'Elite Player Distribution' ? 'bg-purple-500' :
+                                       atlasData.type === 'Smart Team Balancing' ? 'bg-blue-500' :
+                                       'bg-green-500'
+                                     }`} />
+                                     <span className="text-sm font-semibold text-foreground">{atlasData.type}</span>
+                                   </div>
 
-                                  {/* Team Selection Logic */}
-                                  {atlasData.teamLogic && (
-                                    <div className="space-y-2">
-                                      <div className="flex items-center gap-2">
-                                        <Zap className="h-3 w-3 text-yellow-500" />
-                                        <span className="text-xs font-medium text-foreground">Team Selection Logic</span>
-                                      </div>
-                                      <p className="text-xs text-muted-foreground bg-muted/30 p-2 rounded">
-                                        {atlasData.teamLogic}
-                                      </p>
-                                    </div>
-                                  )}
+                                   {/* Human-Readable Explanation */}
+                                   <div className="bg-muted/30 p-3 rounded-lg">
+                                     <p className="text-sm text-foreground">{atlasData.explanation}</p>
+                                   </div>
 
-                                  {/* Balance Impact */}
-                                  {atlasData.balanceImpact && (
-                                    <div className="space-y-2">
-                                      <div className="flex items-center gap-2">
-                                        <Shield className="h-3 w-3 text-green-500" />
-                                        <span className="text-xs font-medium text-foreground">Balance Impact</span>
-                                      </div>
-                                      <p className="text-xs text-muted-foreground bg-muted/30 p-2 rounded">
-                                        {atlasData.balanceImpact}
-                                      </p>
-                                    </div>
-                                  )}
-                                </div>
+                                   {/* Factor Cards */}
+                                   {atlasData.factors.length > 0 && (
+                                     <div className="space-y-2">
+                                       <div className="flex items-center gap-2">
+                                         <Target className="h-4 w-4 text-primary" />
+                                         <span className="text-sm font-medium text-foreground">Decision Factors</span>
+                                       </div>
+                                       <div className="grid gap-2">
+                                         {atlasData.factors.map((factor, i) => (
+                                           <div key={i} className="flex items-center justify-between p-2 bg-card border border-border rounded-lg">
+                                             <div className="flex items-center gap-2">
+                                               <div className={`w-1.5 h-1.5 rounded-full ${
+                                                 factor.type === 'skill' ? 'bg-blue-500' :
+                                                 factor.type === 'peak' ? 'bg-amber-500' :
+                                                 factor.type === 'balance' ? 'bg-green-500' :
+                                                 factor.type === 'rule' ? 'bg-purple-500' :
+                                                 'bg-gray-500'
+                                               }`} />
+                                               <span className="text-sm font-medium text-foreground">{factor.label}</span>
+                                             </div>
+                                             <span className="text-sm text-muted-foreground">{factor.value}</span>
+                                           </div>
+                                         ))}
+                                       </div>
+                                     </div>
+                                   )}
+
+                                   {/* Balance Impact */}
+                                   <div className="space-y-2">
+                                     <div className="flex items-center gap-2">
+                                       <Shield className="h-4 w-4 text-green-500" />
+                                       <span className="text-sm font-medium text-foreground">Balance Result</span>
+                                     </div>
+                                     <div className="bg-green-50 dark:bg-green-950/30 p-2 rounded border border-green-200 dark:border-green-800">
+                                       <p className="text-sm text-green-800 dark:text-green-400">{atlasData.impact}</p>
+                                     </div>
+                                   </div>
+                                 </div>
                               );
                             } else {
                               // Fallback for non-ATLAS reasoning
