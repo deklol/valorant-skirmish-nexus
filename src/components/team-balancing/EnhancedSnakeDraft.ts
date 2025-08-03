@@ -243,9 +243,12 @@ export const enhancedSnakeDraft = (
     validationTime: Date.now() - validationStartTime
   };
 
+  // Add validation steps to the main balance steps array
+  const allBalanceSteps = [...balanceSteps, ...validatedTeams.validationSteps];
+
   return {
     teams: validatedTeams.teams,
-    balanceSteps,
+    balanceSteps: allBalanceSteps,
     validationResult,
     adaptiveWeightCalculations: adaptiveWeightCalculations.length > 0 ? adaptiveWeightCalculations : undefined,
     finalBalance
@@ -284,10 +287,11 @@ const generateEnhancedReasoning = (
 const performPostBalanceValidation = (
   teams: any[][],
   initialBalance: any
-): { teams: any[][], adjustments: { swaps: Array<{ player1: string; player2: string; fromTeam: number; toTeam: number; reason: string; }> } } => {
+): { teams: any[][], adjustments: { swaps: Array<{ player1: string; player2: string; fromTeam: number; toTeam: number; reason: string; }> }, validationSteps: BalanceStep[] } => {
   // Deep copy the teams to avoid direct mutation of the original array
   let adjustedTeams = JSON.parse(JSON.stringify(teams));
   const adjustments: { swaps: Array<{ player1: string; player2: string; fromTeam: number; toTeam: number; reason: string; }> } = { swaps: [] };
+  const validationSteps: BalanceStep[] = [];
 
   let hasMadeSwap = true;
   const maxIterations = 10; // Increased iterations for better optimization
@@ -377,7 +381,29 @@ const performPostBalanceValidation = (
       // Record the swap with adaptive weight context
       const playerASource = bestSwap.playerA.weightSource || 'current_rank';
       const playerBSource = bestSwap.playerB.weightSource || 'current_rank';
-      const swapReason = `Comprehensive balance optimization: ${bestSwap.playerA.discord_username} (${bestSwap.playerA.adaptiveWeight}pts, ${playerASource}) ↔ ${bestSwap.playerB.discord_username} (${bestSwap.playerB.adaptiveWeight}pts, ${playerBSource}). Reduced max difference from ${currentBalance.maxPointDifference} to ${bestNewMaxDiff}pts.`;
+      const swapReason = `Post-Balance Optimization: Swapped ${bestSwap.playerA.discord_username} (${bestSwap.playerA.adaptiveWeight}pts, ${playerASource}) with ${bestSwap.playerB.discord_username} (${bestSwap.playerB.adaptiveWeight}pts, ${playerBSource}) to improve team balance. Reduced max point difference from ${currentBalance.maxPointDifference} to ${bestNewMaxDiff}pts and prevent skill stacking.`;
+
+      // Add validation step for this swap
+      const swapStep: BalanceStep = {
+        step: teams.reduce((sum, team) => sum + team.length, 0) + adjustments.swaps.length + 1,
+        player: {
+          id: `swap-${adjustments.swaps.length + 1}`,
+          discord_username: `${bestSwap.playerA.discord_username} ↔ ${bestSwap.playerB.discord_username}`,
+          points: 0,
+          rank: 'POST-BALANCE SWAP',
+          source: 'post_balance_validation',
+          adaptiveWeight: 0
+        },
+        assignedTeam: -1,
+        reasoning: swapReason,
+        teamStatesAfter: adjustedTeams.map((team, index) => ({
+          teamIndex: index,
+          totalPoints: team.reduce((sum, p) => sum + (p.adaptiveWeight || 150), 0),
+          playerCount: team.length
+        }))
+      };
+
+      validationSteps.push(swapStep);
 
       adjustments.swaps.push({
         player1: bestSwap.playerA.discord_username,
@@ -392,7 +418,8 @@ const performPostBalanceValidation = (
 
   return {
     teams: adjustedTeams,
-    adjustments
+    adjustments,
+    validationSteps
   };
 };
 
