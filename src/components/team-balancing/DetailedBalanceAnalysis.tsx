@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, CheckCircle, TrendingUp, Copy, Download, BarChart3, Users } from "lucide-react";
+import { AlertTriangle, CheckCircle, TrendingUp, Copy, Download, BarChart3, Users, Brain, Settings, Zap } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { EnhancedTeamResult, BalanceStep } from "./EnhancedSnakeDraft";
@@ -351,29 +351,174 @@ const DetailedBalanceAnalysis = ({ balanceResult, tournamentName }: DetailedBala
               
               {expandedSteps && (
                 <div className="bg-slate-700 rounded-lg p-4 max-h-96 overflow-y-auto">
-                  <div className="space-y-2">
-                     {balanceSteps.map((step, index) => (
-                       <div key={index} className="text-sm border-l-2 border-slate-600 pl-3 mb-3">
-                         <div className="text-slate-300">
-                           <span className="font-medium text-white">Step {step.step}:</span> 
-                           <span className="text-emerald-400 ml-2">{step.player.discord_username}</span>
-                           <span className="text-slate-400 ml-2">
-                             ({step.player.rank} • {step.player.points} pts
-                             {step.player.weightSource === 'adaptive_weight' && <span className="text-emerald-400"> • ADAPTIVE</span>}
-                             {step.player.weightSource === 'manual_override' && <span className="text-purple-400"> • OVERRIDE</span>}
-                             {step.player.weightSource === 'peak_rank' && <span className="text-amber-400"> • PEAK</span>}
-                             ) → Team {step.assignedTeam + 1}
-                           </span>
-                         </div>
-                         <div className="text-xs text-slate-500 mt-1">{step.reasoning}</div>
-                         {step.player.adaptiveReasoning && (
-                           <div className="text-xs text-emerald-300 mt-1 italic">
-                             Adaptive: {step.player.adaptiveReasoning}
-                           </div>
-                         )}
-                       </div>
-                     ))}
-                  </div>
+                  <div className="space-y-4">
+                     {balanceSteps.map((step, index) => {
+                       // Parse ATLAS reasoning for better display
+                       const parseAtlasReasoning = (reasoning: string) => {
+                         const sections = {
+                           playerInfo: '',
+                           atlasAnalysis: '',
+                           evidenceFactors: '',
+                           teamSelection: '',
+                           balanceImpact: ''
+                         };
+                         
+                         if (reasoning.includes('ATLAS evaluated:')) {
+                           const parts = reasoning.split('ATLAS evaluated:');
+                           sections.playerInfo = parts[0].replace('🏛️ ATLAS Smart Balancing:', '').trim();
+                           const remaining = parts[1];
+                           
+                           if (remaining.includes('Evidence factors considered:')) {
+                             const evidenceParts = remaining.split('Evidence factors considered:');
+                             sections.atlasAnalysis = evidenceParts[0].trim();
+                             const afterEvidence = evidenceParts[1];
+                             
+                             if (afterEvidence.includes('Team selection logic:')) {
+                               const teamParts = afterEvidence.split('Team selection logic:');
+                               sections.evidenceFactors = teamParts[0].replace(/[\[\]]/g, '').trim();
+                               sections.teamSelection = teamParts[1].split('Post-assignment:')[0].trim();
+                               if (teamParts[1].includes('Post-assignment:')) {
+                                 sections.balanceImpact = teamParts[1].split('Post-assignment:')[1].trim();
+                               }
+                             }
+                           }
+                         } else if (reasoning.includes('🏛️ ATLAS Elite Distribution:')) {
+                           sections.playerInfo = reasoning.split('ATLAS Analysis:')[0].replace('🏛️ ATLAS Elite Distribution:', '').trim();
+                           if (reasoning.includes('ATLAS Analysis:')) {
+                             sections.atlasAnalysis = reasoning.split('ATLAS Analysis:')[1].split('Evidence factors:')[0].trim();
+                             if (reasoning.includes('Evidence factors:')) {
+                               sections.evidenceFactors = reasoning.split('Evidence factors:')[1].split('Elite skill distribution:')[0].replace(/[\[\]]/g, '').trim();
+                               sections.teamSelection = reasoning.split('Elite skill distribution:')[1].trim();
+                             }
+                           }
+                         }
+                         
+                         return sections;
+                       };
+                       
+                       const isAtlasStep = step.reasoning.includes('🏛️ ATLAS');
+                       const parsedReasoning = isAtlasStep ? parseAtlasReasoning(step.reasoning) : null;
+                       
+                       return (
+                        <div key={index} className="border border-slate-600 rounded-lg p-4 bg-slate-800/50">
+                          {/* Step Header */}
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <Badge variant="outline" className="text-slate-300 border-slate-500">
+                                Step {step.step}
+                              </Badge>
+                              <span className="font-medium text-emerald-400 text-lg">{step.player.discord_username}</span>
+                            </div>
+                            <Badge className="bg-blue-600 text-white">
+                              Team {step.assignedTeam + 1}
+                            </Badge>
+                          </div>
+                          
+                          {/* Player Info Bar */}
+                          <div className="flex items-center gap-4 mb-3 p-2 bg-slate-700/50 rounded">
+                            <div className="flex items-center gap-2">
+                              <span className="text-slate-400 text-sm">Rank:</span>
+                              <Badge variant="outline" className="text-white border-slate-500">
+                                {step.player.rank}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-slate-400 text-sm">Points:</span>
+                              <Badge className="bg-emerald-600 text-white">
+                                {step.player.points} pts
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-slate-400 text-sm">Source:</span>
+                              <Badge 
+                                className={
+                                  step.player.weightSource === 'adaptive_weight' ? 'bg-emerald-600 text-white' :
+                                  step.player.weightSource === 'manual_override' ? 'bg-purple-600 text-white' :
+                                  step.player.weightSource === 'peak_rank' ? 'bg-amber-600 text-white' :
+                                  'bg-slate-600 text-white'
+                                }
+                              >
+                                {step.player.weightSource === 'adaptive_weight' ? 'ATLAS' :
+                                 step.player.weightSource === 'manual_override' ? 'OVERRIDE' :
+                                 step.player.weightSource === 'peak_rank' ? 'PEAK' : 'STANDARD'}
+                              </Badge>
+                            </div>
+                          </div>
+                          
+                          {/* ATLAS Structured Reasoning */}
+                          {isAtlasStep && parsedReasoning ? (
+                            <div className="space-y-3">
+                              {parsedReasoning.atlasAnalysis && (
+                                <div className="bg-slate-700/30 rounded p-3">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <Brain className="w-4 h-4 text-emerald-400" />
+                                    <span className="font-medium text-white text-sm">ATLAS Analysis</span>
+                                  </div>
+                                  <p className="text-slate-300 text-sm">{parsedReasoning.atlasAnalysis}</p>
+                                </div>
+                              )}
+                              
+                              {parsedReasoning.evidenceFactors && (
+                                <div className="bg-slate-700/30 rounded p-3">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <TrendingUp className="w-4 h-4 text-blue-400" />
+                                    <span className="font-medium text-white text-sm">Evidence Factors</span>
+                                  </div>
+                                  <div className="flex flex-wrap gap-1">
+                                    {parsedReasoning.evidenceFactors.split(',').map((factor, i) => (
+                                      <Badge key={i} variant="outline" className="text-xs border-blue-400 text-blue-400">
+                                        {factor.trim()}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {parsedReasoning.teamSelection && (
+                                <div className="bg-slate-700/30 rounded p-3">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <Users className="w-4 h-4 text-purple-400" />
+                                    <span className="font-medium text-white text-sm">Team Selection Logic</span>
+                                  </div>
+                                  <p className="text-slate-300 text-sm">{parsedReasoning.teamSelection}</p>
+                                </div>
+                              )}
+                              
+                              {parsedReasoning.balanceImpact && (
+                                <div className="bg-slate-700/30 rounded p-3">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <BarChart3 className="w-4 h-4 text-yellow-400" />
+                                    <span className="font-medium text-white text-sm">Balance Impact</span>
+                                  </div>
+                                  <p className="text-slate-300 text-sm">{parsedReasoning.balanceImpact}</p>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            /* Fallback for non-ATLAS reasoning */
+                            <div className="bg-slate-700/30 rounded p-3">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Settings className="w-4 h-4 text-slate-400" />
+                                <span className="font-medium text-white text-sm">Assignment Reasoning</span>
+                              </div>
+                              <p className="text-slate-300 text-sm">{step.reasoning}</p>
+                            </div>
+                          )}
+                          
+                          {/* Adaptive Reasoning (if present) */}
+                          {step.player.adaptiveReasoning && (
+                            <div className="mt-3 bg-emerald-900/20 border border-emerald-500/30 rounded p-3">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Zap className="w-4 h-4 text-emerald-400" />
+                                <span className="font-medium text-emerald-400 text-sm">Adaptive Weight Details</span>
+                              </div>
+                              <p className="text-emerald-300 text-sm italic">{step.player.adaptiveReasoning}</p>
+                            </div>
+                          )}
+                        </div>
+                       );
+                     })}
+                   </div>
                 </div>
               )}
             </div>
