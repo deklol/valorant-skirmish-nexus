@@ -1,6 +1,8 @@
 // Evidence-Based Weight System - focuses on boosting skilled players, not penalizing them
 import { RANK_POINT_MAPPING } from "./rankingSystem";
 import { getRankPointsWithManualOverride, EnhancedRankPointsResult, UserRankData } from "./rankingSystemWithOverrides";
+import { MiniAiDecisionSystem, MiniAiAnalysis } from "./miniAiDecisionSystem";
+import { PlayerSkillData } from "./playerAnalysisEngine";
 
 // Extended interface for tournament winner data
 export interface ExtendedUserRankData extends UserRankData {
@@ -37,6 +39,14 @@ export interface EvidenceBasedCalculation {
 
 export interface EnhancedEvidenceResult extends EnhancedRankPointsResult {
   evidenceCalculation?: EvidenceBasedCalculation;
+  miniAiAnalysis?: MiniAiAnalysis;
+}
+
+export interface EvidenceWithMiniAi {
+  evidenceResult: EnhancedEvidenceResult;
+  miniAiRecommendations?: any[];
+  finalAdjustedPoints: number;
+  adjustmentReasoning: string;
 }
 
 const DEFAULT_EVIDENCE_CONFIG: EvidenceBasedConfig = {
@@ -50,6 +60,83 @@ const DEFAULT_EVIDENCE_CONFIG: EvidenceBasedConfig = {
     maxElitePerTeam: 1 // Max 1 elite player per team
   }
 };
+
+/**
+ * Calculate evidence-based weight with Mini-AI enhancement
+ */
+export function calculateEvidenceBasedWeightWithMiniAi(
+  userData: ExtendedUserRankData,
+  config: EvidenceBasedConfig = DEFAULT_EVIDENCE_CONFIG,
+  enableMiniAi: boolean = true
+): Promise<EvidenceWithMiniAi> {
+  return new Promise(async (resolve) => {
+    const evidenceResult = calculateEvidenceBasedWeight(userData, config);
+    
+    if (!enableMiniAi) {
+      resolve({
+        evidenceResult,
+        finalAdjustedPoints: evidenceResult.points,
+        adjustmentReasoning: evidenceResult.evidenceCalculation?.calculationReasoning || 'Standard evidence-based calculation'
+      });
+      return;
+    }
+
+    try {
+      // Convert to PlayerSkillData format for Mini-AI
+      const playerSkillData: PlayerSkillData = {
+        userId: (userData as any).id || 'unknown',
+        username: (userData as any).discord_username || 'Unknown',
+        currentRank: userData.current_rank,
+        peakRank: userData.peak_rank,
+        basePoints: evidenceResult.points,
+        tournamentsWon: userData.tournaments_won || 0,
+        tournamentsPlayed: (userData as any).tournaments_played,
+        wins: (userData as any).wins,
+        losses: (userData as any).losses,
+        lastRankUpdate: (userData as any).last_rank_update ? new Date((userData as any).last_rank_update) : undefined,
+        lastTournamentWin: userData.last_tournament_win ? new Date(userData.last_tournament_win) : undefined,
+        weightRating: userData.weight_rating
+      };
+
+      // Run Mini-AI analysis
+      const miniAi = new MiniAiDecisionSystem({
+        aggressivenessLevel: 'moderate',
+        confidenceThreshold: 75,
+        maxAdjustmentPercent: 0.30,
+        logging: { enableDetailedLogging: true, logPlayerAnalysis: true, logTeamAnalysis: false, logDecisions: true }
+      });
+
+      const miniAiAnalysis = await miniAi.analyzeAndDecide([playerSkillData]);
+      const playerAnalysis = miniAiAnalysis.playerAnalyses[0];
+      
+      let finalPoints = evidenceResult.points;
+      let adjustmentReasoning = evidenceResult.evidenceCalculation?.calculationReasoning || '';
+      
+      if (playerAnalysis && playerAnalysis.adjustedPoints !== playerAnalysis.originalPoints) {
+        finalPoints = playerAnalysis.adjustedPoints;
+        adjustmentReasoning += ` | MINI-AI: ${playerAnalysis.adjustmentReason} (Confidence: ${playerAnalysis.confidenceScore}%)`;
+      }
+
+      resolve({
+        evidenceResult: {
+          ...evidenceResult,
+          points: finalPoints,
+          miniAiAnalysis
+        },
+        miniAiRecommendations: miniAiAnalysis.decisions,
+        finalAdjustedPoints: finalPoints,
+        adjustmentReasoning
+      });
+    } catch (error) {
+      console.error('Mini-AI analysis failed, falling back to evidence-based:', error);
+      resolve({
+        evidenceResult,
+        finalAdjustedPoints: evidenceResult.points,
+        adjustmentReasoning: evidenceResult.evidenceCalculation?.calculationReasoning || 'Evidence-based calculation (Mini-AI failed)'
+      });
+    }
+  });
+}
 
 /**
  * Calculate evidence-based weight that BOOSTS skilled players instead of penalizing them

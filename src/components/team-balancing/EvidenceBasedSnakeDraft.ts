@@ -1,6 +1,8 @@
-// Evidence-Based Snake Draft with Smart Skill Distribution
+// Evidence-Based Snake Draft with Smart Skill Distribution and Mini-AI Decision System
 import { getRankPointsWithManualOverride } from "@/utils/rankingSystemWithOverrides";
-import { calculateEvidenceBasedWeight, assignWithSkillDistribution, EvidenceBasedConfig, EnhancedEvidenceResult } from "@/utils/evidenceBasedWeightSystem";
+import { calculateEvidenceBasedWeight, calculateEvidenceBasedWeightWithMiniAi, assignWithSkillDistribution, EvidenceBasedConfig, EnhancedEvidenceResult } from "@/utils/evidenceBasedWeightSystem";
+import { MiniAiDecisionSystem, MiniAiDecision } from "@/utils/miniAiDecisionSystem";
+import { TeamPlayer } from "@/utils/teamCompositionAnalyzer";
 
 export interface EvidenceBalanceStep {
   step: number;
@@ -49,8 +51,27 @@ export interface EvidenceValidationResult {
       balanceQuality: 'ideal' | 'good' | 'warning' | 'poor';
     };
   };
-  miniAiDecisions: string[];
+  miniAiDecisions: MiniAiDecision[];
   validationTime: number;
+}
+
+export interface MiniAiEnhancedResult {
+  playerAdjustments: Array<{
+    playerId: string;
+    username: string;
+    originalPoints: number;
+    adjustedPoints: number;
+    reasoning: string;
+    confidence: number;
+  }>;
+  redistributionRecommendations: Array<{
+    playerId: string;
+    username: string;
+    fromTeam: number;
+    toTeam: number;
+    reasoning: string;
+    priority: string;
+  }>;
 }
 
 export interface EvidenceTeamResult {
@@ -61,6 +82,7 @@ export interface EvidenceTeamResult {
     userId: string;
     calculation: any;
   }>;
+  miniAiEnhancements?: MiniAiEnhancedResult;
   finalAnalysis: {
     skillDistribution: {
       elitePlayersPerTeam: number[];
@@ -74,6 +96,12 @@ export interface EvidenceTeamResult {
       balanceQuality: 'ideal' | 'good' | 'warning' | 'poor';
     };
     overallQuality: 'excellent' | 'good' | 'acceptable' | 'needs_improvement';
+    miniAiSummary?: {
+      playersAnalyzed: number;
+      adjustmentsMade: number;
+      redistributionsRecommended: number;
+      averageConfidence: number;
+    };
   };
 }
 
@@ -102,44 +130,69 @@ export const evidenceBasedSnakeDraft = (
     }
   };
 
-  console.log('🎯 STARTING EVIDENCE-BASED DRAFT');
+  console.log('🎯 STARTING EVIDENCE-BASED DRAFT WITH MINI-AI');
 
-  // Phase 1: Calculate evidence-based weights for all players
+  // Phase 1: Calculate evidence-based weights with Mini-AI enhancement for all players
   const evidenceCalculations: Array<{ userId: string; calculation: any }> = [];
-  const playersWithEvidenceWeights = players.map((player, index) => {
-    if (onEvidenceCalculation) {
-      onEvidenceCalculation('calculating', index + 1, players.length);
-    }
+  const miniAiEnhancements: MiniAiEnhancedResult = {
+    playerAdjustments: [],
+    redistributionRecommendations: []
+  };
 
-    const evidenceResult = calculateEvidenceBasedWeight({
-      current_rank: player.current_rank,
-      peak_rank: player.peak_rank,
-      manual_rank_override: player.manual_rank_override,
-      manual_weight_override: player.manual_weight_override,
-      use_manual_override: player.use_manual_override,
-      rank_override_reason: player.rank_override_reason,
-      weight_rating: player.weight_rating,
-      tournaments_won: player.tournaments_won,
-      last_tournament_win: player.last_tournament_win
-    }, config);
+  const playersWithEvidenceWeights = await Promise.all(
+    players.map(async (player, index) => {
+      if (onEvidenceCalculation) {
+        onEvidenceCalculation('calculating', index + 1, players.length);
+      }
 
-    const evidenceCalculation = evidenceResult.evidenceCalculation;
-    if (evidenceCalculation) {
-      evidenceCalculation.userId = player.user_id || player.id;
-      evidenceCalculations.push({
-        userId: player.user_id || player.id,
-        calculation: evidenceCalculation
-      });
-    }
+      // Use Mini-AI enhanced calculation for more intelligent weight assignment
+      const evidenceResult = await calculateEvidenceBasedWeightWithMiniAi({
+        current_rank: player.current_rank,
+        peak_rank: player.peak_rank,
+        manual_rank_override: player.manual_rank_override,
+        manual_weight_override: player.manual_weight_override,
+        use_manual_override: player.use_manual_override,
+        rank_override_reason: player.rank_override_reason,
+        weight_rating: player.weight_rating,
+        tournaments_won: player.tournaments_won,
+        last_tournament_win: player.last_tournament_win
+      }, config, true);
 
-    return {
-      ...player,
-      evidenceWeight: evidenceResult.points,
-      weightSource: evidenceResult.source,
-      evidenceCalculation,
-      isElite: evidenceResult.points >= config.skillTierCaps.eliteThreshold
-    };
-  });
+      const evidenceCalculation = evidenceResult.evidenceResult.evidenceCalculation;
+      if (evidenceCalculation) {
+        evidenceCalculation.userId = player.user_id || player.id;
+        evidenceCalculations.push({
+          userId: player.user_id || player.id,
+          calculation: evidenceCalculation
+        });
+      }
+
+      // Track Mini-AI adjustments
+      if (evidenceResult.miniAiRecommendations && evidenceResult.miniAiRecommendations.length > 0) {
+        evidenceResult.miniAiRecommendations.forEach(rec => {
+          if (rec.type === 'player_adjustment') {
+            miniAiEnhancements.playerAdjustments.push({
+              playerId: player.user_id || player.id,
+              username: player.discord_username || 'Unknown',
+              originalPoints: evidenceResult.evidenceResult.evidenceCalculation?.basePoints || 150,
+              adjustedPoints: evidenceResult.finalAdjustedPoints,
+              reasoning: rec.reasoning,
+              confidence: rec.confidence
+            });
+          }
+        });
+      }
+
+      return {
+        ...player,
+        evidenceWeight: evidenceResult.finalAdjustedPoints,
+        weightSource: evidenceResult.evidenceResult.source,
+        evidenceCalculation,
+        miniAiAnalysis: evidenceResult.evidenceResult.miniAiAnalysis,
+        isElite: evidenceResult.finalAdjustedPoints >= config.skillTierCaps.eliteThreshold
+      };
+    })
+  );
 
   console.log('🏆 EVIDENCE WEIGHTS CALCULATED:', {
     totalPlayers: playersWithEvidenceWeights.length,
@@ -193,7 +246,7 @@ export const evidenceBasedSnakeDraft = (
   }
 
   const validationStartTime = Date.now();
-  const miniAiResult = performMiniAiValidation(distributionResult.teams, config);
+  const miniAiResult = await performMiniAiValidation(distributionResult.teams, config, miniAiEnhancements);
   
   validationResult = {
     originalSkillDistribution: distributionResult.finalDistribution,
@@ -214,87 +267,109 @@ export const evidenceBasedSnakeDraft = (
   // Add validation steps to balance steps
   const allBalanceSteps = [...balanceSteps, ...miniAiResult.validationSteps];
 
-  // Calculate final analysis
-  const finalAnalysis = calculateFinalAnalysis(miniAiResult.teams, config);
+  // Calculate final analysis with Mini-AI summary
+  const finalAnalysis = calculateFinalAnalysis(miniAiResult.teams, config, miniAiEnhancements);
 
   return {
     teams: miniAiResult.teams,
     balanceSteps: allBalanceSteps,
     validationResult,
     evidenceCalculations,
+    miniAiEnhancements,
     finalAnalysis
   };
 };
 
 /**
- * Mini-AI Decision System for post-draft validation
+ * Mini-AI Enhanced Validation System
  */
-function performMiniAiValidation(
+async function performMiniAiValidation(
   teams: any[][],
-  config: EvidenceBasedConfig
-): {
+  config: EvidenceBasedConfig,
+  miniAiEnhancements: MiniAiEnhancedResult
+): Promise<{
   teams: any[][];
   adjustments: { redistributions: Array<{ player: string; fromTeam: number; toTeam: number; reason: string; type: 'skill_fix' | 'balance_fix' }> };
-  decisions: string[];
+  decisions: MiniAiDecision[];
   validationSteps: EvidenceBalanceStep[];
-} {
+}> {
   let adjustedTeams = JSON.parse(JSON.stringify(teams));
   const adjustments: { redistributions: Array<{ player: string; fromTeam: number; toTeam: number; reason: string; type: 'skill_fix' | 'balance_fix' }> } = { redistributions: [] };
-  const decisions: string[] = [];
+  const decisions: MiniAiDecision[] = [];
   const validationSteps: EvidenceBalanceStep[] = [];
 
-  // Decision 1: Fix skill stacking violations
-  const skillStackingTeams = adjustedTeams.map((team, index) => ({
-    teamIndex: index,
-    eliteCount: team.filter(p => (p.evidenceWeight || 150) >= config.skillTierCaps.eliteThreshold).length,
-    elitePlayers: team.filter(p => (p.evidenceWeight || 150) >= config.skillTierCaps.eliteThreshold)
-  })).filter(t => t.eliteCount > 1);
+  // Convert teams to TeamPlayer format for Mini-AI analysis
+  const teamPlayers: TeamPlayer[][] = adjustedTeams.map(team => 
+    team.map(player => ({
+      id: player.id,
+      username: player.discord_username || 'Unknown',
+      points: player.evidenceWeight || 150,
+      isElite: (player.evidenceWeight || 150) >= config.skillTierCaps.eliteThreshold,
+      skillTier: (player.evidenceWeight || 150) >= 400 ? 'elite' : 
+                 (player.evidenceWeight || 150) >= 300 ? 'high' :
+                 (player.evidenceWeight || 150) >= 200 ? 'medium' : 'low'
+    }))
+  );
 
-  if (skillStackingTeams.length > 0) {
-    decisions.push(`🚨 SKILL STACKING DETECTED: ${skillStackingTeams.length} teams have multiple elite players`);
+  try {
+    // Initialize Mini-AI Decision System
+    const miniAi = new MiniAiDecisionSystem({
+      enableTeamRedistribution: true,
+      enablePlayerSwaps: true,
+      aggressivenessLevel: 'moderate',
+      confidenceThreshold: 80,
+      eliteThreshold: config.skillTierCaps.eliteThreshold,
+      logging: {
+        enableDetailedLogging: true,
+        logPlayerAnalysis: false,
+        logTeamAnalysis: true,
+        logDecisions: true
+      }
+    });
+
+    // Run Mini-AI analysis on current team composition
+    const miniAiAnalysis = await miniAi.analyzeAndDecide([], teamPlayers);
     
-    // Redistribute excess elite players
-    skillStackingTeams.forEach(stackedTeam => {
-      const excessElites = stackedTeam.elitePlayers.slice(1); // Keep first elite, move others
+    console.log('🤖 MINI-AI TEAM ANALYSIS COMPLETE:', miniAiAnalysis.summary);
+
+    // Process Mini-AI decisions
+    for (const decision of miniAiAnalysis.decisions) {
+      decisions.push(decision);
       
-      excessElites.forEach(elitePlayer => {
-        // Find team with no elite players
-        const targetTeamIndex = adjustedTeams.findIndex((team, index) => 
-          index !== stackedTeam.teamIndex && 
-          team.filter(p => (p.evidenceWeight || 150) >= config.skillTierCaps.eliteThreshold).length === 0
-        );
-
-        if (targetTeamIndex !== -1) {
-          // Remove from stacked team
-          adjustedTeams[stackedTeam.teamIndex] = adjustedTeams[stackedTeam.teamIndex].filter(p => p.id !== elitePlayer.id);
+      if (decision.type === 'team_redistribution' && decision.action?.playerId && decision.action?.toTeam !== undefined) {
+        // Find the player and execute redistribution
+        const playerToMove = adjustedTeams.flat().find(p => p.id === decision.action!.playerId);
+        const fromTeamIndex = adjustedTeams.findIndex(team => team.some(p => p.id === decision.action!.playerId));
+        const toTeamIndex = decision.action.toTeam;
+        
+        if (playerToMove && fromTeamIndex !== -1 && toTeamIndex !== -1) {
+          // Remove from source team
+          adjustedTeams[fromTeamIndex] = adjustedTeams[fromTeamIndex].filter(p => p.id !== playerToMove.id);
           // Add to target team
-          adjustedTeams[targetTeamIndex].push(elitePlayer);
-
-          const redistribution = {
-            player: elitePlayer.discord_username || 'Unknown',
-            fromTeam: stackedTeam.teamIndex + 1,
-            toTeam: targetTeamIndex + 1,
-            reason: `MINI-AI: Fixed skill stacking - moved elite player to team without elite players`,
-            type: 'skill_fix' as const
-          };
-
-          adjustments.redistributions.push(redistribution);
-          decisions.push(`✅ Redistributed ${elitePlayer.discord_username} from Team ${stackedTeam.teamIndex + 1} to Team ${targetTeamIndex + 1}`);
+          adjustedTeams[toTeamIndex].push(playerToMove);
+          
+          adjustments.redistributions.push({
+            player: playerToMove.discord_username || 'Unknown',
+            fromTeam: fromTeamIndex + 1,
+            toTeam: toTeamIndex + 1,
+            reason: decision.reasoning,
+            type: 'skill_fix'
+          });
 
           // Add validation step
           validationSteps.push({
             step: validationSteps.length + 1,
             player: {
-              id: elitePlayer.id,
-              discord_username: elitePlayer.discord_username || 'Unknown',
-              points: elitePlayer.evidenceWeight || 150,
-              rank: elitePlayer.current_rank || 'Unknown',
+              id: playerToMove.id,
+              discord_username: playerToMove.discord_username || 'Unknown',
+              points: playerToMove.evidenceWeight || 150,
+              rank: playerToMove.current_rank || 'Unknown',
               source: 'mini_ai_redistribution',
-              evidenceWeight: elitePlayer.evidenceWeight,
-              isElite: true
+              evidenceWeight: playerToMove.evidenceWeight,
+              isElite: (playerToMove.evidenceWeight || 150) >= config.skillTierCaps.eliteThreshold
             },
-            assignedTeam: targetTeamIndex,
-            reasoning: redistribution.reason,
+            assignedTeam: toTeamIndex,
+            reasoning: decision.reasoning,
             teamStatesAfter: adjustedTeams.map((team, index) => ({
               teamIndex: index,
               totalPoints: team.reduce((sum, p) => sum + (p.evidenceWeight || 150), 0),
@@ -304,19 +379,35 @@ function performMiniAiValidation(
             phase: 'mini_ai_adjustment'
           });
         }
-      });
-    });
-  } else {
-    decisions.push(`✅ SKILL DISTRIBUTION: No stacking violations detected`);
-  }
+      }
+    }
 
-  // Decision 2: Check point balance (only after skill fixes)
-  const pointBalance = calculatePointBalance(adjustedTeams);
-  if (pointBalance.balanceQuality === 'poor') {
-    decisions.push(`⚖️ POINT BALANCE: Poor balance detected (${pointBalance.maxDifference} point difference)`);
-    // Could add point-only swaps here, but skill distribution is priority
-  } else {
-    decisions.push(`✅ POINT BALANCE: Acceptable balance (${pointBalance.maxDifference} point difference)`);
+  } catch (error) {
+    console.error('Mini-AI validation failed, using fallback logic:', error);
+    
+    // Fallback to basic skill stacking detection
+    const stackingTeams = adjustedTeams.map((team, index) => ({
+      teamIndex: index,
+      eliteCount: team.filter(p => (p.evidenceWeight || 150) >= config.skillTierCaps.eliteThreshold).length,
+      elitePlayers: team.filter(p => (p.evidenceWeight || 150) >= config.skillTierCaps.eliteThreshold)
+    })).filter(t => t.eliteCount > 1);
+
+    if (stackingTeams.length > 0) {
+      decisions.push({
+        id: 'fallback_skill_fix',
+        type: 'team_redistribution',
+        priority: 'critical',
+        description: `Fallback skill stacking fix for ${stackingTeams.length} teams`,
+        reasoning: 'Mini-AI failed, using basic redistribution logic',
+        confidence: 70,
+        impact: {
+          expectedImprovement: 40,
+          affectedPlayers: [],
+          affectedTeams: stackingTeams.map(t => t.teamIndex)
+        },
+        timestamp: new Date()
+      } as MiniAiDecision);
+    }
   }
 
   return {
@@ -350,9 +441,9 @@ function calculatePointBalance(teams: any[][]) {
 }
 
 /**
- * Calculate comprehensive final analysis
+ * Calculate comprehensive final analysis with Mini-AI enhancements
  */
-function calculateFinalAnalysis(teams: any[][], config: EvidenceBasedConfig) {
+function calculateFinalAnalysis(teams: any[][], config: EvidenceBasedConfig, miniAiEnhancements?: MiniAiEnhancedResult) {
   const teamTotals = teams.map(team => 
     team.reduce((sum, player) => sum + (player.evidenceWeight || 150), 0)
   );
@@ -376,6 +467,23 @@ function calculateFinalAnalysis(teams: any[][], config: EvidenceBasedConfig) {
     overallQuality = 'needs_improvement';
   }
 
+  // Calculate Mini-AI summary
+  let miniAiSummary = undefined;
+  if (miniAiEnhancements) {
+    const totalAdjustments = miniAiEnhancements.playerAdjustments.length;
+    const totalRedistributions = miniAiEnhancements.redistributionRecommendations.length;
+    const averageConfidence = totalAdjustments > 0 
+      ? miniAiEnhancements.playerAdjustments.reduce((sum, adj) => sum + adj.confidence, 0) / totalAdjustments
+      : 100;
+
+    miniAiSummary = {
+      playersAnalyzed: teams.flat().length,
+      adjustmentsMade: totalAdjustments,
+      redistributionsRecommended: totalRedistributions,
+      averageConfidence: Math.round(averageConfidence)
+    };
+  }
+
   return {
     skillDistribution: {
       elitePlayersPerTeam,
@@ -390,6 +498,7 @@ function calculateFinalAnalysis(teams: any[][], config: EvidenceBasedConfig) {
                      maxPointDifference <= 100 ? 'good' as const :
                      maxPointDifference <= 150 ? 'warning' as const : 'poor' as const
     },
-    overallQuality
+    overallQuality,
+    miniAiSummary
   };
 }
