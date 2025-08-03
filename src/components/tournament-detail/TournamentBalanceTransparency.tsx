@@ -188,96 +188,93 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
 
   // Parse ATLAS reasoning into human-readable explanations
   const parseAtlasReasoning = (reasoning: string) => {
-    // Extract basic player assignment info
-    const playerMatch = reasoning.match(/Assigning (.+?) \((.+?)\) to (.+?) \((\d+)\spts?\)/);
-    if (!playerMatch) {
-      // Try alternative formats
-      const altMatch = reasoning.match(/(\w+)\s+\((\w+)\s+(\d+)pts\)/);
-      if (!altMatch) return null;
-      
-      return {
-        playerName: altMatch[1],
-        rank: altMatch[2],
-        points: parseInt(altMatch[3]),
-        teamName: "Team (assignment detected)",
-        type: "Unknown Assignment",
-        explanation: "This player was assigned to balance the teams.",
-        factors: [],
-        impact: "Team balance optimized"
-      };
-    }
-
-    const [, playerName, rank, teamName, points] = playerMatch;
-
-    // Determine assignment type and create human explanation
+    // Handle the actual format from the screenshot: "ATLAS Elite Distribution: keratasf (465pts) → Team 1"
+    let playerName = "";
+    let rank = "";
+    let points = 0;
+    let teamName = "";
     let type = "Smart Assignment";
     let explanation = "";
     let factors = [];
     let impact = "";
 
-    // Parse for Elite Distribution
-    if (reasoning.includes("Elite Distribution") || reasoning.includes("Elite skill distribution")) {
+    // Try to extract player info from various formats
+    const eliteDistMatch = reasoning.match(/ATLAS Elite Distribution:\s*(\w+)\s*\((\d+)pts\)\s*→\s*(.+?)\./);
+    const smartBalanceMatch = reasoning.match(/ATLAS Smart Balancing:\s*(\w+)\s*\((\d+)pts\)\s*→\s*(.+?)\./);
+    const generalMatch = reasoning.match(/(\w+)\s*\((\w+)\s*(\d+)pts?\)/);
+
+    if (eliteDistMatch) {
+      [, playerName, , teamName] = eliteDistMatch;
+      points = parseInt(eliteDistMatch[2]);
       type = "Elite Player Distribution";
-      explanation = `${playerName} is a high-skill player (${rank} rank) who was carefully placed to prevent skill stacking and ensure fair competition.`;
+      rank = "Elite"; // Default for elite
+      explanation = `${playerName} is an elite player who was distributed strategically to prevent skill stacking and maintain competitive balance across teams.`;
       
-      if (reasoning.includes("Round-robin assignment")) {
-        factors.push({ label: "Distribution Method", value: "Round-robin to prevent stacking", type: "info" });
-      }
-      if (reasoning.includes("max 1 elite per team")) {
-        factors.push({ label: "Elite Limit", value: "Max 1 elite player per team", type: "rule" });
+      factors.push({ label: "Player Category", value: "Elite Tier (500+ points)", type: "skill" });
+      factors.push({ label: "Distribution Strategy", value: "Round-robin to prevent stacking", type: "rule" });
+      factors.push({ label: "Team Limit", value: "Maximum 1 elite per team", type: "rule" });
+      impact = "Elite players distributed evenly for fair competition";
+      
+    } else if (smartBalanceMatch) {
+      [, playerName, , teamName] = smartBalanceMatch;
+      points = parseInt(smartBalanceMatch[2]);
+      type = "Smart Team Balancing";
+      rank = "Balanced"; // Default
+      explanation = `${playerName} was assigned to ${teamName} based on skill analysis to create the most balanced team composition.`;
+      
+      factors.push({ label: "Assignment Method", value: "Optimal team balancing", type: "balance" });
+      factors.push({ label: "Team Selection", value: "Joined team needing their skill level", type: "balance" });
+      impact = "Team strengths optimized for competitive balance";
+      
+    } else if (generalMatch) {
+      [, playerName, rank] = generalMatch;
+      points = parseInt(generalMatch[3]);
+      teamName = "Team (auto-assigned)";
+      explanation = `${playerName} (${rank} rank) was assigned to balance team compositions.`;
+      
+      factors.push({ label: "Player Rank", value: rank, type: "skill" });
+      factors.push({ label: "Point Value", value: `${points} points`, type: "skill" });
+      impact = "Player assigned for optimal team balance";
+    } else {
+      return null; // Couldn't parse
+    }
+
+    // Extract additional details from the reasoning text
+    if (reasoning.includes("Current rank Unrated") || reasoning.includes("Unrated")) {
+      rank = "Unrated";
+      factors.push({ label: "Current Rank", value: "Unrated", type: "skill" });
+    }
+    
+    if (reasoning.includes("Peak Rank: Radiant")) {
+      factors.push({ label: "Peak Achievement", value: "Radiant (highest tier)", type: "peak" });
+    } else if (reasoning.includes("Peak Rank:")) {
+      const peakMatch = reasoning.match(/Peak Rank:\s*(\w+)/);
+      if (peakMatch) {
+        factors.push({ label: "Peak Achievement", value: peakMatch[1], type: "peak" });
       }
     }
     
-    // Parse for Smart Balancing
-    else if (reasoning.includes("Smart Balancing")) {
-      type = "Smart Team Balancing";
-      explanation = `${playerName} was assigned to the team that needed their skill level most to create balanced competition.`;
-      
-      // Extract specific factors
-      if (reasoning.includes("Current Rank:")) {
-        const currentRankMatch = reasoning.match(/Current Rank: (\w+) \((\d+) base points\)/);
-        if (currentRankMatch) {
-          factors.push({ 
-            label: "Current Skill", 
-            value: `${currentRankMatch[1]} (${currentRankMatch[2]} points)`, 
-            type: "skill" 
-          });
-        }
-      }
-      
-      if (reasoning.includes("Peak Rank:")) {
-        const peakRankMatch = reasoning.match(/Peak Rank: (\w+) \((\d+) base points\)/);
-        if (peakRankMatch) {
-          factors.push({ 
-            label: "Peak Performance", 
-            value: `${peakRankMatch[1]} (${peakRankMatch[2]} points)`, 
-            type: "peak" 
-          });
-        }
-      }
-      
-      if (reasoning.includes("lowest total")) {
-        factors.push({ label: "Team Selection", value: "Joined weakest team for balance", type: "balance" });
-      }
+    if (reasoning.includes("Elite Tier Player")) {
+      factors.push({ label: "Classification", value: "Elite Tier Player (500+ pts)", type: "skill" });
+    }
+    
+    if (reasoning.includes("Round-robin assignment")) {
+      factors.push({ label: "Assignment Logic", value: "Round-robin distribution", type: "rule" });
+    }
+    
+    if (reasoning.includes("Strategic placement")) {
+      factors.push({ label: "Strategy", value: "Strategic elite placement", type: "rule" });
     }
 
-    // Extract balance impact
-    if (reasoning.includes("Balance impact")) {
-      const impactMatch = reasoning.match(/Balance impact[^:]*:\s*(.+?)(?=\.|$)/s);
-      if (impactMatch) {
-        impact = impactMatch[1].trim();
-      }
-    } else if (reasoning.includes("Post-assignment")) {
-      impact = "Team strengths have been equalized";
-    } else {
-      impact = "Overall team balance improved";
+    if (reasoning.includes("lowest total") || reasoning.includes("optimal balance")) {
+      factors.push({ label: "Team Selection", value: "Joined team with lowest total points", type: "balance" });
     }
 
     return {
       playerName,
       rank,
       teamName,
-      points: parseInt(points),
+      points,
       type,
       explanation,
       factors,
