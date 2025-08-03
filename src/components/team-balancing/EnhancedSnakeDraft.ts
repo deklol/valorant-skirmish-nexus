@@ -124,7 +124,7 @@ export const enhancedSnakeDraft = (
   const sortedPlayers = playersWithAdaptiveWeights.sort((a, b) => b.adaptiveWeight - a.adaptiveWeight);
 
   // Initialize teams
-  const teams: any[][] = Array(numTeams).fill(null).map(() => []);
+  let teams: any[][] = Array(numTeams).fill(null).map(() => []);
   const balanceSteps: BalanceStep[] = [];
   let stepCounter = 0;
 
@@ -183,29 +183,37 @@ export const enhancedSnakeDraft = (
     }
   });
 
-  // Minimal post-balance validation
+  // Post-validation - only if ATLAS is not enabled
   let validationResult: ValidationResult | undefined;
-  if (onValidationStart) {
-    onValidationStart();
+  let finalBalance = calculateFinalBalance(teams);
+  let allBalanceSteps = balanceSteps;
+
+  if (!adaptiveConfig?.enableAdaptiveWeights) {
+    if (onValidationStart) {
+      onValidationStart();
+    }
+
+    const initialBalance = calculateFinalBalance(teams);
+    const validationStartTime = Date.now();
+
+    const validatedTeams = performSimplifiedPostValidation(teams, balanceSteps);
+    finalBalance = calculateFinalBalance(validatedTeams.teams);
+
+    validationResult = {
+      originalBalance: initialBalance,
+      adjustmentsMade: validatedTeams.adjustments,
+      finalBalance,
+      validationTime: Date.now() - validationStartTime
+    };
+
+    allBalanceSteps = [...balanceSteps, ...validatedTeams.validationSteps];
+    teams = validatedTeams.teams;
+  } else {
+    console.log("🤖 ATLAS enabled - skipping post-validation to preserve strategic team composition");
   }
 
-  const initialBalance = calculateFinalBalance(teams);
-  const validationStartTime = Date.now();
-
-  const validatedTeams = performSimplifiedPostValidation(teams, balanceSteps);
-  const finalBalance = calculateFinalBalance(validatedTeams.teams);
-
-  validationResult = {
-    originalBalance: initialBalance,
-    adjustmentsMade: validatedTeams.adjustments,
-    finalBalance,
-    validationTime: Date.now() - validationStartTime
-  };
-
-  const allBalanceSteps = [...balanceSteps, ...validatedTeams.validationSteps];
-
   return {
-    teams: validatedTeams.teams,
+    teams,
     balanceSteps: allBalanceSteps,
     validationResult,
     adaptiveWeightCalculations: adaptiveWeightCalculations.length > 0 ? adaptiveWeightCalculations : undefined,
