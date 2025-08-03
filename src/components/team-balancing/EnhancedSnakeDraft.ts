@@ -145,46 +145,45 @@ export const enhancedSnakeDraft = async (
   const balanceSteps: BalanceStep[] = [];
   let stepCounter = 0;
 
-  // ATLAS INTELLIGENT ASSIGNMENT: Prevent elite stacking and use strategic placement
+  // ATLAS INTELLIGENT ASSIGNMENT: Use true skill-based distribution to prevent any form of stacking
   const assignPlayerWithAtlasLogic = (player: any, allPlayers: any[]): number => {
     const teamTotals = teams.map(team => 
       team.reduce((sum, p) => sum + p.adaptiveWeight, 0)
     );
     
-    // For elite players (400+ points), ensure no more than 1 per team
-    if (player.isElite) {
-      const teamsWithElite = teams.map((team, index) => ({
-        index,
-        hasElite: team.some(p => p.isElite),
-        total: teamTotals[index],
-        playerCount: team.length
-      }));
-      
-      // Find teams without elite players first
-      const teamsWithoutElite = teamsWithElite.filter(t => !t.hasElite && t.playerCount < teamSize);
-      
-      if (teamsWithoutElite.length > 0) {
-        // Assign to team without elite that has lowest total
-        const targetTeam = teamsWithoutElite.reduce((min, team) => 
-          team.total < min.total ? team : min
-        );
-        console.log(`🏛️ ATLAS: Elite player ${player.discord_username} (${player.adaptiveWeight}pts) → Team ${targetTeam.index + 1} (anti-stacking)`);
-        return targetTeam.index;
-      }
-    }
+    // ATLAS Strategy: Always assign to the team that will result in the most balanced overall distribution
+    // This prevents both elite stacking AND skill stacking of any kind
     
-    // For regular players, find team with lowest total that has space
-    let lowestTeamIndex = 0;
-    let lowestTotal = Infinity;
+    let bestTeamIndex = 0;
+    let bestBalance = Infinity;
     
     for (let i = 0; i < numTeams; i++) {
-      if (teams[i].length < teamSize && teamTotals[i] < lowestTotal) {
-        lowestTotal = teamTotals[i];
-        lowestTeamIndex = i;
+      if (teams[i].length >= teamSize) continue; // Team is full
+      
+      // Calculate what the balance would be if we add this player to team i
+      const hypotheticalTotals = [...teamTotals];
+      hypotheticalTotals[i] += player.adaptiveWeight;
+      
+      // Calculate the maximum difference after this assignment
+      const maxDiff = Math.max(...hypotheticalTotals) - Math.min(...hypotheticalTotals);
+      
+      // For elite players, add penalty if team already has high-value players
+      let penalty = 0;
+      if (player.isElite || player.adaptiveWeight >= 300) {
+        const teamHighValueCount = teams[i].filter(p => p.adaptiveWeight >= 250).length;
+        penalty = teamHighValueCount * 50; // Penalty for stacking high-value players
+      }
+      
+      const totalScore = maxDiff + penalty;
+      
+      if (totalScore < bestBalance) {
+        bestBalance = totalScore;
+        bestTeamIndex = i;
       }
     }
     
-    return lowestTeamIndex;
+    console.log(`🏛️ ATLAS: Player ${player.discord_username} (${player.adaptiveWeight}pts${player.isElite ? ', Elite' : ''}) → Team ${bestTeamIndex + 1} (balance optimization: ${Math.round(bestBalance)})`);
+    return bestTeamIndex;
   };
 
   // Assign each player using ATLAS intelligent logic or fallback to cumulative balance
