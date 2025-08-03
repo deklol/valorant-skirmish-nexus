@@ -572,9 +572,9 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                 const playerSource = step.player.source || 'current_rank';
                 
                 return (
-                  <div key={index} className="p-3 rounded-lg bg-muted/30 border border-border">
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-1">
+                  <div key={index} className="w-full p-3 rounded-lg bg-muted/30 border border-border">
+                    <div className="w-full flex items-start justify-between">
+                      <div className="w-full space-y-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <Badge variant="outline" className="text-xs">
                             Step {stepNumber}
