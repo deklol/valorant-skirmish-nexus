@@ -1003,7 +1003,10 @@ variant: "destructive",
           ...originalTeam,
           members: newMembers,
           totalWeight: newMembers.reduce((sum, m) => {
-            const mRankResult = getRankPointsWithManualOverride(m);
+            // Preserve ATLAS calculations by using the same weight system as the draft
+            const mRankResult = tournament?.enable_adaptive_weights
+              ? calculateAdaptiveWeight(m, { enableAdaptiveWeights: true, baseFactor: 0.5, decayMultiplier: 0.15, timeWeightDays: 90 })
+              : getRankPointsWithManualOverride(m);
             return sum + mRankResult.points;
           }, 0),
         };
