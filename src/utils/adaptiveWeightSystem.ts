@@ -125,12 +125,11 @@ function calculateTournamentWinnerPenalty(
   }
 
   const tournamentsWon = userData.tournaments_won || 0;
-  console.log(`Tournament penalty check for user:`, { 
-    tournamentsWon, 
-    isCurrentUnranked,
-    penaltiesEnabled: penalties?.enabled,
-    userData: userData
-  });
+  
+  // Only log when penalties should actually apply to prevent spam
+  if (tournamentsWon > 0) {
+    console.log(`🏆 TOURNAMENT PENALTY APPLIED to ${(userData as any).discord_username}: ${tournamentsWon} wins`);
+  }
   
   if (tournamentsWon === 0) {
     return { penalty: 0, reasoning: '' };
@@ -195,12 +194,13 @@ export function calculateAdaptiveWeight(
     }
   };
 
-  console.log('🔍 ADAPTIVE WEIGHT DEBUG:', (userData as any).discord_username, {
-    tournaments_won: userData.tournaments_won,
-    current_rank: userData.current_rank,
-    peak_rank: userData.peak_rank,
-    penaltiesEnabled: finalConfig.tournamentWinnerPenalties?.enabled
-  });
+  // Only log for debugging specific users to prevent spam
+  if ((userData as any).discord_username?.includes('kera')) {
+    console.log('🏆 KERA CRITICAL DEBUG:', {
+      tournaments_won: userData.tournaments_won,
+      userData_full: userData
+    });
+  }
 
   // First, get the manual override result
   const manualResult = getRankPointsWithManualOverride(userData);

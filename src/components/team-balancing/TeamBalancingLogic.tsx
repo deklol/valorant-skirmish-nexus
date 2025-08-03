@@ -88,7 +88,7 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
         
         // DEBUG: Log user data to check tournaments_won
         if (a.users?.discord_username?.includes('kera')) {
-          console.log('🏆 KERA USER DATA:', a.users);
+          console.log('🔍 KERA RAW DATABASE DATA:', a.users);
         }
         
         if (tournament.enable_adaptive_weights) {
