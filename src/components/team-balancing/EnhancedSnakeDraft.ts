@@ -446,14 +446,24 @@ const calculateFinalBalance = (teams: any[][]) => {
     const highTierPlayers = teamPoints.filter(points => points >= 300).length; // Immortal+ tier
     const upperMidTierPlayers = teamPoints.filter(points => points >= 240 && points < 300).length; // Ascendant tier
     
-    // Penalize teams with too many high-tier players clustered together
+    // MUCH stronger penalty for skill stacking to match user's preferred distribution
     if (highTierPlayers >= 3) {
-      skillDistributionPenalty += (highTierPlayers - 2) * 30; // 30 point penalty per extra high-tier player
+      skillDistributionPenalty += (highTierPlayers - 2) * 100; // 100 point penalty per extra high-tier player
+    }
+    
+    if (highTierPlayers >= 2) {
+      skillDistributionPenalty += (highTierPlayers - 1) * 60; // 60 point penalty for having 2+ high-tier players
     }
     
     // Penalize teams with both high-tier stacking AND upper-mid stacking
     if (highTierPlayers >= 2 && upperMidTierPlayers >= 2) {
-      skillDistributionPenalty += 25; // Additional penalty for tier stacking
+      skillDistributionPenalty += 80; // Additional penalty for tier stacking
+    }
+    
+    // Calculate combined high-tier points (300+) - this should be spread evenly
+    const highTierTotalPoints = teamPoints.filter(points => points >= 300).reduce((sum, points) => sum + points, 0);
+    if (highTierTotalPoints > 650) { // More than ~2.2 high-tier players worth
+      skillDistributionPenalty += (highTierTotalPoints - 650) / 5; // Penalty for concentrating too much high-tier skill
     }
     
     // Calculate skill variance within team (prefer smoother skill curves)
