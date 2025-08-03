@@ -447,8 +447,8 @@ function generateRegularPlayerReasoning(player: any, targetTeam: number, lowestT
     }
   }
   
-  reasoning += `Team selection logic: Chose team with lowest total (${lowestTotal}pts) for optimal balance. `;
-  reasoning += `Post-assignment: Team total ${newTeamTotal}pts vs league average ${Math.round(avgTeamTotal)}pts. `;
+    reasoning += `Team selection logic: Chose team with lowest total (${lowestTotal}pts) for optimal balance. `;
+    reasoning += `Post-assignment: Team total ${newTeamTotal}pts vs league average ${Math.round(avgTeamTotal)}pts. `;
   
   const balanceDiff = Math.abs(newTeamTotal - avgTeamTotal);
   if (balanceDiff <= 15) {

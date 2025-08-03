@@ -240,9 +240,21 @@ const DetailedBalanceAnalysis = ({ balanceResult, tournamentName }: DetailedBala
             // Check for regular adaptive weight calculations (Enhanced ATLAS)
             const adaptiveCalculations = balanceResult.adaptiveWeightCalculations;
             
+            // Debug logging to see what we actually have
+            console.log('🔍 DetailedBalanceAnalysis - Calculation data:', {
+              evidenceCalculations: evidenceCalculations?.length || 0,
+              adaptiveCalculations: adaptiveCalculations?.length || 0,
+              balanceResultKeys: Object.keys(balanceResult || {}),
+              sampleEvidence: evidenceCalculations?.[0],
+              sampleAdaptive: adaptiveCalculations?.[0]
+            });
+            
             const calculations = evidenceCalculations || adaptiveCalculations;
             
-            if (!calculations || calculations.length === 0) return null;
+            if (!calculations || calculations.length === 0) {
+              console.log('⚠️ No calculations found to display');
+              return null;
+            }
             
             const isAtlasEvidence = !!evidenceCalculations;
             const title = isAtlasEvidence ? "ATLAS Evidence Weight Calculations" : "Adaptive Weight Calculations";
@@ -353,48 +365,85 @@ const DetailedBalanceAnalysis = ({ balanceResult, tournamentName }: DetailedBala
                 <div className="bg-slate-700 rounded-lg p-4 max-h-96 overflow-y-auto">
                   <div className="space-y-4">
                      {balanceSteps.map((step, index) => {
-                       // Parse ATLAS reasoning for better display
-                       const parseAtlasReasoning = (reasoning: string) => {
-                         const sections = {
-                           playerInfo: '',
-                           atlasAnalysis: '',
-                           evidenceFactors: '',
-                           teamSelection: '',
-                           balanceImpact: ''
-                         };
-                         
-                         if (reasoning.includes('ATLAS evaluated:')) {
-                           const parts = reasoning.split('ATLAS evaluated:');
-                           sections.playerInfo = parts[0].replace('🏛️ ATLAS Smart Balancing:', '').trim();
-                           const remaining = parts[1];
-                           
-                           if (remaining.includes('Evidence factors considered:')) {
-                             const evidenceParts = remaining.split('Evidence factors considered:');
-                             sections.atlasAnalysis = evidenceParts[0].trim();
-                             const afterEvidence = evidenceParts[1];
-                             
-                             if (afterEvidence.includes('Team selection logic:')) {
-                               const teamParts = afterEvidence.split('Team selection logic:');
-                               sections.evidenceFactors = teamParts[0].replace(/[\[\]]/g, '').trim();
-                               sections.teamSelection = teamParts[1].split('Post-assignment:')[0].trim();
-                               if (teamParts[1].includes('Post-assignment:')) {
-                                 sections.balanceImpact = teamParts[1].split('Post-assignment:')[1].trim();
-                               }
-                             }
-                           }
-                         } else if (reasoning.includes('🏛️ ATLAS Elite Distribution:')) {
-                           sections.playerInfo = reasoning.split('ATLAS Analysis:')[0].replace('🏛️ ATLAS Elite Distribution:', '').trim();
-                           if (reasoning.includes('ATLAS Analysis:')) {
-                             sections.atlasAnalysis = reasoning.split('ATLAS Analysis:')[1].split('Evidence factors:')[0].trim();
-                             if (reasoning.includes('Evidence factors:')) {
-                               sections.evidenceFactors = reasoning.split('Evidence factors:')[1].split('Elite skill distribution:')[0].replace(/[\[\]]/g, '').trim();
-                               sections.teamSelection = reasoning.split('Elite skill distribution:')[1].trim();
-                             }
-                           }
-                         }
-                         
-                         return sections;
-                       };
+                        // Parse ATLAS reasoning for better display - Updated to match actual format
+                        const parseAtlasReasoning = (reasoning: string) => {
+                          const sections = {
+                            playerInfo: '',
+                            atlasAnalysis: '',
+                            evidenceFactors: '',
+                            teamSelection: '',
+                            balanceImpact: ''
+                          };
+                          
+                          // Handle Smart Balancing format: 🏛️ ATLAS Smart Balancing: PlayerName (XXXpts) → Team X. ATLAS evaluated: ...
+                          if (reasoning.includes('🏛️ ATLAS Smart Balancing:') && reasoning.includes('ATLAS evaluated:')) {
+                            const mainParts = reasoning.split('ATLAS evaluated:');
+                            sections.playerInfo = mainParts[0].replace('🏛️ ATLAS Smart Balancing:', '').trim();
+                            
+                            const remaining = mainParts[1];
+                            
+                            // Extract ATLAS analysis: "RankName rank worth XXXpts base"
+                            if (remaining.includes('Evidence factors considered:')) {
+                              const evidenceParts = remaining.split('Evidence factors considered:');
+                              sections.atlasAnalysis = evidenceParts[0].trim();
+                              
+                              const afterEvidence = evidenceParts[1];
+                              
+                              // Extract evidence factors: "[factors]"
+                              if (afterEvidence.includes('Team selection logic:')) {
+                                const teamParts = afterEvidence.split('Team selection logic:');
+                                sections.evidenceFactors = teamParts[0].replace(/[\[\]]/g, '').trim();
+                                
+                                // Extract team selection: "Chose team with lowest total..."
+                                if (teamParts[1].includes('Post-assignment:')) {
+                                  const balanceParts = teamParts[1].split('Post-assignment:');
+                                  sections.teamSelection = balanceParts[0].trim();
+                                  sections.balanceImpact = balanceParts[1].trim();
+                                } else {
+                                  sections.teamSelection = teamParts[1].trim();
+                                }
+                              }
+                            } else {
+                              // Handle case where there are no evidence factors
+                              if (remaining.includes('Team selection logic:')) {
+                                const teamParts = remaining.split('Team selection logic:');
+                                sections.atlasAnalysis = teamParts[0].trim();
+                                
+                                if (teamParts[1].includes('Post-assignment:')) {
+                                  const balanceParts = teamParts[1].split('Post-assignment:');
+                                  sections.teamSelection = balanceParts[0].trim();
+                                  sections.balanceImpact = balanceParts[1].trim();
+                                } else {
+                                  sections.teamSelection = teamParts[1].trim();
+                                }
+                              }
+                            }
+                          }
+                          // Handle Elite Distribution format: 🏛️ ATLAS Elite Distribution: PlayerName (XXXpts) → Team X. ATLAS Analysis: ...
+                          else if (reasoning.includes('🏛️ ATLAS Elite Distribution:')) {
+                            const parts = reasoning.split('ATLAS Analysis:');
+                            sections.playerInfo = parts[0].replace('🏛️ ATLAS Elite Distribution:', '').trim();
+                            
+                            if (parts[1]) {
+                              const remaining = parts[1];
+                              
+                              if (remaining.includes('Evidence factors:')) {
+                                const evidenceParts = remaining.split('Evidence factors:');
+                                sections.atlasAnalysis = evidenceParts[0].trim();
+                                
+                                if (evidenceParts[1].includes('Elite skill distribution:')) {
+                                  const skillParts = evidenceParts[1].split('Elite skill distribution:');
+                                  sections.evidenceFactors = skillParts[0].replace(/[\[\]]/g, '').trim();
+                                  sections.teamSelection = skillParts[1].trim();
+                                }
+                              } else {
+                                sections.atlasAnalysis = remaining.trim();
+                              }
+                            }
+                          }
+                          
+                          return sections;
+                        };
                        
                        const isAtlasStep = step.reasoning.includes('🏛️ ATLAS');
                        const parsedReasoning = isAtlasStep ? parseAtlasReasoning(step.reasoning) : null;
@@ -516,20 +565,22 @@ const DetailedBalanceAnalysis = ({ balanceResult, tournamentName }: DetailedBala
                             </div>
                           )}
                           
-                          {/* Current Team State After Assignment */}
-                          <div className="mt-3 pt-2 border-t border-slate-600">
-                            <div className="text-xs text-slate-400 mb-1">Teams after assignment:</div>
-                            <div className="grid grid-cols-2 gap-2 text-xs">
-                              {step.teamStatesAfter.slice(0, 4).map((teamState, teamIdx) => (
-                                <div key={teamIdx} className={`flex justify-between p-1 rounded ${
-                                  teamState.teamIndex === step.assignedTeam ? 'bg-blue-600/20 border border-blue-500/30' : 'bg-slate-700/30'
-                                }`}>
-                                  <span className="text-slate-300">Team {teamState.teamIndex + 1}</span>
-                                  <span className="text-white font-medium">{teamState.totalPoints}pts</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
+                           {/* Current Team State After Assignment */}
+                           {step.teamStatesAfter && step.teamStatesAfter.length > 0 && (
+                             <div className="mt-3 pt-2 border-t border-slate-600">
+                               <div className="text-xs text-slate-400 mb-1">Teams after assignment:</div>
+                               <div className="grid grid-cols-2 gap-2 text-xs">
+                                 {step.teamStatesAfter.slice(0, 4).map((teamState, teamIdx) => (
+                                   <div key={teamIdx} className={`flex justify-between p-1 rounded ${
+                                     teamState.teamIndex === step.assignedTeam ? 'bg-blue-600/20 border border-blue-500/30' : 'bg-slate-700/30'
+                                   }`}>
+                                     <span className="text-slate-300">Team {teamState.teamIndex + 1}</span>
+                                     <span className="text-white font-medium">{teamState.totalPoints}pts</span>
+                                   </div>
+                                 ))}
+                               </div>
+                             </div>
+                           )}
                         </div>
                        );
                      })}
