@@ -208,14 +208,14 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
     const peakRankMatch = reasoning.match(/Peak Rank[:\s]+(\w+(?:\s\d)?)/i);
     const actualRank = currentRankMatch?.[1] || peakRankMatch?.[1] || "";
     
-    // Helper function to determine if rank is high-level (Immortal 2+) or elite (Immortal 3+)
+    // Helper function to determine if rank is high-level (Immortal 1) or elite (Immortal 2+)
     const isHighLevelRank = (rank: string) => {
-      const highLevelRanks = ['Immortal 2', 'Immortal 3', 'Radiant'];
+      const highLevelRanks = ['Immortal 1'];
       return highLevelRanks.includes(rank);
     };
     
     const isEliteRank = (rank: string) => {
-      const eliteRanks = ['Immortal 3', 'Radiant'];
+      const eliteRanks = ['Immortal 2', 'Immortal 3', 'Radiant'];
       return eliteRanks.includes(rank);
     };
 
@@ -231,13 +231,13 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
         type = "Elite Player Distribution";
         rank = actualRank || "Elite";
         explanation = `${playerName} is an elite player who was distributed strategically to prevent skill stacking and maintain competitive balance across teams.`;
-        factors.push({ label: "Player Category", value: "Elite Tier (Immortal 3+ / 400+ points)", type: "skill" });
+        factors.push({ label: "Player Category", value: "Elite Tier (Immortal 2+ / 350+ points)", type: "skill" });
         impact = "Elite players distributed evenly for fair competition";
       } else if (isHighLevelByRank || isHighLevelByPoints) {
         type = "High-Level Player Distribution";
         rank = actualRank || "High-Level";
-        explanation = `${playerName} is a high-level player (Immortal 2+) who was distributed strategically to prevent skill stacking and maintain competitive balance across teams.`;
-        factors.push({ label: "Player Category", value: "High Tier (Immortal 2+ / 350+ points)", type: "skill" });
+        explanation = `${playerName} is a high-level player (Immortal 1) who was distributed strategically to prevent skill stacking and maintain competitive balance across teams.`;
+        factors.push({ label: "Player Category", value: "High Tier (Immortal 1 / 300+ points)", type: "skill" });
         impact = "High-level players distributed evenly for fair competition";
       } else {
         type = "Elite Player Distribution";
