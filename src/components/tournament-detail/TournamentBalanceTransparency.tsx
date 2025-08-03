@@ -203,28 +203,49 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
     const smartBalanceMatch = reasoning.match(/ATLAS Smart Balancing:\s*(\w+)\s*\((\d+)pts\)\s*→\s*(.+?)\./);
     const generalMatch = reasoning.match(/(\w+)\s*\((\w+)\s*(\d+)pts?\)/);
 
+    // Check if we can extract rank information from the reasoning
+    const currentRankMatch = reasoning.match(/Current rank[:\s]+(\w+(?:\s\d)?)/i);
+    const peakRankMatch = reasoning.match(/Peak Rank[:\s]+(\w+(?:\s\d)?)/i);
+    const actualRank = currentRankMatch?.[1] || peakRankMatch?.[1] || "";
+    
+    // Helper function to determine if rank is high-level (Immortal 2+) or elite (Immortal 3+)
+    const isHighLevelRank = (rank: string) => {
+      const highLevelRanks = ['Immortal 2', 'Immortal 3', 'Radiant'];
+      return highLevelRanks.includes(rank);
+    };
+    
+    const isEliteRank = (rank: string) => {
+      const eliteRanks = ['Immortal 3', 'Radiant'];
+      return eliteRanks.includes(rank);
+    };
+
     if (eliteDistMatch) {
       [, playerName, , teamName] = eliteDistMatch;
       points = parseInt(eliteDistMatch[2]);
       
-      // Determine if this is elite (400+) or high (350+) tier
-      if (points >= 400) {
+      // Determine classification based on actual rank or points
+      const isEliteByRank = isEliteRank(actualRank);
+      const isHighLevelByRank = isHighLevelRank(actualRank);
+      const isEliteByPoints = points >= 400;
+      const isHighLevelByPoints = points >= 350;
+      
+      if (isEliteByRank || (isEliteByPoints && !isHighLevelByRank)) {
         type = "Elite Player Distribution";
-        rank = "Elite";
+        rank = actualRank || "Elite";
         explanation = `${playerName} is an elite player who was distributed strategically to prevent skill stacking and maintain competitive balance across teams.`;
-        factors.push({ label: "Player Category", value: "Elite Tier (400+ points)", type: "skill" });
+        factors.push({ label: "Player Category", value: "Elite Tier (Immortal 3+ / 400+ points)", type: "skill" });
         impact = "Elite players distributed evenly for fair competition";
-      } else if (points >= 350) {
+      } else if (isHighLevelByRank || isHighLevelByPoints) {
         type = "High-Level Player Distribution";
-        rank = "High-Level";
+        rank = actualRank || "High-Level";
         explanation = `${playerName} is a high-level player (Immortal 2+) who was distributed strategically to prevent skill stacking and maintain competitive balance across teams.`;
-        factors.push({ label: "Player Category", value: "High Tier (350+ points)", type: "skill" });
+        factors.push({ label: "Player Category", value: "High Tier (Immortal 2+ / 350+ points)", type: "skill" });
         impact = "High-level players distributed evenly for fair competition";
       } else {
         type = "Elite Player Distribution";
-        rank = "Elite";
+        rank = actualRank || "Elite";
         explanation = `${playerName} is an elite player who was distributed strategically to prevent skill stacking and maintain competitive balance across teams.`;
-        factors.push({ label: "Player Category", value: "Elite Tier (400+ points)", type: "skill" });
+        factors.push({ label: "Player Category", value: "Elite Tier (Immortal 3+ / 400+ points)", type: "skill" });
         impact = "Elite players distributed evenly for fair competition";
       }
       
