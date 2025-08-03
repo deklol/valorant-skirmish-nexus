@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ShieldAlert } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -8,6 +9,7 @@ import BracketOverview from "./BracketOverview";
 import BracketMedicTournamentList from "./BracketMedicTournamentList";
 import BracketHealthAnalyzer from "./bracket-medic/BracketHealthAnalyzer";
 import BracketMedicActions from "./bracket-medic/BracketMedicActions";
+import { ManualBracketEditor } from "./bracket-medic/ManualBracketEditor";
 
 
 import { getOriginalTeamCount } from "@/utils/bracketCalculations";
@@ -41,6 +43,7 @@ export default function BracketMedicManager() {
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
   const [eliminatedTeamIds, setEliminatedTeamIds] = useState<string[]>([]);
   const [originalTeamCount, setOriginalTeamCount] = useState(0);
+  const [showManualEditor, setShowManualEditor] = useState(false);
 
   // Load tournaments
   useEffect(() => {
@@ -630,7 +633,20 @@ export default function BracketMedicManager() {
               onSetManualWinner={handleSetManualWinner}
               onValidateAndRepair={handleValidateAndRepair}
               onEmergencyRollback={handleEmergencyRollback}
+              onOpenManualEditor={() => setShowManualEditor(true)}
             />
+
+            <Dialog open={showManualEditor} onOpenChange={setShowManualEditor}>
+              <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Manual Bracket Editor - {selectedTournament.name}</DialogTitle>
+                </DialogHeader>
+                <ManualBracketEditor 
+                  tournamentId={selectedTournament.id}
+                  onBracketUpdated={() => loadBracket(selectedTournament.id)}
+                />
+              </DialogContent>
+            </Dialog>
 
 
             <div className="text-xs text-slate-500 mt-4">

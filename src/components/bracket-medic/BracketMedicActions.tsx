@@ -12,7 +12,8 @@ import {
   ShieldCheck, 
   RotateCcw,
   Zap,
-  Target
+  Target,
+  Edit3
 } from "lucide-react";
 
 interface BracketMedicActionsProps {
@@ -29,6 +30,7 @@ interface BracketMedicActionsProps {
   onSetManualWinner: () => void;
   onValidateAndRepair: () => void;
   onEmergencyRollback: () => void;
+  onOpenManualEditor?: () => void;
 }
 
 export default function BracketMedicActions({
@@ -45,13 +47,41 @@ export default function BracketMedicActions({
   onSetManualWinner,
   onValidateAndRepair,
   onEmergencyRollback,
+  onOpenManualEditor,
 }: BracketMedicActionsProps) {
   
   return (
     <div className="space-y-6">
       {/* Basic Bracket Controls */}
       <div>
-        <h3 className="text-lg font-semibold text-white mb-3">Basic Controls</h3>
+        <h3 className="text-lg font-semibold text-white mb-3">Manual Editing Tools</h3>
+        <div className="flex flex-wrap gap-4">
+          {/* Manual Bracket Editor */}
+          {onOpenManualEditor && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-indigo-600/40 text-indigo-300"
+                  disabled={loading || !selectedTournamentId}
+                  onClick={onOpenManualEditor}
+                >
+                  <Edit3 className="w-4 h-4 mr-1" />
+                  Manual Editor
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                Open manual bracket editor to fix teams, results, and clean up issues
+              </TooltipContent>
+            </Tooltip>
+          )}
+        </div>
+      </div>
+
+      {/* Basic Bracket Controls */}
+      <div>
+        <h3 className="text-lg font-semibold text-white mb-3">Automatic Controls</h3>
         <div className="flex flex-wrap gap-4">
           {/* Progression Diagnosis */}
           <Tooltip>
