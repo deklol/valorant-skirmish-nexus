@@ -264,11 +264,11 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
       }
     }
 
-    // Save balance analysis to tournament
-    await saveBalanceAnalysis(balanceSteps, finalBalance, createdTeams, teamSize, tournament?.enable_adaptive_weights || false);
+    // Save balance analysis to tournament (including post-validation swaps)
+    await saveBalanceAnalysis(balanceSteps, finalBalance, createdTeams, teamSize, tournament?.enable_adaptive_weights || false, result.validationResult);
   };
 
-  const saveBalanceAnalysis = async (balanceSteps: any[], finalBalance: any, createdTeams: any[], teamSize: number, adaptiveWeightsEnabled: boolean) => {
+  const saveBalanceAnalysis = async (balanceSteps: any[], finalBalance: any, createdTeams: any[], teamSize: number, adaptiveWeightsEnabled: boolean, validationResult?: any) => {
     const analysis = {
       qualityScore: Math.round(
         finalBalance.balanceQuality === 'ideal' ? 95 :
@@ -298,7 +298,15 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
         playerCount: team.players.length,
         avgPoints: Math.round(team.total_rank_points / team.players.length)
       })),
-      method: `Snake Draft (${teamSize}v${teamSize})${adaptiveWeightsEnabled ? ' with Adaptive Weights' : ''}`,
+      // Add post-balance validation results for transparency
+      postBalanceValidation: validationResult ? {
+        originalBalance: validationResult.originalBalance,
+        swapsMade: validationResult.adjustmentsMade.swaps,
+        finalBalance: validationResult.finalBalance,
+        validationTime: validationResult.validationTime,
+        totalSwaps: validationResult.adjustmentsMade.swaps.length
+      } : null,
+      method: `Snake Draft (${teamSize}v${teamSize})${adaptiveWeightsEnabled ? ' with Adaptive Weights' : ''}${validationResult?.adjustmentsMade.swaps.length > 0 ? ' + Post-Balance Optimization' : ''}`,
       timestamp: new Date().toISOString()
     };
 
