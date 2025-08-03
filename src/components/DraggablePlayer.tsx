@@ -52,13 +52,13 @@ const DraggablePlayer = ({ player, enableAdaptiveWeights }: DraggablePlayerProps
         baseFactor: 0.3, // Match DEFAULT_CONFIG
         decayMultiplier: 0.25,
         timeWeightDays: 60,
-        tournamentWinnerPenalties: {
+        tournamentWinnerBonuses: {
           enabled: true,
-          oneWin: 0.15,
-          twoWins: 0.25,
-          threeOrMoreWins: 0.35,
+          oneWin: 15,
+          twoWins: 25,
+          threeOrMoreWins: 35,
           recentWinMultiplier: 1.5,
-          unrankedWinnerMultiplier: 2.0
+          eliteWinnerMultiplier: 1.2
         }
       })
     : getRankPointsWithManualOverride(player);

@@ -12,13 +12,13 @@ export interface AdaptiveWeightConfig {
   baseFactor: number; // Base adaptive factor (0.5 = 50/50 between current and peak)
   decayMultiplier: number; // How much decay affects the factor
   timeWeightDays: number; // Days after which time weighting kicks in
-  tournamentWinnerPenalties?: {
+  tournamentWinnerBonuses?: {
     enabled: boolean;
-    oneWin: number; // Penalty for 1 tournament win (0.15 = 15%)
-    twoWins: number; // Penalty for 2 tournament wins (0.25 = 25%)
-    threeOrMoreWins: number; // Penalty for 3+ tournament wins (0.35 = 35%)
-    recentWinMultiplier: number; // Additional penalty for recent wins (1.5 = 50% more penalty)
-    unrankedWinnerMultiplier: number; // Additional penalty for unranked winners (2.0 = double penalty)
+    oneWin: number; // Bonus for 1 tournament win (+15 points)
+    twoWins: number; // Bonus for 2 tournament wins (+25 points)
+    threeOrMoreWins: number; // Bonus for 3+ tournament wins (+35 points)
+    recentWinMultiplier: number; // Additional bonus for recent wins (1.5 = 50% more bonus)
+    eliteWinnerMultiplier: number; // Additional bonus for elite winners (1.2 = 20% more bonus)
   };
 }
 
@@ -34,7 +34,7 @@ export interface AdaptiveWeightCalculation {
   calculationReasoning: string;
   rankDecayFactor?: number;
   timeSincePeakDays?: number;
-  tournamentWinsPenalty?: number;
+  tournamentWinsBonus?: number;
   tournamentsWon?: number;
   manualOverrideApplied: boolean;
 }
@@ -48,13 +48,13 @@ const DEFAULT_CONFIG: AdaptiveWeightConfig = {
   baseFactor: 0.3, // More conservative 30% blend for stability
   decayMultiplier: 0.25, // Higher multiplier for more responsive decay adjustment
   timeWeightDays: 60, // More aggressive time consideration after 60 days
-  tournamentWinnerPenalties: {
+  tournamentWinnerBonuses: {
     enabled: true,
-    oneWin: 0.15, // 15% penalty for 1 tournament win
-    twoWins: 0.25, // 25% penalty for 2 tournament wins
-    threeOrMoreWins: 0.35, // 35% penalty for 3+ tournament wins
-    recentWinMultiplier: 1.5, // 50% more penalty for recent wins
-    unrankedWinnerMultiplier: 2.0 // Double penalty for unranked winners
+    oneWin: 15, // +15 points for 1 tournament win
+    twoWins: 25, // +25 points for 2 tournament wins
+    threeOrMoreWins: 35, // +35 points for 3+ tournament wins
+    recentWinMultiplier: 1.5, // 50% more bonus for recent wins
+    eliteWinnerMultiplier: 1.2 // 20% more bonus for elite winners
   }
 };
 
@@ -111,68 +111,69 @@ function calculateTimeWeight(timeSincePeakDays: number, config: AdaptiveWeightCo
 }
 
 /**
- * Calculate tournament winner penalty to prevent overpowered teams
- * Progressive penalties for multiple wins, with additional modifiers
+ * Calculate tournament winner bonus to enhance proven players
+ * Progressive bonuses for multiple wins, with additional modifiers
  */
-function calculateTournamentWinnerPenalty(
+function calculateTournamentWinnerBonus(
   userData: ExtendedUserRankData,
   config: AdaptiveWeightConfig,
-  isCurrentUnranked: boolean
-): { penalty: number; reasoning: string } {
-  const penalties = config.tournamentWinnerPenalties;
-  if (!penalties?.enabled) {
-    return { penalty: 0, reasoning: '' };
+  isElitePlayer: boolean
+): { bonus: number; reasoning: string } {
+  const bonuses = config.tournamentWinnerBonuses;
+  if (!bonuses?.enabled) {
+    return { bonus: 0, reasoning: '' };
   }
 
   const tournamentsWon = userData.tournaments_won || 0;
   
-  // Only log when penalties should actually apply to prevent spam
+  // Only log when bonuses should actually apply to prevent spam
   if (tournamentsWon > 0) {
-    console.log(`🏆 TOURNAMENT PENALTY APPLIED to ${(userData as any).discord_username}: ${tournamentsWon} wins`);
+    console.log(`🏆 TOURNAMENT BONUS APPLIED to ${(userData as any).discord_username}: ${tournamentsWon} wins`);
   }
   
   if (tournamentsWon === 0) {
-    return { penalty: 0, reasoning: '' };
+    return { bonus: 0, reasoning: '' };
   }
 
-  // Base penalty calculation
-  let basePenalty = 0;
+  // Base bonus calculation
+  let baseBonus = 0;
   if (tournamentsWon === 1) {
-    basePenalty = penalties.oneWin;
+    baseBonus = bonuses.oneWin;
   } else if (tournamentsWon === 2) {
-    basePenalty = penalties.twoWins;
+    baseBonus = bonuses.twoWins;
   } else if (tournamentsWon >= 3) {
-    basePenalty = penalties.threeOrMoreWins;
+    baseBonus = bonuses.threeOrMoreWins;
   }
 
   // Calculate additional modifiers
-  let finalPenalty = basePenalty;
+  let finalBonus = baseBonus;
   const modifiers: string[] = [];
 
-  // Unranked winner penalty (double penalty)
-  if (isCurrentUnranked && tournamentsWon > 0) {
-    finalPenalty *= penalties.unrankedWinnerMultiplier;
-    modifiers.push(`${Math.round((penalties.unrankedWinnerMultiplier - 1) * 100)}% unranked winner penalty`);
+  // Elite player bonus (additional bonus for high-skill winners)
+  if (isElitePlayer && tournamentsWon > 0) {
+    const eliteBonus = baseBonus * (bonuses.eliteWinnerMultiplier - 1);
+    finalBonus += eliteBonus;
+    modifiers.push(`${Math.round(eliteBonus)} elite winner bonus`);
   }
 
-  // Recent winner penalty (if last win was in last 90 days)
+  // Recent winner bonus (if last win was in last 90 days)
   if (userData.last_tournament_win) {
     const lastWinDate = new Date(userData.last_tournament_win);
     const daysSinceLastWin = Math.floor((Date.now() - lastWinDate.getTime()) / (1000 * 60 * 60 * 24));
     
     if (daysSinceLastWin <= 90) {
-      const recentPenalty = basePenalty * (penalties.recentWinMultiplier - 1);
-      finalPenalty += recentPenalty;
-      modifiers.push(`${Math.round(recentPenalty * 100)}% recent winner penalty (${daysSinceLastWin} days ago)`);
+      const recentBonus = baseBonus * (bonuses.recentWinMultiplier - 1);
+      finalBonus += recentBonus;
+      modifiers.push(`+${Math.round(recentBonus)} recent winner bonus (${daysSinceLastWin} days ago)`);
     }
   }
 
-  // Cap the penalty at 60% to prevent excessive penalization
-  finalPenalty = Math.min(finalPenalty, 0.60);
+  // Cap the bonus at reasonable levels
+  finalBonus = Math.min(finalBonus, 60); // Max +60 points
 
-  const reasoning = `🏆 Tournament Winner Penalty: ${Math.round(basePenalty * 100)}% base (${tournamentsWon} wins)${modifiers.length > 0 ? ` + ${modifiers.join(' + ')}` : ''} = ${Math.round(finalPenalty * 100)}% total`;
+  const reasoning = `🏆 Tournament Winner Bonus: +${baseBonus} base (${tournamentsWon} wins)${modifiers.length > 0 ? ` + ${modifiers.join(' + ')}` : ''} = +${Math.round(finalBonus)} total`;
 
-  return { penalty: finalPenalty, reasoning };
+  return { bonus: finalBonus, reasoning };
 }
 
 /**
@@ -188,9 +189,9 @@ export function calculateAdaptiveWeight(
   const finalConfig = {
     ...DEFAULT_CONFIG,
     ...config,
-    tournamentWinnerPenalties: {
-      ...DEFAULT_CONFIG.tournamentWinnerPenalties,
-      ...(config.tournamentWinnerPenalties || {})
+    tournamentWinnerBonuses: {
+      ...DEFAULT_CONFIG.tournamentWinnerBonuses,
+      ...(config.tournamentWinnerBonuses || {})
     }
   };
 
@@ -259,39 +260,39 @@ export function calculateAdaptiveWeight(
   const isCurrentUnranked = !currentRank || currentRank === 'Unranked' || currentRank === 'Unrated';
   
   if (isCurrentUnranked) {
-    // For Radiant/Immortal peaks, only apply penalties if they have tournament wins
-    // High skill peaks should maintain their weight unless proven otherwise
+    // For Radiant/Immortal peaks, calculate base weight and apply tournament bonuses
+    let baseWeight = peakRankPoints;
+    
+    // Apply minimal unranked penalty only for lower peaks
     let unrankedPenalty = 0;
-    
-    // Only apply unranked penalty for lower peaks or tournament winners
-    if (peakRankPoints >= 400) { // Immortal/Radiant - maintain full weight unless tournament winner
-      unrankedPenalty = 0; // No penalty for high skill peaks
-    } else if (peakRankPoints >= 265) unrankedPenalty = 0.10; // Ascendant loses 10%
-    else if (peakRankPoints >= 190) unrankedPenalty = 0.15; // Diamond loses 15%
-    else if (peakRankPoints >= 130) unrankedPenalty = 0.18; // Platinum loses 18%
-    else unrankedPenalty = 0.20; // Lower ranks lose 20%
-    
-    // Calculate tournament winner penalty for unranked players
-    const tournamentPenalty = calculateTournamentWinnerPenalty(userData, finalConfig, isCurrentUnranked);
-    
-    // For high peaks with tournament wins, apply moderate penalty
-    if (peakRankPoints >= 400 && tournamentPenalty.penalty > 0) {
-      unrankedPenalty = 0.15; // 15% penalty for Immortal/Radiant tournament winners who are now unranked
+    if (peakRankPoints < 400) { // Below Immortal
+      if (peakRankPoints >= 265) unrankedPenalty = 0.10; // Ascendant loses 10%
+      else if (peakRankPoints >= 190) unrankedPenalty = 0.15; // Diamond loses 15%
+      else if (peakRankPoints >= 130) unrankedPenalty = 0.18; // Platinum loses 18%
+      else unrankedPenalty = 0.20; // Lower ranks lose 20%
+      
+      baseWeight = Math.floor(peakRankPoints * (1 - unrankedPenalty));
     }
     
-    // Combine penalties: unranked penalty + tournament winner penalty
-    const totalPenalty = Math.min(unrankedPenalty + tournamentPenalty.penalty, 0.50); // Cap at 50% for high peaks
-    const adaptiveWeight = Math.floor(peakRankPoints * (1 - totalPenalty));
+    // Calculate tournament winner bonus for proven players
+    const isElitePlayer = peakRankPoints >= 400;
+    const tournamentBonus = calculateTournamentWinnerBonus(userData, finalConfig, isElitePlayer);
+    
+    // Final weight = base weight + tournament bonus
+    const adaptiveWeight = baseWeight + Math.floor(tournamentBonus.bonus);
     
     const reasoningParts = [
       `${peakRank} peak (${peakRankPoints} pts)`
     ];
     
-    if (tournamentPenalty.penalty > 0) {
-      reasoningParts.push(`Tournament penalty: ${Math.round(tournamentPenalty.penalty * 100)}%`);
+    if (unrankedPenalty > 0) {
+      reasoningParts.push(`Unranked adjustment: -${Math.round(unrankedPenalty * 100)}%`);
     }
     
-    reasoningParts.push(`Unranked penalty: ${Math.round(unrankedPenalty * 100)}%`);
+    if (tournamentBonus.bonus > 0) {
+      reasoningParts.push(`Tournament bonus: +${Math.round(tournamentBonus.bonus)} pts`);
+    }
+    
     reasoningParts.push(`Final: ${adaptiveWeight} pts`);
     
     return {
@@ -309,11 +310,11 @@ export function calculateAdaptiveWeight(
         peakRank,
         currentRankPoints: 150, // Default for unranked
         peakRankPoints,
-        adaptiveFactor: 1 - totalPenalty,
+        adaptiveFactor: 1.0,
         calculatedAdaptiveWeight: adaptiveWeight,
         weightSource: 'adaptive_weight',
         calculationReasoning: reasoningParts.join('. '),
-        tournamentWinsPenalty: tournamentPenalty.penalty,
+        tournamentWinsBonus: tournamentBonus.bonus,
         tournamentsWon: userData.tournaments_won || 0,
         manualOverrideApplied: false
       }
@@ -349,18 +350,19 @@ export function calculateAdaptiveWeight(
   const varianceReduction = Math.min(rankGap * 0.02, 10); // Small adjustment for smoother transitions
   let adaptiveWeight = Math.floor(baseBlend - varianceReduction);
   
-  // Apply tournament winner penalty to ranked players as well
-  const tournamentPenalty = calculateTournamentWinnerPenalty(userData, finalConfig, isCurrentUnranked);
-  if (tournamentPenalty.penalty > 0) {
-    adaptiveWeight = Math.floor(adaptiveWeight * (1 - tournamentPenalty.penalty));
+  // Apply tournament winner bonus to ranked players as well
+  const isElitePlayer = peakRankPoints >= 400;
+  const tournamentBonus = calculateTournamentWinnerBonus(userData, finalConfig, isElitePlayer);
+  if (tournamentBonus.bonus > 0) {
+    adaptiveWeight += Math.floor(tournamentBonus.bonus);
   }
 
   const reasoningParts = [
     `Adaptive: ${Math.round((1 - adaptiveFactor) * 100)}%/${Math.round(adaptiveFactor * 100)}% blend`
   ];
 
-  if (tournamentPenalty.penalty > 0) {
-    reasoningParts.push(`Tournament penalty: ${Math.round(tournamentPenalty.penalty * 100)}%`);
+  if (tournamentBonus.bonus > 0) {
+    reasoningParts.push(`Tournament bonus: +${Math.round(tournamentBonus.bonus)} pts`);
   }
   
   if (rankDecay > 0) {
@@ -390,7 +392,7 @@ export function calculateAdaptiveWeight(
         calculationReasoning: reasoningParts.join('. '),
         rankDecayFactor: rankDecay,
         timeSincePeakDays: timeSincePeakDays > 0 ? timeSincePeakDays : undefined,
-        tournamentWinsPenalty: tournamentPenalty.penalty,
+        tournamentWinsBonus: tournamentBonus.bonus,
         tournamentsWon: userData.tournaments_won || 0,
         manualOverrideApplied: false
       }
