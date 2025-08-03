@@ -186,7 +186,7 @@ export class AtlasDecisionSystem {
           ? Math.min(adjustment, maxAdjustment)
           : Math.max(adjustment, -maxAdjustment);
         
-        this.log(`⚠️ CAPPING ADJUSTMENT for ${analysis.username}: ${adjustment} → ${cappedAdjustment}`);
+        this.log(`⚠️ CAPPING ADJUSTMENT for ${analysis.username}: ${adjustment} -> ${cappedAdjustment}`);
         analysis.adjustedPoints = analysis.originalPoints + cappedAdjustment;
       }
       
@@ -288,7 +288,8 @@ export class AtlasDecisionSystem {
   }
 
   /**
-   * Handle extreme point imbalances
+   * Handle extreme point imbalances with a focus on powerful players.
+   * This logic has been updated to consider swapping the strongest player.
    */
   private async handlePointImbalance(teams: TeamPlayer[][], globalBalance: GlobalBalance): Promise<void> {
     // Find the strongest and weakest teams
@@ -302,33 +303,73 @@ export class AtlasDecisionSystem {
     const weakestTeam = teamStrengths[teamStrengths.length - 1];
     
     if (strongestTeam.totalPoints - weakestTeam.totalPoints > 200) {
-      // Look for a good player swap
+      this.log('🚨 EXTREME POINT IMBALANCE DETECTED', `Spread: ${globalBalance.pointSpread}`);
+
+      // Sort players by points to find the most impactful candidates
       const strongTeamPlayers = strongestTeam.players.sort((a, b) => b.points - a.points);
       const weakTeamPlayers = weakestTeam.players.sort((a, b) => a.points - b.points);
-      
-      // Try to find a beneficial swap
-      for (const strongPlayer of strongTeamPlayers.slice(1)) { // Don't move the strongest
-        for (const weakPlayer of weakTeamPlayers.slice(1)) { // Don't move the weakest
-          const newStrongTotal = strongestTeam.totalPoints - strongPlayer.points + weakPlayer.points;
-          const newWeakTotal = weakestTeam.totalPoints - weakPlayer.points + strongPlayer.points;
+
+      // --- NEW LOGIC: Prioritize swapping the best player on the strong team ---
+      const strongPlayer = strongTeamPlayers[0]; // The single strongest player on the team
+      const weakPlayer = weakTeamPlayers[0]; // The weakest player on the weakest team
+
+      if (strongPlayer && weakPlayer) {
+        const newStrongTotal = strongestTeam.totalPoints - strongPlayer.points + weakPlayer.points;
+        const newWeakTotal = weakestTeam.totalPoints - weakPlayer.points + strongPlayer.points;
+        const newSpread = Math.abs(newStrongTotal - newWeakTotal);
+
+        // Check if this single, high-impact swap significantly improves the balance
+        if (newSpread < globalBalance.pointSpread - 50) {
+          const decision: AtlasDecision = {
+            id: `swap_critical_${strongPlayer.id}_${weakPlayer.id}`,
+            type: 'player_swap',
+            priority: 'critical',
+            description: `CRITICAL SWAP: ${strongPlayer.username} (Team ${strongestTeam.index + 1}) with ${weakPlayer.username} (Team ${weakestTeam.index + 1})`,
+            reasoning: `High-impact swap to fix extreme point imbalance. Reduces spread from ${globalBalance.pointSpread} to ~${newSpread}.`,
+            confidence: 95,
+            impact: {
+              expectedImprovement: 80,
+              affectedPlayers: [strongPlayer.username, weakPlayer.username],
+              affectedTeams: [strongestTeam.index, weakestTeam.index]
+            },
+            action: {
+              playerId: strongPlayer.id,
+              swapPlayerId: weakPlayer.id,
+              fromTeam: strongestTeam.index,
+              toTeam: weakestTeam.index
+            },
+            timestamp: new Date()
+          };
+          this.decisions.push(decision);
+          this.log('✅ CRITICAL SWAP DECISION MADE', decision);
+          return; // A critical swap is sufficient, no need for more loops
+        }
+      }
+
+      // --- OLD LOGIC, now updated to consider all players without .slice(1) ---
+      // If the critical swap isn't enough, look for another beneficial swap.
+      for (const playerA of strongTeamPlayers) {
+        for (const playerB of weakTeamPlayers) {
+          const newStrongTotal = strongestTeam.totalPoints - playerA.points + playerB.points;
+          const newWeakTotal = weakestTeam.totalPoints - playerB.points + playerA.points;
           const newSpread = Math.abs(newStrongTotal - newWeakTotal);
           
           if (newSpread < globalBalance.pointSpread - 50) { // Significant improvement
             const decision: AtlasDecision = {
-              id: `swap_${strongPlayer.id}_${weakPlayer.id}`,
+              id: `swap_${playerA.id}_${playerB.id}`,
               type: 'player_swap',
               priority: 'high',
-              description: `Swap ${strongPlayer.username} (Team ${strongestTeam.index + 1}) with ${weakPlayer.username} (Team ${weakestTeam.index + 1})`,
+              description: `Swap ${playerA.username} (Team ${strongestTeam.index + 1}) with ${playerB.username} (Team ${weakestTeam.index + 1})`,
               reasoning: `Reduces point imbalance from ${globalBalance.pointSpread} to ~${newSpread} points`,
               confidence: 85,
               impact: {
                 expectedImprovement: 40,
-                affectedPlayers: [strongPlayer.username, weakPlayer.username],
+                affectedPlayers: [playerA.username, playerB.username],
                 affectedTeams: [strongestTeam.index, weakestTeam.index]
               },
               action: {
-                playerId: strongPlayer.id,
-                swapPlayerId: weakPlayer.id,
+                playerId: playerA.id,
+                swapPlayerId: playerB.id,
                 fromTeam: strongestTeam.index,
                 toTeam: weakestTeam.index
               },
@@ -336,6 +377,7 @@ export class AtlasDecisionSystem {
             };
             
             this.decisions.push(decision);
+            this.log('🔄 REGULAR SWAP DECISION MADE', decision);
             return; // Only do one swap at a time
           }
         }
