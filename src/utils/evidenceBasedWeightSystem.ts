@@ -333,7 +333,7 @@ export function assignWithSkillDistribution(
       action: 'initial_assignment',
       player: player.discord_username || 'Unknown',
       toTeam: targetTeam,
-      reason: `Elite Distribution: Assigned elite player (${player.evidenceWeight || player.adaptiveWeight}pts) to Team ${targetTeam + 1} to prevent stacking`,
+      reason: generateElitePlayerReasoning(player, targetTeam, index),
       skillAnalysis: {
         elitePlayersPerTeam: eliteCountsAfter,
         balanceQuality: eliteCountsAfter.every(count => count <= 1) ? 'ideal' : 'poor'
@@ -369,7 +369,7 @@ export function assignWithSkillDistribution(
       action: 'initial_assignment',
       player: player.discord_username || 'Unknown',
       toTeam: lowestTeamIndex,
-      reason: `Regular Distribution: Assigned to Team ${lowestTeamIndex + 1} (lowest total: ${lowestTotal}pts)`,
+      reason: generateRegularPlayerReasoning(player, lowestTeamIndex, lowestTotal, teamTotals),
       skillAnalysis: {
         elitePlayersPerTeam: eliteCountsAfter,
         balanceQuality: eliteCountsAfter.every(count => count <= 1) ? 'ideal' : 'poor'
@@ -393,6 +393,73 @@ export function assignWithSkillDistribution(
       balanceQuality
     }
   };
+}
+
+/**
+ * Generate detailed ATLAS reasoning for elite player assignment
+ */
+function generateElitePlayerReasoning(player: any, targetTeam: number, index: number): string {
+  const playerWeight = player.evidenceWeight || player.adaptiveWeight || 150;
+  let reasoning = `🏛️ ATLAS Elite Distribution: ${player.discord_username || 'Unknown'} (${playerWeight}pts) → Team ${targetTeam + 1}. `;
+  
+  // Add detailed ATLAS reasoning
+  if (player.evidenceCalculation) {
+    const calc = player.evidenceCalculation;
+    reasoning += `ATLAS Analysis: Current rank ${calc.currentRank || 'Unranked'} provides ${calc.basePoints}pts base weight. `;
+    
+    if (calc.rankDecayApplied > 0) {
+      reasoning += `Peak rank decay detected: -${calc.rankDecayApplied}pts adjustment applied. `;
+    }
+    
+    if (calc.tournamentBonus > 0) {
+      reasoning += `Tournament performance bonus: +${calc.tournamentBonus}pts for ${calc.tournamentsWon} tournament wins. `;
+    }
+    
+    reasoning += `Evidence factors: [${calc.evidenceFactors?.join(', ') || 'Standard Analysis'}]. `;
+  }
+  
+  reasoning += `Elite skill distribution: Round-robin assignment prevents skill stacking (max 1 elite per team). Strategic placement ${index + 1} of elite players.`;
+  
+  return reasoning;
+}
+
+/**
+ * Generate detailed ATLAS reasoning for regular player assignment
+ */
+function generateRegularPlayerReasoning(player: any, targetTeam: number, lowestTotal: number, teamTotals: number[]): string {
+  const playerWeight = player.evidenceWeight || player.adaptiveWeight || 150;
+  const newTeamTotal = lowestTotal + playerWeight;
+  const avgTeamTotal = teamTotals.reduce((sum, total) => sum + total, 0) / teamTotals.length;
+  
+  let reasoning = `🏛️ ATLAS Smart Balancing: ${player.discord_username || 'Unknown'} (${playerWeight}pts) → Team ${targetTeam + 1}. `;
+  
+  // Add detailed ATLAS decision reasoning
+  if (player.evidenceCalculation) {
+    const calc = player.evidenceCalculation;
+    reasoning += `ATLAS evaluated: ${calc.currentRank || 'Unranked'} rank worth ${calc.basePoints}pts base. `;
+    
+    if (calc.evidenceFactors && calc.evidenceFactors.length > 0) {
+      reasoning += `Evidence factors considered: [${calc.evidenceFactors.join(', ')}]. `;
+    }
+    
+    if (calc.weightSource === 'peak_rank') {
+      reasoning += `Using peak rank data due to current rank limitations. `;
+    }
+  }
+  
+  reasoning += `Team selection logic: Chose team with lowest total (${lowestTotal}pts) for optimal balance. `;
+  reasoning += `Post-assignment: Team total ${newTeamTotal}pts vs league average ${Math.round(avgTeamTotal)}pts. `;
+  
+  const balanceDiff = Math.abs(newTeamTotal - avgTeamTotal);
+  if (balanceDiff <= 15) {
+    reasoning += `Excellent balance maintained (±${Math.round(balanceDiff)}pts from average).`;
+  } else if (balanceDiff <= 30) {
+    reasoning += `Good balance achieved (±${Math.round(balanceDiff)}pts from average).`;
+  } else {
+    reasoning += `Balance impact noted (±${Math.round(balanceDiff)}pts from average) - will be optimized in validation phase.`;
+  }
+  
+  return reasoning;
 }
 
 /**
