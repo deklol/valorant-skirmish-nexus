@@ -18,7 +18,9 @@ import TeamCleanupTools from "@/components/team-balancing/TeamCleanupTools";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { Username } from "@/components/Username";
 import { enhancedSnakeDraft, type EnhancedTeamResult, type BalanceStep } from "@/components/team-balancing/EnhancedSnakeDraft";
+import { evidenceBasedSnakeDraft, type EvidenceTeamResult, type EvidenceBalanceStep } from "@/components/team-balancing/EvidenceBasedSnakeDraft";
 import { AutobalanceProgress } from "@/components/team-balancing/AutobalanceProgress";
+import { AtlasDecisionSystem, type AtlasAnalysis } from "@/utils/miniAiDecisionSystem";
 
 interface TeamBalancingInterfaceProps {
   tournamentId: string;
@@ -241,11 +243,11 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
   const [saving, setSaving] = useState(false);
   const [creatingTeams, setCreatingTeams] = useState(false);
   const [autobalancing, setAutobalancing] = useState(false);
-  const [balanceAnalysis, setBalanceAnalysis] = useState<EnhancedTeamResult | null>(null);
+  const [balanceAnalysis, setBalanceAnalysis] = useState<EnhancedTeamResult | EvidenceTeamResult | null>(null);
   const [showProgress, setShowProgress] = useState(false);
   const [progressStep, setProgressStep] = useState(0);
-  const [lastProgressStep, setLastProgressStep] = useState<BalanceStep | undefined>();
-  const [currentPhase, setCurrentPhase] = useState<'analyzing' | 'validating' | 'complete'>('analyzing');
+  const [lastProgressStep, setLastProgressStep] = useState<BalanceStep | EvidenceBalanceStep | undefined>();
+  const [currentPhase, setCurrentPhase] = useState<'analyzing' | 'validating' | 'complete' | 'atlas-initializing' | 'atlas-analyzing' | 'atlas-validating' | 'atlas-distributing' | 'atlas-calculating'>('analyzing');
   const { toast } = useToast();
   const notifications = useEnhancedNotifications();
   const [tournamentName, setTournamentName] = useState<string>("");
@@ -827,7 +829,7 @@ variant: "destructive",
     }
   };
 
-  // Enhanced Autobalance Algorithm with Snake Draft and detailed analysis
+  // Enhanced Autobalance Algorithm with Snake Draft, ATLAS, and detailed analysis
   async function autobalanceUnassignedPlayers() {
     setAutobalancing(true);
     
@@ -875,29 +877,62 @@ variant: "destructive",
         return bRankResult.points - aRankResult.points;
       });
 
-      // First, run the enhancedSnakeDraft to get all the steps and the final result.
-      // We are not relying on its internal callbacks for UI updates anymore,
-      // but rather processing its result step-by-step.
-      const fullSnakeDraftResult = enhancedSnakeDraft(
-        sortedPlayers, 
-        numTeams, 
-        teamSize,
-        // These callbacks are now primarily for internal logging or future extensions,
-        // as UI updates are driven by the loop below.
-        (step: BalanceStep, currentStep: number, totalSteps: number) => {
-          // console.log(`Draft Step (internal): ${currentStep}/${totalSteps}`, step);
-        },
-        () => {
-          // console.log("Validation phase (internal)");
-        },
-        undefined, // onAdaptiveWeightCalculation callback
-        tournament?.enable_adaptive_weights ? {
-          enableAdaptiveWeights: true,
-          baseFactor: 0.5,
-          decayMultiplier: 0.15, // Use consistent decay multiplier
-          timeWeightDays: 90
-        } : undefined
-      );
+      // Choose between ATLAS-enhanced draft or standard draft
+      let fullSnakeDraftResult: EnhancedTeamResult | EvidenceTeamResult;
+      
+      if (tournament?.enable_adaptive_weights) {
+        // Use ATLAS-enhanced evidence-based snake draft
+        setCurrentPhase('atlas-initializing');
+        
+        const atlasResult = await evidenceBasedSnakeDraft(
+          sortedPlayers,
+          numTeams,
+          teamSize,
+          (step: EvidenceBalanceStep, currentStep: number, totalSteps: number) => {
+            setProgressStep(currentStep);
+            setLastProgressStep(step as any);
+            if (step.phase === 'atlas_adjustment') {
+              setCurrentPhase('atlas-analyzing');
+            } else if (step.phase === 'mini_ai_adjustment') {
+              setCurrentPhase('atlas-validating');
+            } else if (step.phase === 'elite_distribution' || step.phase === 'regular_distribution') {
+              setCurrentPhase('atlas-distributing');
+            }
+          },
+          () => {
+            setCurrentPhase('atlas-validating');
+          },
+          (phase: string, current: number, total: number) => {
+            if (phase === 'evidence_calculation') {
+              setCurrentPhase('atlas-calculating');
+            }
+          }
+        );
+        
+        fullSnakeDraftResult = atlasResult;
+      } else {
+        // Use standard enhanced snake draft
+        fullSnakeDraftResult = enhancedSnakeDraft(
+          sortedPlayers, 
+          numTeams, 
+          teamSize,
+          (step: BalanceStep, currentStep: number, totalSteps: number) => {
+            setProgressStep(currentStep);
+            setLastProgressStep(step);
+            setCurrentPhase('analyzing');
+          },
+          () => {
+            setCurrentPhase('validating');
+          },
+          undefined,
+          {
+            enableAdaptiveWeights: false,
+            baseFactor: 0.5,
+            decayMultiplier: 0.15,
+            timeWeightDays: 90
+          }
+        );
+      }
       
       // Store the balance analysis for later saving
       setBalanceAnalysis(fullSnakeDraftResult);
@@ -975,9 +1010,17 @@ variant: "destructive",
       }));
 
 
+      // Show completion message based on draft type
+      const draftType = tournament?.enable_adaptive_weights ? 'ATLAS-enhanced' : 'standard';
+      const balanceQuality = 'finalBalance' in fullSnakeDraftResult 
+        ? fullSnakeDraftResult.finalBalance.balanceQuality 
+        : fullSnakeDraftResult.finalAnalysis.pointBalance.balanceQuality;
+      const atlasInfo = (fullSnakeDraftResult as any).miniAiEnhancements ? 
+        ` ATLAS made optimization decisions.` : '';
+      
       toast({
-        title: "Snake Draft Complete",
-        description: `Players distributed using ${tournament?.enable_adaptive_weights ? 'adaptive weight ' : ''}snake draft algorithm across ${numTeams} teams. Balance quality: ${fullSnakeDraftResult.finalBalance.balanceQuality}. Review before saving.`,
+        title: `${tournament?.enable_adaptive_weights ? 'ATLAS' : 'Snake'} Draft Complete`,
+        description: `Players distributed using ${draftType} snake draft algorithm across ${numTeams} teams. Balance quality: ${balanceQuality}.${atlasInfo} Review before saving.`,
       });
     } catch (e) {
       console.error('Snake draft autobalance error:', e);
@@ -1154,12 +1197,18 @@ try {
                 playerCount: state.playerCount
               }))
             })),
-            final_balance: {
+            final_balance: 'finalBalance' in balanceAnalysis ? {
               averageTeamPoints: balanceAnalysis.finalBalance.averageTeamPoints,
               minTeamPoints: balanceAnalysis.finalBalance.minTeamPoints,
               maxTeamPoints: balanceAnalysis.finalBalance.maxTeamPoints,
               maxPointDifference: balanceAnalysis.finalBalance.maxPointDifference,
               balanceQuality: balanceAnalysis.finalBalance.balanceQuality
+            } : {
+              averageTeamPoints: balanceAnalysis.finalAnalysis.pointBalance.averageTeamPoints,
+              minTeamPoints: balanceAnalysis.finalAnalysis.pointBalance.minTeamPoints,
+              maxTeamPoints: balanceAnalysis.finalAnalysis.pointBalance.maxTeamPoints,
+              maxPointDifference: balanceAnalysis.finalAnalysis.pointBalance.maxPointDifference,
+              balanceQuality: balanceAnalysis.finalAnalysis.pointBalance.balanceQuality
             },
             teams_created: teamsWithMembers.map((team, index) => ({
               name: team.name,
@@ -1178,7 +1227,7 @@ try {
               total_points: team.totalWeight,
               seed: index + 1
             })),
-            adaptive_weight_calculations: balanceAnalysis.adaptiveWeightCalculations || []
+            adaptive_weight_calculations: ('adaptiveWeightCalculations' in balanceAnalysis) ? balanceAnalysis.adaptiveWeightCalculations || [] : []
           };
 
         // Update tournament with balance analysis
@@ -1193,7 +1242,7 @@ try {
         }
 
           // Store adaptive weight calculations in database if available
-          if (balanceAnalysis.adaptiveWeightCalculations && balanceAnalysis.adaptiveWeightCalculations.length > 0) {
+          if (('adaptiveWeightCalculations' in balanceAnalysis) && balanceAnalysis.adaptiveWeightCalculations && balanceAnalysis.adaptiveWeightCalculations.length > 0) {
             const adaptiveWeightData = balanceAnalysis.adaptiveWeightCalculations.map(calc => ({
               tournament_id: tournamentId,
               user_id: calc.userId,
@@ -1362,6 +1411,7 @@ Team Balancing
               currentStep={progressStep}
               lastStep={lastProgressStep}
               phase={currentPhase}
+              atlasEnabled={enableAdaptiveWeights}
             />
   
             <div className="flex gap-2">

@@ -29,7 +29,7 @@ interface AutobalanceProgressProps {
   totalPlayers: number;
   currentStep: number;
   lastStep?: ProgressStep;
-  phase: 'analyzing' | 'validating' | 'complete' | 'atlas_analyzing';
+  phase: 'analyzing' | 'validating' | 'complete' | 'atlas_analyzing' | 'atlas-initializing' | 'atlas-analyzing' | 'atlas-validating' | 'atlas-distributing' | 'atlas-calculating';
   onComplete?: () => void;
   atlasEnabled?: boolean;
 }
@@ -84,6 +84,36 @@ export const AutobalanceProgress = ({
             : 'Reviewing team balance and making final adjustments...',
           icon: <TrendingUp className="w-5 h-5 text-blue-400" />
         };
+      case 'atlas-initializing':
+        return {
+          title: 'ATLAS Initializing',
+          description: 'ATLAS AI system is starting up and analyzing player data...',
+          icon: <Brain className="w-5 h-5 text-purple-400 animate-pulse" />
+        };
+      case 'atlas-analyzing':
+        return {
+          title: 'ATLAS Analysis',
+          description: 'ATLAS is analyzing individual player skills and evidence...',
+          icon: <Sparkles className="w-5 h-5 text-purple-400 animate-pulse" />
+        };
+      case 'atlas-calculating':
+        return {
+          title: 'ATLAS Calculations',
+          description: 'Computing evidence-based weights and skill distributions...',
+          icon: <Brain className="w-5 h-5 text-purple-400" />
+        };
+      case 'atlas-distributing':
+        return {
+          title: 'ATLAS Distribution',
+          description: 'Intelligently distributing players based on AI analysis...',
+          icon: <Users className="w-5 h-5 text-purple-400" />
+        };
+      case 'atlas-validating':
+        return {
+          title: 'ATLAS Validation',
+          description: 'ATLAS is validating team compositions and making final adjustments...',
+          icon: <TrendingUp className="w-5 h-5 text-purple-400" />
+        };
       case 'complete':
         return {
           title: 'Balance Complete',
@@ -126,8 +156,8 @@ export const AutobalanceProgress = ({
             <div className="flex justify-between text-sm">
               <span className="text-slate-300">Progress</span>
               <span className="text-yellow-400 font-medium">
-                {phase === 'analyzing' ? `${currentStep}/${totalPlayers} players assigned` : 
-                 phase === 'validating' ? 'Validating balance...' : 
+                {(phase === 'analyzing' || phase === 'atlas-distributing') ? `${currentStep}/${totalPlayers} players assigned` : 
+                 (phase === 'validating' || phase.startsWith('atlas-')) ? 'Processing...' : 
                  'Complete!'}
               </span>
             </div>
