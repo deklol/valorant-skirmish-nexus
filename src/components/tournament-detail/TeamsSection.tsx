@@ -18,8 +18,8 @@ export default function TeamsSection({ teams, tournament }: TeamsSectionProps) {
   const [signups, setSignups] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Sorted alphabetically
-  const sortedTeams = [...teams].sort((a, b) => a.name.localeCompare(b.name));
+  // Sorted by highest weight first
+  const sortedTeams = [...teams].sort((a, b) => (b.total_rank_points || 0) - (a.total_rank_points || 0));
 
   useEffect(() => {
     if (tournament?.id && sortedTeams.length === 0) {
