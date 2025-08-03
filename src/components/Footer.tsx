@@ -249,60 +249,78 @@ const Footer = () => {
                       <div>
                         <h4 className="font-semibold mb-3 flex items-center gap-2">
                           <Target className="w-4 h-4 text-yellow-400" />
-                          Rank Weight System
+                          Adaptive Weight System
                         </h4>
                         <div className="space-y-2 text-sm">
                           <div className="bg-slate-600 p-3 rounded">
                             <div className="flex justify-between items-center mb-1">
-                              <span className="font-medium">Iron 1-3</span>
-                              <Badge variant="outline" className="text-xs">10-20 pts</Badge>
+                              <span className="font-medium">Current Rank Priority</span>
+                              <Badge variant="outline" className="text-xs bg-green-500/20 text-green-400">Active</Badge>
                             </div>
-                            <div className="w-full bg-slate-700 rounded-full h-2">
-                              <div className="bg-yellow-600 h-2 rounded-full" style={{width: '10%'}}></div>
-                            </div>
+                            <p className="text-xs text-slate-300">Uses your current competitive rank when available</p>
                           </div>
                           <div className="bg-slate-600 p-3 rounded">
                             <div className="flex justify-between items-center mb-1">
-                              <span className="font-medium">Gold 1-3</span>
-                              <Badge variant="outline" className="text-xs">70-90 pts</Badge>
+                              <span className="font-medium">Peak Rank Decay</span>
+                              <Badge variant="outline" className="text-xs bg-amber-500/20 text-amber-400">Adaptive</Badge>
                             </div>
-                            <div className="w-full bg-slate-700 rounded-full h-2">
-                              <div className="bg-yellow-400 h-2 rounded-full" style={{width: '45%'}}></div>
-                            </div>
+                            <p className="text-xs text-slate-300">Tier-based penalties for skill degradation over time</p>
                           </div>
                           <div className="bg-slate-600 p-3 rounded">
                             <div className="flex justify-between items-center mb-1">
-                              <span className="font-medium">Immortal+</span>
-                              <Badge variant="outline" className="text-xs">300-500 pts</Badge>
+                              <span className="font-medium">Tournament Winner Penalty</span>
+                              <Badge variant="outline" className="text-xs bg-red-500/20 text-red-400">Balancing</Badge>
                             </div>
-                            <div className="w-full bg-slate-700 rounded-full h-2">
-                              <div className="bg-red-500 h-2 rounded-full" style={{width: '100%'}}></div>
+                            <p className="text-xs text-slate-300">Progressive penalties: 15%/25%/35% for 1/2/3+ wins</p>
+                          </div>
+                          <div className="bg-slate-600 p-3 rounded">
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="font-medium">Unranked Multiplier</span>
+                              <Badge variant="outline" className="text-xs bg-purple-500/20 text-purple-400">Enhanced</Badge>
                             </div>
+                            <p className="text-xs text-slate-300">Double penalty for unranked tournament winners</p>
                           </div>
                         </div>
                       </div>
                       <div>
                         <h4 className="font-semibold mb-3 flex items-center gap-2">
                           <Users className="w-4 h-4 text-blue-400" />
-                          Balance Algorithm
+                          Advanced Algorithms
                         </h4>
                         <div className="text-sm space-y-3">
                           <div className="p-3 bg-slate-600 rounded border border-slate-500">
                             <code className="text-green-400 font-mono text-xs">
-                              rankingSystemWithOverrides()
+                              calculateAdaptiveWeight()
                             </code>
                             <p className="text-xs text-slate-300 mt-2">
-                              Calculates effective rank considering overrides, peak ranks, and manual adjustments
+                              Enhanced weighting with tournament history, rank decay, and time-based penalties
                             </p>
                           </div>
                           <div className="p-3 bg-slate-600 rounded border border-slate-500">
                             <code className="text-blue-400 font-mono text-xs">
-                              TeamBalancingLogic.generateTeams()
+                              calculateTournamentWinnerPenalty()
                             </code>
                             <p className="text-xs text-slate-300 mt-2">
-                              Distributes players across teams to minimize rank point variance
+                              Progressive penalties ensuring past winners face appropriate challenges
                             </p>
                           </div>
+                          <div className="p-3 bg-slate-600 rounded border border-slate-500">
+                            <code className="text-purple-400 font-mono text-xs">
+                              enhancedSnakeDraft()
+                            </code>
+                            <p className="text-xs text-slate-300 mt-2">
+                              Optimized team distribution minimizing variance and preventing winner stacking
+                            </p>
+                          </div>
+                        </div>
+                        <div className="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Shield className="w-4 h-4 text-emerald-400" />
+                            <span className="font-semibold text-emerald-400 text-sm">Competitive Integrity</span>
+                          </div>
+                          <p className="text-xs text-slate-300">
+                            Prevents rank inflation abuse and ensures balanced matches where any team can win through strategy and teamwork.
+                          </p>
                         </div>
                       </div>
                     </div>
