@@ -185,6 +185,15 @@ export function calculateAdaptiveWeight(
   config: AdaptiveWeightConfig = DEFAULT_CONFIG,
   lastRankUpdate?: Date
 ): EnhancedAdaptiveResult {
+  console.log('calculateAdaptiveWeight called with:', {
+    discord_username: (userData as any).discord_username,
+    current_rank: userData.current_rank,
+    peak_rank: userData.peak_rank,
+    tournaments_won: userData.tournaments_won,
+    enableAdaptiveWeights: config.enableAdaptiveWeights,
+    tournamentPenaltiesEnabled: config.tournamentWinnerPenalties?.enabled
+  });
+
   // First, get the manual override result
   const manualResult = getRankPointsWithManualOverride(userData);
   
