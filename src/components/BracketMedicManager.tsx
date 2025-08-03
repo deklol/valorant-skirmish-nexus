@@ -34,6 +34,8 @@ type TeamInfo = {
 };
 
 export default function BracketMedicManager() {
+  console.log('🔧 BracketMedicManager: Component mounting');
+  
   const { toast } = useToast();
   const [tournaments, setTournaments] = useState<TournamentInfo[]>([]);
   const [selectedTournament, setSelectedTournament] = useState<TournamentInfo | null>(null);
@@ -47,13 +49,26 @@ export default function BracketMedicManager() {
 
   // Load tournaments
   useEffect(() => {
+    console.log('🔧 BracketMedicManager: Loading tournaments useEffect triggered');
     const fetchTournaments = async () => {
-      const { data } = await supabase
-        .from("tournaments")
-        .select("id, name")
-        .order("created_at", { ascending: false })
-        .limit(70);
-      setTournaments(data ?? []);
+      try {
+        console.log('🔧 BracketMedicManager: Fetching tournaments from Supabase');
+        const { data, error } = await supabase
+          .from("tournaments")
+          .select("id, name")
+          .order("created_at", { ascending: false })
+          .limit(70);
+        
+        if (error) {
+          console.error('🔧 BracketMedicManager: Error fetching tournaments:', error);
+          throw error;
+        }
+        
+        console.log('🔧 BracketMedicManager: Tournaments fetched successfully:', data?.length || 0);
+        setTournaments(data ?? []);
+      } catch (err) {
+        console.error('🔧 BracketMedicManager: Exception in fetchTournaments:', err);
+      }
     };
     fetchTournaments();
   }, []);
@@ -583,6 +598,8 @@ export default function BracketMedicManager() {
   };
 
   // UI Rendering
+  console.log('🔧 BracketMedicManager: Rendering component, tournaments:', tournaments.length, 'selectedTournament:', selectedTournament?.name);
+  
   return (
     <Card className="bg-slate-800 border-slate-700 mb-8">
       <CardHeader>
