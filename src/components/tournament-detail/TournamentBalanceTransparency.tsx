@@ -612,7 +612,7 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                             
                             if (atlasData) {
                               return (
-                                <div className="bg-muted/20 rounded-lg border border-border p-3 space-y-3">
+                                <div className="w-full bg-muted/20 rounded-lg border border-border p-3 space-y-3">
                                   {/* Compact Assignment Header */}
                                   <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
