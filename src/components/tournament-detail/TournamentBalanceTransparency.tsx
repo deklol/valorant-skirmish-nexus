@@ -219,10 +219,8 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
       return eliteRanks.includes(rank);
     };
 
-    if (eliteDistMatch) {
-      [, playerName, , teamName] = eliteDistMatch;
-      points = parseInt(eliteDistMatch[2]);
-      
+    // Helper function to process any player match and determine notification type
+    const processPlayerMatch = (playerName: string, points: number, teamName: string) => {
       // Determine classification based on actual rank or points
       const isEliteByRank = isEliteRank(actualRank);
       const isHighLevelByRank = isHighLevelRank(actualRank);
@@ -248,6 +246,12 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
         factors.push({ label: "Player Category", value: "Elite Tier (Immortal 3+ / 400+ points)", type: "skill" });
         impact = "Elite players distributed evenly for fair competition";
       }
+    };
+
+    if (eliteDistMatch) {
+      [, playerName, , teamName] = eliteDistMatch;
+      points = parseInt(eliteDistMatch[2]);
+      processPlayerMatch(playerName, points, teamName);
       
       factors.push({ label: "Distribution Strategy", value: "Round-robin to prevent stacking", type: "rule" });
       factors.push({ label: "Team Limit", value: "Maximum 1 per team", type: "rule" });
@@ -255,13 +259,20 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
     } else if (smartBalanceMatch) {
       [, playerName, , teamName] = smartBalanceMatch;
       points = parseInt(smartBalanceMatch[2]);
-      type = "Smart Team Balancing";
-      rank = "Balanced"; // Default
-      explanation = `${playerName} was assigned to ${teamName} based on skill analysis to create the most balanced team composition.`;
+      processPlayerMatch(playerName, points, teamName);
       
-      factors.push({ label: "Assignment Method", value: "Optimal team balancing", type: "balance" });
-      factors.push({ label: "Team Selection", value: "Joined team needing their skill level", type: "balance" });
-      impact = "Team strengths optimized for competitive balance";
+      // If not set to elite/high-level by processPlayerMatch, default to smart balancing
+      if (!type || type === "Smart Assignment") {
+        type = "Smart Team Balancing";
+        rank = "Balanced";
+        explanation = `${playerName} was assigned to ${teamName} based on skill analysis to create the most balanced team composition.`;
+        factors.push({ label: "Assignment Method", value: "Optimal team balancing", type: "balance" });
+        factors.push({ label: "Team Selection", value: "Joined team needing their skill level", type: "balance" });
+        impact = "Team strengths optimized for competitive balance";
+      } else {
+        // Keep the elite/high-level classification but add balancing context
+        factors.push({ label: "Assignment Method", value: "Smart balancing for elite distribution", type: "balance" });
+      }
       
     } else if (generalMatch) {
       [, playerName, rank] = generalMatch;
