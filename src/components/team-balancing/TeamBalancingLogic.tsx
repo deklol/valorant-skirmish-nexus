@@ -4,7 +4,6 @@ import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
 import { getRankPointsWithManualOverride } from "@/utils/rankingSystemWithOverrides";
 import { enhancedSnakeDraft } from "./EnhancedSnakeDraft";
 import { calculateAdaptiveWeight, ExtendedUserRankData } from "@/utils/adaptiveWeightSystem";
-import { adjustTeamBalance, TeamData, PlayerData } from "@/utils/postBalanceAdjustment";
 
 interface UseTeamBalancingProps {
   tournamentId: string;
@@ -265,69 +264,6 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
       } catch (notificationError) {
         console.error('Failed to send notification:', notificationError);
       }
-    }
-
-    // Apply post-balance adjustments to prevent tournament winners from getting overpowered teams
-    const teamDataForAdjustment: TeamData[] = createdTeams.map(team => ({
-      id: team.id,
-      name: team.name,
-      totalPoints: team.total_rank_points,
-      members: team.players.map(player => {
-        const rankResult = tournament?.enable_adaptive_weights 
-          ? calculateAdaptiveWeight(player)
-          : getRankPointsWithManualOverride(player);
-        
-        return {
-          id: player.id,
-          discord_username: player.discord_username,
-          tournaments_won: player.tournaments_won,
-          current_rank: player.current_rank,
-          peak_rank: player.peak_rank,
-          points: rankResult.points,
-          is_captain: team.players[0]?.id === player.id // First player is captain
-        };
-      })
-    }));
-
-    const { adjustedTeams, adjustments, summary } = adjustTeamBalance(teamDataForAdjustment);
-    
-    if (adjustments.length > 0) {
-      console.log('🔄 APPLYING BALANCE ADJUSTMENTS:', summary);
-      
-      // Apply the adjustments to the database
-      for (const adjustment of adjustments) {
-        const { player1, player2 } = adjustment.swappedPlayers;
-        
-        // Find the team IDs
-        const team1 = adjustedTeams.find(t => t.members.some(p => p.id === player1.id));
-        const team2 = adjustedTeams.find(t => t.members.some(p => p.id === player2.id));
-        
-        if (team1 && team2) {
-          // Update team_members table
-          await supabase
-            .from('team_members')
-            .update({ team_id: team2.id })
-            .eq('user_id', player1.id);
-            
-          await supabase
-            .from('team_members')
-            .update({ team_id: team1.id })
-            .eq('user_id', player2.id);
-            
-          // Update team total points
-          await supabase
-            .from('teams')
-            .update({ total_rank_points: team1.totalPoints })
-            .eq('id', team1.id);
-            
-          await supabase
-            .from('teams')
-            .update({ total_rank_points: team2.totalPoints })
-            .eq('id', team2.id);
-        }
-      }
-      
-      console.log('✅ BALANCE ADJUSTMENTS APPLIED SUCCESSFULLY');
     }
 
     // Save balance analysis to tournament
