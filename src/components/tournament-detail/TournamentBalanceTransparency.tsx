@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, BarChart3, TrendingUp, Users, Trophy } from "lucide-react";
+import { ChevronDown, ChevronUp, BarChart3, TrendingUp, Users, Trophy, Target, Zap, Shield, AlertTriangle } from "lucide-react";
 import { useState } from "react";
 import { Team } from "@/types/tournamentDetail";
 
@@ -184,6 +184,50 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
     if (score >= 85) return "Excellent";
     if (score >= 70) return "Good";
     return "Fair";
+  };
+
+  // Parse ATLAS reasoning into structured components
+  const parseAtlasReasoning = (reasoning: string) => {
+    const sections = reasoning.split('🎯').filter(Boolean);
+    if (sections.length < 2) return null;
+
+    const [playerInfo, ...rest] = sections;
+    const content = rest.join('🎯');
+
+    // Extract player assignment info
+    const playerMatch = playerInfo.match(/Assigning (.+?) \((.+?)\) to (.+?) \((\d+)\spts?\)/);
+    if (!playerMatch) return null;
+
+    const [, playerName, rank, teamName, points] = playerMatch;
+
+    // Extract evidence factors
+    const evidenceFactors = [];
+    const evidenceRegex = /📊 ([^:]+): ([^📊🎯🔄⚖️]+)/g;
+    let evidenceMatch;
+    while ((evidenceMatch = evidenceRegex.exec(content)) !== null) {
+      evidenceFactors.push({
+        factor: evidenceMatch[1].trim(),
+        value: evidenceMatch[2].trim()
+      });
+    }
+
+    // Extract team selection logic
+    const teamLogicMatch = content.match(/🎯\s*(.+?)(?=🔄|⚖️|$)/s);
+    const teamLogic = teamLogicMatch ? teamLogicMatch[1].trim() : '';
+
+    // Extract balance impact
+    const balanceMatch = content.match(/⚖️\s*(.+?)$/s);
+    const balanceImpact = balanceMatch ? balanceMatch[1].trim() : '';
+
+    return {
+      playerName,
+      rank,
+      teamName,
+      points: parseInt(points),
+      evidenceFactors,
+      teamLogic,
+      balanceImpact
+    };
   };
 
   return (
@@ -506,10 +550,72 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                             </Badge>
                           )}
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                          Assigned to <span className="font-medium text-foreground">{assignedTo}</span>
-                        </p>
-                        <p className="text-xs text-muted-foreground">{step.reasoning}</p>
+                        <div className="space-y-3">
+                          <p className="text-xs text-muted-foreground">
+                            Assigned to <span className="font-medium text-foreground">{assignedTo}</span>
+                          </p>
+                          
+                          {(() => {
+                            const atlasData = parseAtlasReasoning(step.reasoning);
+                            
+                            if (atlasData) {
+                              return (
+                                <div className="space-y-3 p-3 bg-background/50 rounded-lg border border-border">
+                                  {/* ATLAS Evidence Factors */}
+                                  {atlasData.evidenceFactors.length > 0 && (
+                                    <div className="space-y-2">
+                                      <div className="flex items-center gap-2">
+                                        <Target className="h-3 w-3 text-blue-500" />
+                                        <span className="text-xs font-medium text-foreground">ATLAS Evaluation</span>
+                                      </div>
+                                      <div className="grid grid-cols-1 gap-2">
+                                        {atlasData.evidenceFactors.map((factor, i) => (
+                                          <div key={i} className="flex justify-between items-center text-xs p-2 bg-muted/50 rounded">
+                                            <span className="font-medium text-foreground">{factor.factor}</span>
+                                            <span className="text-muted-foreground">{factor.value}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Team Selection Logic */}
+                                  {atlasData.teamLogic && (
+                                    <div className="space-y-2">
+                                      <div className="flex items-center gap-2">
+                                        <Zap className="h-3 w-3 text-yellow-500" />
+                                        <span className="text-xs font-medium text-foreground">Team Selection Logic</span>
+                                      </div>
+                                      <p className="text-xs text-muted-foreground bg-muted/30 p-2 rounded">
+                                        {atlasData.teamLogic}
+                                      </p>
+                                    </div>
+                                  )}
+
+                                  {/* Balance Impact */}
+                                  {atlasData.balanceImpact && (
+                                    <div className="space-y-2">
+                                      <div className="flex items-center gap-2">
+                                        <Shield className="h-3 w-3 text-green-500" />
+                                        <span className="text-xs font-medium text-foreground">Balance Impact</span>
+                                      </div>
+                                      <p className="text-xs text-muted-foreground bg-muted/30 p-2 rounded">
+                                        {atlasData.balanceImpact}
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            } else {
+                              // Fallback for non-ATLAS reasoning
+                              return (
+                                <p className="text-xs text-muted-foreground bg-muted/30 p-2 rounded">
+                                  {step.reasoning}
+                                </p>
+                              );
+                            }
+                          })()}
+                        </div>
                       </div>
                     </div>
                   </div>
