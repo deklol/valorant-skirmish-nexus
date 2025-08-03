@@ -11,7 +11,12 @@ import {
   CheckCircle,
   AlertCircle,
   Info,
-  HelpCircle
+  HelpCircle,
+  Scale,
+  Target,
+  TrendingUp,
+  Zap,
+  Shield
 } from "lucide-react";
 
 const Help = () => {
@@ -25,9 +30,10 @@ const Help = () => {
           </div>
 
         <Tabs defaultValue="getting-started" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 bg-slate-800/90 border border-slate-700">
+          <TabsList className="grid w-full grid-cols-5 bg-slate-800/90 border border-slate-700">
             <TabsTrigger value="getting-started" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">Getting Started</TabsTrigger>
             <TabsTrigger value="tournaments" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">Tournaments</TabsTrigger>
+            <TabsTrigger value="balancing" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">Team Balancing</TabsTrigger>
             <TabsTrigger value="teams" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">Teams</TabsTrigger>
             <TabsTrigger value="settings" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">Settings</TabsTrigger>
           </TabsList>
@@ -169,6 +175,145 @@ const Help = () => {
                     <li><strong>Check-in:</strong> Registered players must check in</li>
                     <li><strong>Live:</strong> Tournament is in progress</li>
                     <li><strong>Completed:</strong> Tournament has finished</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="balancing" className="space-y-6">
+            <Card className="bg-slate-800/90 border-slate-700">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Scale className="w-5 h-5" />
+                  Adaptive Team Balancing System
+                </CardTitle>
+                <CardDescription>Advanced AI-powered team balancing for competitive fairness</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-white">How It Works</h4>
+                  <p className="text-slate-400">Our adaptive weight system combines multiple factors to calculate each player's effective skill level, ensuring balanced teams every time. The algorithm considers current rank, peak performance, time decay, and tournament history.</p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-white">Priority System</h4>
+                  <ol className="text-slate-400 list-decimal list-inside space-y-1">
+                    <li><strong>Manual Override:</strong> Admin-set ranks take highest priority</li>
+                    <li><strong>Adaptive Weight:</strong> Enhanced calculation using peak + current rank blend</li>
+                    <li><strong>Current Rank:</strong> Your active competitive rank (if not Unranked)</li>
+                    <li><strong>Peak Rank Fallback:</strong> Uses peak rank with time-based penalty for unranked players</li>
+                    <li><strong>Default:</strong> 150 points (Diamond 1 equivalent) for new players</li>
+                  </ol>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-slate-800/90 border-slate-700">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="w-5 h-5" />
+                  Adaptive Weight Factors
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-white">Rank Decay System</h4>
+                  <p className="text-slate-400">When your current rank is lower than your peak, the system applies tier-based decay calculations:</p>
+                  <ul className="text-slate-400 list-disc list-inside space-y-1 ml-4">
+                    <li><strong>Minor Drop (50 points):</strong> 20% decay (e.g., Gold 3 → Gold 2)</li>
+                    <li><strong>Major Drop (100 points):</strong> 40% decay (e.g., Diamond → Platinum)</li>
+                    <li><strong>Severe Drop (200 points):</strong> 60% decay (e.g., Immortal → Gold)</li>
+                    <li><strong>Extreme Drop (300+ points):</strong> Up to 80% decay (e.g., Radiant → Silver)</li>
+                  </ul>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-white">Time-Based Penalties</h4>
+                  <p className="text-slate-400">Skill naturally degrades over time. After 60 days since peak performance, exponential decay applies with a maximum 25% penalty for very old peak ranks.</p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-white">Unranked Player Handling</h4>
+                  <p className="text-slate-400">Unranked players with peak ranks receive tier-appropriate penalties:</p>
+                  <ul className="text-slate-400 list-disc list-inside space-y-1 ml-4">
+                    <li><strong>Immortal+:</strong> 25% penalty (must prove current skill)</li>
+                    <li><strong>Ascendant:</strong> 22% penalty</li>
+                    <li><strong>Diamond:</strong> 20% penalty</li>
+                    <li><strong>Platinum:</strong> 18% penalty</li>
+                    <li><strong>Gold and below:</strong> 15% penalty</li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-slate-800/90 border-slate-700">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="w-5 h-5" />
+                  Tournament Winner Penalty System
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-white">Competitive Fairness</h4>
+                  <p className="text-slate-400">To prevent previous tournament winners from consistently receiving overpowered teams, progressive penalties are applied based on tournament wins:</p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-white">Base Penalties</h4>
+                  <ul className="text-slate-400 list-disc list-inside space-y-1">
+                    <li><strong>1 Tournament Win:</strong> 15% weight reduction</li>
+                    <li><strong>2 Tournament Wins:</strong> 25% weight reduction</li>
+                    <li><strong>3+ Tournament Wins:</strong> 35% weight reduction</li>
+                  </ul>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-white">Additional Modifiers</h4>
+                  <ul className="text-slate-400 list-disc list-inside space-y-1">
+                    <li><strong>Unranked Winners:</strong> Double penalty (2x multiplier) - Winners must prove current form</li>
+                    <li><strong>Recent Wins:</strong> +50% penalty for wins within the last 90 days</li>
+                    <li><strong>Maximum Penalty:</strong> Capped at 60% to prevent excessive penalization</li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-slate-800/90 border-slate-700">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5" />
+                  Team Distribution Algorithm
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-white">Enhanced Snake Draft</h4>
+                  <p className="text-slate-400">Players are sorted by their calculated adaptive weight, then distributed using an optimized snake draft pattern that minimizes skill variance between teams.</p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-white">Quality Metrics</h4>
+                  <ul className="text-slate-400 list-disc list-inside space-y-1">
+                    <li><strong>Balance Quality Score:</strong> Measures team balance from 0-100%</li>
+                    <li><strong>Point Variance:</strong> Lower variance = more balanced teams</li>
+                    <li><strong>Confidence Scoring:</strong> Indicates reliability of the balance calculation</li>
+                  </ul>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-white">Winner Distribution</h4>
+                  <p className="text-slate-400">Tournament winners are spread across different teams to prevent stacking multiple champions on the same team, ensuring competitive integrity.</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <Zap className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-semibold text-emerald-400">Adaptive Weight Benefits</h4>
+                  <ul className="text-slate-400 text-sm mt-2 space-y-1">
+                    <li>Prevents rank inflation abuse - past winners face greater challenges</li>
+                    <li>Accounts for skill degradation over time</li>
+                    <li>Balances teams based on proven competitive ability, not just current rank</li>
+                    <li>Creates fair matches where any team can win through strategy and teamwork</li>
+                    <li>Transparent calculation system with detailed reasoning for each player</li>
+                    <li>Encourages continuous improvement rather than resting on past achievements</li>
                   </ul>
                 </div>
               </div>
