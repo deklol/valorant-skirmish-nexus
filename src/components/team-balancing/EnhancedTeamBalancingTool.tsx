@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Users, Shuffle, AlertTriangle, CheckCircle, Eye, Settings, Zap } from "lucide-react";
+import { Users, Shuffle, AlertTriangle, CheckCircle, Eye, Settings, Zap, Brain } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { enhancedSnakeDraft, EnhancedTeamResult, BalanceStep } from "./EnhancedSnakeDraft";
@@ -79,9 +79,9 @@ const EnhancedTeamBalancingTool = ({
       setEnableAdaptiveWeights(checked);
       
       toast({
-        title: checked ? "Adaptive Weights Enabled" : "Adaptive Weights Disabled",
+        title: checked ? "ATLAS System Enabled" : "ATLAS System Disabled",
         description: checked 
-          ? "Team balancing will now use enhanced adaptive weight calculation"
+          ? "ATLAS AI will now optimize team balancing with adaptive analysis"
           : "Team balancing will use standard rank-based weights",
       });
     } catch (error: any) {
@@ -384,9 +384,13 @@ const EnhancedTeamBalancingTool = ({
       case 'idle':
         return 'Ready to analyze team balance';
       case 'analyzing':
-        return 'Running enhanced snake draft analysis...';
+        return enableAdaptiveWeights 
+          ? 'ATLAS is running AI-enhanced team analysis...'
+          : 'Running enhanced snake draft analysis...';
       case 'validating':
-        return 'Validating balance and making final adjustments...';
+        return enableAdaptiveWeights
+          ? 'ATLAS is validating balance and making AI-guided adjustments...'
+          : 'Validating balance and making final adjustments...';
       case 'preview':
         return 'Review balance results before saving';
       case 'saving':
@@ -406,6 +410,7 @@ const EnhancedTeamBalancingTool = ({
         lastStep={lastProgressStep}
         phase={phase === 'analyzing' ? 'analyzing' : phase === 'validating' ? 'validating' : 'complete'}
         onComplete={() => setShowProgress(false)}
+        atlasEnabled={enableAdaptiveWeights}
       />
 
       {/* Main Control Card */}
@@ -414,6 +419,12 @@ const EnhancedTeamBalancingTool = ({
           <CardTitle className="text-white flex items-center gap-2">
             {getPhaseIcon()}
             Enhanced Auto Team Balancing
+            {enableAdaptiveWeights && (
+              <Badge className="bg-purple-600 text-white ml-auto">
+                <Brain className="w-3 h-3 mr-1" />
+                ATLAS Enhanced
+              </Badge>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -425,7 +436,7 @@ const EnhancedTeamBalancingTool = ({
               <p>• Provides detailed reasoning for each player assignment</p>
               <p>• Records complete decision-making process for transparency</p>
               {enableAdaptiveWeights && (
-                <p className="text-blue-400">• Adaptive weight calculation enabled (blends current + peak ranks)</p>
+                <p className="text-purple-400">• ATLAS (Adaptive Tournament League Analysis System) enabled</p>
               )}
             </div>
           </div>
@@ -442,15 +453,17 @@ const EnhancedTeamBalancingTool = ({
               htmlFor="adaptive-weights" 
               className="text-sm font-medium text-slate-300 cursor-pointer flex items-center gap-2"
             >
-              <Zap className="w-4 h-4" />
-              Enable Adaptive Weight System
+              <Brain className="w-4 h-4" />
+              Enable ATLAS (Adaptive Tournament League Analysis System)
             </label>
-            <Badge variant="outline" className="text-xs ml-auto">
-              {enableAdaptiveWeights ? 'Enhanced' : 'Standard'}
+            <Badge variant="outline" className={`text-xs ml-auto ${
+              enableAdaptiveWeights ? 'border-purple-500 text-purple-400' : ''
+            }`}>
+              {enableAdaptiveWeights ? 'ATLAS AI' : 'Standard'}
             </Badge>
           </div>
           <div className="text-xs text-slate-400 ml-6">
-            Intelligently blends current and peak ranks based on rank decay and time factors
+            AI-powered system that intelligently analyzes player skills, prevents stacking, and optimizes team balance
           </div>
 
           {/* Phase-specific Actions */}

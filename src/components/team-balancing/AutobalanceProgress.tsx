@@ -2,7 +2,8 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Zap, Users, TrendingUp, ArrowRight } from "lucide-react";
+import { Zap, Users, TrendingUp, ArrowRight, Brain, Sparkles } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface ProgressStep {
   step: number;
@@ -28,8 +29,9 @@ interface AutobalanceProgressProps {
   totalPlayers: number;
   currentStep: number;
   lastStep?: ProgressStep;
-  phase: 'analyzing' | 'validating' | 'complete';
+  phase: 'analyzing' | 'validating' | 'complete' | 'atlas_analyzing';
   onComplete?: () => void;
+  atlasEnabled?: boolean;
 }
 
 export const AutobalanceProgress = ({ 
@@ -38,7 +40,8 @@ export const AutobalanceProgress = ({
   currentStep, 
   lastStep,
   phase,
-  onComplete 
+  onComplete,
+  atlasEnabled = false
 }: AutobalanceProgressProps) => {
   const [progress, setProgress] = useState(0);
 
@@ -59,14 +62,26 @@ export const AutobalanceProgress = ({
     switch (phase) {
       case 'analyzing':
         return {
-          title: 'Snake Draft in Progress',
-          description: 'Distributing players using enhanced snake draft algorithm...',
-          icon: <Zap className="w-5 h-5 text-yellow-400" />
+          title: atlasEnabled ? 'ATLAS-Enhanced Snake Draft' : 'Snake Draft in Progress',
+          description: atlasEnabled 
+            ? 'ATLAS is intelligently distributing players with adaptive weights...' 
+            : 'Distributing players using enhanced snake draft algorithm...',
+          icon: atlasEnabled 
+            ? <Brain className="w-5 h-5 text-purple-400" />
+            : <Zap className="w-5 h-5 text-yellow-400" />
+        };
+      case 'atlas_analyzing':
+        return {
+          title: 'ATLAS Decision Processing',
+          description: 'AI system is analyzing optimal team placements...',
+          icon: <Sparkles className="w-5 h-5 text-purple-400 animate-pulse" />
         };
       case 'validating':
         return {
-          title: 'Validating Balance',
-          description: 'Reviewing team balance and making final adjustments...',
+          title: atlasEnabled ? 'ATLAS Team Validation' : 'Validating Balance',
+          description: atlasEnabled
+            ? 'ATLAS is performing final balance validation and adjustments...'
+            : 'Reviewing team balance and making final adjustments...',
           icon: <TrendingUp className="w-5 h-5 text-blue-400" />
         };
       case 'complete':
@@ -85,11 +100,24 @@ export const AutobalanceProgress = ({
       <CardContent className="p-6">
         <div className="space-y-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-yellow-600/20 rounded-full">
+            <div className={`p-2 rounded-full ${
+              atlasEnabled ? 'bg-purple-600/20' : 'bg-yellow-600/20'
+            }`}>
               {phaseDisplay.icon}
             </div>
-            <div>
-              <h3 className="text-white font-semibold">{phaseDisplay.title}</h3>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <h3 className="text-white font-semibold">{phaseDisplay.title}</h3>
+                {atlasEnabled && (
+                  <Badge 
+                    variant="outline" 
+                    className="border-purple-500 text-purple-400 bg-purple-500/10 text-xs"
+                  >
+                    <Brain className="w-3 h-3 mr-1" />
+                    ATLAS
+                  </Badge>
+                )}
+              </div>
               <p className="text-slate-400 text-sm">{phaseDisplay.description}</p>
             </div>
           </div>
@@ -131,8 +159,15 @@ export const AutobalanceProgress = ({
                   </span>
                   {lastStep.player.source !== 'current_rank' && (
                     <span className="text-amber-400 text-xs">
-                      [{lastStep.player.source === 'manual_override' ? 'Override' : 'Peak'}]
+                      [{lastStep.player.source === 'manual_override' ? 'Override' : 
+                        lastStep.player.source === 'adaptive_weight' ? 'ATLAS' : 'Peak'}]
                     </span>
+                  )}
+                  {atlasEnabled && lastStep.player.source === 'adaptive_weight' && (
+                    <Badge className="bg-purple-600 text-white text-xs">
+                      <Brain className="w-2 h-2 mr-1" />
+                      AI
+                    </Badge>
                   )}
                   <ArrowRight className="w-3 h-3 text-slate-400" />
                   <span className="text-blue-400 font-medium">Team {lastStep.assignedTeam + 1}</span>
@@ -156,13 +191,35 @@ export const AutobalanceProgress = ({
           )}
 
           {phase === 'validating' && (
-            <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-3">
+            <div className={`rounded-lg p-3 border ${
+              atlasEnabled 
+                ? 'bg-purple-900/20 border-purple-500/30'
+                : 'bg-blue-900/20 border-blue-500/30'
+            }`}>
               <div className="flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-blue-400" />
-                <span className="text-sm font-medium text-blue-400">Final Validation</span>
+                {atlasEnabled ? (
+                  <Brain className="w-4 h-4 text-purple-400" />
+                ) : (
+                  <TrendingUp className="w-4 h-4 text-blue-400" />
+                )}
+                <span className={`text-sm font-medium ${
+                  atlasEnabled ? 'text-purple-400' : 'text-blue-400'
+                }`}>
+                  {atlasEnabled ? 'ATLAS Final Validation' : 'Final Validation'}
+                </span>
+                {atlasEnabled && (
+                  <Badge className="bg-purple-600/20 text-purple-300 text-xs border-purple-500/30">
+                    AI Enhanced
+                  </Badge>
+                )}
               </div>
-              <p className="text-xs text-blue-300 mt-1">
-                Analyzing team balance quality and making final adjustments if needed...
+              <p className={`text-xs mt-1 ${
+                atlasEnabled ? 'text-purple-300' : 'text-blue-300'
+              }`}>
+                {atlasEnabled 
+                  ? 'ATLAS is analyzing team balance quality and making AI-guided adjustments...'
+                  : 'Analyzing team balance quality and making final adjustments if needed...'
+                }
               </p>
             </div>
           )}
