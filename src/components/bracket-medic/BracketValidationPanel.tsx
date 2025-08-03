@@ -31,7 +31,7 @@ export const BracketValidationPanel: React.FC<BracketValidationPanelProps> = ({
   const [issues, setIssues] = useState<ValidationIssue[]>([]);
   const { toast } = useToast();
 
-  const analyzebracket = () => {
+  const analyzeBracket = () => {
     setIsAnalyzing(true);
     const foundIssues: ValidationIssue[] = [];
 
@@ -228,7 +228,7 @@ export const BracketValidationPanel: React.FC<BracketValidationPanelProps> = ({
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-2">
-            <Button onClick={analyzebracket} disabled={isAnalyzing}>
+            <Button onClick={analyzeBracket} disabled={isAnalyzing}>
               <RefreshCw className={`h-4 w-4 mr-2 ${isAnalyzing ? 'animate-spin' : ''}`} />
               {isAnalyzing ? 'Analyzing...' : 'Analyze Bracket'}
             </Button>
