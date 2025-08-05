@@ -108,69 +108,67 @@ export interface EvidenceTeamResult {
 }
 
 /**
- * Creates balanced teams using an iterative assignment and optimization method.
- * This replaces a standard snake draft for a more holistic balance.
+ * Creates balanced teams using a true balancing algorithm followed by iterative optimization.
  */
 function createAtlasBalancedTeams(players: any[], numTeams: number, teamSize: number): { teams: any[][], steps: EvidenceBalanceStep[] } {
   const teams: any[][] = Array(numTeams).fill(null).map(() => []);
   const steps: EvidenceBalanceStep[] = [];
   let stepCounter = 0;
 
-  // Sort players descending by weight to start with the most impactful players
+  // Sort players descending by weight
   const sortedPlayers = [...players].sort((a, b) => b.evidenceWeight - a.evidenceWeight);
 
-  // 1. Initial Distribution (Snake Draft) - NOW CORRECTED
-  let teamIndex = 0;
-  let direction = 1; // 1 for forward, -1 for backward
+  // 1. Initial Distribution using a true balancing algorithm
   for (const player of sortedPlayers) {
-    if (teams[teamIndex].length < teamSize) {
-        teams[teamIndex].push(player);
+    // Find the team with the lowest current total weight that has space
+    let targetTeamIndex = -1;
+    let lowestTotal = Infinity;
 
-        // Log the initial placement step
-        steps.push({
-            step: ++stepCounter,
-            player: {
-                id: player.id,
-                discord_username: player.discord_username || 'Unknown',
-                points: player.evidenceWeight,
-                rank: player.evidenceCalculation?.currentRank || player.current_rank || 'Unranked',
-                source: player.weightSource || 'unknown',
-                evidenceWeight: player.evidenceWeight,
-                isElite: player.isElite,
-            },
-            assignedTeam: teamIndex,
-            reasoning: `ATLAS Snake Distribution: Placed ${player.discord_username} on Team ${teamIndex + 1} as part of initial distribution.`,
-            teamStatesAfter: teams.map((team, index) => ({
-                teamIndex: index,
-                totalPoints: team.reduce((sum, p) => sum + p.evidenceWeight, 0),
-                playerCount: team.length,
-                eliteCount: team.filter(p => p.isElite).length
-            })),
-            phase: 'atlas_team_formation',
-        });
+    for (let i = 0; i < numTeams; i++) {
+      if (teams[i].length < teamSize) {
+        const currentTotal = teams[i].reduce((sum, p) => sum + p.evidenceWeight, 0);
+        if (currentTotal < lowestTotal) {
+          lowestTotal = currentTotal;
+          targetTeamIndex = i;
+        }
+      }
     }
 
-    teamIndex += direction;
-
-    // Reverse direction at the ends of the team list
-    if (teamIndex >= numTeams) {
-        teamIndex = numTeams - 1;
-        direction = -1;
-    } else if (teamIndex < 0) {
-        teamIndex = 0;
-        direction = 1;
+    if (targetTeamIndex !== -1) {
+      teams[targetTeamIndex].push(player);
+      // Log this placement as a step
+      steps.push({
+        step: ++stepCounter,
+        player: {
+          id: player.id,
+          discord_username: player.discord_username || 'Unknown',
+          points: player.evidenceWeight,
+          rank: player.evidenceCalculation?.currentRank || player.current_rank || 'Unranked',
+          source: player.weightSource || 'unknown',
+          evidenceWeight: player.evidenceWeight,
+          isElite: player.isElite,
+        },
+        assignedTeam: targetTeamIndex,
+        reasoning: `ATLAS Balancing: Placed ${player.discord_username} on Team ${targetTeamIndex + 1} (lowest total) to create initial balance.`,
+        teamStatesAfter: teams.map((team, index) => ({
+          teamIndex: index,
+          totalPoints: team.reduce((sum, p) => sum + p.evidenceWeight, 0),
+          playerCount: team.length,
+          eliteCount: team.filter(p => p.isElite).length
+        })),
+        phase: 'atlas_team_formation',
+      });
     }
   }
 
-
-  // 2. Iterative Optimization
-  const MAX_ITERATIONS = 20; // Allow more iterations for better optimization
+  // 2. Iterative Optimization to fine-tune the balance
+  const MAX_ITERATIONS = 20;
   for (let iter = 0; iter < MAX_ITERATIONS; iter++) {
     let teamTotals = teams.map(team => team.reduce((sum, p) => sum + p.evidenceWeight, 0));
     let richestTeamIndex = teamTotals.indexOf(Math.max(...teamTotals));
     let poorestTeamIndex = teamTotals.indexOf(Math.min(...teamTotals));
 
-    if (richestTeamIndex === poorestTeamIndex) break; // Teams are perfectly balanced
+    if (richestTeamIndex === poorestTeamIndex) break;
 
     let bestSwap = null;
     let bestSpread = Math.max(...teamTotals) - Math.min(...teamTotals);
@@ -180,18 +178,15 @@ function createAtlasBalancedTeams(players: any[], numTeams: number, teamSize: nu
 
     for (const playerFromRich of richestTeam) {
       for (const playerFromPoor of poorestTeam) {
-        // Calculate the point difference if these two players were swapped
         const swapImpact = playerFromRich.evidenceWeight - playerFromPoor.evidenceWeight;
         const newRichTotal = teamTotals[richestTeamIndex] - swapImpact;
         const newPoorTotal = teamTotals[poorestTeamIndex] + swapImpact;
 
-        // Calculate the new spread of all teams after the hypothetical swap
         const tempTotals = [...teamTotals];
         tempTotals[richestTeamIndex] = newRichTotal;
         tempTotals[poorestTeamIndex] = newPoorTotal;
         const newSpread = Math.max(...tempTotals) - Math.min(...tempTotals);
 
-        // If this swap improves the overall balance, it's our new best candidate
         if (newSpread < bestSpread) {
           bestSpread = newSpread;
           bestSwap = { playerFromRich, playerFromPoor, richestTeamIndex, poorestTeamIndex };
@@ -199,18 +194,15 @@ function createAtlasBalancedTeams(players: any[], numTeams: number, teamSize: nu
       }
     }
 
-    // If a beneficial swap was found, execute it
     if (bestSwap) {
       const { playerFromRich, playerFromPoor, richestTeamIndex, poorestTeamIndex } = bestSwap;
       
-      // Perform the swap
       teams[richestTeamIndex] = teams[richestTeamIndex].filter(p => p.id !== playerFromRich.id);
       teams[richestTeamIndex].push(playerFromPoor);
       
       teams[poorestTeamIndex] = teams[poorestTeamIndex].filter(p => p.id !== playerFromPoor.id);
       teams[poorestTeamIndex].push(playerFromRich);
 
-      // Log the optimization step
       steps.push({
         step: ++stepCounter,
         player: { id: 'swap', discord_username: `${playerFromRich.discord_username} ↔ ${playerFromPoor.discord_username}`, points: 0, rank: 'Optimization', source: 'ATLAS' },
@@ -225,7 +217,6 @@ function createAtlasBalancedTeams(players: any[], numTeams: number, teamSize: nu
         phase: 'atlas_optimization_swap',
       });
     } else {
-      // No beneficial swap found, optimization is complete
       break;
     }
   }
