@@ -1,6 +1,6 @@
 // Evidence-Based Snake Draft with Smart Skill Distribution and Mini-AI Decision System
 import { getRankPointsWithManualOverride } from "@/utils/rankingSystemWithOverrides";
-import { calculateEvidenceBasedWeightWithMiniAi, EvidenceWithMiniAi, EvidenceBasedConfig } from "@/utils/evidenceBasedWeightSystem";
+import { calculateEvidenceBasedWeightWithMiniAi, EvidenceBasedConfig, EvidenceBasedCalculation } from "@/utils/evidenceBasedWeightSystem";
 import { AtlasDecisionSystem, AtlasDecision } from "@/utils/miniAiDecisionSystem";
 import { TeamPlayer } from "@/utils/teamCompositionAnalyzer";
 import { getUnifiedPlayerWeight, logWeightCalculation, hasRadiantHistory } from "@/utils/unifiedWeightSystem";
