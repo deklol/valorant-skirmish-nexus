@@ -119,7 +119,7 @@ function createAtlasBalancedTeams(players: any[], numTeams: number, teamSize: nu
   // Sort players descending by weight to start with the most impactful players
   const sortedPlayers = [...players].sort((a, b) => b.evidenceWeight - a.evidenceWeight);
 
-  // 1. Initial Distribution (Greedy assignment)
+  // 1. Initial Distribution (Greedy assignment) - NOW LOGGED
   for (const player of sortedPlayers) {
     let targetTeamIndex = -1;
     let lowestTotal = Infinity;
@@ -134,6 +134,29 @@ function createAtlasBalancedTeams(players: any[], numTeams: number, teamSize: nu
     }
     if (targetTeamIndex !== -1) {
       teams[targetTeamIndex].push(player);
+      
+      // Log the initial placement step
+      steps.push({
+        step: ++stepCounter,
+        player: {
+          id: player.id,
+          discord_username: player.discord_username || 'Unknown',
+          points: player.evidenceWeight,
+          rank: player.evidenceCalculation?.currentRank || player.current_rank || 'Unranked',
+          source: player.weightSource || 'unknown',
+          evidenceWeight: player.evidenceWeight,
+          isElite: player.isElite,
+        },
+        assignedTeam: targetTeamIndex,
+        reasoning: `ATLAS Initial Placement: Placed ${player.discord_username} on Team ${targetTeamIndex + 1} as part of initial distribution.`,
+        teamStatesAfter: teams.map((team, index) => ({
+          teamIndex: index,
+          totalPoints: team.reduce((sum, p) => sum + p.evidenceWeight, 0),
+          playerCount: team.length,
+          eliteCount: team.filter(p => p.isElite).length
+        })),
+        phase: 'atlas_team_formation',
+      });
     }
   }
 
