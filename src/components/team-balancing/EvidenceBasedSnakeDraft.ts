@@ -271,8 +271,8 @@ export const evidenceBasedSnakeDraft = async (
     maxDecayPercent: 0.25,
     skillTierCaps: {
       enabled: true,
-      eliteThreshold: 400, // Adjusted threshold for better elite detection
-      maxElitePerTeam: 1
+      eliteThreshold: 300, // Adjusted threshold for better elite detection
+      maxElitePerTeam: 2
     }
   };
 
