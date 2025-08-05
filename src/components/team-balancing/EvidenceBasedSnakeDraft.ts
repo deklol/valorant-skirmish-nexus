@@ -134,9 +134,14 @@ function createAtlasBalancedTeams(players: any[], numTeams: number, teamSize: nu
       steps.push({
         step: ++stepCounter,
         player: {
-          id: captain.id, discord_username: captain.discord_username || 'Unknown',
-          points: captain.evidenceWeight, rank: captain.evidenceCalculation?.currentRank || 'Unranked',
-          source: captain.weightSource || 'unknown', evidenceWeight: captain.evidenceWeight, isElite: captain.isElite,
+          id: captain.id, 
+          discord_username: captain.discord_username || 'Unknown',
+          points: captain.evidenceWeight, 
+          rank: captain.displayRank || 'Unranked',
+          source: captain.weightSource || 'unknown', 
+          evidenceWeight: captain.evidenceWeight, 
+          isElite: captain.isElite,
+          evidenceReasoning: captain.evidenceCalculation?.calculationReasoning,
         },
         assignedTeam: i,
         reasoning: `ATLAS Captain Placement: Assigned ${captain.discord_username} to Team ${i + 1}.`,
@@ -163,9 +168,14 @@ function createAtlasBalancedTeams(players: any[], numTeams: number, teamSize: nu
         steps.push({
           step: ++stepCounter,
           player: {
-            id: strongestPlayer.id, discord_username: strongestPlayer.discord_username || 'Unknown',
-            points: strongestPlayer.evidenceWeight, rank: strongestPlayer.evidenceCalculation?.currentRank || 'Unranked',
-            source: strongestPlayer.weightSource || 'unknown', evidenceWeight: strongestPlayer.evidenceWeight, isElite: strongestPlayer.isElite,
+            id: strongestPlayer.id, 
+            discord_username: strongestPlayer.discord_username || 'Unknown',
+            points: strongestPlayer.evidenceWeight, 
+            rank: strongestPlayer.displayRank || 'Unranked',
+            source: strongestPlayer.weightSource || 'unknown', 
+            evidenceWeight: strongestPlayer.evidenceWeight, 
+            isElite: strongestPlayer.isElite,
+            evidenceReasoning: strongestPlayer.evidenceCalculation?.calculationReasoning,
           },
           assignedTeam: weakerTeamIndex,
           reasoning: `ATLAS Balancing: Assigned strongest available player (${strongestPlayer.discord_username}) to the weaker team.`,
@@ -186,9 +196,14 @@ function createAtlasBalancedTeams(players: any[], numTeams: number, teamSize: nu
         steps.push({
           step: ++stepCounter,
           player: {
-            id: weakestPlayer.id, discord_username: weakestPlayer.discord_username || 'Unknown',
-            points: weakestPlayer.evidenceWeight, rank: weakestPlayer.evidenceCalculation?.currentRank || 'Unranked',
-            source: weakestPlayer.weightSource || 'unknown', evidenceWeight: weakestPlayer.evidenceWeight, isElite: weakestPlayer.isElite,
+            id: weakestPlayer.id, 
+            discord_username: weakestPlayer.discord_username || 'Unknown',
+            points: weakestPlayer.evidenceWeight, 
+            rank: weakestPlayer.displayRank || 'Unranked',
+            source: weakestPlayer.weightSource || 'unknown', 
+            evidenceWeight: weakestPlayer.evidenceWeight, 
+            isElite: weakestPlayer.isElite,
+            evidenceReasoning: weakestPlayer.evidenceCalculation?.calculationReasoning,
           },
           assignedTeam: strongerTeamIndex,
           reasoning: `ATLAS Counter-Balance: Assigned weakest available player (${weakestPlayer.discord_username}) to the stronger team.`,
@@ -258,10 +273,8 @@ export const evidenceBasedSnakeDraft = async (
       const evidenceDetails = evidenceResult.evidenceResult;
       const evidenceCalculation = evidenceDetails.evidenceCalculation;
       
-      // ✅ FIX: Construct the rich calculation object for the UI, using the correct property names
-      // from the EvidenceBasedCalculation type and deriving missing values.
+      // Construct the rich calculation object for the detailed UI view
       if (evidenceCalculation) {
-        // Derive peakRankPoints using the imported mapping.
         const peakRankPoints = evidenceCalculation.peakRank ? (RANK_POINT_MAPPING[evidenceCalculation.peakRank] || 0) : 0;
         
         evidenceCalculations.push({
@@ -273,17 +286,16 @@ export const evidenceBasedSnakeDraft = async (
             peakRank: evidenceCalculation.peakRank || player.peak_rank,
             peakRankPoints: peakRankPoints,
             calculationReasoning: evidenceCalculation.calculationReasoning || "Calculated by Evidence-Based AI.",
-            rankDecayFactor: evidenceCalculation.rankDecayApplied, // Corrected from rankDecayFactor
+            rankDecayFactor: evidenceCalculation.rankDecayApplied,
             tournamentsWon: evidenceCalculation.tournamentsWon,
             tournamentBonus: evidenceCalculation.tournamentBonus,
             weightSource: evidenceDetails.source || "evidence_based_snake",
-            evidenceFactors: evidenceCalculation.evidenceFactors || [], // Corrected from tags
+            evidenceFactors: evidenceCalculation.evidenceFactors || [],
             miniAiAnalysis: evidenceDetails.miniAiAnalysis,
             isElite: evidenceResult.finalAdjustedPoints >= config.skillTierCaps.eliteThreshold,
           },
         });
       }
-
 
       if (evidenceResult.miniAiRecommendations) {
         evidenceResult.miniAiRecommendations.forEach(rec => {
@@ -298,12 +310,14 @@ export const evidenceBasedSnakeDraft = async (
         });
       }
 
+      // ✅ FIX: Return a player object with accurate data for the step-by-step log
       return {
         ...player,
         evidenceWeight: evidenceResult.finalAdjustedPoints,
-        weightSource: evidenceResult.evidenceResult.source,
+        weightSource: evidenceCalculation?.weightSource || evidenceDetails.source,
+        displayRank: evidenceDetails.rank, // Use the primary rank used for calculation
         evidenceCalculation,
-        miniAiAnalysis: evidenceResult.evidenceResult.miniAiAnalysis,
+        miniAiAnalysis: evidenceDetails.miniAiAnalysis,
         isElite: evidenceResult.finalAdjustedPoints >= config.skillTierCaps.eliteThreshold
       };
     })
