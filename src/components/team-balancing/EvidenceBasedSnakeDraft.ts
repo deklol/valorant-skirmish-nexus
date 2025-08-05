@@ -255,11 +255,29 @@ export const evidenceBasedSnakeDraft = async (
         last_tournament_win: player.last_tournament_win
       }, config, true);
 
+      // ✅ FIX: Create the rich calculation object for the UI
       const evidenceCalculation = evidenceResult.evidenceResult.evidenceCalculation;
       if (evidenceCalculation) {
-        evidenceCalculation.userId = player.user_id || player.id;
-        evidenceCalculations.push({ userId: player.user_id || player.id, calculation: evidenceCalculation });
+        evidenceCalculations.push({
+          userId: player.user_id || player.id,
+          calculation: {
+            points: evidenceResult.finalAdjustedPoints,
+            rank: evidenceCalculation.currentRank || player.current_rank,
+            reasoning: evidenceCalculation.calculationReasoning || 'Calculated by Evidence-Based AI.',
+            isElite: evidenceResult.finalAdjustedPoints >= config.skillTierCaps.eliteThreshold,
+            basePoints: evidenceCalculation.basePoints,
+            peakRank: evidenceCalculation.peakRank,
+            peakRankPoints: evidenceCalculation.peakRankPoints,
+            rankDecayFactor: evidenceCalculation.rankDecayFactor,
+            tournamentBonus: evidenceCalculation.tournamentBonus,
+            tournamentsWon: player.tournaments_won,
+            weightSource: evidenceResult.evidenceResult.source,
+            evidenceFactors: evidenceCalculation.tags || [],
+            miniAiAnalysis: evidenceResult.evidenceResult.miniAiAnalysis,
+          },
+        });
       }
+
 
       if (evidenceResult.miniAiRecommendations) {
         evidenceResult.miniAiRecommendations.forEach(rec => {
