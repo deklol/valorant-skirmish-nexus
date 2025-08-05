@@ -87,6 +87,7 @@ interface BalanceAnalysis {
   // Adaptive weight calculations
   adaptiveWeightCalculations?: AdaptiveWeightCalculation[];
   adaptive_weight_calculations?: AdaptiveWeightCalculation[]; // Database format
+  evidenceCalculations?: AdaptiveWeightCalculation[]; // ATLAS evidence format
   
   // Common properties
   method: string;
@@ -154,16 +155,31 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
   };
 
   const getAdaptiveCalculations = () => {
-    const calculations = balanceAnalysis.adaptiveWeightCalculations || balanceAnalysis.adaptive_weight_calculations || [];
+    // PHASE 5 FIX: Enhanced ATLAS transparency data handling
+    const calculations = balanceAnalysis.adaptiveWeightCalculations || 
+                        balanceAnalysis.adaptive_weight_calculations || 
+                        balanceAnalysis.evidenceCalculations || // New ATLAS format
+                        [];
+    
     // Remove duplicates based on userId
     const uniqueCalculations = calculations.filter((calc, index, self) => 
       index === self.findIndex(c => c.userId === calc.userId)
     );
-    // Only show adaptive calculations for players who were actually balanced (appear in balance steps)
+    
+    // Enhanced filtering: show calculations for players in balance steps OR ATLAS evidence calculations
     const balancedPlayerIds = balanceSteps.map(step => step.player.id);
     const balancedCalculations = uniqueCalculations.filter(calc => 
-      balancedPlayerIds.includes(calc.userId)
+      balancedPlayerIds.includes(calc.userId) || 
+      calc.calculation?.weightSource === 'atlas_unified' // Show ATLAS calculations
     );
+    
+    console.log('🏛️ TRANSPARENCY: Retrieved calculations:', {
+      total: calculations.length,
+      unique: uniqueCalculations.length,
+      balanced: balancedCalculations.length,
+      sources: [...new Set(balancedCalculations.map(c => c.calculation?.weightSource))]
+    });
+    
     return balancedCalculations;
   };
   

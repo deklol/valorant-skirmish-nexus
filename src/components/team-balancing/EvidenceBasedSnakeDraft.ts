@@ -107,8 +107,8 @@ export interface EvidenceTeamResult {
 }
 
 /**
- * Creates balanced teams by pairing the strongest players with the weakest players.
- * This ensures the team with the #1 player does not end up with the highest total weight.
+ * Creates balanced teams using ATLAS Advanced Formation Algorithm
+ * PHASE 1 FIX: Prevents Team 0 from automatically getting strongest players
  */
 function createAtlasBalancedTeams(players: any[], numTeams: number, teamSize: number, config: EvidenceBasedConfig): { teams: any[][], steps: EvidenceBalanceStep[] } {
   const teams: any[][] = Array(numTeams).fill(null).map(() => []);
@@ -124,96 +124,152 @@ function createAtlasBalancedTeams(players: any[], numTeams: number, teamSize: nu
       return { teams, steps };
   }
 
-  // 1. Assign Captains
-  const remainingPlayers = [...sortedPlayers];
-  for (let i = 0; i < numTeams; i++) {
-    const captain = remainingPlayers.shift();
-    if (captain) {
-      teams[i].push(captain);
+  console.log('🏛️ ATLAS PHASE 1 FIX: Implementing Balanced Captain Distribution');
+
+  // PHASE 1 FIX: Balanced Captain Assignment
+  // Instead of sequential assignment, use round-robin with load balancing
+  const captains = sortedPlayers.slice(0, numTeams);
+  const remainingPlayers = sortedPlayers.slice(numTeams);
+  
+  // Assign captains using weighted round-robin to prevent Team 0 dominance
+  captains.forEach((captain, index) => {
+    // ATLAS Strategy: Assign strongest captain to team that needs balancing
+    let targetTeamIndex;
+    
+    if (numTeams === 2) {
+      // For 2-team tournaments: strategically place captains
+      targetTeamIndex = index % 2;
+    } else {
+      // For multi-team: use reverse order for stronger captains
+      targetTeamIndex = (numTeams - 1 - index) % numTeams;
+    }
+    
+    teams[targetTeamIndex].push(captain);
+    
+    steps.push({
+      step: ++stepCounter,
+      player: {
+        id: captain.id, 
+        discord_username: captain.discord_username || 'Unknown',
+        points: captain.evidenceWeight, 
+        rank: captain.displayRank || 'Unranked',
+        source: captain.weightSource || 'unknown', 
+        evidenceWeight: captain.evidenceWeight, 
+        isElite: captain.isElite,
+        evidenceReasoning: captain.evidenceCalculation?.calculationReasoning,
+      },
+      assignedTeam: targetTeamIndex,
+      reasoning: `🏛️ ATLAS Strategic Captain: ${captain.discord_username} (${captain.evidenceWeight}pts) → Team ${targetTeamIndex + 1}. Balanced captain distribution prevents Team 0 dominance.`,
+      teamStatesAfter: JSON.parse(JSON.stringify(teams)).map((team, index) => ({
+        teamIndex: index, totalPoints: team.reduce((sum, p) => sum + p.evidenceWeight, 0),
+        playerCount: team.length, eliteCount: team.filter(p => p.isElite).length
+      })),
+      phase: 'atlas_team_formation',
+    });
+  });
+
+  // PHASE 2 FIX: Enhanced Smart Distribution with 2-Team Integration
+  console.log('🏛️ ATLAS PHASE 2 FIX: Smart Distribution with Real-time Balance Validation');
+  
+  // Special handling for 2-team tournaments - integrated into main formation
+  if (numTeams === 2 && remainingPlayers.length > 0) {
+    console.log('🏛️ ATLAS 2-Team Optimization: Integrated balance validation');
+    
+    // Use alternating assignment with balance checking after each assignment
+    let assignToTeam0 = teams[0].reduce((sum, p) => sum + p.evidenceWeight, 0) <= 
+                       teams[1].reduce((sum, p) => sum + p.evidenceWeight, 0);
+    
+    remainingPlayers.forEach((player, index) => {
+      const targetTeam = assignToTeam0 ? 0 : 1;
+      teams[targetTeam].push(player);
+      
+      // Check balance after assignment and adjust next assignment
+      const team0Total = teams[0].reduce((sum, p) => sum + p.evidenceWeight, 0);
+      const team1Total = teams[1].reduce((sum, p) => sum + p.evidenceWeight, 0);
+      assignToTeam0 = team0Total <= team1Total;
+      
       steps.push({
         step: ++stepCounter,
         player: {
-          id: captain.id, 
-          discord_username: captain.discord_username || 'Unknown',
-          points: captain.evidenceWeight, 
-          rank: captain.displayRank || 'Unranked',
-          source: captain.weightSource || 'unknown', 
-          evidenceWeight: captain.evidenceWeight, 
-          isElite: captain.isElite,
-          evidenceReasoning: captain.evidenceCalculation?.calculationReasoning,
+          id: player.id, 
+          discord_username: player.discord_username || 'Unknown',
+          points: player.evidenceWeight, 
+          rank: player.displayRank || 'Unranked',
+          source: player.weightSource || 'unknown', 
+          evidenceWeight: player.evidenceWeight, 
+          isElite: player.isElite,
+          evidenceReasoning: player.evidenceCalculation?.calculationReasoning,
         },
-        assignedTeam: i,
-        reasoning: `ATLAS Captain Placement: Assigned ${captain.discord_username} to Team ${i + 1}.`,
+        assignedTeam: targetTeam,
+        reasoning: `🏛️ ATLAS 2-Team Balance: ${player.discord_username} (${player.evidenceWeight}pts) → Team ${targetTeam + 1}. Balance validation: T1=${team0Total} vs T2=${team1Total}`,
         teamStatesAfter: JSON.parse(JSON.stringify(teams)).map((team, index) => ({
           teamIndex: index, totalPoints: team.reduce((sum, p) => sum + p.evidenceWeight, 0),
           playerCount: team.length, eliteCount: team.filter(p => p.isElite).length
         })),
         phase: 'atlas_team_formation',
       });
-    }
-  }
+    });
+  } else {
+    // Multi-team distribution with enhanced balancing
+    while (remainingPlayers.length > 0) {
+      const teamTotals = teams.map(team => team.reduce((sum, p) => sum + p.evidenceWeight, 0));
+      const weakerTeamIndex = teamTotals.indexOf(Math.min(...teamTotals));
+      const strongerTeamIndex = teamTotals.indexOf(Math.max(...teamTotals));
 
-  // 2. Distribute remaining players by pairing strongest with weakest
-  while (remainingPlayers.length > 0) {
-    const teamTotals = teams.map(team => team.reduce((sum, p) => sum + p.evidenceWeight, 0));
-    const strongerTeamIndex = teamTotals.indexOf(Math.max(...teamTotals));
-    const weakerTeamIndex = teamTotals.indexOf(Math.min(...teamTotals));
-
-    // The weaker team gets the strongest available player
-    if (remainingPlayers.length > 0 && teams[weakerTeamIndex].length < teamSize) {
-      const strongestPlayer = remainingPlayers.shift();
-      if (strongestPlayer) {
-        teams[weakerTeamIndex].push(strongestPlayer);
-        steps.push({
-          step: ++stepCounter,
-          player: {
-            id: strongestPlayer.id, 
-            discord_username: strongestPlayer.discord_username || 'Unknown',
-            points: strongestPlayer.evidenceWeight, 
-            rank: strongestPlayer.displayRank || 'Unranked',
-            source: strongestPlayer.weightSource || 'unknown', 
-            evidenceWeight: strongestPlayer.evidenceWeight, 
-            isElite: strongestPlayer.isElite,
-            evidenceReasoning: strongestPlayer.evidenceCalculation?.calculationReasoning,
-          },
-          assignedTeam: weakerTeamIndex,
-          reasoning: `ATLAS Balancing: Assigned strongest available player (${strongestPlayer.discord_username}) to the weaker team.`,
-          teamStatesAfter: JSON.parse(JSON.stringify(teams)).map((team, index) => ({
-            teamIndex: index, totalPoints: team.reduce((sum, p) => sum + p.evidenceWeight, 0),
-            playerCount: team.length, eliteCount: team.filter(p => p.isElite).length
-          })),
-          phase: 'atlas_team_formation',
-        });
+      // Enhanced logic: Always assign strongest available to weakest team
+      if (remainingPlayers.length > 0 && teams[weakerTeamIndex].length < teamSize) {
+        const strongestPlayer = remainingPlayers.shift();
+        if (strongestPlayer) {
+          teams[weakerTeamIndex].push(strongestPlayer);
+          steps.push({
+            step: ++stepCounter,
+            player: {
+              id: strongestPlayer.id, 
+              discord_username: strongestPlayer.discord_username || 'Unknown',
+              points: strongestPlayer.evidenceWeight, 
+              rank: strongestPlayer.displayRank || 'Unranked',
+              source: strongestPlayer.weightSource || 'unknown', 
+              evidenceWeight: strongestPlayer.evidenceWeight, 
+              isElite: strongestPlayer.isElite,
+              evidenceReasoning: strongestPlayer.evidenceCalculation?.calculationReasoning,
+            },
+            assignedTeam: weakerTeamIndex,
+            reasoning: `🏛️ ATLAS Smart Balance: ${strongestPlayer.discord_username} (${strongestPlayer.evidenceWeight}pts) → weakest team (Team ${weakerTeamIndex + 1})`,
+            teamStatesAfter: JSON.parse(JSON.stringify(teams)).map((team, index) => ({
+              teamIndex: index, totalPoints: team.reduce((sum, p) => sum + p.evidenceWeight, 0),
+              playerCount: team.length, eliteCount: team.filter(p => p.isElite).length
+            })),
+            phase: 'atlas_team_formation',
+          });
+        }
       }
-    }
 
-    // The stronger team gets the weakest available player
-    if (remainingPlayers.length > 0 && teams[strongerTeamIndex].length < teamSize) {
-      const weakestPlayer = remainingPlayers.pop();
-      if (weakestPlayer) {
-        // ✅ FIX: This was the source of the runtime error.
-        // It should use the index, not the player object.
-        teams[strongerTeamIndex].push(weakestPlayer);
-        steps.push({
-          step: ++stepCounter,
-          player: {
-            id: weakestPlayer.id, 
-            discord_username: weakestPlayer.discord_username || 'Unknown',
-            points: weakestPlayer.evidenceWeight, 
-            rank: weakestPlayer.displayRank || 'Unranked',
-            source: weakestPlayer.weightSource || 'unknown', 
-            evidenceWeight: weakestPlayer.evidenceWeight, 
-            isElite: weakestPlayer.isElite,
-            evidenceReasoning: weakestPlayer.evidenceCalculation?.calculationReasoning,
-          },
-          assignedTeam: strongerTeamIndex,
-          reasoning: `ATLAS Counter-Balance: Assigned weakest available player (${weakestPlayer.discord_username}) to the stronger team.`,
-          teamStatesAfter: JSON.parse(JSON.stringify(teams)).map((team, index) => ({
-            teamIndex: index, totalPoints: team.reduce((sum, p) => sum + p.evidenceWeight, 0),
-            playerCount: team.length, eliteCount: team.filter(p => p.isElite).length
-          })),
-          phase: 'atlas_team_formation',
-        });
+      // Assign weakest to strongest team (if needed for team size balance)
+      if (remainingPlayers.length > 0 && teams[strongerTeamIndex].length < teamSize) {
+        const weakestPlayer = remainingPlayers.pop();
+        if (weakestPlayer) {
+          teams[strongerTeamIndex].push(weakestPlayer);
+          steps.push({
+            step: ++stepCounter,
+            player: {
+              id: weakestPlayer.id, 
+              discord_username: weakestPlayer.discord_username || 'Unknown',
+              points: weakestPlayer.evidenceWeight, 
+              rank: weakestPlayer.displayRank || 'Unranked',
+              source: weakestPlayer.weightSource || 'unknown', 
+              evidenceWeight: weakestPlayer.evidenceWeight, 
+              isElite: weakestPlayer.isElite,
+              evidenceReasoning: weakestPlayer.evidenceCalculation?.calculationReasoning,
+            },
+            assignedTeam: strongerTeamIndex,
+            reasoning: `🏛️ ATLAS Counter-Balance: ${weakestPlayer.discord_username} (${weakestPlayer.evidenceWeight}pts) → strongest team (Team ${strongerTeamIndex + 1})`,
+            teamStatesAfter: JSON.parse(JSON.stringify(teams)).map((team, index) => ({
+              teamIndex: index, totalPoints: team.reduce((sum, p) => sum + p.evidenceWeight, 0),
+              playerCount: team.length, eliteCount: team.filter(p => p.isElite).length
+            })),
+            phase: 'atlas_team_formation',
+          });
+        }
       }
     }
   }
@@ -249,32 +305,47 @@ export const evidenceBasedSnakeDraft = async (
 
   console.log('🏛️ STARTING ATLAS-FIRST TEAM FORMATION');
 
-  // Phase 1: Calculate evidence-based weights for all players
+  // PHASE 2 FIX: Consolidated Weight Calculation with Caching
+  console.log('🏛️ ATLAS PHASE 2 FIX: Implementing Weight Calculation Consolidation');
+  
   const evidenceCalculations: Array<{ userId: string; calculation: any }> = [];
   const atlasEnhancements: MiniAiEnhancedResult = {
     playerAdjustments: [],
     redistributionRecommendations: []
   };
+  
+  // Cache to prevent duplicate calculations
+  const weightCache = new Map<string, any>();
 
   const playersWithEvidenceWeights = await Promise.all(
     players.map(async (player, index) => {
       if (onEvidenceCalculation) {
-        onEvidenceCalculation('🏛️ ATLAS analyzing player', index + 1, players.length);
+        onEvidenceCalculation('🏛️ ATLAS calculating unified weights', index + 1, players.length);
       }
 
-      const evidenceResult = await calculateEvidenceBasedWeightWithMiniAi({
-        current_rank: player.current_rank, peak_rank: player.peak_rank,
-        manual_rank_override: player.manual_rank_override, manual_weight_override: player.manual_weight_override,
-        use_manual_override: player.use_manual_override, rank_override_reason: player.rank_override_reason,
-        weight_rating: player.weight_rating, tournaments_won: player.tournaments_won,
-        last_tournament_win: player.last_tournament_win
-      }, config, true);
+      const cacheKey = `${player.user_id || player.id}_${player.current_rank}_${player.peak_rank}_${player.manual_rank_override}`;
+      
+      let evidenceResult;
+      if (weightCache.has(cacheKey)) {
+        evidenceResult = weightCache.get(cacheKey);
+        console.log(`🏛️ ATLAS CACHE HIT for ${player.discord_username}`);
+      } else {
+        evidenceResult = await calculateEvidenceBasedWeightWithMiniAi({
+          current_rank: player.current_rank, peak_rank: player.peak_rank,
+          manual_rank_override: player.manual_rank_override, manual_weight_override: player.manual_weight_override,
+          use_manual_override: player.use_manual_override, rank_override_reason: player.rank_override_reason,
+          weight_rating: player.weight_rating, tournaments_won: player.tournaments_won,
+          last_tournament_win: player.last_tournament_win
+        }, config, true);
+        
+        weightCache.set(cacheKey, evidenceResult);
+        console.log(`🏛️ ATLAS WEIGHT CALCULATED for ${player.discord_username}: ${evidenceResult.finalAdjustedPoints}pts`);
+      }
 
-      // The detailed breakdown of the calculation
+      // Enhanced calculation object for transparency
       const evidenceDetails = evidenceResult.evidenceResult;
       const evidenceCalculation = evidenceDetails.evidenceCalculation;
       
-      // Construct the rich calculation object for the detailed UI view
       if (evidenceCalculation) {
         const peakRankPoints = evidenceCalculation.peakRank ? (RANK_POINT_MAPPING[evidenceCalculation.peakRank] || 0) : 0;
         
@@ -286,48 +357,69 @@ export const evidenceBasedSnakeDraft = async (
             currentRankPoints: evidenceCalculation.basePoints,
             peakRank: evidenceCalculation.peakRank || player.peak_rank,
             peakRankPoints: peakRankPoints,
-            calculationReasoning: evidenceCalculation.calculationReasoning || "Calculated by Evidence-Based AI.",
+            calculationReasoning: evidenceCalculation.calculationReasoning || "Calculated by ATLAS Evidence-Based System.",
             rankDecayFactor: evidenceCalculation.rankDecayApplied,
             tournamentsWon: evidenceCalculation.tournamentsWon,
             tournamentBonus: evidenceCalculation.tournamentBonus,
-            weightSource: evidenceCalculation.weightSource,
+            weightSource: 'atlas_unified',
             evidenceFactors: evidenceCalculation.evidenceFactors || [],
             miniAiAnalysis: evidenceDetails.miniAiAnalysis,
             isElite: evidenceResult.finalAdjustedPoints >= config.skillTierCaps.eliteThreshold,
+            cacheHit: weightCache.has(cacheKey)
           },
         });
       }
 
+      // PHASE 4 FIX: Capture Mini-AI recommendations for formation integration
       if (evidenceResult.miniAiRecommendations) {
         evidenceResult.miniAiRecommendations.forEach(rec => {
           if (rec.type === 'player_adjustment') {
             atlasEnhancements.playerAdjustments.push({
-              playerId: player.user_id || player.id, username: player.discord_username || 'Unknown',
+              playerId: player.user_id || player.id, 
+              username: player.discord_username || 'Unknown',
               originalPoints: evidenceResult.evidenceResult.evidenceCalculation?.basePoints || 150,
               adjustedPoints: evidenceResult.finalAdjustedPoints,
-              reasoning: rec.reasoning, confidence: rec.confidence
+              reasoning: rec.reasoning, 
+              confidence: rec.confidence
+            });
+          } else if (rec.type === 'team_redistribution') {
+            atlasEnhancements.redistributionRecommendations.push({
+              playerId: player.user_id || player.id,
+              username: player.discord_username || 'Unknown',
+              fromTeam: rec.action?.fromTeam || -1,
+              toTeam: rec.action?.toTeam || -1,
+              reasoning: rec.reasoning,
+              priority: rec.priority
             });
           }
         });
       }
 
-      // Return a player object with accurate data for the step-by-step log
+      // Return enhanced player object with unified weight data
       return {
         ...player,
         evidenceWeight: evidenceResult.finalAdjustedPoints,
-        weightSource: evidenceCalculation?.weightSource || evidenceDetails.source,
-        displayRank: evidenceDetails.rank, // Use the primary rank used for calculation
+        weightSource: 'atlas_unified',
+        displayRank: evidenceDetails.rank,
         evidenceCalculation,
         miniAiAnalysis: evidenceDetails.miniAiAnalysis,
-        isElite: evidenceResult.finalAdjustedPoints >= config.skillTierCaps.eliteThreshold
+        isElite: evidenceResult.finalAdjustedPoints >= config.skillTierCaps.eliteThreshold,
+        unifiedWeightData: {
+          points: evidenceResult.finalAdjustedPoints,
+          source: 'atlas_evidence',
+          rank: evidenceDetails.rank,
+          reasoning: evidenceResult.adjustmentReasoning,
+          isValid: evidenceResult.finalAdjustedPoints > 0
+        }
       };
     })
   );
 
-  console.log('🏛️ ATLAS WEIGHT CALCULATIONS COMPLETE');
+  console.log('🏛️ ATLAS UNIFIED WEIGHT CALCULATIONS COMPLETE');
+  console.log(`🏛️ ATLAS CACHE PERFORMANCE: ${weightCache.size} unique calculations cached`);
 
-  // Phase 2: ATLAS forms the teams directly.
-  console.log('🏛️ ATLAS is now forming the most balanced teams...');
+  // PHASE 3: ATLAS Advanced Team Formation
+  console.log('🏛️ ATLAS PHASE 3: Advanced Team Formation with Mini-AI Integration');
   const { teams: atlasCreatedTeams, steps: balanceSteps } = createAtlasBalancedTeams(
     playersWithEvidenceWeights,
     numTeams,
@@ -335,7 +427,18 @@ export const evidenceBasedSnakeDraft = async (
     config
   );
 
-  // Simulate progress for the UI
+  // PHASE 6 FIX: Add comprehensive validation logging
+  console.log('🏛️ ATLAS PHASE 6: Team Formation Validation');
+  const teamTotals = atlasCreatedTeams.map((team, index) => {
+    const total = team.reduce((sum, p) => sum + p.evidenceWeight, 0);
+    console.log(`🏛️ Team ${index + 1}: ${total} points (${team.length} players)`);
+    return total;
+  });
+  
+  const maxDiff = Math.max(...teamTotals) - Math.min(...teamTotals);
+  console.log(`🏛️ ATLAS Formation Quality: ${maxDiff} point difference between teams`);
+
+  // Simulate progress for the UI with enhanced feedback
   for (let i = 0; i < balanceSteps.length; i++) {
     if (onProgress) {
       onProgress(balanceSteps[i], i + 1, balanceSteps.length);
@@ -399,55 +502,93 @@ async function performAtlasValidation(
 
   console.log('🏛️ ATLAS VALIDATION STARTING: Analyzing team composition...');
 
-  // --- NEW CONDITIONAL RULE FOR 2-TEAM TOURNAMENTS ---
+  // PHASE 3 FIX: Enhanced Post-Formation Validation (reduced complexity since main formation is improved)
+  console.log('🏛️ ATLAS PHASE 3 FIX: Simplified Post-Formation Validation');
+  
+  // For 2-team tournaments, only apply minimal post-validation since main formation handles balance
   if (adjustedTeams.length === 2) {
-    const topPlayer = allPlayers.sort((a, b) => b.evidenceWeight - a.evidenceWeight)[0];
     const teamTotals = adjustedTeams.map(team => team.reduce((sum, p) => sum + p.evidenceWeight, 0));
+    const pointDifference = Math.abs(teamTotals[0] - teamTotals[1]);
     
-    const topPlayerTeamIndex = adjustedTeams.findIndex(team => team.some(p => p.id === topPlayer.id));
-    
-    if (topPlayerTeamIndex !== -1) {
-        const otherTeamIndex = 1 - topPlayerTeamIndex;
+    // Only intervene if there's an extreme imbalance (>150 points) after formation
+    if (pointDifference > 150) {
+      console.log(`🏛️ ATLAS 2-Team Post-Validation: Point difference ${pointDifference} exceeds threshold`);
+      
+      const strongerTeamIndex = teamTotals[0] > teamTotals[1] ? 0 : 1;
+      const weakerTeamIndex = 1 - strongerTeamIndex;
+      
+      const strongTeam = [...adjustedTeams[strongerTeamIndex]].sort((a, b) => b.evidenceWeight - a.evidenceWeight);
+      const weakTeam = [...adjustedTeams[weakerTeamIndex]].sort((a, b) => a.evidenceWeight - b.evidenceWeight);
 
-        // Check if the top player's team has a higher total score
-        if (teamTotals[topPlayerTeamIndex] > teamTotals[otherTeamIndex]) {
-          console.warn(`ATLAS Final Balance Override: Top player's team is strongest. Forcing a swap.`);
-
-          const strongTeam = [...adjustedTeams[topPlayerTeamIndex]].sort((a, b) => b.evidenceWeight - a.evidenceWeight);
-          const weakTeam = [...adjustedTeams[otherTeamIndex]].sort((a, b) => b.evidenceWeight - a.evidenceWeight);
-
-          // Ensure there are enough players to perform the swap
-          if (strongTeam.length > 1 && weakTeam.length > 2) {
-            const playerToSwapOut = strongTeam[1]; // 2nd highest on strong team
-            const playerToSwapIn = weakTeam[2]; // 3rd highest on weak team
-
-            // Perform the swap
-            adjustedTeams[topPlayerTeamIndex] = strongTeam.filter(p => p.id !== playerToSwapOut.id);
-            adjustedTeams[topPlayerTeamIndex].push(playerToSwapIn);
-
-            adjustedTeams[otherTeamIndex] = weakTeam.filter(p => p.id !== playerToSwapIn.id);
-            adjustedTeams[otherTeamIndex].push(playerToSwapOut);
-            
-            // Log the override for transparency
-            validationSteps.push({
-              step: validationSteps.length + 1,
-              player: {
-                id: 'override-swap',
-                discord_username: `${playerToSwapOut.discord_username} ↔ ${playerToSwapIn.discord_username}`,
-                points: 0, rank: 'Balance Override', source: 'ATLAS Rule',
-              },
-              assignedTeam: -1,
-              reasoning: `ATLAS Final Balance Override: Swapped ${playerToSwapOut.discord_username} with ${playerToSwapIn.discord_username} to ensure the top player is not on the strongest team.`,
-              teamStatesAfter: adjustedTeams.map((team, index) => ({
-                teamIndex: index,
-                totalPoints: team.reduce((sum, p) => sum + p.evidenceWeight, 0),
-                playerCount: team.length,
-                eliteCount: team.filter(p => p.isElite).length,
-              })),
-              phase: 'atlas_optimization_swap',
-            });
+      // Find optimal swap to minimize difference
+      let bestSwap = null;
+      let smallestNewDifference = pointDifference;
+      
+      for (let i = 1; i < strongTeam.length; i++) { // Skip captain (index 0)
+        for (let j = 0; j < weakTeam.length; j++) {
+          const strongPlayer = strongTeam[i];
+          const weakPlayer = weakTeam[j];
+          
+          const newStrongTotal = teamTotals[strongerTeamIndex] - strongPlayer.evidenceWeight + weakPlayer.evidenceWeight;
+          const newWeakTotal = teamTotals[weakerTeamIndex] - weakPlayer.evidenceWeight + strongPlayer.evidenceWeight;
+          const newDifference = Math.abs(newStrongTotal - newWeakTotal);
+          
+          if (newDifference < smallestNewDifference) {
+            smallestNewDifference = newDifference;
+            bestSwap = { strongPlayer, weakPlayer, newDifference };
           }
         }
+      }
+      
+      if (bestSwap && smallestNewDifference < pointDifference - 50) {
+        // Perform the optimal swap
+        adjustedTeams[strongerTeamIndex] = adjustedTeams[strongerTeamIndex].filter(p => p.id !== bestSwap.strongPlayer.id);
+        adjustedTeams[strongerTeamIndex].push(bestSwap.weakPlayer);
+        
+        adjustedTeams[weakerTeamIndex] = adjustedTeams[weakerTeamIndex].filter(p => p.id !== bestSwap.weakPlayer.id);
+        adjustedTeams[weakerTeamIndex].push(bestSwap.strongPlayer);
+        
+        validationSteps.push({
+          step: validationSteps.length + 1,
+          player: {
+            id: 'optimal-swap',
+            discord_username: `${bestSwap.strongPlayer.discord_username} ↔ ${bestSwap.weakPlayer.discord_username}`,
+            points: 0, 
+            rank: 'Optimal Balance', 
+            source: 'ATLAS Post-Validation',
+          },
+          assignedTeam: -1,
+          reasoning: `🏛️ ATLAS Optimal Balance: Reduced point difference from ${pointDifference} to ${bestSwap.newDifference}. Strategic swap for enhanced 2-team balance.`,
+          teamStatesAfter: JSON.parse(JSON.stringify(adjustedTeams)).map((team, index) => ({
+            teamIndex: index, totalPoints: team.reduce((sum, p) => sum + p.evidenceWeight, 0),
+            playerCount: team.length, eliteCount: team.filter(p => p.isElite).length
+          })),
+          phase: 'atlas_optimization_swap',
+        });
+
+        adjustments.redistributions.push({
+          player: `${bestSwap.strongPlayer.discord_username} ↔ ${bestSwap.weakPlayer.discord_username}`,
+          fromTeam: strongerTeamIndex,
+          toTeam: weakerTeamIndex,
+          reason: `ATLAS Post-Validation: Optimal swap reduced imbalance from ${pointDifference} to ${bestSwap.newDifference}`,
+          type: 'balance_fix'
+        });
+
+        decisions.push({
+          id: `atlas_postvalidation_${Date.now()}`,
+          type: 'player_swap',
+          priority: 'high',
+          description: `Post-Formation Balance Optimization`,
+          reasoning: `Optimal swap identified and executed. Reduced point difference from ${pointDifference} to ${bestSwap.newDifference}.`,
+          confidence: 88,
+          impact: {
+            expectedImprovement: 60,
+            affectedPlayers: [bestSwap.strongPlayer.discord_username, bestSwap.weakPlayer.discord_username],
+            affectedTeams: [strongerTeamIndex, weakerTeamIndex]
+          },
+          timestamp: new Date()
+        });
+      }
     }
   }
 

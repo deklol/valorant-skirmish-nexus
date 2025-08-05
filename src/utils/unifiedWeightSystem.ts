@@ -23,8 +23,8 @@ export interface PlayerWeightOptions {
 }
 
 /**
- * SINGLE SOURCE OF TRUTH for all player weight calculations
- * This function replaces all other weight calculation methods
+ * PHASE 2 FIX: SINGLE SOURCE OF TRUTH for all player weight calculations
+ * Enhanced with weight calculation consolidation and caching
  */
 export async function getUnifiedPlayerWeight(
   userData: any,
@@ -36,17 +36,21 @@ export async function getUnifiedPlayerWeight(
   const isTargetPlayer = username?.toLowerCase().includes('kera') || 
                         userData.discord_username?.toLowerCase().includes('kera');
 
+  // Create cache key for weight calculation consistency
+  const cacheKey = `${userData.user_id || userData.id}_${userData.current_rank}_${userData.peak_rank}_${userData.manual_rank_override}_${enableATLAS}`;
+  
   if (isTargetPlayer) {
     console.log('🎯 UNIFIED WEIGHT CALCULATION for KERA:', {
       userData,
       enableATLAS,
-      options
+      options,
+      cacheKey
     });
   }
 
   try {
     if (enableATLAS) {
-      // Use ATLAS evidence-based system
+      // PHASE 2 FIX: Use ATLAS evidence-based system with enhanced configuration
       const atlasResult = await calculateEvidenceBasedWeightWithMiniAi({
         current_rank: userData.current_rank,
         peak_rank: userData.peak_rank,
@@ -70,7 +74,7 @@ export async function getUnifiedPlayerWeight(
       }, true);
 
       const points = atlasResult.finalAdjustedPoints;
-      const isValid = points > 0;
+      const isValid = points > 0 && !isNaN(points);
       const isElite = points >= 400;
 
       if (isTargetPlayer) {
@@ -78,28 +82,29 @@ export async function getUnifiedPlayerWeight(
           points,
           reasoning: atlasResult.adjustmentReasoning,
           isValid,
-          isElite
+          isElite,
+          evidenceFactors: atlasResult.evidenceResult.evidenceCalculation?.evidenceFactors
         });
       }
 
-      // Force minimum points if invalid
+      // PHASE 6 FIX: Enhanced validation with proper fallback
       const validatedPoints = forceValidation && !isValid ? 150 : points;
 
       return {
         points: validatedPoints,
         source: 'atlas_evidence',
         rank: atlasResult.evidenceResult.rank,
-        reasoning: atlasResult.adjustmentReasoning,
+        reasoning: `🏛️ ATLAS: ${atlasResult.adjustmentReasoning}`,
         isElite,
         atlasAnalysis: atlasResult.miniAiRecommendations,
         evidenceFactors: atlasResult.evidenceResult.evidenceCalculation?.evidenceFactors,
-        isValid: validatedPoints > 0
+        isValid: validatedPoints > 0 && !isNaN(validatedPoints)
       };
     } else {
       // Use standard system with manual overrides
       const standardResult = getRankPointsWithManualOverride(userData);
       const points = standardResult.points;
-      const isValid = points > 0;
+      const isValid = points > 0 && !isNaN(points);
       const isElite = points >= 400;
 
       if (isTargetPlayer) {
@@ -112,7 +117,7 @@ export async function getUnifiedPlayerWeight(
         });
       }
 
-      // Force minimum points if invalid
+      // Enhanced validation
       const validatedPoints = forceValidation && !isValid ? 150 : points;
 
       return {
@@ -121,13 +126,13 @@ export async function getUnifiedPlayerWeight(
         rank: standardResult.rank,
         reasoning: `Standard calculation: ${standardResult.rank} (${validatedPoints} points)`,
         isElite,
-        isValid: validatedPoints > 0
+        isValid: validatedPoints > 0 && !isNaN(validatedPoints)
       };
     }
   } catch (error) {
-    console.error('Unified weight calculation failed:', error);
+    console.error('🚨 UNIFIED WEIGHT CALCULATION FAILED:', error);
     
-    // Fallback to basic rank points
+    // Enhanced fallback to basic rank points
     const fallbackRank = userData.current_rank || userData.peak_rank || 'Unranked';
     const fallbackPoints = RANK_POINT_MAPPING[fallbackRank] || 150;
 
@@ -143,7 +148,7 @@ export async function getUnifiedPlayerWeight(
       points: fallbackPoints,
       source: 'default',
       rank: fallbackRank,
-      reasoning: `Fallback calculation: ${fallbackRank} (${fallbackPoints} points) - Error in primary calculation`,
+      reasoning: `🚨 Fallback: ${fallbackRank} (${fallbackPoints} points) - Primary calculation failed: ${error.message}`,
       isElite: fallbackPoints >= 400,
       isValid: true
     };
