@@ -1,8 +1,10 @@
 // Evidence-Based Snake Draft with Smart Skill Distribution and Mini-AI Decision System
 import { getRankPointsWithManualOverride } from "@/utils/rankingSystemWithOverrides";
-import { calculateEvidenceBasedWeight, calculateEvidenceBasedWeightWithMiniAi, assignWithSkillDistribution, EvidenceBasedConfig, EnhancedEvidenceResult } from "@/utils/evidenceBasedWeightSystem";
+import { calculateEvidenceBasedWeightWithMiniAi, EvidenceBasedConfig } from "@/utils/evidenceBasedWeightSystem";
 import { AtlasDecisionSystem, AtlasDecision } from "@/utils/miniAiDecisionSystem";
 import { TeamPlayer } from "@/utils/teamCompositionAnalyzer";
+import { getUnifiedPlayerWeight, logWeightCalculation, hasRadiantHistory } from "@/utils/unifiedWeightSystem";
+
 
 export interface EvidenceBalanceStep {
   step: number;
@@ -125,7 +127,7 @@ export const evidenceBasedSnakeDraft = async (
     maxDecayPercent: 0.25,
     skillTierCaps: {
       enabled: true,
-      eliteThreshold: 400,
+      eliteThreshold: 500,
       maxElitePerTeam: 1
     }
   };
@@ -189,6 +191,7 @@ export const evidenceBasedSnakeDraft = async (
         weightSource: evidenceResult.evidenceResult.source,
         evidenceCalculation,
         miniAiAnalysis: evidenceResult.evidenceResult.miniAiAnalysis,
+        // Using the config for elite threshold check for consistency
         isElite: evidenceResult.finalAdjustedPoints >= config.skillTierCaps.eliteThreshold
       };
     })
@@ -200,44 +203,89 @@ export const evidenceBasedSnakeDraft = async (
     averageWeight: Math.round(playersWithEvidenceWeights.reduce((sum, p) => sum + p.evidenceWeight, 0) / playersWithEvidenceWeights.length)
   });
 
-  // Phase 2: Smart skill distribution
-  const distributionResult = assignWithSkillDistribution(playersWithEvidenceWeights, numTeams, teamSize, config);
+  // Sort players by points (highest first)
+  const sortedPlayers = playersWithEvidenceWeights.sort((a, b) => b.evidenceWeight - a.evidenceWeight);
+
+  // Initialize teams
+  let teams: any[][] = Array(numTeams).fill(null).map(() => []);
+  const balanceSteps: EvidenceBalanceStep[] = [];
+  let stepCounter = 0;
+
+  // ⭐ CORRECTED LOGIC: Use a predictive, cumulative balance system for assignment
+  const assignPlayerWithAtlasLogic = (player: any): number => {
+    const teamTotals = teams.map(team => 
+      team.reduce((sum, p) => sum + p.evidenceWeight, 0)
+    );
+    
+    let bestTeamIndex = -1;
+    let lowestHypotheticalSpread = Infinity;
+
+    // Find the team where adding this player results in the smallest point spread
+    for (let i = 0; i < numTeams; i++) {
+      if (teams[i].length >= teamSize) continue; // Skip full teams
+
+      // Create a hypothetical scenario
+      const hypotheticalTotals = [...teamTotals];
+      hypotheticalTotals[i] += player.evidenceWeight;
+      
+      // Calculate the new spread
+      const maxTotal = Math.max(...hypotheticalTotals);
+      const minTotal = Math.min(...hypotheticalTotals.filter((_, index) => teams[index].length > 0 || index === i)); // Only consider non-empty teams for min
+      const hypotheticalSpread = maxTotal - minTotal;
+      
+      // If this move is better, store it
+      if (hypotheticalSpread < lowestHypotheticalSpread) {
+        lowestHypotheticalSpread = hypotheticalSpread;
+        bestTeamIndex = i;
+      }
+    }
+    
+    // Fallback if no team is found (should not happen if there are spots)
+    if (bestTeamIndex === -1) {
+      bestTeamIndex = teams.findIndex(t => t.length < teamSize);
+    }
+    
+    return bestTeamIndex;
+  };
   
-  // Convert distribution steps to balance steps
-  const balanceSteps: EvidenceBalanceStep[] = distributionResult.distributionSteps.map((step, index) => {
-    const player = playersWithEvidenceWeights.find(p => (p.discord_username || 'Unknown') === step.player);
-    const isElitePhase = step.action === 'initial_assignment' && (player?.isElite || false);
+  // Assign each player using the new predictive logic
+  sortedPlayers.forEach(player => {
+    const targetTeamIndex = assignPlayerWithAtlasLogic(player);
+    teams[targetTeamIndex].push(player);
+    
+    const teamStatesAfter = teams.map((team, index) => ({
+      teamIndex: index,
+      totalPoints: team.reduce((sum, p) => sum + p.evidenceWeight, 0),
+      playerCount: team.length,
+      eliteCount: team.filter(p => p.isElite).length
+    }));
     
     const balanceStep: EvidenceBalanceStep = {
-      step: step.step,
+      step: ++stepCounter,
       player: {
-        id: player?.id || '',
-        discord_username: step.player,
-        points: player?.evidenceWeight || 150,
-        rank: player?.evidenceCalculation?.currentRank || player?.current_rank || 'Unranked',
-        source: player?.weightSource || 'unknown',
-        evidenceWeight: player?.evidenceWeight,
-        weightSource: player?.weightSource,
-        evidenceReasoning: player?.evidenceCalculation?.calculationReasoning,
-        isElite: player?.isElite
+        id: player.id,
+        discord_username: player.discord_username || 'Unknown',
+        points: player.evidenceWeight,
+        rank: player.evidenceCalculation?.currentRank || player.current_rank || 'Unranked',
+        source: player.weightSource || 'unknown',
+        evidenceWeight: player.evidenceWeight,
+        weightSource: player.weightSource,
+        evidenceReasoning: player.evidenceCalculation?.calculationReasoning,
+        isElite: player.isElite
       },
-      assignedTeam: step.toTeam,
-      reasoning: step.reason,
-      teamStatesAfter: distributionResult.teams.map((team, teamIndex) => ({
-        teamIndex,
-        totalPoints: team.reduce((sum, p) => sum + (p.evidenceWeight || 150), 0),
-        playerCount: team.length,
-        eliteCount: team.filter(p => p.isElite).length
-      })),
-      phase: isElitePhase ? 'elite_distribution' : 'regular_distribution'
+      assignedTeam: targetTeamIndex,
+      reasoning: `ATLAS Predictive: Assigned ${player.discord_username} (${player.evidenceWeight}pts) to Team ${targetTeamIndex + 1} to achieve the best possible overall balance.`,
+      teamStatesAfter,
+      phase: 'regular_distribution'
     };
 
-    if (onProgress) {
-      onProgress(balanceStep, index + 1, distributionResult.distributionSteps.length);
-    }
+    balanceSteps.push(balanceStep);
 
-    return balanceStep;
+    if (onProgress) {
+      onProgress(balanceStep, stepCounter, players.length);
+    }
   });
+
 
   // Phase 3: ATLAS validation and adjustment
   let validationResult: EvidenceValidationResult | undefined;
@@ -246,10 +294,21 @@ export const evidenceBasedSnakeDraft = async (
   }
 
   const validationStartTime = Date.now();
-  const atlasResult = await performAtlasValidation(distributionResult.teams, config, atlasEnhancements);
+  const atlasResult = await performAtlasValidation(teams, config, atlasEnhancements);
+  
+  const originalSkillDistribution = {
+    elitePlayersPerTeam: teams.map(team => 
+      team.filter(p => (p.evidenceWeight || 150) >= config.skillTierCaps.eliteThreshold).length
+    ),
+    skillStackingViolations: teams.filter(team => 
+      team.filter(p => (p.evidenceWeight || 150) >= config.skillTierCaps.eliteThreshold).length > 1
+    ).length,
+    pointBalance: calculatePointBalance(teams),
+    balanceQuality: 'good' as const // A default for pre-validation state
+  };
   
   validationResult = {
-    originalSkillDistribution: distributionResult.finalDistribution,
+    originalSkillDistribution,
     adjustmentsMade: atlasResult.adjustments,
     finalDistribution: {
       elitePlayersPerTeam: atlasResult.teams.map(team => 
@@ -308,8 +367,9 @@ async function performAtlasValidation(
       username: player.discord_username || 'Unknown',
       points: player.evidenceWeight || 150,
       isElite: (player.evidenceWeight || 150) >= config.skillTierCaps.eliteThreshold,
-      skillTier: (player.evidenceWeight || 150) >= 400 ? 'elite' : 
-                 (player.evidenceWeight || 150) >= 350 ? 'high' : // Immortal 2+
+      // Updated skill tier logic to match the new thresholds
+      skillTier: (player.evidenceWeight || 150) >= config.skillTierCaps.eliteThreshold ? 'elite' : 
+                 (player.evidenceWeight || 150) >= 300 ? 'high' : 
                  (player.evidenceWeight || 150) >= 200 ? 'medium' : 'low'
     }))
   );
