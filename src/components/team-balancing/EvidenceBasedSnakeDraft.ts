@@ -80,6 +80,7 @@ export interface EvidenceTeamResult {
   teams: any[][];
   balanceSteps: EvidenceBalanceStep[];
   validationResult?: EvidenceValidationResult;
+  // This is the key field for the ATLAS UI
   evidenceCalculations: Array<{
     userId: string;
     calculation: any;
@@ -255,25 +256,27 @@ export const evidenceBasedSnakeDraft = async (
         last_tournament_win: player.last_tournament_win
       }, config, true);
 
-      // ✅ FIX: Create the rich calculation object for the UI
       const evidenceCalculation = evidenceResult.evidenceResult.evidenceCalculation;
+      
+      // ✅ FIX: This is the key change. We now build the rich calculation object
+      // that the ATLAS UI component expects, mirroring EnhancedSnakeDraft.ts.
       if (evidenceCalculation) {
         evidenceCalculations.push({
           userId: player.user_id || player.id,
           calculation: {
-            points: evidenceResult.finalAdjustedPoints,
-            rank: evidenceCalculation.currentRank || player.current_rank,
-            reasoning: evidenceCalculation.calculationReasoning || 'Calculated by Evidence-Based AI.',
-            isElite: evidenceResult.finalAdjustedPoints >= config.skillTierCaps.eliteThreshold,
-            basePoints: evidenceCalculation.basePoints,
-            peakRank: evidenceCalculation.peakRank,
+            finalPoints: evidenceResult.finalAdjustedPoints,
+            currentRank: evidenceCalculation.currentRank || player.current_rank,
+            currentRankPoints: evidenceCalculation.basePoints,
+            peakRank: evidenceCalculation.peakRank || player.peak_rank,
             peakRankPoints: evidenceCalculation.peakRankPoints,
+            calculationReasoning: evidenceCalculation.calculationReasoning || "Calculated by Evidence-Based AI.",
             rankDecayFactor: evidenceCalculation.rankDecayFactor,
-            tournamentBonus: evidenceCalculation.tournamentBonus,
             tournamentsWon: player.tournaments_won,
-            weightSource: evidenceResult.evidenceResult.source,
+            tournamentBonus: evidenceCalculation.tournamentBonus,
+            weightSource: evidenceResult.evidenceResult.source || "evidence_based_snake",
             evidenceFactors: evidenceCalculation.tags || [],
             miniAiAnalysis: evidenceResult.evidenceResult.miniAiAnalysis,
+            isElite: evidenceResult.finalAdjustedPoints >= config.skillTierCaps.eliteThreshold,
           },
         });
       }
