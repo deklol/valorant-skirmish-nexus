@@ -130,7 +130,7 @@ function createAtlasBalancedTeams(players: any[], numTeams: number, teamSize: nu
     const captain = remainingPlayers.shift();
     if (captain) {
       teams[i].push(captain);
-      // Log this step
+      // ✅ FIX: Use the rich `displayRank` and `weightSource` for accurate step logging
       steps.push({
         step: ++stepCounter,
         player: {
@@ -192,7 +192,7 @@ function createAtlasBalancedTeams(players: any[], numTeams: number, teamSize: nu
     if (remainingPlayers.length > 0 && teams[strongerTeamIndex].length < teamSize) {
       const weakestPlayer = remainingPlayers.pop();
       if (weakestPlayer) {
-        teams[strongerTeamIndex].push(weakestPlayer);
+        teams[weakestPlayer].push(weakestPlayer);
         steps.push({
           step: ++stepCounter,
           player: {
