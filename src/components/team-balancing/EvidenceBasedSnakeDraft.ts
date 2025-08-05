@@ -130,7 +130,6 @@ function createAtlasBalancedTeams(players: any[], numTeams: number, teamSize: nu
     const captain = remainingPlayers.shift();
     if (captain) {
       teams[i].push(captain);
-      // ✅ FIX: Use the rich `displayRank` and `weightSource` for accurate step logging
       steps.push({
         step: ++stepCounter,
         player: {
@@ -192,7 +191,9 @@ function createAtlasBalancedTeams(players: any[], numTeams: number, teamSize: nu
     if (remainingPlayers.length > 0 && teams[strongerTeamIndex].length < teamSize) {
       const weakestPlayer = remainingPlayers.pop();
       if (weakestPlayer) {
-        teams[weakestPlayer].push(weakestPlayer);
+        // ✅ FIX: This was the source of the runtime error.
+        // It should use the index, not the player object.
+        teams[strongerTeamIndex].push(weakestPlayer);
         steps.push({
           step: ++stepCounter,
           player: {
@@ -289,7 +290,7 @@ export const evidenceBasedSnakeDraft = async (
             rankDecayFactor: evidenceCalculation.rankDecayApplied,
             tournamentsWon: evidenceCalculation.tournamentsWon,
             tournamentBonus: evidenceCalculation.tournamentBonus,
-            weightSource: evidenceDetails.source || "evidence_based_snake",
+            weightSource: evidenceCalculation.weightSource,
             evidenceFactors: evidenceCalculation.evidenceFactors || [],
             miniAiAnalysis: evidenceDetails.miniAiAnalysis,
             isElite: evidenceResult.finalAdjustedPoints >= config.skillTierCaps.eliteThreshold,
@@ -310,7 +311,7 @@ export const evidenceBasedSnakeDraft = async (
         });
       }
 
-      // ✅ FIX: Return a player object with accurate data for the step-by-step log
+      // Return a player object with accurate data for the step-by-step log
       return {
         ...player,
         evidenceWeight: evidenceResult.finalAdjustedPoints,
