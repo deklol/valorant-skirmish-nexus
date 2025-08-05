@@ -108,6 +108,39 @@ export interface EvidenceTeamResult {
 }
 
 /**
+ * Generates a detailed reasoning string for a player assignment step.
+ */
+function generateDetailedReasoning(
+    phase: 'Captain' | 'Balancing' | 'Counter-Balance',
+    player: any,
+    targetTeamIndex: number,
+    teamsBefore: any[][]
+): string {
+    const teamBeforeTotal = teamsBefore[targetTeamIndex]?.reduce((sum, p) => sum + p.evidenceWeight, 0) || 0;
+    const teamAfterTotal = teamBeforeTotal + player.evidenceWeight;
+    const eliteIndicator = player.isElite ? '🏆 Elite Player' : 'Player';
+    const aiReasoning = player.adjustmentReasoning ? ` | ${player.adjustmentReasoning}` : '';
+
+    let placementReason = '';
+    switch (phase) {
+        case 'Captain':
+            placementReason = `Assigned ${eliteIndicator} ${player.discord_username} (${player.evidenceWeight}pts) to establish Team ${targetTeamIndex + 1}.`;
+            break;
+        case 'Balancing':
+            placementReason = `Assigned ${eliteIndicator} ${player.discord_username} (${player.evidenceWeight}pts) to the weaker team (Team ${targetTeamIndex + 1}). Team total: ${teamBeforeTotal} → ${teamAfterTotal}pts.`;
+            break;
+        case 'Counter-Balance':
+            placementReason = `Assigned ${eliteIndicator} ${player.discord_username} (${player.evidenceWeight}pts) to the stronger team (Team ${targetTeamIndex + 1}). Team total: ${teamBeforeTotal} → ${teamAfterTotal}pts.`;
+            break;
+        default:
+            placementReason = `Assigned ${player.discord_username} to Team ${targetTeamIndex + 1}.`;
+    }
+
+    return `ATLAS ${phase}: ${placementReason}${aiReasoning}`;
+}
+
+
+/**
  * Creates balanced teams by pairing the strongest players with the weakest players.
  * This ensures the team with the #1 player does not end up with the highest total weight.
  */
@@ -115,11 +148,11 @@ function createAtlasBalancedTeams(players: any[], numTeams: number, teamSize: nu
   const teams: any[][] = Array(numTeams).fill(null).map(() => []);
   const steps: EvidenceBalanceStep[] = [];
   let stepCounter = 0;
+  const assignedPlayerIds = new Set<string>();
 
   // Sort players descending by weight
   const sortedPlayers = [...players].sort((a, b) => b.evidenceWeight - a.evidenceWeight);
   
-  // Handle case where there are not enough players for captains
   if (sortedPlayers.length < numTeams) {
       console.error("Not enough players to form teams.");
       return { teams, steps };
@@ -130,18 +163,25 @@ function createAtlasBalancedTeams(players: any[], numTeams: number, teamSize: nu
   for (let i = 0; i < numTeams; i++) {
     const captain = remainingPlayers.shift();
     if (captain) {
+      if (assignedPlayerIds.has(captain.id)) {
+        console.error(`CRITICAL BUG: Attempted to assign captain ${captain.discord_username} twice.`);
+        continue;
+      }
+      const teamsBefore = JSON.parse(JSON.stringify(teams));
       teams[i].push(captain);
-      // Log this step
+      assignedPlayerIds.add(captain.id);
+      
       steps.push({
         step: ++stepCounter,
         player: {
           id: captain.id, discord_username: captain.discord_username || 'Unknown',
           points: captain.evidenceWeight, rank: captain.evidenceCalculation?.currentRank || 'Unranked',
           source: captain.weightSource || 'unknown', evidenceWeight: captain.evidenceWeight, isElite: captain.isElite,
+          evidenceReasoning: captain.adjustmentReasoning,
         },
         assignedTeam: i,
-        reasoning: `ATLAS Captain Placement: Assigned ${captain.discord_username} to Team ${i + 1}.`,
-        teamStatesAfter: JSON.parse(JSON.stringify(teams)).map((team, index) => ({
+        reasoning: generateDetailedReasoning('Captain', captain, i, teamsBefore),
+        teamStatesAfter: teams.map((team, index) => ({
           teamIndex: index, totalPoints: team.reduce((sum, p) => sum + p.evidenceWeight, 0),
           playerCount: team.length, eliteCount: team.filter(p => p.isElite).length
         })),
@@ -160,17 +200,24 @@ function createAtlasBalancedTeams(players: any[], numTeams: number, teamSize: nu
     if (remainingPlayers.length > 0 && teams[weakerTeamIndex].length < teamSize) {
       const strongestPlayer = remainingPlayers.shift();
       if (strongestPlayer) {
+        if (assignedPlayerIds.has(strongestPlayer.id)) {
+          console.error(`CRITICAL BUG: Attempted to assign player ${strongestPlayer.discord_username} twice.`);
+          continue;
+        }
+        const teamsBefore = JSON.parse(JSON.stringify(teams));
         teams[weakerTeamIndex].push(strongestPlayer);
+        assignedPlayerIds.add(strongestPlayer.id);
         steps.push({
           step: ++stepCounter,
           player: {
             id: strongestPlayer.id, discord_username: strongestPlayer.discord_username || 'Unknown',
             points: strongestPlayer.evidenceWeight, rank: strongestPlayer.evidenceCalculation?.currentRank || 'Unranked',
             source: strongestPlayer.weightSource || 'unknown', evidenceWeight: strongestPlayer.evidenceWeight, isElite: strongestPlayer.isElite,
+            evidenceReasoning: strongestPlayer.adjustmentReasoning,
           },
           assignedTeam: weakerTeamIndex,
-          reasoning: `ATLAS Balancing: Assigned strongest available player (${strongestPlayer.discord_username}) to the weaker team.`,
-          teamStatesAfter: JSON.parse(JSON.stringify(teams)).map((team, index) => ({
+          reasoning: generateDetailedReasoning('Balancing', strongestPlayer, weakerTeamIndex, teamsBefore),
+          teamStatesAfter: teams.map((team, index) => ({
             teamIndex: index, totalPoints: team.reduce((sum, p) => sum + p.evidenceWeight, 0),
             playerCount: team.length, eliteCount: team.filter(p => p.isElite).length
           })),
@@ -183,17 +230,24 @@ function createAtlasBalancedTeams(players: any[], numTeams: number, teamSize: nu
     if (remainingPlayers.length > 0 && teams[strongerTeamIndex].length < teamSize) {
       const weakestPlayer = remainingPlayers.pop();
       if (weakestPlayer) {
+        if (assignedPlayerIds.has(weakestPlayer.id)) {
+          console.error(`CRITICAL BUG: Attempted to assign player ${weakestPlayer.discord_username} twice.`);
+          continue;
+        }
+        const teamsBefore = JSON.parse(JSON.stringify(teams));
         teams[strongerTeamIndex].push(weakestPlayer);
+        assignedPlayerIds.add(weakestPlayer.id);
         steps.push({
           step: ++stepCounter,
           player: {
             id: weakestPlayer.id, discord_username: weakestPlayer.discord_username || 'Unknown',
             points: weakestPlayer.evidenceWeight, rank: weakestPlayer.evidenceCalculation?.currentRank || 'Unranked',
             source: weakestPlayer.weightSource || 'unknown', evidenceWeight: weakestPlayer.evidenceWeight, isElite: weakestPlayer.isElite,
+            evidenceReasoning: weakestPlayer.adjustmentReasoning,
           },
           assignedTeam: strongerTeamIndex,
-          reasoning: `ATLAS Counter-Balance: Assigned weakest available player (${weakestPlayer.discord_username}) to the stronger team.`,
-          teamStatesAfter: JSON.parse(JSON.stringify(teams)).map((team, index) => ({
+          reasoning: generateDetailedReasoning('Counter-Balance', weakestPlayer, strongerTeamIndex, teamsBefore),
+          teamStatesAfter: teams.map((team, index) => ({
             teamIndex: index, totalPoints: team.reduce((sum, p) => sum + p.evidenceWeight, 0),
             playerCount: team.length, eliteCount: team.filter(p => p.isElite).length
           })),
@@ -202,6 +256,15 @@ function createAtlasBalancedTeams(players: any[], numTeams: number, teamSize: nu
       }
     }
   }
+
+  // Final uniqueness check
+  const finalPlayerIds = new Set();
+  teams.flat().forEach(p => {
+    if (finalPlayerIds.has(p.id)) {
+      console.error(`DUPLICATION DETECTED in final teams for player ${p.discord_username}`);
+    }
+    finalPlayerIds.add(p.id);
+  });
 
   return { teams, steps };
 }
@@ -280,7 +343,8 @@ export const evidenceBasedSnakeDraft = async (
         weightSource: evidenceResult.evidenceResult.source,
         evidenceCalculation,
         miniAiAnalysis: evidenceResult.evidenceResult.miniAiAnalysis,
-        isElite: evidenceResult.finalAdjustedPoints >= config.skillTierCaps.eliteThreshold
+        isElite: evidenceResult.finalAdjustedPoints >= config.skillTierCaps.eliteThreshold,
+        adjustmentReasoning: evidenceResult.adjustmentReasoning, // Capture AI reasoning
       };
     })
   );
