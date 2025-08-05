@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { DndContext, closestCenter, DragEndEvent, DragOverlay, useDraggable, useDroppable } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,20 +9,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { getRankPointsWithFallback, calculateTeamBalance } from "@/utils/rankingSystem";
 import { getRankPointsWithManualOverride } from "@/utils/rankingSystemWithOverrides";
-import { calculateEvidenceBasedWeightWithMiniAi } from "@/utils/evidenceBasedWeightSystem";
 import { getUnifiedPlayerWeight, getUnifiedPlayerWeightSync, validateRadiantDistribution, logWeightCalculation, hasRadiantHistory } from "@/utils/unifiedWeightSystem";
 import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
-import PeakRankFallbackAlert from "@/components/team-balancing/PeakRankFallbackAlert";
-import EnhancedRankFallbackAlert from "@/components/team-balancing/EnhancedRankFallbackAlert";
-import TeamCleanupTools from "@/components/team-balancing/TeamCleanupTools";
-import ErrorBoundary from "@/components/ErrorBoundary";
-import { Username } from "@/components/Username";
 import { enhancedSnakeDraft, type EnhancedTeamResult, type BalanceStep } from "@/components/team-balancing/EnhancedSnakeDraft";
 import { evidenceBasedSnakeDraft, type EvidenceTeamResult, type EvidenceBalanceStep } from "@/components/team-balancing/EvidenceBasedSnakeDraft";
 import { AutobalanceProgress } from "@/components/team-balancing/AutobalanceProgress";
-import { AtlasDecisionSystem, type AtlasAnalysis } from "@/utils/miniAiDecisionSystem";
 import AtlasDecisionDisplay from "@/components/team-balancing/AtlasDecisionDisplay";
 import BalancingControlPanel from "@/components/team-balancing/BalancingControlPanel";
+import TeamCleanupTools from "@/components/team-balancing/TeamCleanupTools";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import { Username } from "@/components/Username";
 
 interface TeamBalancingInterfaceProps {
   tournamentId: string;
