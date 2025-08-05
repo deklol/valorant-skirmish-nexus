@@ -119,8 +119,7 @@ function generateDetailedReasoning(
     const teamBeforeTotal = teamsBefore[targetTeamIndex]?.reduce((sum, p) => sum + p.evidenceWeight, 0) || 0;
     const teamAfterTotal = teamBeforeTotal + player.evidenceWeight;
     const eliteIndicator = player.isElite ? '🏆 Elite Player' : 'Player';
-    const aiReasoning = player.adjustmentReasoning ? ` | ${player.adjustmentReasoning}` : '';
-
+    
     let placementReason = '';
     switch (phase) {
         case 'Captain':
@@ -136,7 +135,11 @@ function generateDetailedReasoning(
             placementReason = `Assigned ${player.discord_username} to Team ${targetTeamIndex + 1}.`;
     }
 
-    return `ATLAS ${phase}: ${placementReason}${aiReasoning}`;
+    // Build a detailed breakdown of the AI's weight calculation
+    const aiReasoning = player.evidenceCalculation?.calculationReasoning || player.adjustmentReasoning || '';
+    const reasoningParts = aiReasoning.split(' | ').map((part: string) => `• ${part}`);
+    
+    return `${placementReason}\n\n**ATLAS Weight Analysis:**\n${reasoningParts.join('\n')}`;
 }
 
 
