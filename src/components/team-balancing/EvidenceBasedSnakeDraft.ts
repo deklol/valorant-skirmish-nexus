@@ -284,18 +284,21 @@ export const evidenceBasedSnakeDraft = async (
   const validationStartTime = Date.now();
   const atlasResult = await performAtlasValidation(teams, config, atlasEnhancements);
   
+  // FIX: This section was causing the ReferenceError.
+  // It is now correctly calculating the originalSkillDistribution from the teams array.
+  const originalSkillDistribution = {
+    elitePlayersPerTeam: teams.map(team => 
+      team.filter(p => (p.evidenceWeight || 150) >= config.skillTierCaps.eliteThreshold).length
+    ),
+    skillStackingViolations: teams.filter(team => 
+      team.filter(p => (p.evidenceWeight || 150) >= config.skillTierCaps.eliteThreshold).length > 1
+    ).length,
+    pointBalance: calculatePointBalance(teams),
+    balanceQuality: 'good' as const // A default for pre-validation state
+  };
+  
   validationResult = {
-    // FIX: Removed the undefined distributionResult
-    originalSkillDistribution: {
-      elitePlayersPerTeam: teams.map(team => 
-        team.filter(p => (p.evidenceWeight || 150) >= config.skillTierCaps.eliteThreshold).length
-      ),
-      skillStackingViolations: teams.filter(team => 
-        team.filter(p => (p.evidenceWeight || 150) >= config.skillTierCaps.eliteThreshold).length > 1
-      ).length,
-      pointBalance: calculatePointBalance(teams),
-      balanceQuality: 'good' // Default to good before validation
-    },
+    originalSkillDistribution,
     adjustmentsMade: atlasResult.adjustments,
     finalDistribution: {
       elitePlayersPerTeam: atlasResult.teams.map(team => 
