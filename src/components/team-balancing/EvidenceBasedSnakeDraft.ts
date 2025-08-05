@@ -200,43 +200,79 @@ export const evidenceBasedSnakeDraft = async (
     averageWeight: Math.round(playersWithEvidenceWeights.reduce((sum, p) => sum + p.evidenceWeight, 0) / playersWithEvidenceWeights.length)
   });
 
-  // Phase 2: Smart skill distribution
-  const distributionResult = assignWithSkillDistribution(playersWithEvidenceWeights, numTeams, teamSize, config);
+  // Sort players by points (highest first)
+  const sortedPlayers = playersWithEvidenceWeights.sort((a, b) => b.evidenceWeight - a.evidenceWeight);
+
+  // Initialize teams
+  let teams: any[][] = Array(numTeams).fill(null).map(() => []);
+  const balanceSteps: EvidenceBalanceStep[] = [];
+  let stepCounter = 0;
+
+  // ⭐ CORRECTED LOGIC: Use a predictive, cumulative balance system for assignment
+  const assignPlayerWithAtlasLogic = (player: any): number => {
+    const teamTotals = teams.map(team => 
+      team.reduce((sum, p) => sum + p.evidenceWeight, 0)
+    );
+    
+    let bestTeamIndex = 0;
+    let lowestHypotheticalDiff = Infinity;
+    
+    // Iterate through all teams to find the best fit
+    for (let i = 0; i < numTeams; i++) {
+      if (teams[i].length >= teamSize) continue;
+      
+      const hypotheticalTotals = [...teamTotals];
+      hypotheticalTotals[i] += player.evidenceWeight;
+      
+      const maxTotal = Math.max(...hypotheticalTotals);
+      const minTotal = Math.min(...hypotheticalTotals);
+      const hypotheticalDiff = maxTotal - minTotal;
+      
+      if (hypotheticalDiff < lowestHypotheticalDiff) {
+        lowestHypotheticalDiff = hypotheticalDiff;
+        bestTeamIndex = i;
+      }
+    }
+    
+    return bestTeamIndex;
+  };
   
-  // Convert distribution steps to balance steps
-  const balanceSteps: EvidenceBalanceStep[] = distributionResult.distributionSteps.map((step, index) => {
-    const player = playersWithEvidenceWeights.find(p => (p.discord_username || 'Unknown') === step.player);
-    const isElitePhase = step.action === 'initial_assignment' && (player?.isElite || false);
+  // Assign each player using the new predictive logic
+  sortedPlayers.forEach(player => {
+    const targetTeamIndex = assignPlayerWithAtlasLogic(player);
+    teams[targetTeamIndex].push(player);
+    
+    const teamStatesAfter = teams.map((team, index) => ({
+      teamIndex: index,
+      totalPoints: team.reduce((sum, p) => sum + p.evidenceWeight, 0),
+      playerCount: team.length,
+      eliteCount: team.filter(p => p.isElite).length
+    }));
     
     const balanceStep: EvidenceBalanceStep = {
-      step: step.step,
+      step: ++stepCounter,
       player: {
-        id: player?.id || '',
-        discord_username: step.player,
-        points: player?.evidenceWeight || 150,
-        rank: player?.evidenceCalculation?.currentRank || player?.current_rank || 'Unranked',
-        source: player?.weightSource || 'unknown',
-        evidenceWeight: player?.evidenceWeight,
-        weightSource: player?.weightSource,
-        evidenceReasoning: player?.evidenceCalculation?.calculationReasoning,
-        isElite: player?.isElite
+        id: player.id,
+        discord_username: player.discord_username || 'Unknown',
+        points: player.evidenceWeight,
+        rank: player.evidenceCalculation?.currentRank || player.current_rank || 'Unranked',
+        source: player.weightSource || 'unknown',
+        evidenceWeight: player.evidenceWeight,
+        weightSource: player.weightSource,
+        evidenceReasoning: player.evidenceCalculation?.calculationReasoning,
+        isElite: player.isElite
       },
-      assignedTeam: step.toTeam,
-      reasoning: step.reason,
-      teamStatesAfter: distributionResult.teams.map((team, teamIndex) => ({
-        teamIndex,
-        totalPoints: team.reduce((sum, p) => sum + (p.evidenceWeight || 150), 0),
-        playerCount: team.length,
-        eliteCount: team.filter(p => p.isElite).length
-      })),
-      phase: isElitePhase ? 'elite_distribution' : 'regular_distribution'
+      assignedTeam: targetTeamIndex,
+      reasoning: `ATLAS: Assigned ${player.discord_username} (${player.evidenceWeight}pts) to Team ${targetTeamIndex + 1} to minimize point difference.`,
+      teamStatesAfter,
+      phase: 'regular_distribution'
     };
 
-    if (onProgress) {
-      onProgress(balanceStep, index + 1, distributionResult.distributionSteps.length);
-    }
+    balanceSteps.push(balanceStep);
 
-    return balanceStep;
+    if (onProgress) {
+      onProgress(balanceStep, stepCounter, players.length);
+    }
   });
 
   // Phase 3: ATLAS validation and adjustment
@@ -246,7 +282,7 @@ export const evidenceBasedSnakeDraft = async (
   }
 
   const validationStartTime = Date.now();
-  const atlasResult = await performAtlasValidation(distributionResult.teams, config, atlasEnhancements);
+  const atlasResult = await performAtlasValidation(teams, config, atlasEnhancements);
   
   validationResult = {
     originalSkillDistribution: distributionResult.finalDistribution,
