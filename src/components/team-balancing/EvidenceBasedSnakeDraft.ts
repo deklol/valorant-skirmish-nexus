@@ -210,42 +210,70 @@ export const evidenceBasedSnakeDraft = async (
   const balanceSteps: EvidenceBalanceStep[] = [];
   let stepCounter = 0;
 
-  // ⭐ CORRECTED LOGIC: Use a predictive, cumulative balance system for assignment
-  const assignPlayerWithAtlasLogic = (player: any): number => {
-    const teamTotals = teams.map(team => 
-      team.reduce((sum, p) => sum + p.evidenceWeight, 0)
-    );
+  // ⭐ CORRECTED LOGIC: First distribute elite players, then snake draft the rest
+  const elitePlayers = sortedPlayers.filter(p => p.isElite);
+  const regularPlayers = sortedPlayers.filter(p => !p.isElite);
+
+  // Distribute elite players first to prevent stacking
+  elitePlayers.forEach((player, index) => {
+    const targetTeamIndex = index % numTeams;
+    teams[targetTeamIndex].push(player);
+
+    const teamStatesAfter = teams.map((team, idx) => ({
+      teamIndex: idx,
+      totalPoints: team.reduce((sum, p) => sum + p.evidenceWeight, 0),
+      playerCount: team.length,
+      eliteCount: team.filter(p => p.isElite).length
+    }));
     
-    let bestTeamIndex = 0;
-    let lowestHypotheticalDiff = Infinity;
+    const balanceStep: EvidenceBalanceStep = {
+      step: ++stepCounter,
+      player: {
+        id: player.id,
+        discord_username: player.discord_username || 'Unknown',
+        points: player.evidenceWeight,
+        rank: player.evidenceCalculation?.currentRank || player.current_rank || 'Unranked',
+        source: player.weightSource || 'unknown',
+        evidenceWeight: player.evidenceWeight,
+        weightSource: player.weightSource,
+        evidenceReasoning: player.evidenceCalculation?.calculationReasoning,
+        isElite: player.isElite
+      },
+      assignedTeam: targetTeamIndex,
+      reasoning: `ATLAS: Assigned elite player ${player.discord_username} (${player.evidenceWeight}pts) to Team ${targetTeamIndex + 1} to prevent skill stacking.`,
+      teamStatesAfter,
+      phase: 'elite_distribution'
+    };
+
+    balanceSteps.push(balanceStep);
+
+    if (onProgress) {
+      onProgress(balanceStep, stepCounter, players.length);
+    }
+  });
+
+  // Now perform a snake draft for the remaining players
+  let direction = 1; // 1 for forward, -1 for backward
+  let currentTeamIndex = 0;
+  regularPlayers.forEach(player => {
+    // Find the next available team slot
+    let nextTeamIndex = currentTeamIndex;
+    let availableTeams = teams.filter(team => team.length < teamSize);
     
-    // Iterate through all teams to find the best fit
-    for (let i = 0; i < numTeams; i++) {
-      if (teams[i].length >= teamSize) continue;
-      
-      const hypotheticalTotals = [...teamTotals];
-      hypotheticalTotals[i] += player.evidenceWeight;
-      
-      const maxTotal = Math.max(...hypotheticalTotals);
-      const minTotal = Math.min(...hypotheticalTotals);
-      const hypotheticalDiff = maxTotal - minTotal;
-      
-      if (hypotheticalDiff < lowestHypotheticalDiff) {
-        lowestHypotheticalDiff = hypotheticalDiff;
-        bestTeamIndex = i;
-      }
+    if (availableTeams.length === 0) {
+      console.warn('All teams are full, stopping draft for remaining players.');
+      return;
     }
     
-    return bestTeamIndex;
-  };
-  
-  // Assign each player using the new predictive logic
-  sortedPlayers.forEach(player => {
-    const targetTeamIndex = assignPlayerWithAtlasLogic(player);
-    teams[targetTeamIndex].push(player);
+    // Find the team with the lowest current total points to add the player
+    const teamTotals = teams.map(team => team.reduce((sum, p) => sum + p.evidenceWeight, 0));
+    const lowestTotal = Math.min(...teamTotals.filter((_, idx) => teams[idx].length < teamSize));
+    const targetTeamIndex = teamTotals.findIndex(total => total === lowestTotal && teams[total].length < teamSize);
     
-    const teamStatesAfter = teams.map((team, index) => ({
-      teamIndex: index,
+    teams[targetTeamIndex].push(player);
+
+    const teamStatesAfter = teams.map((team, idx) => ({
+      teamIndex: idx,
       totalPoints: team.reduce((sum, p) => sum + p.evidenceWeight, 0),
       playerCount: team.length,
       eliteCount: team.filter(p => p.isElite).length
@@ -276,6 +304,7 @@ export const evidenceBasedSnakeDraft = async (
       onProgress(balanceStep, stepCounter, players.length);
     }
   });
+
 
   // Phase 3: ATLAS validation and adjustment
   let validationResult: EvidenceValidationResult | undefined;
