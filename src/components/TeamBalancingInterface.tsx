@@ -718,7 +718,7 @@ variant: "destructive",
           if (team.id === sourceTeamId) {
             const newMembers = team.members.filter(p => p.id !== player.id);
             const totalWeight = newMembers.reduce((sum, member) => {
-              const rankResult = getRankPointsWithManualOverride(member);
+              const rankResult = getPlayerWeightSync(member, tournament?.enable_adaptive_weights);
               return sum + rankResult.points;
             }, 0);
             return { ...team, members: newMembers, totalWeight };
@@ -1041,16 +1041,15 @@ variant: "destructive",
             // Find the target team (using team index from snake draft)
             const targetTeam = tempTeams[step.assignedTeam];
             if (targetTeam) {
-              // Add player to the target team and update its total weight using UNIFIED calculation
+              // Add player to the target team and update its total weight using a consistent calculation
               targetTeam.members.push(playerToMove);
-              targetTeam.totalWeight = targetTeam.members.reduce((sum, m) => {
-                const mRankResult = getPlayerWeightSync(m, tournament?.enable_adaptive_weights);
-                
-                // Log weight for transparency
-                logWeightCalculation(m.discord_username, mRankResult, 'Autobalance Step');
-                
-                return sum + mRankResult.points;
-              }, 0);
+              const newTotalWeight = await targetTeam.members.reduce(async (sumPromise, m) => {
+                  const sum = await sumPromise;
+                  const mRankResult = await getUnifiedPlayerWeight(m, { enableATLAS: tournament?.enable_adaptive_weights });
+                  logWeightCalculation(m.discord_username, mRankResult, 'Autobalance Step');
+                  return sum + mRankResult.points;
+              }, Promise.resolve(0));
+              targetTeam.totalWeight = newTotalWeight;
             }
           }
 
@@ -1071,19 +1070,23 @@ variant: "destructive",
       // This ensures consistency and handles cases with very few players where the loop might not run.
       setUnassignedPlayers([]);
       // Note: substitutes are not affected by autobalance
-      setTeams(fullSnakeDraftResult.teams.map((draftedTeam, index) => {
+      setTeams(await Promise.all(fullSnakeDraftResult.teams.map(async (draftedTeam, index) => {
         const originalTeam = availableTeams[index]; // Get the original team corresponding to this drafted team
         const newMembers = [...originalTeam.members, ...draftedTeam];
+
+        const newTotalWeight = await newMembers.reduce(async (sumPromise, m) => {
+          const sum = await sumPromise;
+          const mRankResult = await getUnifiedPlayerWeight(m, { enableATLAS: tournament?.enable_adaptive_weights });
+          return sum + mRankResult.points;
+        }, Promise.resolve(0));
+
         return {
           ...originalTeam,
           members: newMembers,
-          totalWeight: newMembers.reduce((sum, m) => {
-            // Use UNIFIED weight system for final calculation
-            const mRankResult = getPlayerWeightSync(m, tournament?.enable_adaptive_weights);
-            return sum + mRankResult.points;
-          }, 0),
+          totalWeight: newTotalWeight,
         };
-      }));
+      })));
+
 
       // VALIDATE RADIANT DISTRIBUTION after autobalance
       const finalTeams = fullSnakeDraftResult.teams.map((draftedTeam, index) => {
@@ -1376,7 +1379,7 @@ try {
         }
 
 toast({
-title: "Teams Updated",
+        title: "Teams Updated",
         description: balanceAnalysis 
           ? "Team assignments saved with detailed snake draft balance analysis."
           : "Team assignments have been saved successfully with enhanced rank balancing including manual overrides.",
