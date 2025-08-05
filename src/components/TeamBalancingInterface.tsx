@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getRankPointsWithFallback, calculateTeamBalance } from "@/utils/rankingSystem";
 import { getRankPointsWithManualOverride } from "@/utils/rankingSystemWithOverrides";
 import { calculateEvidenceBasedWeightWithMiniAi } from "@/utils/evidenceBasedWeightSystem";
+import { getUnifiedPlayerWeight, getUnifiedPlayerWeightSync, validateRadiantDistribution, logWeightCalculation, hasRadiantHistory } from "@/utils/unifiedWeightSystem";
 import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
 import PeakRankFallbackAlert from "@/components/team-balancing/PeakRankFallbackAlert";
 import EnhancedRankFallbackAlert from "@/components/team-balancing/EnhancedRankFallbackAlert";
@@ -63,42 +64,29 @@ const DraggablePlayer = ({ player, enableAdaptiveWeights }: { player: Player, en
     transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
   } : undefined;
 
-  // Use evidence-based ATLAS system when adaptive weights are enabled to match balancing algorithm
+  // Use UNIFIED weight system for consistency
   const [displayWeight, setDisplayWeight] = useState<number>(150);
   const [displaySource, setDisplaySource] = useState<string>('loading');
   
-  // Calculate weight asynchronously for ATLAS
+  // Calculate weight using unified system
   useEffect(() => {
-    if (enableAdaptiveWeights) {
-      calculateEvidenceBasedWeightWithMiniAi({
-        current_rank: player.current_rank,
-        peak_rank: player.peak_rank,
-        manual_rank_override: player.manual_rank_override,
-        manual_weight_override: player.manual_weight_override,
-        use_manual_override: player.use_manual_override,
-        rank_override_reason: player.rank_override_reason,
-        weight_rating: player.weight_rating,
-        tournaments_won: (player as any).tournaments_won,
-        last_tournament_win: (player as any).last_tournament_win
-      }, {
-        enableEvidenceBasedWeights: true,
-        tournamentWinBonus: 15,
-        rankDecayThreshold: 2,
-        maxDecayPercent: 0.25,
-        skillTierCaps: {
-          enabled: true,
-          eliteThreshold: 400,
-          maxElitePerTeam: 1
-        }
-      }, true).then(result => {
-        setDisplayWeight(result.finalAdjustedPoints);
-        setDisplaySource('atlas_evidence');
-      });
-    } else {
-      const fallbackResult = getRankPointsWithManualOverride(player);
+    getUnifiedPlayerWeight(player, {
+      enableATLAS: enableAdaptiveWeights,
+      username: player.discord_username,
+      forceValidation: true
+    }).then(result => {
+      setDisplayWeight(result.points);
+      setDisplaySource(result.source);
+      
+      // Log for transparency
+      logWeightCalculation(player.discord_username, result, 'UI Display');
+    }).catch(error => {
+      console.error('Failed to calculate unified weight for display:', error);
+      // Fallback
+      const fallbackResult = getUnifiedPlayerWeightSync(player, enableAdaptiveWeights);
       setDisplayWeight(fallbackResult.points);
       setDisplaySource(fallbackResult.source);
-    }
+    });
   }, [enableAdaptiveWeights, player]);
 
   const rankResult = {
@@ -276,33 +264,18 @@ const DroppableSubstitutes = ({ players, enableAdaptiveWeights }: { players: Pla
 // Helper function to introduce a delay
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Helper function to get consistent player weight based on tournament settings
+// UNIFIED helper function to get consistent player weight - SINGLE SOURCE OF TRUTH
 const getPlayerWeight = async (userData: any, tournament?: any) => {
-  if (tournament?.enable_adaptive_weights) {
-    const result = await calculateEvidenceBasedWeightWithMiniAi(userData, {
-      enableEvidenceBasedWeights: true,
-      tournamentWinBonus: 15,
-      rankDecayThreshold: 2,
-      maxDecayPercent: 0.25,
-      skillTierCaps: {
-        enabled: true,
-        eliteThreshold: 400,
-        maxElitePerTeam: 1
-      }
-    }, true);
-    return { points: result.finalAdjustedPoints, source: 'evidence_based', rank: result.evidenceResult.rank };
-  }
-  return getRankPointsWithManualOverride(userData);
+  return await getUnifiedPlayerWeight(userData, {
+    enableATLAS: tournament?.enable_adaptive_weights || false,
+    username: userData.discord_username,
+    forceValidation: true
+  });
 };
 
-// Synchronous helper for immediate calculations
+// Synchronous helper for immediate calculations - SINGLE SOURCE OF TRUTH
 const getPlayerWeightSync = (userData: any, enableAtlas: boolean) => {
-  if (enableAtlas) {
-    // For synchronous operations, we'll use the fallback weight calculation
-    // The async ATLAS calculation will happen in the background via useEffect
-    return getRankPointsWithManualOverride(userData);
-  }
-  return getRankPointsWithManualOverride(userData);
+  return getUnifiedPlayerWeightSync(userData, enableAtlas);
 };
 
 const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdated }: TeamBalancingInterfaceProps) => {
@@ -404,58 +377,45 @@ fetchTeamsAndPlayers();
   };
 
   const recalculateTeamTotals = async (useAdaptiveWeights: boolean) => {
-    console.log(`Recalculating team totals with ATLAS: ${useAdaptiveWeights}`);
+    console.log(`🔄 Recalculating team totals with UNIFIED ATLAS: ${useAdaptiveWeights}`);
     
-    if (useAdaptiveWeights) {
-      // Use ATLAS for calculation
-      const newTeams = await Promise.all(
-        teams.map(async (team, teamIndex) => {
-          let totalWeight = 0;
-          for (const member of team.members) {
-            const result = await calculateEvidenceBasedWeightWithMiniAi({
-              current_rank: member.current_rank,
-              peak_rank: member.peak_rank,
-              manual_rank_override: member.manual_rank_override,
-              manual_weight_override: member.manual_weight_override,
-              use_manual_override: member.use_manual_override,
-              rank_override_reason: member.rank_override_reason,
-              weight_rating: member.weight_rating,
-              tournaments_won: (member as any).tournaments_won,
-              last_tournament_win: (member as any).last_tournament_win
-            }, {
-              enableEvidenceBasedWeights: true,
-              tournamentWinBonus: 15,
-              rankDecayThreshold: 2,
-              maxDecayPercent: 0.25,
-              skillTierCaps: {
-                enabled: true,
-                eliteThreshold: 400,
-                maxElitePerTeam: 1
-              }
-            }, true);
-            totalWeight += result.finalAdjustedPoints;
-            console.log(`Team ${teamIndex + 1} - ${member.discord_username}: ${result.finalAdjustedPoints} pts (ATLAS)`);
-          }
-          console.log(`Team ${teamIndex + 1} total: ${totalWeight} pts`);
-          return { ...team, totalWeight };
-        })
-      );
-      setTeams(newTeams);
-    } else {
-      // Use standard calculation
-      setTeams(prevTeams => 
-        prevTeams.map((team, teamIndex) => {
-          const totalWeight = team.members.reduce((sum, member) => {
-            const rankResult = getRankPointsWithManualOverride(member);
-            console.log(`Team ${teamIndex + 1} - ${member.discord_username}: ${rankResult.points} pts (${rankResult.source})`);
-            return sum + rankResult.points;
-          }, 0);
+    // Use UNIFIED weight system for ALL calculations
+    const newTeams = await Promise.all(
+      teams.map(async (team, teamIndex) => {
+        let totalWeight = 0;
+        for (const member of team.members) {
+          const result = await getUnifiedPlayerWeight(member, {
+            enableATLAS: useAdaptiveWeights,
+            username: member.discord_username,
+            forceValidation: true
+          });
           
-          console.log(`Team ${teamIndex + 1} total: ${totalWeight} pts`);
-          return { ...team, totalWeight };
-        })
-      );
+          totalWeight += result.points;
+          
+          // Enhanced logging with validation
+          console.log(`Team ${teamIndex + 1} - ${member.discord_username}: ${result.points} pts (${result.source}${!result.isValid ? ' - INVALID, FORCED TO 150' : ''})`);
+          
+          if (!result.isValid) {
+            console.error(`⚠️ INVALID WEIGHT DETECTED for ${member.discord_username}:`, result);
+          }
+        }
+        console.log(`Team ${teamIndex + 1} total: ${totalWeight} pts`);
+        return { ...team, totalWeight };
+      })
+    );
+    
+    // Validate Radiant distribution
+    const validation = validateRadiantDistribution(newTeams.map(team => team.members));
+    if (!validation.isValid) {
+      console.warn('🚨 RADIANT DISTRIBUTION VIOLATION:', validation.violations);
+      toast({
+        title: "Radiant Distribution Warning",
+        description: validation.violations[0]?.reason || "Radiant player on strongest team detected",
+        variant: "destructive",
+      });
     }
+    
+    setTeams(newTeams);
     
     // Also update unassigned and substitute player calculations for consistency
     setUnassignedPlayers(prevPlayers => [...prevPlayers]); // Trigger re-render
@@ -1069,10 +1029,14 @@ variant: "destructive",
             // Find the target team (using team index from snake draft)
             const targetTeam = tempTeams[step.assignedTeam];
             if (targetTeam) {
-              // Add player to the target team and update its total weight using consistent calculation
+              // Add player to the target team and update its total weight using UNIFIED calculation
               targetTeam.members.push(playerToMove);
               targetTeam.totalWeight = targetTeam.members.reduce((sum, m) => {
                 const mRankResult = getPlayerWeightSync(m, tournament?.enable_adaptive_weights);
+                
+                // Log weight for transparency
+                logWeightCalculation(m.discord_username, mRankResult, 'Autobalance Step');
+                
                 return sum + mRankResult.points;
               }, 0);
             }
@@ -1102,13 +1066,38 @@ variant: "destructive",
           ...originalTeam,
           members: newMembers,
           totalWeight: newMembers.reduce((sum, m) => {
-            // Preserve ATLAS calculations by using the same weight system as the draft
+            // Use UNIFIED weight system for final calculation
             const mRankResult = getPlayerWeightSync(m, tournament?.enable_adaptive_weights);
             return sum + mRankResult.points;
           }, 0),
         };
       }));
 
+      // VALIDATE RADIANT DISTRIBUTION after autobalance
+      const finalTeams = fullSnakeDraftResult.teams.map((draftedTeam, index) => {
+        const originalTeam = availableTeams[index];
+        return [...originalTeam.members, ...draftedTeam];
+      });
+      
+      const radiantValidation = validateRadiantDistribution(finalTeams);
+      if (!radiantValidation.isValid) {
+        console.error('🚨 RADIANT DISTRIBUTION VIOLATION AFTER AUTOBALANCE:', radiantValidation.violations);
+        
+        // Show warning to user
+        toast({
+          title: "⚠️ Radiant Player Distribution Warning",
+          description: `${radiantValidation.violations[0]?.reason} - Manual adjustment may be needed.`,
+          variant: "destructive",
+        });
+        
+        // Add notification for admin attention
+        notifications.sendNotification({
+          type: "warning",
+          title: "Radiant Distribution Issue",
+          message: `Tournament ${tournamentName}: ${radiantValidation.violations[0]?.reason}`,
+          tournamentId
+        });
+      }
 
       // Show completion message based on draft type
       const draftType = tournament?.enable_adaptive_weights ? 'ATLAS-enhanced' : 'standard';

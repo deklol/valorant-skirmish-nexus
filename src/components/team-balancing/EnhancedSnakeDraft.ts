@@ -1,7 +1,8 @@
-// Enhanced Snake Draft Algorithm with adaptive weights and proper alternating pattern
+// Enhanced Snake Draft Algorithm with UNIFIED weight system
 import { getRankPointsWithManualOverride } from "@/utils/rankingSystemWithOverrides";
 import { calculateEvidenceBasedWeightWithMiniAi, EvidenceWithMiniAi, EvidenceBasedConfig } from "@/utils/evidenceBasedWeightSystem";
 import { AtlasDecisionSystem } from "@/utils/miniAiDecisionSystem";
+import { getUnifiedPlayerWeight, validateRadiantDistribution, logWeightCalculation, hasRadiantHistory, type UnifiedPlayerWeight } from "@/utils/unifiedWeightSystem";
 
 export interface BalanceStep {
   step: number;
@@ -62,6 +63,10 @@ export interface EnhancedTeamResult {
     maxPointDifference: number;
     balanceQuality: 'ideal' | 'good' | 'warning' | 'poor';
   };
+  radiantValidation?: {
+    isValid: boolean;
+    violations: any[];
+  };
 }
 
 /**
@@ -77,62 +82,49 @@ export const enhancedSnakeDraft = async (
   adaptiveConfig?: EvidenceBasedConfig
 ): Promise<EnhancedTeamResult> => {
   
-  // Calculate evidence-based weights with ATLAS for all players
+  // Calculate UNIFIED weights for all players - SINGLE SOURCE OF TRUTH
   const adaptiveWeightCalculations: Array<{ userId: string; calculation: any }> = [];
   const playersWithAdaptiveWeights = await Promise.all(players.map(async (player, index) => {
     if (onAdaptiveWeightCalculation) {
-      onAdaptiveWeightCalculation('🏛️ ATLAS analyzing', index + 1, players.length);
+      onAdaptiveWeightCalculation('🏛️ UNIFIED ATLAS analyzing', index + 1, players.length);
     }
 
-    // Use ATLAS evidence-based calculation when adaptive weights are enabled
-    const adaptiveResult = adaptiveConfig?.enableEvidenceBasedWeights
-      ? await calculateEvidenceBasedWeightWithMiniAi({
-          current_rank: player.current_rank,
-          peak_rank: player.peak_rank,
-          manual_rank_override: player.manual_rank_override,
-          manual_weight_override: player.manual_weight_override,
-          use_manual_override: player.use_manual_override,
-          rank_override_reason: player.rank_override_reason,
-          weight_rating: player.weight_rating,
-          tournaments_won: player.tournaments_won,
-          last_tournament_win: player.last_tournament_win
-        }, {
-          enableEvidenceBasedWeights: true,
-          tournamentWinBonus: 15,
-          rankDecayThreshold: 2,
-          maxDecayPercent: 0.25,
-          skillTierCaps: {
-            enabled: true,
-            eliteThreshold: 400,
-            maxElitePerTeam: 1
-          }
-        }, true)
-      : { finalAdjustedPoints: getRankPointsWithManualOverride({
-          current_rank: player.current_rank,
-          peak_rank: player.peak_rank,
-          manual_rank_override: player.manual_rank_override,
-          manual_weight_override: player.manual_weight_override,
-          use_manual_override: player.use_manual_override,
-          rank_override_reason: player.rank_override_reason,
-          weight_rating: player.weight_rating
-        }).points, evidenceResult: { source: 'fallback' } };
+    // Use UNIFIED weight system for ALL calculations
+    const unifiedResult = await getUnifiedPlayerWeight(player, {
+      enableATLAS: adaptiveConfig?.enableEvidenceBasedWeights || false,
+      username: player.discord_username,
+      forceValidation: true
+    });
 
-    // Extract evidence-based calculation for tracking
-    const evidenceCalculation = (adaptiveResult as any).evidenceResult?.evidenceCalculation;
-    if (evidenceCalculation) {
-      evidenceCalculation.userId = player.user_id || player.id;
-      adaptiveWeightCalculations.push({
-        userId: player.user_id || player.id,
-        calculation: evidenceCalculation
-      });
+    // Store calculation for transparency
+    adaptiveWeightCalculations.push({
+      userId: player.id,
+      calculation: {
+        points: unifiedResult.points,
+        source: unifiedResult.source,
+        rank: unifiedResult.rank,
+        reasoning: unifiedResult.reasoning,
+        isElite: unifiedResult.isElite,
+        isValid: unifiedResult.isValid
+      }
+    });
+
+    // Log weight calculation for transparency
+    logWeightCalculation(player.discord_username, unifiedResult, 'Enhanced Snake Draft');
+
+    // Check for 0 weight issue (should be fixed by unified system)
+    if (unifiedResult.points <= 0) {
+      console.error(`🚨 ZERO WEIGHT DETECTED for ${player.discord_username}:`, unifiedResult);
+      throw new Error(`Player ${player.discord_username} has invalid weight: ${unifiedResult.points}`);
     }
 
     return {
       ...player,
-      adaptiveWeight: adaptiveResult.finalAdjustedPoints || 150,
-      weightSource: adaptiveResult.evidenceResult?.source || 'fallback',
-      adaptiveCalculation: evidenceCalculation,
-      isElite: (adaptiveResult.finalAdjustedPoints || 150) >= 400
+      adaptiveWeight: unifiedResult.points,
+      weightSource: unifiedResult.source,
+      adaptiveReasoning: unifiedResult.reasoning,
+      isElite: unifiedResult.isElite,
+      hasRadiantHistory: hasRadiantHistory(player)
     };
   }));
 
@@ -272,12 +264,24 @@ export const enhancedSnakeDraft = async (
     return lowestTeamIndex;
   }
 
+  // FINAL VALIDATION: Check for Radiant distribution violations
+  const radiantValidation = validateRadiantDistribution(teams);
+  if (!radiantValidation.isValid) {
+    console.error('🚨 RADIANT DISTRIBUTION VIOLATION in Enhanced Snake Draft:', radiantValidation.violations);
+    
+    // Log violation details for debugging
+    radiantValidation.violations.forEach(violation => {
+      console.error(`❌ ${violation.reason}`);
+    });
+  }
+
   return {
     teams,
     balanceSteps: allBalanceSteps,
     validationResult,
     adaptiveWeightCalculations: adaptiveWeightCalculations.length > 0 ? adaptiveWeightCalculations : undefined,
-    finalBalance
+    finalBalance,
+    radiantValidation // Add validation results to output
   };
 };
 
