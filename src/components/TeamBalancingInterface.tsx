@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { DndContext, closestCenter, DragEndEvent, DragOverlay, useDraggable, useDroppable } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,20 +9,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { getRankPointsWithFallback, calculateTeamBalance } from "@/utils/rankingSystem";
 import { getRankPointsWithManualOverride } from "@/utils/rankingSystemWithOverrides";
-import { calculateEvidenceBasedWeightWithMiniAi } from "@/utils/evidenceBasedWeightSystem";
+import EnhancedRankFallbackAlert from "@/components/team-balancing/EnhancedRankFallbackAlert";
 import { getUnifiedPlayerWeight, getUnifiedPlayerWeightSync, validateRadiantDistribution, logWeightCalculation, hasRadiantHistory } from "@/utils/unifiedWeightSystem";
 import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
-import PeakRankFallbackAlert from "@/components/team-balancing/PeakRankFallbackAlert";
-import EnhancedRankFallbackAlert from "@/components/team-balancing/EnhancedRankFallbackAlert";
-import TeamCleanupTools from "@/components/team-balancing/TeamCleanupTools";
-import ErrorBoundary from "@/components/ErrorBoundary";
-import { Username } from "@/components/Username";
 import { enhancedSnakeDraft, type EnhancedTeamResult, type BalanceStep } from "@/components/team-balancing/EnhancedSnakeDraft";
 import { evidenceBasedSnakeDraft, type EvidenceTeamResult, type EvidenceBalanceStep } from "@/components/team-balancing/EvidenceBasedSnakeDraft";
 import { AutobalanceProgress } from "@/components/team-balancing/AutobalanceProgress";
-import { AtlasDecisionSystem, type AtlasAnalysis } from "@/utils/miniAiDecisionSystem";
 import AtlasDecisionDisplay from "@/components/team-balancing/AtlasDecisionDisplay";
 import BalancingControlPanel from "@/components/team-balancing/BalancingControlPanel";
+import TeamCleanupTools from "@/components/team-balancing/TeamCleanupTools";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import { Username } from "@/components/Username";
 
 interface TeamBalancingInterfaceProps {
   tournamentId: string;
@@ -44,6 +40,9 @@ interface Player {
   manual_weight_override?: number | null;
   use_manual_override?: boolean;
   rank_override_reason?: string | null;
+  calculatedWeight?: number;
+  weightSource?: string;
+  adaptiveReasoning?: string;
 }
 
 interface Team {
@@ -431,26 +430,26 @@ try {
       const { data: teamsData, error: teamsError } = await supabase
 .from('teams')
 .select(`
-         id,
-         name,
-         team_members (
-           user_id,
-           users (
-              id,
-             discord_username,
-              rank_points,
-              weight_rating,
-             current_rank,
-             peak_rank,
-              riot_id,
-              manual_rank_override,
-              manual_weight_override,
-              use_manual_override,
-              rank_override_reason,
-              tournaments_won
-           )
-         )
-       `)
+        id,
+        name,
+        team_members (
+          user_id,
+          users (
+            id,
+            discord_username,
+            rank_points,
+            weight_rating,
+            current_rank,
+            peak_rank,
+            riot_id,
+            manual_rank_override,
+            manual_weight_override,
+            use_manual_override,
+            rank_override_reason,
+            tournaments_won
+          )
+        )
+      `)
         .eq('tournament_id', tournamentId);
 
       if (teamsError) throw teamsError;
@@ -708,7 +707,7 @@ variant: "destructive",
     }
   };
 
-  const movePlayerToUnassigned = (player: Player, sourceTeamId: string | null) => {
+  const movePlayerToUnassigned = async (player: Player, sourceTeamId: string | null) => {
     if (sourceTeamId) {
       setTeams(prevTeams => 
         prevTeams.map(team => {
@@ -741,7 +740,7 @@ variant: "destructive",
     logManualTeamAdjustment(player, sourceTeamId, null, 'drag_to_unassigned');
   };
 
-  const movePlayerToSubstitutes = (player: Player, sourceTeamId: string | null) => {
+  const movePlayerToSubstitutes = async (player: Player, sourceTeamId: string | null) => {
     if (sourceTeamId) {
       setTeams(prevTeams => 
         prevTeams.map(team => {
@@ -774,7 +773,7 @@ variant: "destructive",
     logManualTeamAdjustment(player, sourceTeamId, null, 'drag_to_substitutes');
   };
 
-  const movePlayerToTeam = (player: Player, targetTeamId: string, sourceTeamId: string | null) => {
+  const movePlayerToTeam = async (player: Player, targetTeamId: string, sourceTeamId: string | null) => {
     // Remove from source
     if (sourceTeamId) {
       setTeams(prevTeams => 
@@ -922,25 +921,38 @@ variant: "destructive",
         });
         return; 
       }
+      
+      // ⭐ CORRECTED LOGIC: Calculate weights asynchronously for all players before sorting.
+      // This ensures the full ATLAS logic is used for each player's weight.
+      const playersWithWeights = await Promise.all(unassignedPlayers.map(async player => {
+        const weightResult = await getUnifiedPlayerWeight(player, {
+          enableATLAS: tournament?.enable_adaptive_weights,
+          username: player.discord_username,
+          forceValidation: true
+        });
+        return {
+          ...player,
+          calculatedWeight: weightResult.points,
+          weightSource: weightResult.source,
+          adaptiveReasoning: (weightResult as any).reasoning
+        };
+      }));
 
-      // Sort unassigned players by enhanced rank with optional adaptive weights
-      const sortedPlayers = [...unassignedPlayers].sort((a, b) => {
-        let aRankResult, bRankResult;
-        
-        aRankResult = getPlayerWeightSync(a, tournament?.enable_adaptive_weights);
-        bRankResult = getPlayerWeightSync(b, tournament?.enable_adaptive_weights);
-        
-        return bRankResult.points - aRankResult.points;
-      });
+      // Sort the players based on the newly calculated weight, highest first.
+      const sortedPlayers = playersWithWeights.sort((a, b) => b.calculatedWeight - a.calculatedWeight);
 
       // Choose between ATLAS-enhanced draft or standard draft
       let fullSnakeDraftResult: EnhancedTeamResult | EvidenceTeamResult;
       
+      // ==================================================================
+      // CORE LOGIC FIX: Use the correct draft function based on ATLAS setting
+      // ==================================================================
       if (tournament?.enable_adaptive_weights) {
         // Use ATLAS-enhanced evidence-based snake draft
+        console.log("🚀 Executing evidenceBasedSnakeDraft (ATLAS is ON)");
         setCurrentPhase('atlas-initializing');
         
-        const atlasResult = await evidenceBasedSnakeDraft(
+        fullSnakeDraftResult = await evidenceBasedSnakeDraft(
           sortedPlayers,
           numTeams,
           teamSize,
@@ -964,10 +976,9 @@ variant: "destructive",
             }
           }
         );
-        
-        fullSnakeDraftResult = atlasResult;
       } else {
         // Use standard enhanced snake draft
+        console.log("Standard snake draft (ATLAS is OFF)");
         fullSnakeDraftResult = await enhancedSnakeDraft(
           sortedPlayers, 
           numTeams, 
@@ -1020,8 +1031,8 @@ variant: "destructive",
           setLastProgressStep(step);
           setCurrentPhase('analyzing');
 
-          // Find the player being assigned in this step
-          const playerToMove = tempUnassignedPlayers.find(p => p.id === step.player.id);
+          // Find the player being assigned in this step using the original unsorted list with weights
+          const playerToMove = playersWithWeights.find(p => p.id === step.player.id);
           if (playerToMove) {
             // Remove player from unassigned list
             tempUnassignedPlayers = tempUnassignedPlayers.filter(p => p.id !== playerToMove.id);
@@ -1029,16 +1040,15 @@ variant: "destructive",
             // Find the target team (using team index from snake draft)
             const targetTeam = tempTeams[step.assignedTeam];
             if (targetTeam) {
-              // Add player to the target team and update its total weight using UNIFIED calculation
+              // Add player to the target team and update its total weight using the pre-calculated weight
               targetTeam.members.push(playerToMove);
-              targetTeam.totalWeight = targetTeam.members.reduce((sum, m) => {
-                const mRankResult = getPlayerWeightSync(m, tournament?.enable_adaptive_weights);
-                
-                // Log weight for transparency
-                logWeightCalculation(m.discord_username, mRankResult, 'Autobalance Step');
-                
-                return sum + mRankResult.points;
-              }, 0);
+              const newTotalWeight = await targetTeam.members.reduce(async (sumPromise, m) => {
+                  const sum = await sumPromise;
+                  const mRankResult = await getUnifiedPlayerWeight(m, { enableATLAS: tournament?.enable_adaptive_weights });
+                  logWeightCalculation(m.discord_username, mRankResult, 'Autobalance Step');
+                  return sum + mRankResult.points;
+              }, Promise.resolve(0));
+              targetTeam.totalWeight = newTotalWeight;
             }
           }
 
@@ -1059,19 +1069,23 @@ variant: "destructive",
       // This ensures consistency and handles cases with very few players where the loop might not run.
       setUnassignedPlayers([]);
       // Note: substitutes are not affected by autobalance
-      setTeams(fullSnakeDraftResult.teams.map((draftedTeam, index) => {
+      setTeams(await Promise.all(fullSnakeDraftResult.teams.map(async (draftedTeam, index) => {
         const originalTeam = availableTeams[index]; // Get the original team corresponding to this drafted team
         const newMembers = [...originalTeam.members, ...draftedTeam];
+
+        const newTotalWeight = await newMembers.reduce(async (sumPromise, m) => {
+          const sum = await sumPromise;
+          const mRankResult = await getUnifiedPlayerWeight(m, { enableATLAS: tournament?.enable_adaptive_weights });
+          return sum + mRankResult.points;
+        }, Promise.resolve(0));
+
         return {
           ...originalTeam,
           members: newMembers,
-          totalWeight: newMembers.reduce((sum, m) => {
-            // Use UNIFIED weight system for final calculation
-            const mRankResult = getPlayerWeightSync(m, tournament?.enable_adaptive_weights);
-            return sum + mRankResult.points;
-          }, 0),
+          totalWeight: newTotalWeight,
         };
-      }));
+      })));
+
 
       // VALIDATE RADIANT DISTRIBUTION after autobalance
       const finalTeams = fullSnakeDraftResult.teams.map((draftedTeam, index) => {
@@ -1109,7 +1123,7 @@ variant: "destructive",
       
       toast({
         title: `${tournament?.enable_adaptive_weights ? 'ATLAS' : 'Snake'} Draft Complete`,
-        description: `Players distributed using ${draftType} snake draft algorithm across ${numTeams} teams. Balance quality: ${balanceQuality}.${atlasInfo} Review before saving.`,
+        description: `Players distributed using a ${draftType} snake draft algorithm across ${numTeams} teams. Balance quality: ${balanceQuality}.${atlasInfo} Review before saving.`,
       });
     } catch (e) {
       console.error('Snake draft autobalance error:', e);
@@ -1317,16 +1331,16 @@ try {
             adaptive_weight_calculations: ('adaptiveWeightCalculations' in balanceAnalysis) ? balanceAnalysis.adaptiveWeightCalculations || [] : []
           };
 
-        // Update tournament with balance analysis
-        const { error: balanceError } = await supabase
-          .from('tournaments')
-          .update({ balance_analysis: balanceData })
-          .eq('id', tournamentId);
+          // Update tournament with balance analysis
+          const { error: balanceError } = await supabase
+            .from('tournaments')
+            .update({ balance_analysis: balanceData })
+            .eq('id', tournamentId);
 
-        if (balanceError) {
-          console.error('Error saving balance analysis:', balanceError);
-          // Don't fail the whole save for this
-        }
+          if (balanceError) {
+            console.error('Error saving balance analysis:', balanceError);
+            // Don't fail the whole save for this
+          }
 
           // Store adaptive weight calculations in database if available
           if (('adaptiveWeightCalculations' in balanceAnalysis) && balanceAnalysis.adaptiveWeightCalculations && balanceAnalysis.adaptiveWeightCalculations.length > 0) {
@@ -1483,7 +1497,7 @@ Team Balancing
               />
             </CardContent>
           </Card>
-  
+      
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="space-y-4">
               <h3 className="text-white font-medium flex items-center gap-2">
@@ -1494,7 +1508,7 @@ Team Balancing
                 <DroppableTeam key={team.id} team={team} teamSize={teamSize} enableAdaptiveWeights={enableAdaptiveWeights} />
               ))}
             </div>
-  
+      
             <div className="space-y-4">
               {/* Unassigned Players Section */}
               <div>
