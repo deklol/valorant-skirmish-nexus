@@ -195,6 +195,14 @@ export function calculateAdaptiveWeight(
     }
   };
 
+  // Only log for debugging specific users to prevent spam
+  if ((userData as any).discord_username?.includes('kera')) {
+    console.log('🏆 KERA CRITICAL DEBUG:', {
+      tournaments_won: userData.tournaments_won,
+      userData_full: userData
+    });
+  }
+
   // First, get the manual override result
   const manualResult = getRankPointsWithManualOverride(userData);
   
