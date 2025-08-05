@@ -147,6 +147,56 @@ function createAtlasBalancedTeams(players: any[], numTeams: number, teamSize: nu
     }
   });
 
+  // --- NEW HARD RULE CONSTRAINT ---
+  // Enforce that the highest-weighted elite player does NOT go to the strongest projected team
+  if (elitePlayers.length > 0 && teams.length > 1) {
+    const elitePlayerWithHighestWeight = elitePlayers[0]; // Sorted descending already
+    const teamWithHighestProjectedScore = teams.reduce((prev, current) => {
+      const prevTotal = prev.reduce((sum, p) => sum + p.evidenceWeight, 0);
+      const currTotal = current.reduce((sum, p) => sum + p.evidenceWeight, 0);
+      return currTotal > prevTotal ? current : prev;
+    });
+
+    if (teamWithHighestProjectedScore.includes(elitePlayerWithHighestWeight)) {
+      // Find weakest team
+      const weakestTeamIndex = teams.reduce((minIndex, team, i, arr) => {
+        const total = team.reduce((sum, p) => sum + p.evidenceWeight, 0);
+        const minTotal = arr[minIndex].reduce((sum, p) => sum + p.evidenceWeight, 0);
+        return total < minTotal ? i : minIndex;
+      }, 0);
+
+      // Move the Radiant-caliber player to the weakest team
+      const currentTeamIndex = teams.findIndex(t => t.includes(elitePlayerWithHighestWeight));
+      if (currentTeamIndex !== -1 && currentTeamIndex !== weakestTeamIndex) {
+        teams[currentTeamIndex] = teams[currentTeamIndex].filter(p => p !== elitePlayerWithHighestWeight);
+        teams[weakestTeamIndex].push(elitePlayerWithHighestWeight);
+
+        steps.push({
+          step: ++stepCounter,
+          player: {
+            id: elitePlayerWithHighestWeight.id,
+            discord_username: elitePlayerWithHighestWeight.discord_username || 'Unknown',
+            points: elitePlayerWithHighestWeight.evidenceWeight,
+            rank: elitePlayerWithHighestWeight.evidenceCalculation?.currentRank || 'Unranked',
+            source: elitePlayerWithHighestWeight.weightSource || 'unknown',
+            evidenceWeight: elitePlayerWithHighestWeight.evidenceWeight,
+            isElite: true,
+          },
+          assignedTeam: weakestTeamIndex,
+          reasoning: `ATLAS Override: Moved top-weight elite (${elitePlayerWithHighestWeight.discord_username}) to weakest team to prevent overstacking.`,
+          teamStatesAfter: teams.map((team, i) => ({
+            teamIndex: i,
+            totalPoints: team.reduce((sum, p) => sum + p.evidenceWeight, 0),
+            playerCount: team.length,
+            eliteCount: team.filter(p => p.isElite).length
+          })),
+          phase: 'atlas_team_formation',
+        });
+      }
+    }
+  }
+
+
   // Phase 2: Distribute Regular Players using a smarter balancing algorithm
   for (const player of regularPlayers) {
     let targetTeamIndex = -1;
