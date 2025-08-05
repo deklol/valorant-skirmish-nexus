@@ -1,8 +1,10 @@
 // Evidence-Based Snake Draft with Smart Skill Distribution and Mini-AI Decision System
 import { getRankPointsWithManualOverride } from "@/utils/rankingSystemWithOverrides";
-import { calculateEvidenceBasedWeight, calculateEvidenceBasedWeightWithMiniAi, assignWithSkillDistribution, EvidenceBasedConfig, EnhancedEvidenceResult } from "@/utils/evidenceBasedWeightSystem";
+import { calculateEvidenceBasedWeightWithMiniAi, EvidenceBasedConfig } from "@/utils/evidenceBasedWeightSystem";
 import { AtlasDecisionSystem, AtlasDecision } from "@/utils/miniAiDecisionSystem";
 import { TeamPlayer } from "@/utils/teamCompositionAnalyzer";
+import { getUnifiedPlayerWeight, logWeightCalculation, hasRadiantHistory } from "@/utils/unifiedWeightSystem";
+
 
 export interface EvidenceBalanceStep {
   step: number;
@@ -284,8 +286,6 @@ export const evidenceBasedSnakeDraft = async (
   const validationStartTime = Date.now();
   const atlasResult = await performAtlasValidation(teams, config, atlasEnhancements);
   
-  // FIX: This section was causing the ReferenceError.
-  // It is now correctly calculating the originalSkillDistribution from the teams array.
   const originalSkillDistribution = {
     elitePlayersPerTeam: teams.map(team => 
       team.filter(p => (p.evidenceWeight || 150) >= config.skillTierCaps.eliteThreshold).length
