@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { getRankPointsWithFallback, calculateTeamBalance } from "@/utils/rankingSystem";
 import { getRankPointsWithManualOverride } from "@/utils/rankingSystemWithOverrides";
+import EnhancedRankFallbackAlert from "@/components/team-balancing/EnhancedRankFallbackAlert";
 import { getUnifiedPlayerWeight, getUnifiedPlayerWeightSync, validateRadiantDistribution, logWeightCalculation, hasRadiantHistory } from "@/utils/unifiedWeightSystem";
 import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
 import { enhancedSnakeDraft, type EnhancedTeamResult, type BalanceStep } from "@/components/team-balancing/EnhancedSnakeDraft";
