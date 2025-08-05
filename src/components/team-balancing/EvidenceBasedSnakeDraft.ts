@@ -1,9 +1,7 @@
 // Evidence-Based Snake Draft with Smart Skill Distribution and Mini-AI Decision System
-import { getRankPointsWithManualOverride } from "@/utils/rankingSystemWithOverrides";
 import { calculateEvidenceBasedWeightWithMiniAi, EvidenceBasedConfig, EvidenceBasedCalculation } from "@/utils/evidenceBasedWeightSystem";
-import { AtlasDecisionSystem, AtlasDecision } from "@/utils/miniAiDecisionSystem";
-import { TeamPlayer } from "@/utils/teamCompositionAnalyzer";
-import { getUnifiedPlayerWeight, logWeightCalculation, hasRadiantHistory } from "@/utils/unifiedWeightSystem";
+import { AtlasDecision } from "@/utils/miniAiDecisionSystem";
+import { RANK_POINT_MAPPING } from "@/utils/rankingSystem";
 
 
 export interface EvidenceBalanceStep {
@@ -80,6 +78,7 @@ export interface EvidenceTeamResult {
   teams: any[][];
   balanceSteps: EvidenceBalanceStep[];
   validationResult?: EvidenceValidationResult;
+  // This is the key field for the ATLAS UI
   evidenceCalculations: Array<{
     userId: string;
     calculation: any;
@@ -255,25 +254,32 @@ export const evidenceBasedSnakeDraft = async (
         last_tournament_win: player.last_tournament_win
       }, config, true);
 
-      // ✅ FIX: Create the rich calculation object for the UI
-      const evidenceCalculation = evidenceResult.evidenceResult.evidenceCalculation;
+      // The detailed breakdown of the calculation
+      const evidenceDetails = evidenceResult.evidenceResult;
+      const evidenceCalculation = evidenceDetails.evidenceCalculation;
+      
+      // ✅ FIX: Construct the rich calculation object for the UI, using the correct property names
+      // from the EvidenceBasedCalculation type and deriving missing values.
       if (evidenceCalculation) {
+        // Derive peakRankPoints using the imported mapping.
+        const peakRankPoints = evidenceCalculation.peakRank ? (RANK_POINT_MAPPING[evidenceCalculation.peakRank] || 0) : 0;
+        
         evidenceCalculations.push({
           userId: player.user_id || player.id,
           calculation: {
-            points: evidenceResult.finalAdjustedPoints,
-            rank: evidenceCalculation.currentRank || player.current_rank,
-            reasoning: evidenceCalculation.calculationReasoning || 'Calculated by Evidence-Based AI.',
-            isElite: evidenceResult.finalAdjustedPoints >= config.skillTierCaps.eliteThreshold,
-            basePoints: evidenceCalculation.basePoints,
-            peakRank: evidenceCalculation.peakRank,
-            peakRankPoints: evidenceCalculation.peakRankPoints,
-            rankDecayFactor: evidenceCalculation.rankDecayFactor,
+            finalPoints: evidenceResult.finalAdjustedPoints,
+            currentRank: evidenceCalculation.currentRank || player.current_rank,
+            currentRankPoints: evidenceCalculation.basePoints,
+            peakRank: evidenceCalculation.peakRank || player.peak_rank,
+            peakRankPoints: peakRankPoints,
+            calculationReasoning: evidenceCalculation.calculationReasoning || "Calculated by Evidence-Based AI.",
+            rankDecayFactor: evidenceCalculation.rankDecayApplied, // Corrected from rankDecayFactor
+            tournamentsWon: evidenceCalculation.tournamentsWon,
             tournamentBonus: evidenceCalculation.tournamentBonus,
-            tournamentsWon: player.tournaments_won,
-            weightSource: evidenceResult.evidenceResult.source,
-            evidenceFactors: evidenceCalculation.tags || [],
-            miniAiAnalysis: evidenceResult.evidenceResult.miniAiAnalysis,
+            weightSource: evidenceDetails.source || "evidence_based_snake",
+            evidenceFactors: evidenceCalculation.evidenceFactors || [], // Corrected from tags
+            miniAiAnalysis: evidenceDetails.miniAiAnalysis,
+            isElite: evidenceResult.finalAdjustedPoints >= config.skillTierCaps.eliteThreshold,
           },
         });
       }
