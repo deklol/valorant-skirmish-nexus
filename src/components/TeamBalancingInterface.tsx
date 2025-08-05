@@ -44,9 +44,9 @@ interface Player {
   manual_weight_override?: number | null;
   use_manual_override?: boolean;
   rank_override_reason?: string | null;
-  calculatedWeight?: number; // Added for the new sorting logic
-  weightSource?: string; // Added for the new sorting logic
-  adaptiveReasoning?: string; // Added for the new sorting logic
+  calculatedWeight?: number;
+  weightSource?: string;
+  adaptiveReasoning?: string;
 }
 
 interface Team {
@@ -711,7 +711,7 @@ variant: "destructive",
     }
   };
 
-  const movePlayerToUnassigned = (player: Player, sourceTeamId: string | null) => {
+  const movePlayerToUnassigned = async (player: Player, sourceTeamId: string | null) => {
     if (sourceTeamId) {
       setTeams(prevTeams => 
         prevTeams.map(team => {
@@ -744,7 +744,7 @@ variant: "destructive",
     logManualTeamAdjustment(player, sourceTeamId, null, 'drag_to_unassigned');
   };
 
-  const movePlayerToSubstitutes = (player: Player, sourceTeamId: string | null) => {
+  const movePlayerToSubstitutes = async (player: Player, sourceTeamId: string | null) => {
     if (sourceTeamId) {
       setTeams(prevTeams => 
         prevTeams.map(team => {
@@ -777,7 +777,7 @@ variant: "destructive",
     logManualTeamAdjustment(player, sourceTeamId, null, 'drag_to_substitutes');
   };
 
-  const movePlayerToTeam = (player: Player, targetTeamId: string, sourceTeamId: string | null) => {
+  const movePlayerToTeam = async (player: Player, targetTeamId: string, sourceTeamId: string | null) => {
     // Remove from source
     if (sourceTeamId) {
       setTeams(prevTeams => 
@@ -1032,8 +1032,8 @@ variant: "destructive",
           setLastProgressStep(step);
           setCurrentPhase('analyzing');
 
-          // Find the player being assigned in this step
-          const playerToMove = tempUnassignedPlayers.find(p => p.id === step.player.id);
+          // Find the player being assigned in this step using the original unsorted list with weights
+          const playerToMove = playersWithWeights.find(p => p.id === step.player.id);
           if (playerToMove) {
             // Remove player from unassigned list
             tempUnassignedPlayers = tempUnassignedPlayers.filter(p => p.id !== playerToMove.id);
@@ -1041,7 +1041,7 @@ variant: "destructive",
             // Find the target team (using team index from snake draft)
             const targetTeam = tempTeams[step.assignedTeam];
             if (targetTeam) {
-              // Add player to the target team and update its total weight using a consistent calculation
+              // Add player to the target team and update its total weight using the pre-calculated weight
               targetTeam.members.push(playerToMove);
               const newTotalWeight = await targetTeam.members.reduce(async (sumPromise, m) => {
                   const sum = await sumPromise;
@@ -1124,7 +1124,7 @@ variant: "destructive",
       
       toast({
         title: `${tournament?.enable_adaptive_weights ? 'ATLAS' : 'Snake'} Draft Complete`,
-        description: `Players distributed using ${draftType} snake draft algorithm across ${numTeams} teams. Balance quality: ${balanceQuality}.${atlasInfo} Review before saving.`,
+        description: `Players distributed using a ${draftType} snake draft algorithm across ${numTeams} teams. Balance quality: ${balanceQuality}.${atlasInfo} Review before saving.`,
       });
     } catch (e) {
       console.error('Snake draft autobalance error:', e);
