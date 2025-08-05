@@ -119,46 +119,49 @@ function createAtlasBalancedTeams(players: any[], numTeams: number, teamSize: nu
   // Sort players descending by weight to start with the most impactful players
   const sortedPlayers = [...players].sort((a, b) => b.evidenceWeight - a.evidenceWeight);
 
-  // 1. Initial Distribution (Greedy assignment) - NOW LOGGED
+  // 1. Initial Distribution (Snake Draft) - NOW CORRECTED
+  let teamIndex = 0;
+  let direction = 1; // 1 for forward, -1 for backward
   for (const player of sortedPlayers) {
-    let targetTeamIndex = -1;
-    let lowestTotal = Infinity;
-    for (let i = 0; i < numTeams; i++) {
-      if (teams[i].length < teamSize) {
-        const currentTotal = teams[i].reduce((sum, p) => sum + p.evidenceWeight, 0);
-        if (currentTotal < lowestTotal) {
-          lowestTotal = currentTotal;
-          targetTeamIndex = i;
-        }
-      }
+    if (teams[teamIndex].length < teamSize) {
+        teams[teamIndex].push(player);
+
+        // Log the initial placement step
+        steps.push({
+            step: ++stepCounter,
+            player: {
+                id: player.id,
+                discord_username: player.discord_username || 'Unknown',
+                points: player.evidenceWeight,
+                rank: player.evidenceCalculation?.currentRank || player.current_rank || 'Unranked',
+                source: player.weightSource || 'unknown',
+                evidenceWeight: player.evidenceWeight,
+                isElite: player.isElite,
+            },
+            assignedTeam: teamIndex,
+            reasoning: `ATLAS Snake Distribution: Placed ${player.discord_username} on Team ${teamIndex + 1} as part of initial distribution.`,
+            teamStatesAfter: teams.map((team, index) => ({
+                teamIndex: index,
+                totalPoints: team.reduce((sum, p) => sum + p.evidenceWeight, 0),
+                playerCount: team.length,
+                eliteCount: team.filter(p => p.isElite).length
+            })),
+            phase: 'atlas_team_formation',
+        });
     }
-    if (targetTeamIndex !== -1) {
-      teams[targetTeamIndex].push(player);
-      
-      // Log the initial placement step
-      steps.push({
-        step: ++stepCounter,
-        player: {
-          id: player.id,
-          discord_username: player.discord_username || 'Unknown',
-          points: player.evidenceWeight,
-          rank: player.evidenceCalculation?.currentRank || player.current_rank || 'Unranked',
-          source: player.weightSource || 'unknown',
-          evidenceWeight: player.evidenceWeight,
-          isElite: player.isElite,
-        },
-        assignedTeam: targetTeamIndex,
-        reasoning: `ATLAS Initial Placement: Placed ${player.discord_username} on Team ${targetTeamIndex + 1} as part of initial distribution.`,
-        teamStatesAfter: teams.map((team, index) => ({
-          teamIndex: index,
-          totalPoints: team.reduce((sum, p) => sum + p.evidenceWeight, 0),
-          playerCount: team.length,
-          eliteCount: team.filter(p => p.isElite).length
-        })),
-        phase: 'atlas_team_formation',
-      });
+
+    teamIndex += direction;
+
+    // Reverse direction at the ends of the team list
+    if (teamIndex >= numTeams) {
+        teamIndex = numTeams - 1;
+        direction = -1;
+    } else if (teamIndex < 0) {
+        teamIndex = 0;
+        direction = 1;
     }
   }
+
 
   // 2. Iterative Optimization
   const MAX_ITERATIONS = 20; // Allow more iterations for better optimization
