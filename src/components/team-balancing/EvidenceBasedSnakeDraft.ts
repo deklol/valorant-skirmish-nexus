@@ -127,7 +127,7 @@ export const evidenceBasedSnakeDraft = async (
     maxDecayPercent: 0.25,
     skillTierCaps: {
       enabled: true,
-      eliteThreshold: 400,
+      eliteThreshold: 500, // Updated to 500
       maxElitePerTeam: 1
     }
   };
@@ -191,7 +191,8 @@ export const evidenceBasedSnakeDraft = async (
         weightSource: evidenceResult.evidenceResult.source,
         evidenceCalculation,
         miniAiAnalysis: evidenceResult.evidenceResult.miniAiAnalysis,
-        isElite: evidenceResult.finalAdjustedPoints >= config.skillTierCaps.eliteThreshold
+        // Using the config for elite threshold check for consistency
+        isElite: evidenceResult.finalAdjustedPoints >= config.skillTierCaps.eliteThreshold 
       };
     })
   );
@@ -386,8 +387,9 @@ async function performAtlasValidation(
       username: player.discord_username || 'Unknown',
       points: player.evidenceWeight || 150,
       isElite: (player.evidenceWeight || 150) >= config.skillTierCaps.eliteThreshold,
-      skillTier: (player.evidenceWeight || 150) >= 400 ? 'elite' : 
-                 (player.evidenceWeight || 150) >= 350 ? 'high' : // Immortal 2+
+      // Updated skill tier logic to match the new thresholds
+      skillTier: (player.evidenceWeight || 150) >= config.skillTierCaps.eliteThreshold ? 'elite' : 
+                 (player.evidenceWeight || 150) >= 300 ? 'high' : 
                  (player.evidenceWeight || 150) >= 200 ? 'medium' : 'low'
     }))
   );
