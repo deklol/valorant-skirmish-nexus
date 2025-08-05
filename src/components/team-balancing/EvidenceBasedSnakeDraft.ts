@@ -127,7 +127,7 @@ export const evidenceBasedSnakeDraft = async (
     maxDecayPercent: 0.25,
     skillTierCaps: {
       enabled: true,
-      eliteThreshold: 500, // Updated to 500
+      eliteThreshold: 500,
       maxElitePerTeam: 1
     }
   };
@@ -211,64 +211,73 @@ export const evidenceBasedSnakeDraft = async (
   const balanceSteps: EvidenceBalanceStep[] = [];
   let stepCounter = 0;
 
-  // Now perform a smart draft for all players, prioritizing balance at every step
-  const playersToDistribute = [...sortedPlayers];
-
-  while(playersToDistribute.length > 0) {
-      // Find the team with the lowest current total points that still has space
-      const teamTotals = teams.map(team => team.reduce((sum, p) => sum + (p.evidenceWeight || 0), 0));
-      let lowestTotal = Infinity;
-      let targetTeamIndex = -1;
-
-      for(let i = 0; i < numTeams; i++) {
-          if (teams[i].length < teamSize && teamTotals[i] < lowestTotal) {
-              lowestTotal = teamTotals[i];
-              targetTeamIndex = i;
-          }
-      }
-
-      if (targetTeamIndex === -1) {
-          console.warn('No available teams to assign players to, stopping draft.');
-          break;
-      }
+  // ⭐ CORRECTED LOGIC: Use a predictive, cumulative balance system for assignment
+  const assignPlayerWithAtlasLogic = (player: any): number => {
+    const teamTotals = teams.map(team => 
+      team.reduce((sum, p) => sum + p.evidenceWeight, 0)
+    );
+    
+    let bestTeamIndex = 0;
+    let lowestHypotheticalDiff = Infinity;
+    
+    // Iterate through all teams to find the best fit
+    for (let i = 0; i < numTeams; i++) {
+      if (teams[i].length >= teamSize) continue;
       
-      const player = playersToDistribute.shift();
-      if (!player) continue;
-
-      teams[targetTeamIndex].push(player);
-
-      const teamStatesAfter = teams.map((team, idx) => ({
-        teamIndex: idx,
-        totalPoints: team.reduce((sum, p) => sum + (p.evidenceWeight || 0), 0),
-        playerCount: team.length,
-        eliteCount: team.filter(p => p.isElite).length
-      }));
-
-      const balanceStep: EvidenceBalanceStep = {
-        step: ++stepCounter,
-        player: {
-          id: player.id,
-          discord_username: player.discord_username || 'Unknown',
-          points: player.evidenceWeight,
-          rank: player.evidenceCalculation?.currentRank || player.current_rank || 'Unranked',
-          source: player.weightSource || 'unknown',
-          evidenceWeight: player.evidenceWeight,
-          weightSource: player.weightSource,
-          evidenceReasoning: player.evidenceCalculation?.calculationReasoning,
-          isElite: player.isElite
-        },
-        assignedTeam: targetTeamIndex,
-        reasoning: `ATLAS: Assigned ${player.discord_username} (${player.evidenceWeight}pts) to Team ${targetTeamIndex + 1} to minimize point difference.`,
-        teamStatesAfter,
-        phase: 'regular_distribution'
-      };
-
-      balanceSteps.push(balanceStep);
-
-      if (onProgress) {
-        onProgress(balanceStep, stepCounter, players.length);
+      const hypotheticalTotals = [...teamTotals];
+      hypotheticalTotals[i] += player.evidenceWeight;
+      
+      const maxTotal = Math.max(...hypotheticalTotals);
+      const minTotal = Math.min(...hypotheticalTotals);
+      const hypotheticalDiff = maxTotal - minTotal;
+      
+      if (hypotheticalDiff < lowestHypotheticalDiff) {
+        lowestHypotheticalDiff = hypotheticalDiff;
+        bestTeamIndex = i;
       }
-  }
+    }
+    
+    return bestTeamIndex;
+  };
+  
+  // Assign each player using the new predictive logic
+  sortedPlayers.forEach(player => {
+    const targetTeamIndex = assignPlayerWithAtlasLogic(player);
+    teams[targetTeamIndex].push(player);
+    
+    const teamStatesAfter = teams.map((team, index) => ({
+      teamIndex: index,
+      totalPoints: team.reduce((sum, p) => sum + p.evidenceWeight, 0),
+      playerCount: team.length,
+      eliteCount: team.filter(p => p.isElite).length
+    }));
+    
+    const balanceStep: EvidenceBalanceStep = {
+      step: ++stepCounter,
+      player: {
+        id: player.id,
+        discord_username: player.discord_username || 'Unknown',
+        points: player.evidenceWeight,
+        rank: player.evidenceCalculation?.currentRank || player.current_rank || 'Unranked',
+        source: player.weightSource || 'unknown',
+        evidenceWeight: player.evidenceWeight,
+        weightSource: player.weightSource,
+        evidenceReasoning: player.evidenceCalculation?.calculationReasoning,
+        isElite: player.isElite
+      },
+      assignedTeam: targetTeamIndex,
+      reasoning: `ATLAS: Assigned ${player.discord_username} (${player.evidenceWeight}pts) to Team ${targetTeamIndex + 1} to minimize point difference.`,
+      teamStatesAfter,
+      phase: 'regular_distribution'
+    };
+
+    balanceSteps.push(balanceStep);
+
+    if (onProgress) {
+      onProgress(balanceStep, stepCounter, players.length);
+    }
+  });
+
 
   // Phase 3: ATLAS validation and adjustment
   let validationResult: EvidenceValidationResult | undefined;
