@@ -285,7 +285,17 @@ export const evidenceBasedSnakeDraft = async (
   const atlasResult = await performAtlasValidation(teams, config, atlasEnhancements);
   
   validationResult = {
-    originalSkillDistribution: distributionResult.finalDistribution,
+    // FIX: Removed the undefined distributionResult
+    originalSkillDistribution: {
+      elitePlayersPerTeam: teams.map(team => 
+        team.filter(p => (p.evidenceWeight || 150) >= config.skillTierCaps.eliteThreshold).length
+      ),
+      skillStackingViolations: teams.filter(team => 
+        team.filter(p => (p.evidenceWeight || 150) >= config.skillTierCaps.eliteThreshold).length > 1
+      ).length,
+      pointBalance: calculatePointBalance(teams),
+      balanceQuality: 'good' // Default to good before validation
+    },
     adjustmentsMade: atlasResult.adjustments,
     finalDistribution: {
       elitePlayersPerTeam: atlasResult.teams.map(team => 
