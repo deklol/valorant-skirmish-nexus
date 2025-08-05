@@ -18,6 +18,7 @@ export interface EvidenceBalanceStep {
     weightSource?: string;
     evidenceReasoning?: string;
     isElite?: boolean;
+    evidenceCalculation?: any; // Ensure this is passed for detailed UI rendering
   };
   assignedTeam: number;
   reasoning: string;
@@ -108,42 +109,6 @@ export interface EvidenceTeamResult {
 }
 
 /**
- * Generates a detailed reasoning string for a player assignment step.
- */
-function generateDetailedReasoning(
-    phase: 'Captain' | 'Balancing' | 'Counter-Balance',
-    player: any,
-    targetTeamIndex: number,
-    teamsBefore: any[][]
-): string {
-    const teamBeforeTotal = teamsBefore[targetTeamIndex]?.reduce((sum, p) => sum + p.evidenceWeight, 0) || 0;
-    const teamAfterTotal = teamBeforeTotal + player.evidenceWeight;
-    const eliteIndicator = player.isElite ? '🏆 Elite Player' : 'Player';
-    
-    let placementReason = '';
-    switch (phase) {
-        case 'Captain':
-            placementReason = `Assigned ${eliteIndicator} ${player.discord_username} (${player.evidenceWeight}pts) to establish Team ${targetTeamIndex + 1}.`;
-            break;
-        case 'Balancing':
-            placementReason = `Assigned ${eliteIndicator} ${player.discord_username} (${player.evidenceWeight}pts) to the weaker team (Team ${targetTeamIndex + 1}). Team total: ${teamBeforeTotal} → ${teamAfterTotal}pts.`;
-            break;
-        case 'Counter-Balance':
-            placementReason = `Assigned ${eliteIndicator} ${player.discord_username} (${player.evidenceWeight}pts) to the stronger team (Team ${targetTeamIndex + 1}). Team total: ${teamBeforeTotal} → ${teamAfterTotal}pts.`;
-            break;
-        default:
-            placementReason = `Assigned ${player.discord_username} to Team ${targetTeamIndex + 1}.`;
-    }
-
-    // Build a detailed breakdown of the AI's weight calculation
-    const aiReasoning = player.evidenceCalculation?.calculationReasoning || player.adjustmentReasoning || '';
-    const reasoningParts = aiReasoning.split(' | ').map((part: string) => `• ${part}`);
-    
-    return `${placementReason}\n\n**ATLAS Weight Analysis:**\n${reasoningParts.join('\n')}`;
-}
-
-
-/**
  * Creates balanced teams by pairing the strongest players with the weakest players.
  * This ensures the team with the #1 player does not end up with the highest total weight.
  */
@@ -170,20 +135,19 @@ function createAtlasBalancedTeams(players: any[], numTeams: number, teamSize: nu
         console.error(`CRITICAL BUG: Attempted to assign captain ${captain.discord_username} twice.`);
         continue;
       }
-      const teamsBefore = JSON.parse(JSON.stringify(teams));
       teams[i].push(captain);
       assignedPlayerIds.add(captain.id);
       
       steps.push({
         step: ++stepCounter,
         player: {
+          ...captain, // Pass the full player object
           id: captain.id, discord_username: captain.discord_username || 'Unknown',
           points: captain.evidenceWeight, rank: captain.evidenceCalculation?.currentRank || 'Unranked',
-          source: captain.weightSource || 'unknown', evidenceWeight: captain.evidenceWeight, isElite: captain.isElite,
-          evidenceReasoning: captain.adjustmentReasoning,
+          source: captain.weightSource || 'unknown',
         },
         assignedTeam: i,
-        reasoning: generateDetailedReasoning('Captain', captain, i, teamsBefore),
+        reasoning: `Elite player distributed strategically to prevent skill stacking and maintain competitive balance.`,
         teamStatesAfter: teams.map((team, index) => ({
           teamIndex: index, totalPoints: team.reduce((sum, p) => sum + p.evidenceWeight, 0),
           playerCount: team.length, eliteCount: team.filter(p => p.isElite).length
@@ -207,19 +171,18 @@ function createAtlasBalancedTeams(players: any[], numTeams: number, teamSize: nu
           console.error(`CRITICAL BUG: Attempted to assign player ${strongestPlayer.discord_username} twice.`);
           continue;
         }
-        const teamsBefore = JSON.parse(JSON.stringify(teams));
         teams[weakerTeamIndex].push(strongestPlayer);
         assignedPlayerIds.add(strongestPlayer.id);
         steps.push({
           step: ++stepCounter,
           player: {
+            ...strongestPlayer,
             id: strongestPlayer.id, discord_username: strongestPlayer.discord_username || 'Unknown',
             points: strongestPlayer.evidenceWeight, rank: strongestPlayer.evidenceCalculation?.currentRank || 'Unranked',
-            source: strongestPlayer.weightSource || 'unknown', evidenceWeight: strongestPlayer.evidenceWeight, isElite: strongestPlayer.isElite,
-            evidenceReasoning: strongestPlayer.adjustmentReasoning,
+            source: strongestPlayer.weightSource || 'unknown',
           },
           assignedTeam: weakerTeamIndex,
-          reasoning: generateDetailedReasoning('Balancing', strongestPlayer, weakerTeamIndex, teamsBefore),
+          reasoning: `Assigned to team to contribute to overall team balance based on their rank.`,
           teamStatesAfter: teams.map((team, index) => ({
             teamIndex: index, totalPoints: team.reduce((sum, p) => sum + p.evidenceWeight, 0),
             playerCount: team.length, eliteCount: team.filter(p => p.isElite).length
@@ -237,19 +200,18 @@ function createAtlasBalancedTeams(players: any[], numTeams: number, teamSize: nu
           console.error(`CRITICAL BUG: Attempted to assign player ${weakestPlayer.discord_username} twice.`);
           continue;
         }
-        const teamsBefore = JSON.parse(JSON.stringify(teams));
         teams[strongerTeamIndex].push(weakestPlayer);
         assignedPlayerIds.add(weakestPlayer.id);
         steps.push({
           step: ++stepCounter,
           player: {
+            ...weakestPlayer,
             id: weakestPlayer.id, discord_username: weakestPlayer.discord_username || 'Unknown',
             points: weakestPlayer.evidenceWeight, rank: weakestPlayer.evidenceCalculation?.currentRank || 'Unranked',
-            source: weakestPlayer.weightSource || 'unknown', evidenceWeight: weakestPlayer.evidenceWeight, isElite: weakestPlayer.isElite,
-            evidenceReasoning: weakestPlayer.adjustmentReasoning,
+            source: weakestPlayer.weightSource || 'unknown',
           },
           assignedTeam: strongerTeamIndex,
-          reasoning: generateDetailedReasoning('Counter-Balance', weakestPlayer, strongerTeamIndex, teamsBefore),
+          reasoning: `Assigned to team to contribute to overall team balance based on their rank.`,
           teamStatesAfter: teams.map((team, index) => ({
             teamIndex: index, totalPoints: team.reduce((sum, p) => sum + p.evidenceWeight, 0),
             playerCount: team.length, eliteCount: team.filter(p => p.isElite).length
