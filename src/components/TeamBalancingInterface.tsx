@@ -948,60 +948,46 @@ variant: "destructive",
       let fullSnakeDraftResult: EvidenceTeamResult;
       
       // ==================================================================
-      // CORE LOGIC FIX: Use the correct draft function based on ATLAS setting
+      // ATLAS UNIFIED: Always use evidence-based ATLAS system for consistency
       // ==================================================================
-      if (tournament?.enable_adaptive_weights) {
-        // Use ATLAS-enhanced evidence-based snake draft
-        atlasLogger.info("Executing evidenceBasedSnakeDraft (ATLAS is ON)");
-        setCurrentPhase('atlas-initializing');
-        
-        fullSnakeDraftResult = await evidenceBasedSnakeDraft(
-          sortedPlayers,
-          numTeams,
-          teamSize,
-          (step) => {
-            setProgressStep(step.step);
-            setCurrentPhase(step.phase === 'team_formation' ? 'atlas-analyzing' : 
-                           step.phase === 'anti_stacking_validation' ? 'atlas-validating' : 'atlas-calculating');
-          },
-          () => {
-            setCurrentPhase('atlas-validating');
-          },
-          (playerId: string, weight: number) => {
-            setCurrentPhase('atlas-calculating');
+      atlasLogger.info("Executing ATLAS evidence-based balancing system");
+      setCurrentPhase('atlas-initializing');
+      
+      fullSnakeDraftResult = await evidenceBasedSnakeDraft(
+        sortedPlayers,
+        numTeams,
+        teamSize,
+        (step) => {
+          setProgressStep(step.step);
+          setCurrentPhase(step.phase === 'team_formation' ? 'atlas-analyzing' : 
+                         step.phase === 'anti_stacking_validation' ? 'atlas-validating' : 'atlas-calculating');
+        },
+        () => {
+          setCurrentPhase('atlas-validating');
+        },
+        (player: any, calculation: any) => {
+          setCurrentPhase('atlas-calculating');
+          logWeightCalculation(player.discord_username || 'Unknown', {
+            points: calculation.finalPoints || 150,
+            source: 'atlas_evidence',
+            rank: player.current_rank || 'Unranked',
+            isElite: (calculation.finalPoints || 150) >= 300,
+            isValid: true,
+            reasoning: calculation.adjustmentReasoning || 'ATLAS calculation'
+          }, 'Autobalance Step');
+        },
+        {
+          enableEvidenceBasedWeights: true,
+          tournamentWinBonus: 15,
+          rankDecayThreshold: 2,
+          maxDecayPercent: 0.25,
+          skillTierCaps: {
+            enabled: true,
+            eliteThreshold: 300, // Lower threshold to catch more elite players
+            maxElitePerTeam: 1
           }
-        );
-      } else {
-        // ATLAS UNIFIED: Always use evidence-based ATLAS system for consistency
-        atlasLogger.info("Using ATLAS evidence-based system (unified approach)");
-        fullSnakeDraftResult = await evidenceBasedSnakeDraft(
-          sortedPlayers, 
-          numTeams, 
-          teamSize,
-          (step: EvidenceBalanceStep) => {
-            setProgressStep(step.step);
-            setLastProgressStep(step);
-            setCurrentPhase('analyzing');
-          },
-          () => {
-            setCurrentPhase('atlas-validating');
-          },
-          (player: any, calculation: any) => {
-            atlasLogger.weightCalculated(player.discord_username || 'Unknown', calculation.finalPoints || 150, 'autobalance_step');
-          },
-          {
-            enableEvidenceBasedWeights: true,
-            tournamentWinBonus: 15,
-            rankDecayThreshold: 2,
-            maxDecayPercent: 0.25,
-            skillTierCaps: {
-              enabled: true,
-              eliteThreshold: 300,
-              maxElitePerTeam: 1
-            }
-          }
-        );
-      }
+        }
+      );
       
       // Store the balance analysis for later saving
       setBalanceAnalysis(fullSnakeDraftResult);
@@ -1112,7 +1098,7 @@ variant: "destructive",
       }
 
       // Show completion message based on draft type
-      const draftType = tournament?.enable_adaptive_weights ? 'ATLAS-enhanced' : 'standard';
+      const draftType = 'ATLAS evidence-based';
       const balanceQuality = fullSnakeDraftResult.finalAnalysis.pointBalance.balanceQuality;
       const atlasInfo = (fullSnakeDraftResult as any).miniAiEnhancements ? 
         ` ATLAS made optimization decisions.` : '';
