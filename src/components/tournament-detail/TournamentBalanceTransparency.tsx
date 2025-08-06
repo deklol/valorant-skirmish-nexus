@@ -591,7 +591,7 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
       {isExpanded && (
         <CardContent className="pt-0">
         {/* ATLAS Summary Section */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
           <div className="p-4 rounded-lg bg-secondary/10 border border-secondary/20">
             <div className="flex items-center justify-between">
               <div>
@@ -703,7 +703,7 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
             
             {isATLASExpanded && (
               <div className="mt-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
                   {atlasCalculations.map((calc, index) => {
                     // Find matching player name from balance steps
                     const matchingStep = balanceSteps.find(step => step.player.id === calc.userId);
@@ -736,40 +736,40 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                     const isRecentWinner = recentWinnerIds.has(calc.userId);
                     
                     return (
-                      <div key={calc.userId || index} className={`group relative p-6 bg-gradient-to-br from-card to-card/60 rounded-2xl border transition-all duration-300 hover:shadow-xl hover:scale-[1.02] ${
+                      <div key={calc.userId || index} className={`group relative p-4 sm:p-6 bg-gradient-to-br from-card to-card/60 rounded-xl sm:rounded-2xl border transition-all duration-300 hover:shadow-xl hover:scale-[1.02] ${
                         isRecentWinner 
                           ? 'border-amber-400/50 shadow-[0_0_20px_rgba(245,158,11,0.15)] ring-1 ring-amber-400/20' 
                           : 'border-border/20 hover:border-primary/40'
                       }`}>
                         
                         {/* Header Section */}
-                        <div className="space-y-4">
+                        <div className="space-y-3 sm:space-y-4">
                           {/* Player Name & Points */}
-                          <div className="flex items-center justify-between">
+                          <div className="flex items-start justify-between gap-3">
                             <div className="flex-1 min-w-0">
-                              <h4 className="font-bold text-foreground text-base leading-tight">{playerName}</h4>
+                              <h4 className="font-bold text-foreground text-sm sm:text-base leading-tight">{playerName}</h4>
                               {riotId && (
                                 <p className="text-xs text-muted-foreground italic mt-0.5">{riotId}</p>
                               )}
                             </div>
-                            <div className="text-right">
-                              <div className="text-2xl font-black text-primary">{finalPoints}</div>
+                            <div className="text-right flex-shrink-0">
+                              <div className="text-xl sm:text-2xl font-black text-primary">{finalPoints}</div>
                               <div className="text-xs text-muted-foreground font-medium">POINTS</div>
                             </div>
                           </div>
                           
                           {/* Rank & Skill Level */}
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             <Badge 
                               variant="outline" 
-                              className="text-sm px-3 py-1.5 font-medium border-2"
+                              className="text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-1.5 font-medium border-2"
                               style={{
                                 color: getRankInfo(playerRank).primary,
                                 borderColor: getRankInfo(playerRank).primary + '60',
                                 backgroundColor: getRankInfo(playerRank).primary + '10'
                               }}
                             >
-                              <span className="mr-2">{getRankInfo(playerRank).emoji}</span>
+                              <span className="mr-1 sm:mr-2">{getRankInfo(playerRank).emoji}</span>
                               {playerRank}
                             </Badge>
                             <Badge 
