@@ -6,7 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Users, Shuffle, AlertTriangle, CheckCircle, Eye, Settings, Zap, Brain } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
-import { enhancedSnakeDraft, EnhancedTeamResult, BalanceStep } from "./EnhancedSnakeDraft";
+import { evidenceBasedSnakeDraft, EvidenceTeamResult, EvidenceBalanceStep } from "./EvidenceBasedSnakeDraft";
 import DetailedBalanceAnalysis from "./DetailedBalanceAnalysis";
 import { AutobalanceProgress } from "./AutobalanceProgress";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,13 +28,13 @@ const EnhancedTeamBalancingTool = ({
   tournamentName 
 }: EnhancedTeamBalancingToolProps) => {
   const [loading, setLoading] = useState(false);
-  const [balanceResult, setBalanceResult] = useState<EnhancedTeamResult | null>(null);
+  const [balanceResult, setBalanceResult] = useState<EvidenceTeamResult | null>(null);
   const [phase, setPhase] = useState<'idle' | 'analyzing' | 'validating' | 'preview' | 'saving' | 'complete'>('idle');
   
   // Progress tracking state
   const [showProgress, setShowProgress] = useState(false);
   const [progressStep, setProgressStep] = useState(0);
-  const [lastProgressStep, setLastProgressStep] = useState<BalanceStep | undefined>();
+  const [lastProgressStep, setLastProgressStep] = useState<EvidenceBalanceStep | undefined>();
   const [totalPlayers, setTotalPlayers] = useState(0);
   
   // Adaptive weights state
@@ -152,33 +152,33 @@ const EnhancedTeamBalancingTool = ({
         setShowProgress(true);
       }
 
-      // Run enhanced balance analysis with progress tracking
-      const result = await enhancedSnakeDraft(
+      // ATLAS UNIFIED: Always use evidence-based ATLAS system for consistency  
+      const result = await evidenceBasedSnakeDraft(
         players, 
         teamsToCreate, 
         teamSize,
-        (step: BalanceStep, currentStep: number, totalSteps: number) => {
-          setProgressStep(currentStep);
+        (step: EvidenceBalanceStep) => {
+          setProgressStep(step.step);
           setLastProgressStep(step);
         },
         () => {
           setPhase('validating');
         },
-        (phase: string, current: number, total: number) => {
-          // ATLAS calculation progress
-          setProgressStep(current);
+        (player: any, calculation: any) => {
+          // ATLAS weight calculation callback
+          setProgressStep(prev => prev + 1);
         },
-        enableAdaptiveWeights ? {
+        {
           enableEvidenceBasedWeights: true,
           tournamentWinBonus: 15,
           rankDecayThreshold: 2,
           maxDecayPercent: 0.25,
           skillTierCaps: {
             enabled: true,
-            eliteThreshold: 400,
+            eliteThreshold: 300,
             maxElitePerTeam: 1
           }
-        } : undefined
+        }
       );
       
       setBalanceResult(result);
@@ -187,7 +187,7 @@ const EnhancedTeamBalancingTool = ({
 
       toast({
         title: "Balance Analysis Complete",
-        description: `Generated ${teamsToCreate} teams with ${result.finalBalance.balanceQuality} balance`,
+        description: `Generated ${teamsToCreate} teams with ${result.finalAnalysis.pointBalance.balanceQuality} balance`,
       });
 
     } catch (error: any) {
@@ -229,9 +229,9 @@ const EnhancedTeamBalancingTool = ({
         const teamName = teamSize === 1 ? `${captainName} (Solo)` : `Team ${captainName}`;
 
         const totalPoints = team.reduce((sum, player) => {
-          // Use ATLAS weights when enabled for consistency with UI
-          if (enableAdaptiveWeights && player.adaptiveWeight) {
-            return sum + player.adaptiveWeight;
+          // Use ATLAS evidence weights for consistency  
+          if (player.evidenceWeight) {
+            return sum + player.evidenceWeight;
           }
           const result = getRankPointsWithManualOverride(player);
           return sum + result.points;
@@ -303,11 +303,11 @@ const EnhancedTeamBalancingTool = ({
           validationTime: balanceResult.validationResult.validationTime
         } : null,
         final_balance: {
-          averageTeamPoints: balanceResult.finalBalance.averageTeamPoints,
-          minTeamPoints: balanceResult.finalBalance.minTeamPoints,
-          maxTeamPoints: balanceResult.finalBalance.maxTeamPoints,
-          maxPointDifference: balanceResult.finalBalance.maxPointDifference,
-          balanceQuality: balanceResult.finalBalance.balanceQuality
+          averageTeamPoints: balanceResult.finalAnalysis.pointBalance.averageTeamPoints,
+          minTeamPoints: balanceResult.finalAnalysis.pointBalance.minTeamPoints,
+          maxTeamPoints: balanceResult.finalAnalysis.pointBalance.maxTeamPoints,
+          maxPointDifference: balanceResult.finalAnalysis.pointBalance.maxPointDifference,
+          balanceQuality: balanceResult.finalAnalysis.pointBalance.balanceQuality
         },
         teams_created: balanceResult.teams.map((team, index) => ({
           name: teamSize === 1 ? `${team[0]?.discord_username} (Solo)` : `Team ${team[0]?.discord_username}`,
@@ -318,9 +318,9 @@ const EnhancedTeamBalancingTool = ({
             source: getRankPointsWithManualOverride(m).source
           })),
           total_points: team.reduce((sum, player) => {
-            // Use ATLAS weights when enabled for consistency with UI
-            if (enableAdaptiveWeights && player.adaptiveWeight) {
-              return sum + player.adaptiveWeight;
+            // Use ATLAS evidence weights for consistency
+            if (player.evidenceWeight) {
+              return sum + player.evidenceWeight;
             }
             const result = getRankPointsWithManualOverride(player);
             return sum + result.points;
@@ -538,16 +538,16 @@ const EnhancedTeamBalancingTool = ({
             <div className="flex items-center gap-2 p-3 bg-slate-700 rounded-lg">
               <Badge 
                 className={`${
-                  balanceResult.finalBalance.balanceQuality === 'ideal' ? 'bg-green-600' :
-                  balanceResult.finalBalance.balanceQuality === 'good' ? 'bg-blue-600' :
-                  balanceResult.finalBalance.balanceQuality === 'warning' ? 'bg-yellow-600' :
+                  balanceResult.finalAnalysis.pointBalance.balanceQuality === 'ideal' ? 'bg-green-600' :
+                  balanceResult.finalAnalysis.pointBalance.balanceQuality === 'good' ? 'bg-blue-600' :
+                  balanceResult.finalAnalysis.pointBalance.balanceQuality === 'warning' ? 'bg-yellow-600' :
                   'bg-red-600'
                 } text-white`}
               >
-                {balanceResult.finalBalance.balanceQuality.toUpperCase()}
+                {balanceResult.finalAnalysis.pointBalance.balanceQuality.toUpperCase()}
               </Badge>
               <span className="text-slate-300 text-sm">
-                {balanceResult.teams.length} teams • Max difference: {balanceResult.finalBalance.maxPointDifference} pts
+                {balanceResult.teams.length} teams • Max difference: {balanceResult.finalAnalysis.pointBalance.maxPointDifference} pts
                 {balanceResult.validationResult && (
                   <span className="ml-2 text-blue-400">• Validated</span>
                 )}
@@ -556,12 +556,12 @@ const EnhancedTeamBalancingTool = ({
           )}
 
           {/* Warning for Poor Balance */}
-          {balanceResult?.finalBalance.balanceQuality === 'poor' && (
+          {balanceResult?.finalAnalysis.pointBalance.balanceQuality === 'poor' && (
             <div className="flex items-start gap-2 p-3 bg-red-900/20 border border-red-700 rounded-lg">
               <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
               <div className="text-red-300 text-sm">
                 <p className="font-medium">Poor Balance Detected</p>
-                <p>Teams have significant point differences ({balanceResult.finalBalance.maxPointDifference} pts). Consider manual adjustments or re-running with different parameters.</p>
+                <p>Teams have significant point differences ({balanceResult.finalAnalysis.pointBalance.maxPointDifference} pts). Consider manual adjustments or re-running with different parameters.</p>
               </div>
             </div>
           )}

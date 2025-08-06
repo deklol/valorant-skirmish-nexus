@@ -4,11 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Brain, HelpCircle, TrendingUp, Zap, Settings, ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
-import { EnhancedTeamResult } from "./EnhancedSnakeDraft";
 import { EvidenceTeamResult } from "./EvidenceBasedSnakeDraft";
 
 interface AtlasDecisionDisplayProps {
-  balanceResult: EnhancedTeamResult | EvidenceTeamResult | null;
+  balanceResult: EvidenceTeamResult | null;
   isVisible: boolean;
   tournamentName?: string;
 }
@@ -32,7 +31,7 @@ const AtlasDecisionDisplay = ({ balanceResult, isVisible, tournamentName }: Atla
 
   // Get balance info from either result type
   const balanceInfo = isEnhancedResult 
-    ? balanceResult.finalBalance
+    ? (balanceResult as any).finalAnalysis?.pointBalance
     : (balanceResult as any).finalAnalysis?.pointBalance;
 
   return (

@@ -5,11 +5,11 @@ import { Button } from "@/components/ui/button";
 import { AlertTriangle, CheckCircle, TrendingUp, Copy, Download, BarChart3, Users, Brain, Settings, Zap } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { EnhancedTeamResult, BalanceStep } from "./EnhancedSnakeDraft";
+import { EvidenceTeamResult, EvidenceBalanceStep } from "./EvidenceBasedSnakeDraft";
 import { getRankPointsWithManualOverride } from "@/utils/rankingSystemWithOverrides";
 
 interface DetailedBalanceAnalysisProps {
-  balanceResult: EnhancedTeamResult | null;
+  balanceResult: EvidenceTeamResult | null;
   tournamentName?: string;
 }
 
@@ -28,10 +28,10 @@ const DetailedBalanceAnalysis = ({ balanceResult, tournamentName }: DetailedBala
     );
   }
 
-  const { teams, balanceSteps, finalBalance } = balanceResult;
+  const { teams, balanceSteps, finalAnalysis } = balanceResult;
 
   const getBalanceStatusIcon = () => {
-    switch (finalBalance.balanceQuality) {
+    switch (finalAnalysis.pointBalance.balanceQuality) {
       case 'ideal':
         return <CheckCircle className="w-5 h-5 text-green-400" />;
       case 'good':
@@ -44,7 +44,7 @@ const DetailedBalanceAnalysis = ({ balanceResult, tournamentName }: DetailedBala
   };
 
   const getBalanceStatusColor = () => {
-    switch (finalBalance.balanceQuality) {
+    switch (finalAnalysis.pointBalance.balanceQuality) {
       case 'ideal': return 'bg-green-600';
       case 'good': return 'bg-blue-600';
       case 'warning': return 'bg-yellow-600';
@@ -88,10 +88,10 @@ const DetailedBalanceAnalysis = ({ balanceResult, tournamentName }: DetailedBala
 
     // Overall Balance Summary
     report += `BALANCE SUMMARY:\n`;
-    report += `Quality: ${finalBalance.balanceQuality.toUpperCase()}\n`;
-    report += `Average Team Points: ${finalBalance.averageTeamPoints}\n`;
-    report += `Point Range: ${finalBalance.minTeamPoints} - ${finalBalance.maxTeamPoints}\n`;
-    report += `Max Difference: ${finalBalance.maxPointDifference} points\n\n`;
+    report += `Quality: ${finalAnalysis.pointBalance.balanceQuality.toUpperCase()}\n`;
+    report += `Average Team Points: ${finalAnalysis.pointBalance.averageTeamPoints}\n`;
+    report += `Point Range: ${finalAnalysis.pointBalance.minTeamPoints} - ${finalAnalysis.pointBalance.maxTeamPoints}\n`;
+    report += `Max Difference: ${finalAnalysis.pointBalance.maxPointDifference} points\n\n`;
 
     // Team Breakdown
     report += `TEAM BREAKDOWN:\n`;
@@ -160,10 +160,10 @@ const DetailedBalanceAnalysis = ({ balanceResult, tournamentName }: DetailedBala
           {/* Quality Badge */}
           <div className="flex items-center gap-4">
             <Badge className={`${getBalanceStatusColor()} text-white`}>
-              {finalBalance.balanceQuality.toUpperCase()} BALANCE
+              {finalAnalysis.pointBalance.balanceQuality.toUpperCase()} BALANCE
             </Badge>
             <span className="text-slate-300">
-              Max difference: {finalBalance.maxPointDifference} points
+              Max difference: {finalAnalysis.pointBalance.maxPointDifference} points
             </span>
           </div>
 
@@ -171,24 +171,24 @@ const DetailedBalanceAnalysis = ({ balanceResult, tournamentName }: DetailedBala
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-slate-700 rounded-lg p-3">
               <div className="text-slate-400 text-xs uppercase tracking-wide">Average</div>
-              <div className="text-white text-lg font-semibold">{finalBalance.averageTeamPoints}</div>
+              <div className="text-white text-lg font-semibold">{finalAnalysis.pointBalance.averageTeamPoints}</div>
             </div>
             <div className="bg-slate-700 rounded-lg p-3">
               <div className="text-slate-400 text-xs uppercase tracking-wide">Minimum</div>
-              <div className="text-white text-lg font-semibold">{finalBalance.minTeamPoints}</div>
+              <div className="text-white text-lg font-semibold">{finalAnalysis.pointBalance.minTeamPoints}</div>
             </div>
             <div className="bg-slate-700 rounded-lg p-3">
               <div className="text-slate-400 text-xs uppercase tracking-wide">Maximum</div>
-              <div className="text-white text-lg font-semibold">{finalBalance.maxTeamPoints}</div>
+              <div className="text-white text-lg font-semibold">{finalAnalysis.pointBalance.maxTeamPoints}</div>
             </div>
             <div className="bg-slate-700 rounded-lg p-3">
               <div className="text-slate-400 text-xs uppercase tracking-wide">Difference</div>
               <div className={`text-lg font-semibold ${
-                finalBalance.balanceQuality === 'ideal' ? 'text-green-400' :
-                finalBalance.balanceQuality === 'good' ? 'text-blue-400' :
-                finalBalance.balanceQuality === 'warning' ? 'text-yellow-400' : 'text-red-400'
+                finalAnalysis.pointBalance.balanceQuality === 'ideal' ? 'text-green-400' :
+                finalAnalysis.pointBalance.balanceQuality === 'good' ? 'text-blue-400' :
+                finalAnalysis.pointBalance.balanceQuality === 'warning' ? 'text-yellow-400' : 'text-red-400'
               }`}>
-                {finalBalance.maxPointDifference}
+                {finalAnalysis.pointBalance.maxPointDifference}
               </div>
             </div>
           </div>
@@ -210,7 +210,7 @@ const DetailedBalanceAnalysis = ({ balanceResult, tournamentName }: DetailedBala
                   return sum + result.points;
                 }, 0);
                 
-                const differenceFromAverage = teamTotal - finalBalance.averageTeamPoints;
+                const differenceFromAverage = teamTotal - finalAnalysis.pointBalance.averageTeamPoints;
                 const diffColor = Math.abs(differenceFromAverage) <= 15 ? 'text-green-400' :
                                  Math.abs(differenceFromAverage) <= 30 ? 'text-yellow-400' : 'text-red-400';
 
@@ -246,7 +246,7 @@ const DetailedBalanceAnalysis = ({ balanceResult, tournamentName }: DetailedBala
             // Check for ATLAS evidence calculations first (Evidence-based ATLAS)
             const evidenceCalculations = (balanceResult as any).evidenceCalculations;
             // Check for regular adaptive weight calculations (Enhanced ATLAS)
-            const adaptiveCalculations = balanceResult.adaptiveWeightCalculations;
+            const adaptiveCalculations = (balanceResult as any).adaptiveWeightCalculations;
             
             // Debug logging to see what we actually have
             console.log('🔍 DetailedBalanceAnalysis - Calculation data:', {
@@ -563,13 +563,13 @@ const DetailedBalanceAnalysis = ({ balanceResult, tournamentName }: DetailedBala
                           )}
                           
                            {/* Adaptive Reasoning (if present) */}
-                          {step.player.adaptiveReasoning && (
+                          {step.player.evidenceReasoning && (
                             <div className="mt-3 bg-emerald-900/20 border border-emerald-500/30 rounded p-3">
                               <div className="flex items-center gap-2 mb-2">
                                 <Zap className="w-4 h-4 text-emerald-400" />
                                 <span className="font-medium text-emerald-400 text-sm">Adaptive Weight Details</span>
                               </div>
-                              <p className="text-emerald-300 text-sm italic">{step.player.adaptiveReasoning}</p>
+                              <p className="text-emerald-300 text-sm italic">{step.player.evidenceReasoning}</p>
                             </div>
                           )}
                           

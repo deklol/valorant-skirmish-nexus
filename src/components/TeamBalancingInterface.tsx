@@ -13,7 +13,6 @@ import { getRankPointsWithManualOverride } from "@/utils/rankingSystemWithOverri
 import EnhancedRankFallbackAlert from "@/components/team-balancing/EnhancedRankFallbackAlert";
 import { getUnifiedPlayerWeight, getUnifiedPlayerWeightSync, validateRadiantDistribution, logWeightCalculation, hasRadiantHistory } from "@/utils/unifiedWeightSystem";
 import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
-import { enhancedSnakeDraft, type EnhancedTeamResult, type BalanceStep } from "@/components/team-balancing/EnhancedSnakeDraft";
 import { evidenceBasedSnakeDraft, type EvidenceTeamResult, type EvidenceBalanceStep } from "@/components/team-balancing/EvidenceBasedSnakeDraft";
 import { AutobalanceProgress } from "@/components/team-balancing/AutobalanceProgress";
 import AtlasDecisionDisplay from "@/components/team-balancing/AtlasDecisionDisplay";
@@ -81,7 +80,7 @@ const DraggablePlayer = ({ player, enableAdaptiveWeights }: { player: Player, en
       // Log for transparency
       logWeightCalculation(player.discord_username, result, 'UI Display');
     }).catch(error => {
-      console.error('Failed to calculate unified weight for display:', error);
+      atlasLogger.error('Failed to calculate unified weight for display', error);
       // Fallback
       const fallbackResult = getUnifiedPlayerWeightSync(player, enableAdaptiveWeights);
       setDisplayWeight(fallbackResult.points);
@@ -286,10 +285,10 @@ const TeamBalancingInterface = ({ tournamentId, maxTeams, teamSize, onTeamsUpdat
   const [saving, setSaving] = useState(false);
   const [creatingTeams, setCreatingTeams] = useState(false);
   const [autobalancing, setAutobalancing] = useState(false);
-  const [balanceAnalysis, setBalanceAnalysis] = useState<EnhancedTeamResult | EvidenceTeamResult | null>(null);
+  const [balanceAnalysis, setBalanceAnalysis] = useState<EvidenceTeamResult | null>(null);
   const [showProgress, setShowProgress] = useState(false);
   const [progressStep, setProgressStep] = useState(0);
-  const [lastProgressStep, setLastProgressStep] = useState<BalanceStep | EvidenceBalanceStep | undefined>();
+  const [lastProgressStep, setLastProgressStep] = useState<EvidenceBalanceStep | undefined>();
   const [currentPhase, setCurrentPhase] = useState<'analyzing' | 'validating' | 'complete' | 'atlas-initializing' | 'atlas-analyzing' | 'atlas-validating' | 'atlas-distributing' | 'atlas-calculating'>('analyzing');
   const { toast } = useToast();
   const notifications = useEnhancedNotifications();
@@ -946,7 +945,7 @@ variant: "destructive",
       const sortedPlayers = playersWithWeights.sort((a, b) => b.calculatedWeight - a.calculatedWeight);
 
       // Choose between ATLAS-enhanced draft or standard draft
-      let fullSnakeDraftResult: EnhancedTeamResult | EvidenceTeamResult;
+      let fullSnakeDraftResult: EvidenceTeamResult;
       
       // ==================================================================
       // CORE LOGIC FIX: Use the correct draft function based on ATLAS setting
@@ -973,29 +972,31 @@ variant: "destructive",
           }
         );
       } else {
-        // Use standard enhanced snake draft
-        atlasLogger.info("Standard snake draft (ATLAS is OFF)");
-        fullSnakeDraftResult = await enhancedSnakeDraft(
+        // ATLAS UNIFIED: Always use evidence-based ATLAS system for consistency
+        atlasLogger.info("Using ATLAS evidence-based system (unified approach)");
+        fullSnakeDraftResult = await evidenceBasedSnakeDraft(
           sortedPlayers, 
           numTeams, 
           teamSize,
-          (step: BalanceStep, currentStep: number, totalSteps: number) => {
-            setProgressStep(currentStep);
+          (step: EvidenceBalanceStep) => {
+            setProgressStep(step.step);
             setLastProgressStep(step);
             setCurrentPhase('analyzing');
           },
           () => {
-            setCurrentPhase('validating');
+            setCurrentPhase('atlas-validating');
           },
-          undefined,
+          (player: any, calculation: any) => {
+            atlasLogger.weightCalculated(player.discord_username || 'Unknown', calculation.finalPoints || 150, 'autobalance_step');
+          },
           {
-            enableEvidenceBasedWeights: false,
+            enableEvidenceBasedWeights: true,
             tournamentWinBonus: 15,
             rankDecayThreshold: 2,
             maxDecayPercent: 0.25,
             skillTierCaps: {
               enabled: true,
-              eliteThreshold: 400,
+              eliteThreshold: 300,
               maxElitePerTeam: 1
             }
           }
@@ -1112,9 +1113,7 @@ variant: "destructive",
 
       // Show completion message based on draft type
       const draftType = tournament?.enable_adaptive_weights ? 'ATLAS-enhanced' : 'standard';
-      const balanceQuality = 'finalBalance' in fullSnakeDraftResult 
-        ? fullSnakeDraftResult.finalBalance.balanceQuality 
-        : fullSnakeDraftResult.finalAnalysis.pointBalance.balanceQuality;
+      const balanceQuality = fullSnakeDraftResult.finalAnalysis.pointBalance.balanceQuality;
       const atlasInfo = (fullSnakeDraftResult as any).miniAiEnhancements ? 
         ` ATLAS made optimization decisions.` : '';
       
@@ -1285,9 +1284,9 @@ try {
                 points: step.player.points,
                 rank: step.player.rank,
                 source: step.player.source,
-                adaptiveWeight: step.player.adaptiveWeight,
+                evidenceWeight: step.player.evidenceWeight,
                 weightSource: step.player.weightSource,
-                adaptiveReasoning: step.player.adaptiveReasoning
+                evidenceReasoning: step.player.evidenceReasoning
               },
               assignedTeam: step.assignedTeam,
               reasoning: step.reasoning,
@@ -1297,13 +1296,7 @@ try {
                 playerCount: state.playerCount
               }))
             })),
-            final_balance: 'finalBalance' in balanceAnalysis ? {
-              averageTeamPoints: balanceAnalysis.finalBalance.averageTeamPoints,
-              minTeamPoints: balanceAnalysis.finalBalance.minTeamPoints,
-              maxTeamPoints: balanceAnalysis.finalBalance.maxTeamPoints,
-              maxPointDifference: balanceAnalysis.finalBalance.maxPointDifference,
-              balanceQuality: balanceAnalysis.finalBalance.balanceQuality
-            } : {
+            final_balance: {
               averageTeamPoints: balanceAnalysis.finalAnalysis.pointBalance.averageTeamPoints,
               minTeamPoints: balanceAnalysis.finalAnalysis.pointBalance.minTeamPoints,
               maxTeamPoints: balanceAnalysis.finalAnalysis.pointBalance.maxTeamPoints,
@@ -1325,7 +1318,7 @@ try {
               total_points: team.totalWeight,
               seed: index + 1
             })),
-            adaptive_weight_calculations: ('adaptiveWeightCalculations' in balanceAnalysis) ? balanceAnalysis.adaptiveWeightCalculations || [] : []
+            evidenceCalculations: balanceAnalysis.evidenceCalculations || []
           };
 
           // Update tournament with balance analysis
@@ -1339,28 +1332,28 @@ try {
             // Don't fail the whole save for this
           }
 
-          // Store adaptive weight calculations in database if available
-          if (('adaptiveWeightCalculations' in balanceAnalysis) && balanceAnalysis.adaptiveWeightCalculations && balanceAnalysis.adaptiveWeightCalculations.length > 0) {
-            const adaptiveWeightData = balanceAnalysis.adaptiveWeightCalculations.map(calc => ({
+          // Store evidence calculations in database if available
+          if (balanceAnalysis.evidenceCalculations && balanceAnalysis.evidenceCalculations.length > 0) {
+            const evidenceWeightData = balanceAnalysis.evidenceCalculations.map(calc => ({
               tournament_id: tournamentId,
               user_id: calc.userId,
-              current_rank_points: calc.calculation.currentRankPoints,
-              peak_rank_points: calc.calculation.peakRankPoints,
-              calculated_adaptive_weight: calc.calculation.points,
-              adaptive_factor: calc.calculation.adaptiveFactor,
-              rank_decay_factor: calc.calculation.rankDecayFactor,
-              time_since_peak_days: calc.calculation.timeSincePeakDays,
+              base_points: calc.calculation.basePoints || 150,
+              tournament_bonus: calc.calculation.tournamentBonus || 0,
+              rank_decay_applied: calc.calculation.rankDecayApplied || 0,
+              final_points: calc.calculation.finalPoints || 150,
               current_rank: calc.calculation.currentRank,
               peak_rank: calc.calculation.peakRank,
-              weight_source: calc.calculation.source,
+              weight_source: calc.calculation.weightSource,
               calculation_reasoning: calc.calculation.calculationReasoning,
-              manual_override_applied: calc.calculation.source === 'manual_override'
+              is_elite_tier: calc.calculation.isEliteTier || false,
+              tournaments_won: calc.calculation.tournamentsWon || 0,
+              evidence_factors: calc.calculation.evidenceFactors?.join(' | ') || ''
             }));
 
             try {
               const { error: adaptiveError } = await supabase
                 .from('tournament_adaptive_weights')
-                .insert(adaptiveWeightData);
+                .insert(evidenceWeightData);
               
               if (adaptiveError) {
                 console.error('Error saving adaptive weight calculations:', adaptiveError);

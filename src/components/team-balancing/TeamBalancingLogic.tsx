@@ -2,11 +2,10 @@
 import { supabase } from "@/integrations/supabase/client";
 import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
 import { getRankPointsWithManualOverride } from "@/utils/rankingSystemWithOverrides";
-import { enhancedSnakeDraft } from "./EnhancedSnakeDraft";
 import { evidenceBasedSnakeDraft } from "./EvidenceBasedSnakeDraft";
-import { calculateAdaptiveWeight, ExtendedUserRankData } from "@/utils/adaptiveWeightSystem";
 import { calculateEvidenceBasedWeight, EvidenceBasedConfig } from "@/utils/evidenceBasedWeightSystem";
 import { validateAntiStacking, logAntiStackingResults } from "@/utils/antiStackingValidator";
+import { atlasLogger } from "@/utils/atlasLogger";
 
 interface UseTeamBalancingProps {
   tournamentId: string;
@@ -28,7 +27,7 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
     if (!tournament) throw new Error('Tournament not found');
 
     const teamSize = tournament.team_size || 5; // Default to 5v5 if not set
-    console.log(`Tournament team size: ${teamSize}v${teamSize}`);
+    atlasLogger.info(`Tournament team size: ${teamSize}v${teamSize}`);
 
     // Get all signups with user details including manual override fields and tournament wins
     const { data: signups } = await supabase
@@ -70,7 +69,7 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
       // 1v1 format - each player gets their own team
       teamsToCreate = totalPlayers;
       playersPerTeam = 1;
-      console.log(`Creating 1v1 format: ${teamsToCreate} teams with 1 player each`);
+      atlasLogger.info(`Creating 1v1 format: ${teamsToCreate} teams with 1 player each`);
     } else {
       // Team format (2v2, 3v3, 4v4, 5v5)
       teamsToCreate = Math.min(maxTeams, Math.floor(totalPlayers / teamSize));
@@ -80,7 +79,7 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
         throw new Error(`Need at least ${teamSize * 2} checked-in players to form teams for ${teamSize}v${teamSize} format`);
       }
       
-      console.log(`Creating ${teamSize}v${teamSize} format: ${teamsToCreate} teams with ${playersPerTeam} players each`);
+      atlasLogger.info(`Creating ${teamSize}v${teamSize} format: ${teamsToCreate} teams with ${playersPerTeam} players each`);
     }
 
     // Clear existing teams
@@ -211,7 +210,7 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
       try {
         await notifyTeamAssigned(newTeam.id, teamName, [player.user_id]);
       } catch (notificationError) {
-        console.error('Failed to send notification:', notificationError);
+        atlasLogger.error('Failed to send notification', notificationError);
       }
     }
   };
@@ -224,44 +223,46 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
       .eq('id', tournamentId)
       .single();
 
-    // Use evidence-based draft if adaptive weights enabled, otherwise enhanced snake draft
+    // ATLAS UNIFIED: Always use evidence-based ATLAS system for consistency and anti-stacking
     const playerData = sortedPlayers.map(signup => ({
       ...signup.users,
       tournaments_won: signup.users.tournaments_won || 0
     }));
     
-    const result = tournament?.enable_adaptive_weights
-      ? await evidenceBasedSnakeDraft(
-          playerData,
-          teamsToCreate,
-          teamSize,
-          (step) => {
-            console.log(`🏛️ ATLAS step ${step.step}: ${step.reasoning}`);
-          },
-          () => {
-            console.log('🏛️ Starting ATLAS validation...');
-          },
-          (playerId: string, weight: number) => {
-            console.log(`🏛️ ATLAS weight calculated for ${playerId}: ${weight}`);
-          },
-          {
-            enableEvidenceBasedWeights: true,
-            tournamentWinBonus: 15,
-            rankDecayThreshold: 2,
-            maxDecayPercent: 0.25,
-            skillTierCaps: {
-              enabled: true,
-              eliteThreshold: 400,
-              maxElitePerTeam: 1
-            }
-          } as EvidenceBasedConfig
-        )
-      : await enhancedSnakeDraft(playerData, teamsToCreate, teamSize);
+    atlasLogger.info(`Starting ATLAS team formation: ${playerData.length} players → ${teamsToCreate} teams`);
+    
+    const result = await evidenceBasedSnakeDraft(
+      playerData,
+      teamsToCreate,
+      teamSize,
+      (step) => {
+        atlasLogger.debug(`ATLAS formation step ${step.step}`, { reasoning: step.reasoning });
+      },
+      () => {
+        atlasLogger.info('Starting ATLAS anti-stacking validation');
+      },
+      (player: any, calculation: any) => {
+        atlasLogger.weightCalculated(
+          player.discord_username || 'Unknown', 
+          calculation.finalPoints || 150, 
+          'atlas_formation'
+        );
+      },
+      {
+        enableEvidenceBasedWeights: true,
+        tournamentWinBonus: 15,
+        rankDecayThreshold: 2,
+        maxDecayPercent: 0.25,
+        skillTierCaps: {
+          enabled: true,
+          eliteThreshold: 300, // Lower threshold to catch more elite players
+          maxElitePerTeam: 1
+        }
+      }
+    );
     
     const { teams, balanceSteps } = result;
-    const finalBalance = tournament?.enable_adaptive_weights 
-      ? (result as any).finalAnalysis?.pointBalance || { maxPointDifference: 0, balanceQuality: 'ideal' }
-      : (result as any).finalBalance || { maxPointDifference: 0, balanceQuality: 'ideal' };
+    const finalBalance = result.finalAnalysis?.pointBalance || { maxPointDifference: 0, balanceQuality: 'ideal' };
 
     // Helper to ensure unique team names
     const usedNames = new Set<string>();
@@ -294,23 +295,21 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
           return sum + (player.adaptiveWeight || player.evidenceWeight);
         }
         
-        // Fallback to calculating weights
-        const rankResult = tournament?.enable_adaptive_weights 
-          ? calculateEvidenceBasedWeight({
-              ...player,
-              tournaments_won: player.tournaments_won || 0
-            }, {
-              enableEvidenceBasedWeights: true,
-              tournamentWinBonus: 15,
-              rankDecayThreshold: 2,
-              maxDecayPercent: 0.25,
-              skillTierCaps: {
-                enabled: true,
-                eliteThreshold: 400,
-                maxElitePerTeam: 1
-              }
-            } as EvidenceBasedConfig)
-          : getRankPointsWithManualOverride(player);
+        // Fallback to calculating weights using ATLAS system consistently
+        const rankResult = calculateEvidenceBasedWeight({
+          ...player,
+          tournaments_won: player.tournaments_won || 0
+        }, {
+          enableEvidenceBasedWeights: true,
+          tournamentWinBonus: 15,
+          rankDecayThreshold: 2,
+          maxDecayPercent: 0.25,
+          skillTierCaps: {
+            enabled: true,
+            eliteThreshold: 300,
+            maxElitePerTeam: 1
+          }
+        });
         return sum + rankResult.points;
       }, 0);
 
@@ -354,7 +353,7 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
       try {
         await notifyTeamAssigned(newTeam.id, teamName, teamUserIds);
       } catch (notificationError) {
-        console.error('Failed to send notification:', notificationError);
+        atlasLogger.error('Failed to send notification', notificationError);
       }
     }
 
@@ -363,18 +362,18 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
     logAntiStackingResults(antiStackingResult, `🏛️ ${tournament?.enable_adaptive_weights ? 'ATLAS' : 'Standard'} Team Creation`);
 
     if (!antiStackingResult.isValid) {
-      console.error(`❌ ANTI-STACKING VIOLATIONS DETECTED in ${tournament?.name || 'tournament'}`);
+      atlasLogger.error(`Anti-stacking violations detected in ${tournament?.name || 'tournament'}`);
       
       // Log critical violations for admin attention
       const criticalViolations = antiStackingResult.violations.filter(v => v.severity === 'critical');
       if (criticalViolations.length > 0) {
-        console.error(`🚨 CRITICAL: ${criticalViolations.length} anti-stacking violations found!`);
+        atlasLogger.error(`CRITICAL: ${criticalViolations.length} anti-stacking violations found!`);
         criticalViolations.forEach(violation => {
-          console.error(`🚨 ${violation.violationType}: ${violation.playerName} (${violation.playerWeight}pts) on Team ${violation.teamIndex + 1}`);
+          atlasLogger.error(`${violation.violationType}: ${violation.playerName} (${violation.playerWeight}pts) on Team ${violation.teamIndex + 1}`);
         });
       }
     } else {
-      console.log(`✅ Anti-stacking validation PASSED for ${tournament?.name || 'tournament'}`);
+      atlasLogger.info(`Anti-stacking validation PASSED for ${tournament?.name || 'tournament'}`);
     }
 
     // Save balance analysis to tournament (including post-validation swaps and anti-stacking results)
