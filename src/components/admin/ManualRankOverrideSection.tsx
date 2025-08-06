@@ -93,90 +93,130 @@ const ManualRankOverrideSection = ({ userData, onOverrideChange, onPeakRankChang
     });
   };
 
+  const handlePeakRankChange = (peakRank: string) => {
+    setSelectedPeakRank(peakRank);
+    if (onPeakRankChange) {
+      onPeakRankChange(peakRank || null);
+    }
+  };
+
   return (
-    <div className="space-y-4 p-4 border border-amber-600/30 rounded-lg bg-amber-900/10">
-      <div className="flex items-center gap-2">
-        <User className="w-5 h-5 text-amber-400" />
-        <h4 className="text-lg font-semibold text-amber-400">Manual Rank Override</h4>
+    <div className="space-y-6">
+      {/* Peak Rank Section - Always visible */}
+      <div className="space-y-4 p-4 border border-blue-600/30 rounded-lg bg-blue-900/10">
+        <div className="flex items-center gap-2">
+          <User className="w-5 h-5 text-blue-400" />
+          <h4 className="text-lg font-semibold text-blue-400">Peak Rank Management</h4>
+        </div>
+        
+        <div className="space-y-2">
+          <Label className="text-white">Manual Peak Rank</Label>
+          <Select value={selectedPeakRank} onValueChange={handlePeakRankChange}>
+            <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+              <SelectValue placeholder="Select peak rank..." />
+            </SelectTrigger>
+            <SelectContent className="bg-slate-700 border-slate-600">
+              <SelectItem value="" className="text-slate-400 hover:bg-slate-600">
+                None / Clear Peak Rank
+              </SelectItem>
+              {VALORANT_RANKS.map((rank) => (
+                <SelectItem key={rank} value={rank} className="text-white hover:bg-slate-600">
+                  {rank} ({RANK_POINT_MAPPING[rank] || 150} pts)
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-sm text-slate-400">
+            Set the highest rank this user has ever achieved. This is used for adaptive weight calculations.
+          </p>
+        </div>
       </div>
 
-      {userData.use_manual_override && (
-        <Alert className="border-amber-600/50 bg-amber-900/20">
-          <AlertCircle className="h-4 w-4 text-amber-400" />
-          <AlertDescription className="text-amber-200">
-            This user currently has a manual rank override active.
-            {userData.rank_override_reason && (
-              <> Reason: "{userData.rank_override_reason}"</>
-            )}
-          </AlertDescription>
-        </Alert>
-      )}
+      {/* Manual Rank Override Section */}
+      <div className="space-y-4 p-4 border border-amber-600/30 rounded-lg bg-amber-900/10">
+        <div className="flex items-center gap-2">
+          <User className="w-5 h-5 text-amber-400" />
+          <h4 className="text-lg font-semibold text-amber-400">Manual Rank Override</h4>
+        </div>
 
-      <div className="flex items-center space-x-2">
-        <Switch
-          id="use-override"
-          checked={useOverride}
-          onCheckedChange={handleOverrideToggle}
-        />
-        <Label htmlFor="use-override" className="text-white">
-          Use Manual Rank Override
-        </Label>
-        {useOverride && (
-          <Badge className="bg-amber-600 text-white">Override Active</Badge>
+        {userData.use_manual_override && (
+          <Alert className="border-amber-600/50 bg-amber-900/20">
+            <AlertCircle className="h-4 w-4 text-amber-400" />
+            <AlertDescription className="text-amber-200">
+              This user currently has a manual rank override active.
+              {userData.rank_override_reason && (
+                <> Reason: "{userData.rank_override_reason}"</>
+              )}
+            </AlertDescription>
+          </Alert>
         )}
-      </div>
 
-      {useOverride && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-white">Override Rank</Label>
-              <Select value={selectedRank} onValueChange={handleRankChange}>
-                <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                  <SelectValue placeholder="Select rank..." />
-                </SelectTrigger>
-                <SelectContent className="bg-slate-700 border-slate-600">
-                  {VALORANT_RANKS.map((rank) => (
-                    <SelectItem key={rank} value={rank} className="text-white hover:bg-slate-600">
-                      {rank} ({RANK_POINT_MAPPING[rank] || 150} pts)
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="use-override"
+            checked={useOverride}
+            onCheckedChange={handleOverrideToggle}
+          />
+          <Label htmlFor="use-override" className="text-white">
+            Use Manual Rank Override
+          </Label>
+          {useOverride && (
+            <Badge className="bg-amber-600 text-white">Override Active</Badge>
+          )}
+        </div>
+
+        {useOverride && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-white">Override Rank</Label>
+                <Select value={selectedRank} onValueChange={handleRankChange}>
+                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                    <SelectValue placeholder="Select rank..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-700 border-slate-600">
+                    {VALORANT_RANKS.map((rank) => (
+                      <SelectItem key={rank} value={rank} className="text-white hover:bg-slate-600">
+                        {rank} ({RANK_POINT_MAPPING[rank] || 150} pts)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-white">Custom Weight (Optional)</Label>
+                <Input
+                  type="number"
+                  value={customWeight}
+                  onChange={(e) => handleWeightChange(e.target.value)}
+                  className="bg-slate-700 border-slate-600 text-white"
+                  placeholder="Auto-calculated from rank"
+                  min="1"
+                  max="1000"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
-              <Label className="text-white">Custom Weight (Optional)</Label>
-              <Input
-                type="number"
-                value={customWeight}
-                onChange={(e) => handleWeightChange(e.target.value)}
+              <Label className="text-white">Override Reason</Label>
+              <Textarea
+                value={reason}
+                onChange={(e) => handleReasonChange(e.target.value)}
                 className="bg-slate-700 border-slate-600 text-white"
-                placeholder="Auto-calculated from rank"
-                min="1"
-                max="1000"
+                placeholder="e.g., Former Radiant player, rank decay, special circumstances..."
+                rows={2}
               />
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label className="text-white">Override Reason</Label>
-            <Textarea
-              value={reason}
-              onChange={(e) => handleReasonChange(e.target.value)}
-              className="bg-slate-700 border-slate-600 text-white"
-              placeholder="e.g., Former Radiant player, rank decay, special circumstances..."
-              rows={2}
-            />
+            <div className="text-sm text-slate-400 space-y-1">
+              <p><strong>Current API Rank:</strong> {userData.current_rank || 'Unranked'} ({userData.weight_rating || 150} pts)</p>
+              <p><strong>Peak Rank:</strong> {userData.peak_rank || 'None'}</p>
+              <p><strong>Manual Override:</strong> {selectedRank || 'None'} ({customWeight || 'Auto'} pts)</p>
+            </div>
           </div>
-
-          <div className="text-sm text-slate-400 space-y-1">
-            <p><strong>Current API Rank:</strong> {userData.current_rank || 'Unranked'} ({userData.weight_rating || 150} pts)</p>
-            <p><strong>Peak Rank:</strong> {userData.peak_rank || 'None'}</p>
-            <p><strong>Manual Override:</strong> {selectedRank || 'None'} ({customWeight || 'Auto'} pts)</p>
-          </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };
