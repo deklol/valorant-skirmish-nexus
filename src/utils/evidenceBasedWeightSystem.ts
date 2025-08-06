@@ -243,9 +243,6 @@ export function calculateEvidenceBasedWeight(
 
   // Determine if this is an elite tier player
   const isEliteTier = finalPoints >= config.skillTierCaps.eliteThreshold;
-  if (isEliteTier) {
-    evidenceFactors.push(`Elite Tier Player`);
-  }
 
   const calculationReasoning = evidenceFactors.join('\n');
 
