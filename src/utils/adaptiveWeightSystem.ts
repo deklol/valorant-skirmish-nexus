@@ -1,5 +1,6 @@
 import { RANK_POINT_MAPPING } from "./rankingSystem";
 import { getRankPointsWithManualOverride, EnhancedRankPointsResult, UserRankData } from "./rankingSystemWithOverrides";
+import { atlasLogger } from "./atlasLogger";
 
 // Extended interface for tournament winner data
 export interface ExtendedUserRankData extends UserRankData {
@@ -126,9 +127,9 @@ function calculateTournamentWinnerBonus(
 
   const tournamentsWon = userData.tournaments_won || 0;
   
-  // Only log when bonuses should actually apply to prevent spam
+  // Tournament bonus logging via atlasLogger
   if (tournamentsWon > 0) {
-    console.log(`🏆 TOURNAMENT BONUS APPLIED to ${(userData as any).discord_username}: ${tournamentsWon} wins`);
+    atlasLogger.weightCalculated((userData as any).discord_username || 'Unknown', tournamentsWon * bonuses.oneWin, `tournament_bonus_${tournamentsWon}_wins`);
   }
   
   if (tournamentsWon === 0) {
@@ -195,9 +196,9 @@ export function calculateAdaptiveWeight(
     }
   };
 
-  // Only log for debugging specific users to prevent spam
+  // Debug logging for specific users
   if ((userData as any).discord_username?.includes('kera')) {
-    console.log('🏆 KERA CRITICAL DEBUG:', {
+    atlasLogger.debug(`Tournament data for ${(userData as any).discord_username}`, {
       tournaments_won: userData.tournaments_won,
       userData_full: userData
     });

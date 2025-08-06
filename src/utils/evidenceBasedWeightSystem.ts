@@ -3,6 +3,7 @@ import { RANK_POINT_MAPPING } from "@/utils/rankingSystem";
 import { getRankPointsWithManualOverride, EnhancedRankPointsResult, UserRankData } from "@/utils/rankingSystemWithOverrides";
 import { AtlasDecisionSystem, AtlasAnalysis } from "@/utils/miniAiDecisionSystem";
 import { PlayerSkillData } from "@/utils/playerAnalysisEngine";
+import { atlasLogger } from "@/utils/atlasLogger";
 
 // Extended interface for tournament winner data
 export interface ExtendedUserRankData extends UserRankData {
@@ -128,7 +129,7 @@ export function calculateEvidenceBasedWeightWithMiniAi(
         adjustmentReasoning
       });
     } catch (error) {
-      console.error('ATLAS analysis failed, falling back to evidence-based:', error);
+      atlasLogger.error('ATLAS analysis failed, falling back to evidence-based', error);
       resolve({
         evidenceResult,
         finalAdjustedPoints: evidenceResult.points,
@@ -237,7 +238,7 @@ export function calculateEvidenceBasedWeight(
 
   // Debug logging for specific players
   if ((userData as any).discord_username?.toLowerCase().includes('kera')) {
-    console.log('🎯 KERA EVIDENCE-BASED CALCULATION:', {
+    atlasLogger.debug(`Evidence-based calculation for ${(userData as any).discord_username}`, {
       basePoints,
       tournamentBonus,
       rankDecay,
@@ -317,7 +318,7 @@ export function assignWithSkillDistribution(
   const elitePlayers = sortedPlayers.filter(p => (p.evidenceWeight || p.adaptiveWeight || 150) >= config.skillTierCaps.eliteThreshold);
   const regularPlayers = sortedPlayers.filter(p => (p.evidenceWeight || p.adaptiveWeight || 150) < config.skillTierCaps.eliteThreshold);
 
-  console.log(`🏆 SKILL DISTRIBUTION: ${elitePlayers.length} elite players, ${regularPlayers.length} regular players`);
+  atlasLogger.info(`Skill distribution: ${elitePlayers.length} elite players, ${regularPlayers.length} regular players`);
 
   // Phase 1: ATLAS Smart Elite Distribution - Prevent ALL forms of skill stacking
   elitePlayers.forEach((player, index) => {

@@ -1,6 +1,7 @@
 // ATLAS Decision System - Comprehensive decision engine for team balancing (Adaptive Tournament League Analysis System)
 import { PlayerAnalysisEngine, PlayerAnalysis, PlayerSkillData } from './playerAnalysisEngine';
 import { TeamCompositionAnalyzer, TeamCompositionAnalysis, GlobalBalance, TeamPlayer } from './teamCompositionAnalyzer';
+import { atlasLogger } from './atlasLogger';
 
 export interface AtlasDecision {
   id: string;
@@ -531,7 +532,7 @@ export class AtlasDecisionSystem {
 
   private log(message: string, data?: any): void {
     if (this.config.logging.enableDetailedLogging) {
-      console.log(`🏛️ ATLAS: ${message}`, data || '');
+      atlasLogger.info(message, data);
     }
   }
 }
