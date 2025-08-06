@@ -136,6 +136,10 @@
     animation: matrix-fall linear infinite;
   }
 
+  .animate-breathe-slow {
+    animation: breathe-slow 6s ease-in-out infinite;
+  }
+
   /* Mobile touch optimizations */
   .touch-manipulation {
     touch-action: manipulation;
@@ -230,6 +234,17 @@
 }
 
 @keyframes breathe {
+  0%, 100% {
+    border-color: rgba(96, 165, 250, 0.4);
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+  }
+  50% {
+    border-color: rgba(147, 197, 253, 0.6);
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.35);
+  }
+}
+
+@keyframes breathe-slow {
   0%, 100% {
     border-color: rgba(96, 165, 250, 0.4);
     box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
