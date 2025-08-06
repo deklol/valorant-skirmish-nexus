@@ -184,51 +184,10 @@ function createAtlasBalancedTeams(players: any[], numTeams: number, teamSize: nu
     });
   });
 
-  // PHASE 2 FIX: Enhanced Smart Distribution with 2-Team Integration
-  console.log('🏛️ ATLAS PHASE 2 FIX: Smart Distribution with Real-time Balance Validation');
+  // ATLAS COMBINATORIAL OPTIMIZATION: Find optimal team combinations for all tournaments
+  console.log(`🏛️ ATLAS COMBINATORIAL OPTIMIZATION: ${remainingPlayers.length} players, ${numTeams} teams, max ${teamSize} per team`);
   
-  // Special handling for 2-team tournaments - integrated into main formation
-  if (numTeams === 2 && remainingPlayers.length > 0) {
-    console.log('🏛️ ATLAS 2-Team Optimization: Integrated balance validation');
-    
-    // Use alternating assignment with balance checking after each assignment
-    let assignToTeam0 = teams[0].reduce((sum, p) => sum + p.evidenceWeight, 0) <= 
-                       teams[1].reduce((sum, p) => sum + p.evidenceWeight, 0);
-    
-    remainingPlayers.forEach((player, index) => {
-      const targetTeam = assignToTeam0 ? 0 : 1;
-      teams[targetTeam].push(player);
-      
-      // Check balance after assignment and adjust next assignment
-      const team0Total = teams[0].reduce((sum, p) => sum + p.evidenceWeight, 0);
-      const team1Total = teams[1].reduce((sum, p) => sum + p.evidenceWeight, 0);
-      assignToTeam0 = team0Total <= team1Total;
-      
-      steps.push({
-        step: ++stepCounter,
-        player: {
-          id: player.id, 
-          discord_username: player.discord_username || 'Unknown',
-          points: player.evidenceWeight, 
-          rank: player.displayRank || 'Unranked',
-          source: player.weightSource || 'unknown', 
-          evidenceWeight: player.evidenceWeight, 
-          isElite: player.isElite,
-          evidenceReasoning: player.evidenceCalculation?.calculationReasoning,
-        },
-        assignedTeam: targetTeam,
-        reasoning: `🏛️ ATLAS 2-Team Balance: ${player.discord_username} (${player.evidenceWeight}pts) → Team ${targetTeam + 1}. Balance validation: T1=${team0Total} vs T2=${team1Total}`,
-        teamStatesAfter: JSON.parse(JSON.stringify(teams)).map((team, index) => ({
-          teamIndex: index, totalPoints: team.reduce((sum, p) => sum + p.evidenceWeight, 0),
-          playerCount: team.length, eliteCount: team.filter(p => p.isElite).length
-        })),
-        phase: 'atlas_team_formation',
-      });
-    });
-  } else {
-    // ATLAS COMBINATORIAL OPTIMIZATION: Find optimal team combinations
-    console.log(`🏛️ ATLAS COMBINATORIAL OPTIMIZATION: ${remainingPlayers.length} players, ${numTeams} teams`);
-    
+  if (remainingPlayers.length > 0) {
     const optimalAssignment = findOptimalTeamCombination(remainingPlayers, teams, numTeams, teamSize, config);
     
     // Apply the optimal assignment
