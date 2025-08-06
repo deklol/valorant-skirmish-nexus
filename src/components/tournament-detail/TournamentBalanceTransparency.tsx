@@ -395,7 +395,7 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
     }
     
     if (finalPoints >= 400) {
-      evidenceFactors.push('🏆 Elite Tier Player');
+      evidenceFactors.push('🏆 Elite Tier Player (400+ points)');
     }
     
     reasoning += ` = ${finalPoints} pts total`;
