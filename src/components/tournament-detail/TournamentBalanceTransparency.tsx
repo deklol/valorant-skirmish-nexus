@@ -8,6 +8,51 @@ import { Team } from "@/types/tournamentDetail";
 import SwapSuggestionsSection from "./SwapSuggestionsSection";
 import { useRecentTournamentWinners } from "@/hooks/useRecentTournamentWinners";
 
+// Rank configuration with emojis and colors
+const RANK_CONFIG = {
+  'Iron 1': { emoji: '🔻', primary: '#4A4A4A', accent: '#7E7E7E', skill: 'Low Skilled' },
+  'Iron 2': { emoji: '🔻', primary: '#4A4A4A', accent: '#7E7E7E', skill: 'Low Skilled' },
+  'Iron 3': { emoji: '🔻', primary: '#4A4A4A', accent: '#7E7E7E', skill: 'Low Skilled' },
+  'Bronze 1': { emoji: '🟫', primary: '#A97142', accent: '#C28E5C', skill: 'Low Skilled' },
+  'Bronze 2': { emoji: '🟫', primary: '#A97142', accent: '#C28E5C', skill: 'Low Skilled' },
+  'Bronze 3': { emoji: '🟫', primary: '#A97142', accent: '#C28E5C', skill: 'Low Skilled' },
+  'Silver 1': { emoji: '🟨', primary: '#C0C0C0', accent: '#D8D8D8', skill: 'Medium Skilled' },
+  'Silver 2': { emoji: '🟨', primary: '#C0C0C0', accent: '#D8D8D8', skill: 'Medium Skilled' },
+  'Silver 3': { emoji: '🟨', primary: '#C0C0C0', accent: '#D8D8D8', skill: 'Medium Skilled' },
+  'Gold 1': { emoji: '🟧', primary: '#FFD700', accent: '#FFEA8A', skill: 'Medium Skilled' },
+  'Gold 2': { emoji: '🟧', primary: '#FFD700', accent: '#FFEA8A', skill: 'Medium Skilled' },
+  'Gold 3': { emoji: '🟧', primary: '#FFD700', accent: '#FFEA8A', skill: 'Medium Skilled' },
+  'Platinum 1': { emoji: '🟩', primary: '#4ED1B3', accent: '#8FFCE1', skill: 'High Skilled' },
+  'Platinum 2': { emoji: '🟩', primary: '#4ED1B3', accent: '#8FFCE1', skill: 'High Skilled' },
+  'Platinum 3': { emoji: '🟩', primary: '#4ED1B3', accent: '#8FFCE1', skill: 'High Skilled' },
+  'Diamond 1': { emoji: '🔷', primary: '#5CA3E4', accent: '#B3DAFF', skill: 'High Skilled' },
+  'Diamond 2': { emoji: '🔷', primary: '#5CA3E4', accent: '#B3DAFF', skill: 'High Skilled' },
+  'Diamond 3': { emoji: '🔷', primary: '#5CA3E4', accent: '#B3DAFF', skill: 'High Skilled' },
+  'Ascendant 1': { emoji: '🟪', primary: '#84FF6F', accent: '#B6FFA8', skill: 'Elite Skilled' },
+  'Ascendant 2': { emoji: '🟪', primary: '#84FF6F', accent: '#B6FFA8', skill: 'Elite Skilled' },
+  'Ascendant 3': { emoji: '🟪', primary: '#84FF6F', accent: '#B6FFA8', skill: 'Elite Skilled' },
+  'Immortal 1': { emoji: '🩸', primary: '#A52834', accent: '#D24357', skill: 'Elite Skilled' },
+  'Immortal 2': { emoji: '🩸', primary: '#A52834', accent: '#D24357', skill: 'Elite Skilled' },
+  'Immortal 3': { emoji: '🩸', primary: '#A52834', accent: '#D24357', skill: 'Elite Skilled' },
+  'Radiant': { emoji: '🔱', primary: '#FFF176', accent: '#FFFFFF', skill: 'Elite Skilled' },
+  'Unrated': { emoji: '❓', primary: '#9CA3AF', accent: '#D1D5DB', skill: 'Unknown' },
+  'Unranked': { emoji: '❓', primary: '#9CA3AF', accent: '#D1D5DB', skill: 'Unknown' }
+};
+
+// Helper functions for rank styling
+const getRankInfo = (rank: string) => {
+  return RANK_CONFIG[rank] || RANK_CONFIG['Unranked'];
+};
+
+const getSkillLevel = (rank: string) => {
+  return getRankInfo(rank).skill;
+};
+
+const getSkillLevelColor = (rank: string) => {
+  const info = getRankInfo(rank);
+  return info.primary;
+};
+
 interface BalanceStep {
   step?: number; // New format
   round?: number; // Old format
@@ -683,12 +728,29 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1 min-w-0">
                             <h4 className="font-semibold text-foreground text-sm truncate">{playerName}</h4>
-                            <div className="flex items-center gap-2 mt-1">
-                              <Badge variant="outline" className="text-xs px-2 py-0.5">
-                                {playerRank}
-                              </Badge>
-                              <Badge className={`text-xs px-2 py-0.5 ${skillTier.color}`}>
-                                {skillTier.label}
+                            <div className="flex flex-col gap-1 mt-1">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm">{getRankInfo(playerRank).emoji}</span>
+                                <Badge 
+                                  variant="outline" 
+                                  className="text-xs px-2 py-0.5 border-[1px]"
+                                  style={{
+                                    color: getRankInfo(playerRank).primary,
+                                    borderColor: getRankInfo(playerRank).primary + '80'
+                                  }}
+                                >
+                                  {playerRank}
+                                </Badge>
+                              </div>
+                              <Badge 
+                                className="text-xs px-2 py-0.5"
+                                style={{
+                                  backgroundColor: getRankInfo(playerRank).primary + '20',
+                                  color: getRankInfo(playerRank).primary,
+                                  borderColor: getRankInfo(playerRank).primary + '40'
+                                }}
+                              >
+                                {getSkillLevel(playerRank)}
                               </Badge>
                             </div>
                           </div>
