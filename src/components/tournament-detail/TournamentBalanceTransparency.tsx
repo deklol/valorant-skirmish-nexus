@@ -789,6 +789,18 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                               </div>
                             )}
                             
+                            {/* Evidence factors as fallback if no calculationReasoning */}
+                            {!calc.calculation.calculationReasoning && calc.calculation.evidenceFactors && calc.calculation.evidenceFactors.length > 0 && (
+                              <div className="mb-3 p-2 bg-green-50 dark:bg-green-950/30 rounded border border-green-200/50 dark:border-green-800/30">
+                                <div className="text-xs font-medium text-green-800 dark:text-green-300 mb-1">Evidence Factors:</div>
+                                <div className="text-xs text-green-700 dark:text-green-400 space-y-1">
+                                  {calc.calculation.evidenceFactors.map((factor: string, i: number) => (
+                                    <div key={i}>{factor}</div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            
                             {/* Enhanced rank display with actual data */}
                             <div className="grid grid-cols-2 gap-3 text-xs">
                               <div>
@@ -920,7 +932,14 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                             {playerName}
                           </span>
                           <Badge variant="secondary" className="text-xs">
-                            {step.player.rank} ({step.player.points}pts)
+                            {(() => {
+                              // Get actual rank from teams data if available
+                              const actualUser = teams.flatMap(team => team.team_members || [])
+                                .find(member => member.users?.id === step.player.id)?.users;
+                              const displayRank = step.player.rank !== 'Unranked' ? step.player.rank : 
+                                                 actualUser?.current_rank || actualUser?.peak_rank || 'Unranked';
+                              return `${displayRank} (${step.player.points}pts)`;
+                            })()}
                           </Badge>
                           {playerSource !== 'current_rank' && (
                             <Badge 

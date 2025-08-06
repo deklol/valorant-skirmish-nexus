@@ -352,14 +352,21 @@ function createBalanceStep(
   teams: any[][],
   phase: EvidenceBalanceStep['phase']
 ): EvidenceBalanceStep {
+  // Extract rank from evidence calculation or fallback to player data
+  const displayRank = player.evidenceCalculation?.currentRank || 
+                     player.current_rank || 
+                     player.evidenceCalculation?.peakRank || 
+                     player.peak_rank || 
+                     'Unranked';
+
   return {
     step,
     player: {
       id: player.id,
       discord_username: player.discord_username || 'Unknown',
       points: player.evidenceWeight,
-      rank: player.displayRank || 'Unranked',
-      source: player.weightSource || 'unknown',
+      rank: displayRank,
+      source: player.evidenceCalculation?.weightSource || player.weightSource || 'unknown',
       evidenceWeight: player.evidenceWeight,
       isElite: player.isElite,
       evidenceReasoning: player.evidenceCalculation?.calculationReasoning,
