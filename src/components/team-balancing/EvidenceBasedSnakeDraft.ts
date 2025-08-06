@@ -213,7 +213,7 @@ function createAtlasBalancedTeams(players: any[], numTeams: number, teamSize: nu
     // ATLAS COMBINATORIAL OPTIMIZATION: Find optimal team combinations
     console.log(`🏛️ ATLAS COMBINATORIAL OPTIMIZATION: ${remainingPlayers.length} players, ${numTeams} teams`);
     
-    const optimalAssignment = findOptimalTeamCombination(remainingPlayers, teams, numTeams, config);
+    const optimalAssignment = findOptimalTeamCombination(remainingPlayers, teams, numTeams, teamSize, config);
     
     // Apply the optimal assignment
     optimalAssignment.assignments.forEach((assignment, index) => {
@@ -271,6 +271,7 @@ function findOptimalTeamCombination(
   players: any[], 
   existingTeams: any[][], 
   numTeams: number, 
+  teamSize: number,
   config: EvidenceBasedConfig
 ): OptimalCombinationResult {
   
@@ -289,8 +290,8 @@ function findOptimalTeamCombination(
   // Generate and evaluate combinations
   if (players.length <= 10) {
     // Small groups: try all combinations
-    generateAllCombinations(sortedPlayers, existingTeams, numTeams, (combination) => {
-      const score = evaluateCombination(combination, existingTeams, config, sortedPlayers);
+    generateAllCombinations(sortedPlayers, existingTeams, numTeams, teamSize, (combination) => {
+      const score = evaluateCombination(combination, existingTeams, config, teamSize, sortedPlayers);
       combinationsEvaluated++;
       
       if (score > bestScore) {
@@ -302,8 +303,8 @@ function findOptimalTeamCombination(
     });
   } else {
     // Large groups: use smart heuristic approaches
-    bestCombination = generateSmartCombination(sortedPlayers, existingTeams, numTeams, config);
-    bestScore = evaluateCombination(bestCombination, existingTeams, config, sortedPlayers);
+    bestCombination = generateSmartCombination(sortedPlayers, existingTeams, numTeams, teamSize, config);
+    bestScore = evaluateCombination(bestCombination, existingTeams, config, teamSize, sortedPlayers);
     combinationsEvaluated = 1;
   }
   
@@ -328,6 +329,7 @@ function generateSmartCombination(
   players: any[], 
   existingTeams: any[][], 
   numTeams: number, 
+  teamSize: number,
   config: EvidenceBasedConfig
 ): TeamAssignment[] {
   
@@ -345,6 +347,14 @@ function generateSmartCombination(
     let bestBalanceScore = -Infinity;
     
     for (let teamIndex = 0; teamIndex < numTeams; teamIndex++) {
+      // Check if team has space remaining
+      const currentTeamSize = existingTeams[teamIndex].length + 
+        assignments.filter(a => a.teamIndex === teamIndex).length;
+      
+      if (currentTeamSize >= teamSize) {
+        continue; // Skip full teams
+      }
+      
       const newTeamTotals = [...teamTotals];
       newTeamTotals[teamIndex] += player.evidenceWeight;
       
@@ -379,6 +389,7 @@ function generateAllCombinations(
   players: any[], 
   existingTeams: any[][], 
   numTeams: number, 
+  teamSize: number,
   callback: (combination: TeamAssignment[]) => boolean
 ): void {
   
@@ -388,6 +399,14 @@ function generateAllCombinations(
     }
     
     for (let teamIndex = 0; teamIndex < numTeams; teamIndex++) {
+      // Check if team has space remaining
+      const currentTeamSize = existingTeams[teamIndex].length + 
+        currentCombination.filter(a => a.teamIndex === teamIndex).length;
+      
+      if (currentTeamSize >= teamSize) {
+        continue; // Skip full teams
+      }
+      
       currentCombination.push({
         teamIndex,
         reasoning: `Combinatorial assignment option ${teamIndex + 1}`
@@ -413,8 +432,22 @@ function evaluateCombination(
   assignments: TeamAssignment[], 
   existingTeams: any[][], 
   config: EvidenceBasedConfig,
+  teamSize: number,
   players?: any[]
 ): number {
+  
+  // Calculate team sizes and check for violations
+  const teamSizes = existingTeams.map(team => team.length);
+  
+  assignments.forEach((assignment) => {
+    teamSizes[assignment.teamIndex]++;
+  });
+  
+  // Heavy penalty for team size violations
+  const sizeViolations = teamSizes.filter(size => size > teamSize).length;
+  if (sizeViolations > 0) {
+    return -10000 * sizeViolations; // Very negative score
+  }
   
   // Calculate hypothetical team totals
   const teamTotals = existingTeams.map(team => 
