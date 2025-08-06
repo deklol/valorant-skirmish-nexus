@@ -340,21 +340,35 @@ function generateSmartCombination(
     team.reduce((sum, p) => sum + p.evidenceWeight, 0)
   );
   
-  // Assign each player to optimal team
+  // Track team sizes to enforce hard constraints
+  const teamSizes = existingTeams.map(team => team.length);
+  
+  // Assign each player to optimal team that has capacity
   players.forEach((player, index) => {
-    // Find team that would result in best overall balance
-    let bestTeamIndex = 0;
-    let bestBalanceScore = -Infinity;
-    
+    // Find teams that have space remaining
+    const availableTeams = [];
     for (let teamIndex = 0; teamIndex < numTeams; teamIndex++) {
-      // Check if team has space remaining
-      const currentTeamSize = existingTeams[teamIndex].length + 
+      const currentTeamSize = teamSizes[teamIndex] + 
         assignments.filter(a => a.teamIndex === teamIndex).length;
       
-      if (currentTeamSize >= teamSize) {
-        continue; // Skip full teams
+      if (currentTeamSize < teamSize) {
+        availableTeams.push(teamIndex);
       }
-      
+    }
+    
+    if (availableTeams.length === 0) {
+      console.error(`🚨 ATLAS ERROR: No available teams for player ${player.discord_username}`);
+      // Emergency fallback - find team with smallest size violation
+      const teamWithSmallestSize = teamSizes.reduce((minIndex, size, index) => 
+        size < teamSizes[minIndex] ? index : minIndex, 0);
+      availableTeams.push(teamWithSmallestSize);
+    }
+    
+    // Find best team among available teams
+    let bestTeamIndex = availableTeams[0];
+    let bestBalanceScore = -Infinity;
+    
+    for (const teamIndex of availableTeams) {
       const newTeamTotals = [...teamTotals];
       newTeamTotals[teamIndex] += player.evidenceWeight;
       
@@ -375,7 +389,7 @@ function generateSmartCombination(
     
     assignments.push({
       teamIndex: bestTeamIndex,
-      reasoning: `Optimal balance assignment (score: ${bestBalanceScore.toFixed(1)})`
+      reasoning: `Smart assignment (score: ${bestBalanceScore.toFixed(1)}, capacity-enforced)`
     });
   });
   
@@ -395,16 +409,30 @@ function generateAllCombinations(
   
   function backtrack(playerIndex: number, currentCombination: TeamAssignment[]): boolean {
     if (playerIndex === players.length) {
+      // Final validation: ensure no team exceeds capacity
+      const teamCounts = new Array(numTeams).fill(0);
+      existingTeams.forEach((team, teamIndex) => {
+        teamCounts[teamIndex] = team.length;
+      });
+      
+      currentCombination.forEach(assignment => {
+        teamCounts[assignment.teamIndex]++;
+      });
+      
+      if (teamCounts.some(count => count > teamSize)) {
+        return true; // Skip this invalid combination
+      }
+      
       return callback([...currentCombination]);
     }
     
     for (let teamIndex = 0; teamIndex < numTeams; teamIndex++) {
-      // Check if team has space remaining
+      // Calculate current team size including existing players and current assignments
       const currentTeamSize = existingTeams[teamIndex].length + 
         currentCombination.filter(a => a.teamIndex === teamIndex).length;
       
       if (currentTeamSize >= teamSize) {
-        continue; // Skip full teams
+        continue; // Skip full teams - HARD constraint
       }
       
       currentCombination.push({
@@ -436,17 +464,18 @@ function evaluateCombination(
   players?: any[]
 ): number {
   
-  // Calculate team sizes and check for violations
+  // Calculate team sizes - this should NEVER violate constraints now
   const teamSizes = existingTeams.map(team => team.length);
   
   assignments.forEach((assignment) => {
     teamSizes[assignment.teamIndex]++;
   });
   
-  // Heavy penalty for team size violations
+  // This should never happen now, but keep as safety check
   const sizeViolations = teamSizes.filter(size => size > teamSize).length;
   if (sizeViolations > 0) {
-    return -10000 * sizeViolations; // Very negative score
+    console.error(`🚨 ATLAS CRITICAL ERROR: Size violations detected in evaluation! Teams: ${teamSizes}`);
+    return -100000; // Extremely negative score
   }
   
   // Calculate hypothetical team totals
