@@ -679,7 +679,7 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
             <div 
               className={`flex items-center justify-between p-4 bg-secondary/5 rounded-xl cursor-pointer hover:bg-secondary/10 transition-all duration-300 ${
                 !isATLASExpanded && !hasInteractedWithATLAS
-                  ? 'border-2 border-blue-400/40 shadow-[0_0_20px_rgba(59,130,246,0.2)] animate-[breathe_8s_ease-in-out_infinite]' 
+                  ? 'border-2 border-blue-400/40 shadow-[0_0_20px_rgba(59,130,246,0.2)] animate-[pulse_4s_ease-in-out_infinite]' 
                   : 'border border-secondary/20'
               }`}
               onClick={() => {
