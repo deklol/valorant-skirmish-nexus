@@ -736,19 +736,22 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                         const balanceSteps = getBalanceSteps();
                         const playerFromSteps = balanceSteps.find(step => step.player.id === calc.userId);
                         
-                        // Fallback to team members if not found in steps
+                        // Try multiple sources for player data
                         const playerFromTeams = teams.flatMap(team => team.team_members || [])
                           .find(member => member.users?.id === calc.userId)?.users;
                         
-                        const player = playerFromSteps?.player || playerFromTeams;
-                        const playerName = player?.discord_username || (playerFromSteps?.player?.name) || `Player ${index + 1}`;
+                        // Also check balance analysis for player info
+                        const playerFromAnalysis = balanceAnalysis.balance_steps?.find(step => step.player?.id === calc.userId)?.player;
+                        
+                        const player = playerFromSteps?.player || playerFromTeams || playerFromAnalysis;
+                        const playerName = player?.discord_username || (playerFromSteps?.player?.discord_username) || `Player ${index + 1}`;
                         const points = calc.calculation.finalPoints || calc.calculation.calculatedAdaptiveWeight || 0;
                         
-                        // Get actual rank information from the user data
-                        const actualCurrentRank = playerFromTeams?.current_rank || 'Unranked';
-                        const actualPeakRank = playerFromTeams?.peak_rank || 'Unranked';
-                        const actualRankPoints = playerFromTeams?.rank_points || 0;
-                        const actualWeightRating = playerFromTeams?.weight_rating || 0;
+                        // Get actual rank information - prioritize multiple sources
+                        const actualCurrentRank = playerFromTeams?.current_rank || (playerFromAnalysis as any)?.current_rank || calc.calculation.currentRank || 'Unranked';
+                        const actualPeakRank = playerFromTeams?.peak_rank || (playerFromAnalysis as any)?.peak_rank || calc.calculation.peakRank || 'Unranked';
+                        const actualRankPoints = playerFromTeams?.rank_points || calc.calculation.currentRankPoints || 0;
+                        const actualWeightRating = playerFromTeams?.weight_rating || calc.calculation.finalPoints || calc.calculation.calculatedAdaptiveWeight || 0;
                         
                         return (
                           <div key={calc.userId} className="p-3 bg-muted/30 rounded-lg border border-border">
