@@ -133,10 +133,17 @@ export async function evidenceBasedSnakeDraft(
         const processedPlayer = {
           ...player,
           evidenceWeight: evidenceResult.finalAdjustedPoints,
-          evidenceCalculation: evidenceResult.evidenceResult,
+          evidenceCalculation: evidenceResult.evidenceResult.evidenceCalculation,
+          evidenceReasoning: evidenceResult.evidenceResult.evidenceCalculation?.calculationReasoning,
           weightSource: evidenceResult.evidenceResult.evidenceCalculation?.weightSource || 'evidence_based',
           isElite: evidenceResult.finalAdjustedPoints >= 400
         };
+        
+        console.log(`🔍 ATLAS calculation for ${player.discord_username}:`, {
+          finalPoints: evidenceResult.finalAdjustedPoints,
+          reasoning: evidenceResult.evidenceResult.evidenceCalculation?.calculationReasoning,
+          calculation: evidenceResult.evidenceResult.evidenceCalculation
+        });
 
         evidenceCalculations.push({
           userId: player.id,
