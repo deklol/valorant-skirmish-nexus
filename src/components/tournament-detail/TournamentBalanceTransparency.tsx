@@ -245,7 +245,9 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
         total: calculations.length,
         unique: uniqueCalculations.length,
         balanced: balancedCalculations.length,
-        sources: [...new Set(balancedCalculations.map(c => c.calculation?.weightSource))]
+        sources: [...new Set(balancedCalculations.map(c => (c.calculation as any)?.weightSource || (c.calculation as any)?.source || 'unknown'))],
+        sampleCalculation: balancedCalculations[0],
+        calculationStructure: balancedCalculations[0] ? Object.keys(balancedCalculations[0].calculation || {}) : []
       });
       
       return balancedCalculations;
