@@ -402,7 +402,7 @@ function createBalanceStep(
       source: player.evidenceCalculation?.weightSource || player.weightSource || 'unknown',
       evidenceWeight: player.evidenceWeight,
       isElite: player.isElite,
-      evidenceReasoning: player.evidenceCalculation?.calculationReasoning,
+      evidenceReasoning: player.evidenceReasoning,
     },
     assignedTeam: teamIndex,
     reasoning,
