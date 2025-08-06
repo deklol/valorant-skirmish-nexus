@@ -220,6 +220,15 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                         balanceAnalysis.evidenceCalculations || 
                         [];
     
+    console.log('🔍 ATLAS TRANSPARENCY DEBUG:', {
+      hasBalanceAnalysis: !!balanceAnalysis,
+      hasEvidenceCalculations: !!(balanceAnalysis.evidenceCalculations),
+      calculationsLength: calculations.length,
+      firstCalculation: calculations[0],
+      balanceAnalysisKeys: Object.keys(balanceAnalysis || {}),
+      rawBalanceAnalysis: balanceAnalysis
+    });
+    
     // If we have calculation data, use it
     if (calculations.length > 0) {
       const uniqueCalculations = calculations.filter((calc, index, self) => 
