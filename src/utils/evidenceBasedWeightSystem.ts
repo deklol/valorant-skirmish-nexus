@@ -52,7 +52,7 @@ export interface EvidenceWithMiniAi {
 
 const DEFAULT_EVIDENCE_CONFIG: EvidenceBasedConfig = {
   enableEvidenceBasedWeights: true,
-  tournamentWinBonus: 15, // +15 points per tournament win
+  tournamentWinBonus: 20, // +20 points per tournament win
   underrankedBonusThreshold: 1.5, // Start applying bonus at 1.5 tier drop (75 points)
   maxUnderrankedBonus: 0.35, // Max 35% underranked bonus
   skillTierCaps: {
