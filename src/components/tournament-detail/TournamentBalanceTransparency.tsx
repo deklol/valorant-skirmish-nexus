@@ -781,8 +781,10 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                         
                         {/* Tournament Achievements */}
                         {tournamentWins > 0 && (
-                          <div className="mt-4 p-4 bg-gradient-to-r from-amber-500/10 to-yellow-500/5 rounded-xl border border-amber-400/30 min-h-[80px]">
-                            <div className="flex items-center justify-between mb-3">
+                          <div className={`mt-4 p-4 bg-gradient-to-r from-amber-500/10 to-yellow-500/5 rounded-xl border border-amber-400/30 ${
+                            tournamentBonus > 0 && tournamentBonus !== (tournamentWins * 15) ? 'min-h-[80px]' : ''
+                          }`}>
+                            <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
                                 <Trophy className="h-4 w-4 text-amber-600" />
                                 <span className="text-sm font-bold text-amber-800">
@@ -798,7 +800,7 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                             
                             {/* Detailed Bonus Breakdown */}
                             {tournamentBonus > 0 && tournamentBonus !== (tournamentWins * 15) && (
-                              <div className="space-y-2 text-sm bg-amber-50/50 p-3 rounded-lg">
+                              <div className="space-y-2 text-sm bg-amber-50/50 p-3 rounded-lg mt-3">
                                 <div className="flex justify-between text-muted-foreground">
                                   <span>Base wins ({tournamentWins} × 15pts):</span>
                                   <span className="font-medium">+{tournamentWins * 15}pts</span>
