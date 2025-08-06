@@ -255,7 +255,7 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
         maxDecayPercent: 0.25,
         skillTierCaps: {
           enabled: true,
-          eliteThreshold: 300, // Lower threshold to catch more elite players
+          eliteThreshold: 400, // Correct Elite threshold: 400+ points
           maxElitePerTeam: 1
         }
       }
@@ -306,7 +306,7 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
           maxDecayPercent: 0.25,
           skillTierCaps: {
             enabled: true,
-            eliteThreshold: 300,
+            eliteThreshold: 400,
             maxElitePerTeam: 1
           }
         });

@@ -971,7 +971,7 @@ variant: "destructive",
             points: calculation.finalPoints || 150,
             source: 'atlas_evidence',
             rank: player.current_rank || 'Unranked',
-            isElite: (calculation.finalPoints || 150) >= 300,
+            isElite: (calculation.finalPoints || 150) >= 400,
             isValid: true,
             reasoning: calculation.adjustmentReasoning || 'ATLAS calculation'
           }, 'Autobalance Step');
@@ -983,7 +983,7 @@ variant: "destructive",
           maxDecayPercent: 0.25,
           skillTierCaps: {
             enabled: true,
-            eliteThreshold: 300, // Lower threshold to catch more elite players
+            eliteThreshold: 400, // Correct Elite threshold: 400+ points
             maxElitePerTeam: 1
           }
         }

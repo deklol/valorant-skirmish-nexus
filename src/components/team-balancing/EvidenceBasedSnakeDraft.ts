@@ -124,7 +124,7 @@ export async function evidenceBasedSnakeDraft(
           maxDecayPercent: 0.25,
           skillTierCaps: {
             enabled: true,
-            eliteThreshold: 300,
+            eliteThreshold: 400,
             maxElitePerTeam: 1
           }
         };
