@@ -207,6 +207,17 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
   const [isATLASExpanded, setIsATLASExpanded] = useState(false);
   const [hasInteractedWithATLAS, setHasInteractedWithATLAS] = useState(false);
   const [isSwapExpanded, setIsSwapExpanded] = useState(false);
+  const [expandedPlayerFactors, setExpandedPlayerFactors] = useState<Set<string>>(new Set());
+  
+  const togglePlayerFactors = (playerId: string) => {
+    const newExpanded = new Set(expandedPlayerFactors);
+    if (newExpanded.has(playerId)) {
+      newExpanded.delete(playerId);
+    } else {
+      newExpanded.add(playerId);
+    }
+    setExpandedPlayerFactors(newExpanded);
+  };
   
   const { recentWinnerIds } = useRecentTournamentWinners();
   
@@ -830,19 +841,37 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                           </div>
                         </div>
                         
-                        {/* Evidence factors (simplified) */}
+                        {/* Evidence factors (expandable) */}
                         {calc.calculation.evidenceFactors && calc.calculation.evidenceFactors.length > 0 && (
-                          <div className="mt-2 flex flex-wrap gap-1">
-                            {calc.calculation.evidenceFactors.slice(0, 2).map((factor, idx) => (
-                              <Badge key={idx} variant="outline" className="text-xs px-2 py-0.5">
-                                {factor.replace('🏆 ', '').substring(0, 20)}
-                                {factor.length > 20 ? '...' : ''}
-                              </Badge>
-                            ))}
-                            {calc.calculation.evidenceFactors.length > 2 && (
-                              <Badge variant="outline" className="text-xs px-2 py-0.5 opacity-60">
-                                +{calc.calculation.evidenceFactors.length - 2}
-                              </Badge>
+                          <div className="mt-2">
+                            <div className="flex flex-wrap gap-1">
+                              {calc.calculation.evidenceFactors.slice(0, 2).map((factor, idx) => (
+                                <Badge key={idx} variant="outline" className="text-xs px-2 py-0.5">
+                                  {factor.replace('🏆 ', '').substring(0, 20)}
+                                  {factor.length > 20 ? '...' : ''}
+                                </Badge>
+                              ))}
+                              {calc.calculation.evidenceFactors.length > 2 && (
+                                <Badge 
+                                  variant="outline" 
+                                  className="text-xs px-2 py-0.5 opacity-60 cursor-pointer hover:opacity-100 transition-opacity"
+                                  onClick={() => togglePlayerFactors(calc.userId)}
+                                >
+                                  +{calc.calculation.evidenceFactors.length - 2}
+                                </Badge>
+                              )}
+                            </div>
+                            
+                            {/* Expanded evidence factors */}
+                            {expandedPlayerFactors.has(calc.userId) && calc.calculation.evidenceFactors.length > 2 && (
+                              <div className="mt-2 flex flex-wrap gap-1">
+                                {calc.calculation.evidenceFactors.slice(2).map((factor, idx) => (
+                                  <Badge key={idx + 2} variant="outline" className="text-xs px-2 py-0.5">
+                                    {factor.replace('🏆 ', '').substring(0, 20)}
+                                    {factor.length > 20 ? '...' : ''}
+                                  </Badge>
+                                ))}
+                              </div>
                             )}
                           </div>
                         )}
