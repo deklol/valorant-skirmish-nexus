@@ -744,6 +744,12 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                         const playerName = player?.discord_username || (playerFromSteps?.player?.name) || `Player ${index + 1}`;
                         const points = calc.calculation.finalPoints || calc.calculation.calculatedAdaptiveWeight || 0;
                         
+                        // Get actual rank information from the user data
+                        const actualCurrentRank = playerFromTeams?.current_rank || 'Unranked';
+                        const actualPeakRank = playerFromTeams?.peak_rank || 'Unranked';
+                        const actualRankPoints = playerFromTeams?.rank_points || 0;
+                        const actualWeightRating = playerFromTeams?.weight_rating || 0;
+                        
                         return (
                           <div key={calc.userId} className="p-3 bg-muted/30 rounded-lg border border-border">
                             <div className="flex items-start justify-between mb-2">
@@ -764,13 +770,13 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                               <div>
                                 <span className="text-muted-foreground">Current Rank:</span>
                                 <span className="ml-1 text-foreground font-medium">
-                                  {(player as any)?.current_rank || calc.calculation.currentRank || 'Unranked'} ({calc.calculation.currentRankPoints || 0} pts)
+                                  {actualCurrentRank} ({actualRankPoints} pts)
                                 </span>
                               </div>
                               <div>
                                 <span className="text-muted-foreground">Peak Rank:</span>
                                 <span className="ml-1 text-foreground font-medium">
-                                  {(player as any)?.peak_rank || calc.calculation.peakRank || 'Unranked'} ({calc.calculation.peakRankPoints || 0} pts)
+                                  {actualPeakRank} ({actualWeightRating} pts)
                                 </span>
                               </div>
                               <div>
