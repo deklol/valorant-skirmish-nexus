@@ -742,16 +742,16 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                                   {playerRank}
                                 </Badge>
                               </div>
-                              <Badge 
-                                className="text-xs px-2 py-0.5"
-                                style={{
-                                  backgroundColor: getRankInfo(playerRank).primary + '20',
-                                  color: getRankInfo(playerRank).primary,
-                                  borderColor: getRankInfo(playerRank).primary + '40'
-                                }}
-                              >
-                                {getSkillLevel(playerRank)}
-                              </Badge>
+                               <Badge 
+                                 className="text-xs px-2 py-0.5"
+                                 style={{
+                                   backgroundColor: getRankInfo(playerRank).primary + '20',
+                                   color: getRankInfo(playerRank).primary,
+                                   borderColor: getRankInfo(playerRank).primary + '40'
+                                 }}
+                               >
+                                 {skillTier.label}
+                               </Badge>
                             </div>
                           </div>
                           <div className="text-right">
