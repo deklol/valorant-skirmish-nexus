@@ -239,14 +239,16 @@ export function calculateEvidenceBasedWeight(
   const calculationReasoning = evidenceFactors.join(' | ').replace(/Elite Tier Player \(300\+ points\)/g, `Elite Tier Player (${config.skillTierCaps.eliteThreshold}+ points)`);
 
   // Debug logging for specific players
-  if ((userData as any).discord_username?.toLowerCase().includes('kera')) {
+  if ((userData as any).discord_username?.toLowerCase().includes('alexbo') || 
+      (userData as any).discord_username?.toLowerCase().includes('kera')) {
     atlasLogger.debug(`Evidence-based calculation for ${(userData as any).discord_username}`, {
       basePoints,
       tournamentBonus,
       rankDecay,
       finalPoints,
       evidenceFactors,
-      isEliteTier
+      isEliteTier,
+      config_eliteThreshold: config.skillTierCaps.eliteThreshold
     });
   }
 
