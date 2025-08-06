@@ -219,21 +219,24 @@ export class PlayerAnalysisEngine {
   }
 
   /**
-   * Check for inactive player decay
+   * Check for inactive player decay - FIXED: Don't penalize players with good current ranks
    */
   private checkInactiveDecay(analysis: PlayerAnalysis, playerData: PlayerSkillData): void {
     const isRecentlyActive = this.checkRecentActivity(playerData);
     const hasHighRank = playerData.basePoints >= 350; // Diamond+ equivalent
+    const hasGoodCurrentRank = playerData.currentRank && this.RANK_TIERS[playerData.currentRank as keyof typeof this.RANK_TIERS] >= 350;
     
-    if (!isRecentlyActive && hasHighRank && playerData.tournamentsWon === 0) {
+    // CRITICAL FIX: Don't apply decay if player has a good current rank (indicates recent activity)
+    // Only apply decay if: no recent activity AND high peak rank AND no current rank evidence AND no tournament wins
+    if (!isRecentlyActive && hasHighRank && playerData.tournamentsWon === 0 && !hasGoodCurrentRank && (!playerData.currentRank || playerData.currentRank === 'Unranked' || playerData.currentRank === 'Unrated')) {
       const decay = Math.min(playerData.basePoints * 0.1, 35); // 10% decay, max 35 points
       
       analysis.analysisFlags.push({
         type: 'inactive_decay',
         severity: 'low',
-        description: 'High rank but no recent tournament activity',
+        description: 'High peak rank but no current rank or tournament activity',
         adjustment: -Math.round(decay),
-        reasoning: `High-ranked player with no recent tournament wins may have skill decay. Conservative reduction: ${Math.round(decay)}pts`
+        reasoning: `High peak rank with no current ranked evidence and no tournament wins suggests possible skill decay. Conservative reduction: ${Math.round(decay)}pts`
       });
     }
   }

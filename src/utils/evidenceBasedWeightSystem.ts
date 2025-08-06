@@ -117,6 +117,17 @@ export function calculateEvidenceBasedWeightWithMiniAi(
         finalPoints = playerAnalysis.adjustedPoints;
         const pointDifference = playerAnalysis.adjustedPoints - playerAnalysis.originalPoints;
         const adjustmentType = pointDifference > 0 ? 'boost' : 'reduction';
+        
+        // CRITICAL DEBUG: Log when ATLAS makes adjustments
+        console.log(`🚨 ATLAS ADJUSTMENT for ${(userData as any).discord_username}:`, {
+          originalPoints: playerAnalysis.originalPoints,
+          adjustedPoints: playerAnalysis.adjustedPoints,
+          pointDifference,
+          adjustmentReason: playerAnalysis.adjustmentReason,
+          confidenceScore: playerAnalysis.confidenceScore,
+          analysisFlags: playerAnalysis.analysisFlags
+        });
+        
         adjustmentReasoning += ` | ATLAS ${adjustmentType}: ${playerAnalysis.adjustmentReason} (${pointDifference > 0 ? '+' : ''}${pointDifference} pts, Confidence: ${playerAnalysis.confidenceScore}%)`;
       }
 
