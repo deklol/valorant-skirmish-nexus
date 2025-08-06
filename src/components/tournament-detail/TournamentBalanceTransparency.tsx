@@ -617,7 +617,11 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
         {atlasCalculations.length > 0 && (
           <div className="mb-6">
             <div 
-              className={`flex items-center justify-between p-4 bg-secondary/5 rounded-lg border border-secondary/20 cursor-pointer hover:bg-secondary/10 transition-all duration-300 ${!isATLASExpanded ? 'animate-pulse' : ''}`}
+              className={`flex items-center justify-between p-4 bg-secondary/5 rounded-lg cursor-pointer hover:bg-secondary/10 transition-all duration-300 ${
+                !isATLASExpanded 
+                  ? 'border border-secondary/30 shadow-[0_0_8px_rgba(139,92,246,0.15)] animate-[pulse_3s_ease-in-out_infinite]' 
+                  : 'border border-secondary/20'
+              }`}
               onClick={() => setIsATLASExpanded(!isATLASExpanded)}
             >
               <div className="flex items-center gap-3">
