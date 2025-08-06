@@ -96,7 +96,7 @@ const ManualRankOverrideSection = ({ userData, onOverrideChange, onPeakRankChang
   const handlePeakRankChange = (peakRank: string) => {
     setSelectedPeakRank(peakRank);
     if (onPeakRankChange) {
-      onPeakRankChange(peakRank || null);
+      onPeakRankChange(peakRank === "none" ? null : peakRank);
     }
   };
 
@@ -116,7 +116,7 @@ const ManualRankOverrideSection = ({ userData, onOverrideChange, onPeakRankChang
               <SelectValue placeholder="Select peak rank..." />
             </SelectTrigger>
             <SelectContent className="bg-slate-700 border-slate-600">
-              <SelectItem value="" className="text-slate-400 hover:bg-slate-600">
+              <SelectItem value="none" className="text-slate-400 hover:bg-slate-600">
                 None / Clear Peak Rank
               </SelectItem>
               {VALORANT_RANKS.map((rank) => (
