@@ -711,6 +711,12 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                     const playerRank = matchingStep?.player.rank || calc.calculation.currentRank || 'Unknown';
                     const finalPoints = calc.calculation.finalPoints || calc.calculation.calculatedAdaptiveWeight || 0;
                     
+                    // Get riot ID from team member data
+                    const playerTeamMember = teams.find(team => 
+                      team.team_members?.some(member => member.user_id === calc.userId)
+                    )?.team_members?.find(member => member.user_id === calc.userId);
+                    const riotId = playerTeamMember?.users?.riot_id;
+                    
                     // Find what team the player is on
                     const playerTeam = teams.find(team => 
                       team.team_members?.some(member => member.user_id === calc.userId)
@@ -740,7 +746,12 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                         <div className="space-y-4">
                           {/* Player Name & Points */}
                           <div className="flex items-center justify-between">
-                            <h4 className="font-bold text-foreground text-base leading-tight">{playerName}</h4>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-bold text-foreground text-base leading-tight">{playerName}</h4>
+                              {riotId && (
+                                <p className="text-xs text-muted-foreground italic mt-0.5">{riotId}</p>
+                              )}
+                            </div>
                             <div className="text-right">
                               <div className="text-2xl font-black text-primary">{finalPoints}</div>
                               <div className="text-xs text-muted-foreground font-medium">POINTS</div>
