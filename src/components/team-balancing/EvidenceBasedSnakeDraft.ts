@@ -125,7 +125,7 @@ export interface EvidenceTeamResult {
 
 /**
  * Creates balanced teams using ATLAS Advanced Formation Algorithm
- * PHASE 1 FIX: Prevents Team 0 from automatically getting strongest players
+ * FIXED: Prevents highest weight player from being on strongest team
  */
 function createAtlasBalancedTeams(players: any[], numTeams: number, teamSize: number, config: EvidenceBasedConfig): { teams: any[][], steps: EvidenceBalanceStep[] } {
   const teams: any[][] = Array(numTeams).fill(null).map(() => []);
@@ -141,24 +141,48 @@ function createAtlasBalancedTeams(players: any[], numTeams: number, teamSize: nu
       return { teams, steps };
   }
 
-  atlasLogger.info('Phase 1: Implementing balanced captain distribution');
+  atlasLogger.info('Phase 1: Implementing anti-stacking captain distribution');
 
-  // PHASE 1 FIX: Balanced Captain Assignment
-  // Instead of sequential assignment, use round-robin with load balancing
+  // CRITICAL FIX: Balance-aware captain assignment
+  // Track the highest weight player specifically
+  const highestWeightPlayer = sortedPlayers[0];
   const captains = sortedPlayers.slice(0, numTeams);
   const remainingPlayers = sortedPlayers.slice(numTeams);
   
-  // Assign captains using weighted round-robin to prevent Team 0 dominance
+  // Assign captains using balance-aware strategy to prevent strongest team concentration
   captains.forEach((captain, index) => {
-    // ATLAS Strategy: Assign strongest captain to team that needs balancing
-    let targetTeamIndex;
+    // Calculate current team weights for balance-aware assignment
+    const teamWeights = teams.map(team => 
+      team.reduce((sum, p) => sum + p.evidenceWeight, 0)
+    );
     
-    if (numTeams === 2) {
-      // For 2-team tournaments: strategically place captains
-      targetTeamIndex = index % 2;
+    let targetTeamIndex = 0;
+    
+    // For the highest weight player (first captain), assign to weakest team position
+    if (captain === highestWeightPlayer) {
+      // Always assign strongest player to last team to prevent early stacking
+      targetTeamIndex = numTeams - 1;
+      atlasLogger.info(`🚫 ANTI-STACKING: Assigning highest weight player ${captain.discord_username} (${captain.evidenceWeight}pts) to Team ${targetTeamIndex + 1} to prevent skill concentration`);
     } else {
-      // For multi-team: use reverse order for stronger captains
-      targetTeamIndex = (numTeams - 1 - index) % numTeams;
+      // For remaining captains, find team that would create best overall balance
+      let bestBalance = Infinity;
+      
+      for (let i = 0; i < numTeams; i++) {
+        if (teams[i].length > 0) continue; // Team already has a captain
+        
+        const hypotheticalWeights = [...teamWeights];
+        hypotheticalWeights[i] = captain.evidenceWeight;
+        
+        // Calculate balance score (lower is better)
+        const maxWeight = Math.max(...hypotheticalWeights);
+        const minWeight = Math.min(...hypotheticalWeights);
+        const balanceScore = maxWeight - minWeight;
+        
+        if (balanceScore < bestBalance) {
+          bestBalance = balanceScore;
+          targetTeamIndex = i;
+        }
+      }
     }
     
     teams[targetTeamIndex].push(captain);
@@ -176,7 +200,9 @@ function createAtlasBalancedTeams(players: any[], numTeams: number, teamSize: nu
         evidenceReasoning: captain.evidenceCalculation?.calculationReasoning,
       },
       assignedTeam: targetTeamIndex,
-      reasoning: `Strategic captain: ${captain.discord_username} (${captain.evidenceWeight}pts) → Team ${targetTeamIndex + 1}. Balanced distribution prevents Team 0 dominance.`,
+      reasoning: captain === highestWeightPlayer 
+        ? `🚫 ANTI-STACKING CAPTAIN: ${captain.discord_username} (${captain.evidenceWeight}pts) → Team ${targetTeamIndex + 1}. Highest weight player strategically placed to prevent concentration.`
+        : `BALANCE-AWARE CAPTAIN: ${captain.discord_username} (${captain.evidenceWeight}pts) → Team ${targetTeamIndex + 1}. Optimal balance distribution.`,
       teamStatesAfter: JSON.parse(JSON.stringify(teams)).map((team, index) => ({
         teamIndex: index, totalPoints: team.reduce((sum, p) => sum + p.evidenceWeight, 0),
         playerCount: team.length, eliteCount: team.filter(p => p.isElite).length
@@ -299,7 +325,7 @@ function findOptimalTeamCombination(
 }
 
 /**
- * Generate smart combination using balanced heuristics
+ * Generate smart combination using balance-first heuristics with anti-stacking
  */
 function generateSmartCombination(
   players: any[], 
@@ -311,7 +337,7 @@ function generateSmartCombination(
   
   const assignments: TeamAssignment[] = [];
   
-  // Calculate current team totals
+  // Calculate current team totals BEFORE making any assignments
   let teamTotals = existingTeams.map(team => 
     team.reduce((sum, p) => sum + p.evidenceWeight, 0)
   );
@@ -319,8 +345,11 @@ function generateSmartCombination(
   // Track team sizes to enforce hard constraints
   const teamSizes = existingTeams.map(team => team.length);
   
-  // Assign each player to optimal team that has capacity
-  players.forEach((player, index) => {
+  // Sort players by weight for strategic look-ahead processing
+  const sortedPlayers = [...players].sort((a, b) => b.evidenceWeight - a.evidenceWeight);
+  
+  // Look-ahead assignment with anti-stacking logic
+  sortedPlayers.forEach((player, index) => {
     // Find teams that have space remaining
     const availableTeams = [];
     for (let teamIndex = 0; teamIndex < numTeams; teamIndex++) {
@@ -334,15 +363,26 @@ function generateSmartCombination(
     
     if (availableTeams.length === 0) {
       atlasLogger.capacityError(player.discord_username, teamSizes, teamSize);
-      // HARD STOP - do not create oversized teams
       return assignments; // Return current assignments, stop processing remaining players
     }
     
-    // Find best team among available teams
-    let bestTeamIndex = availableTeams[0];
+    // CRITICAL FIX: Check if this is a high-value player and prevent them from joining strongest team
+    const currentStrongestTeamIndex = teamTotals.indexOf(Math.max(...teamTotals));
+    const isHighValuePlayer = player.evidenceWeight >= 300 || player.isElite;
+    
+    // Filter out strongest team for high-value players to prevent stacking
+    const eligibleTeams = isHighValuePlayer 
+      ? availableTeams.filter(teamIndex => teamIndex !== currentStrongestTeamIndex)
+      : availableTeams;
+    
+    // If all teams are eliminated by anti-stacking, use available teams but with penalty
+    const teamsToConsider = eligibleTeams.length > 0 ? eligibleTeams : availableTeams;
+    
+    // Find best team among eligible teams with look-ahead consideration
+    let bestTeamIndex = teamsToConsider[0];
     let bestBalanceScore = -Infinity;
     
-    for (const teamIndex of availableTeams) {
+    for (const teamIndex of teamsToConsider) {
       const newTeamTotals = [...teamTotals];
       newTeamTotals[teamIndex] += player.evidenceWeight;
       
@@ -350,7 +390,20 @@ function generateSmartCombination(
       const variance = calculateTeamVariance(newTeamTotals);
       const eliteViolations = calculateEliteViolations(existingTeams, assignments, player, teamIndex, config);
       
-      const balanceScore = 1000 / (1 + variance) - (eliteViolations * 100);
+      // Look-ahead penalty: consider impact on remaining high-value players
+      let lookAheadPenalty = 0;
+      const remainingHighValuePlayers = sortedPlayers.slice(index + 1).filter(p => p.evidenceWeight >= 250);
+      if (remainingHighValuePlayers.length > 0 && newTeamTotals[teamIndex] > Math.max(...newTeamTotals.filter((_, i) => i !== teamIndex))) {
+        lookAheadPenalty = 200; // Heavy penalty for creating new strongest team with high-value player
+      }
+      
+      // Anti-stacking penalty: extra penalty if assigning high-value to already strong team
+      let antiStackingPenalty = 0;
+      if (isHighValuePlayer && teamIndex === currentStrongestTeamIndex) {
+        antiStackingPenalty = 500; // Massive penalty for stacking high-value players
+      }
+      
+      const balanceScore = 1000 / (1 + variance) - (eliteViolations * 100) - lookAheadPenalty - antiStackingPenalty;
       
       if (balanceScore > bestBalanceScore) {
         bestBalanceScore = balanceScore;
@@ -361,12 +414,17 @@ function generateSmartCombination(
     // Update team totals
     teamTotals[bestTeamIndex] += player.evidenceWeight;
     
+    const wasAntiStacked = isHighValuePlayer && availableTeams.includes(currentStrongestTeamIndex) && bestTeamIndex !== currentStrongestTeamIndex;
+    
     assignments.push({
       teamIndex: bestTeamIndex,
-      reasoning: `Smart assignment (score: ${bestBalanceScore.toFixed(1)}, capacity: ${teamSizes[bestTeamIndex] + assignments.filter(a => a.teamIndex === bestTeamIndex).length + 1}/${teamSize})`
+      reasoning: wasAntiStacked 
+        ? `🚫 ANTI-STACKING: ${player.discord_username} (${player.evidenceWeight}pts) prevented from joining strongest team (Team ${currentStrongestTeamIndex + 1})`
+        : `Smart assignment (score: ${bestBalanceScore.toFixed(1)}, capacity: ${teamSizes[bestTeamIndex] + assignments.filter(a => a.teamIndex === bestTeamIndex).length + 1}/${teamSize})`
     });
     
-    atlasLogger.playerAssigned(player.discord_username, player.evidenceWeight, bestTeamIndex, `Smart heuristic assignment`);
+    atlasLogger.playerAssigned(player.discord_username, player.evidenceWeight, bestTeamIndex, 
+      wasAntiStacked ? 'Anti-stacking assignment' : 'Smart heuristic assignment');
   });
   
   return assignments;
@@ -767,7 +825,7 @@ async function performAtlasValidation(
       let bestSwap = null;
       let smallestNewDifference = pointDifference;
       
-      for (let i = 1; i < strongTeam.length; i++) { // Skip captain (index 0)
+      for (let i = 0; i < strongTeam.length; i++) { // Include captain for swapping
         for (let j = 0; j < weakTeam.length; j++) {
           const strongPlayer = strongTeam[i];
           const weakPlayer = weakTeam[j];
@@ -823,6 +881,83 @@ async function performAtlasValidation(
           confidence: 0.88
         });
       }
+    }
+  }
+
+  // CRITICAL ANTI-STACKING VALIDATION: Ensure highest weight player is not on strongest team
+  const finalTeamTotals = adjustedTeams.map(team => team.reduce((sum, p) => sum + p.evidenceWeight, 0));
+  const strongestTeamIndex = finalTeamTotals.indexOf(Math.max(...finalTeamTotals));
+  
+  // Find highest weight player across all teams
+  let highestWeightPlayer = null;
+  let highestWeight = 0;
+  let highestPlayerTeamIndex = -1;
+  
+  adjustedTeams.forEach((team, teamIndex) => {
+    team.forEach(player => {
+      if (player.evidenceWeight > highestWeight) {
+        highestWeight = player.evidenceWeight;
+        highestWeightPlayer = player;
+        highestPlayerTeamIndex = teamIndex;
+      }
+    });
+  });
+  
+  // If highest weight player is on strongest team, fix it
+  if (highestWeightPlayer && highestPlayerTeamIndex === strongestTeamIndex && adjustedTeams.length > 1) {
+    atlasLogger.warn(`🚫 ANTI-STACKING VIOLATION DETECTED: Highest weight player ${highestWeightPlayer.discord_username} (${highestWeight}pts) is on strongest team (Team ${strongestTeamIndex + 1})`);
+    
+    // Find weakest team to move them to
+    const weakestTeamIndex = finalTeamTotals.indexOf(Math.min(...finalTeamTotals));
+    
+    // Find best player from weakest team to swap back
+    const weakestTeam = adjustedTeams[weakestTeamIndex];
+    const swapCandidate = weakestTeam.reduce((best, player) => 
+      player.evidenceWeight > (best?.evidenceWeight || 0) ? player : best
+    , null);
+    
+    if (swapCandidate && weakestTeamIndex !== strongestTeamIndex) {
+      // Perform anti-stacking swap
+      adjustedTeams[strongestTeamIndex] = adjustedTeams[strongestTeamIndex].filter(p => p.id !== highestWeightPlayer.id);
+      adjustedTeams[strongestTeamIndex].push(swapCandidate);
+      
+      adjustedTeams[weakestTeamIndex] = adjustedTeams[weakestTeamIndex].filter(p => p.id !== swapCandidate.id);
+      adjustedTeams[weakestTeamIndex].push(highestWeightPlayer);
+      
+      validationSteps.push({
+        step: validationSteps.length + 1,
+        player: {
+          id: 'anti-stacking-swap',
+          discord_username: `🚫 ${highestWeightPlayer.discord_username} ↔ ${swapCandidate.discord_username}`,
+          points: 0, 
+          rank: 'Anti-Stacking Fix', 
+          source: 'ATLAS Anti-Stacking Validation',
+        },
+        assignedTeam: weakestTeamIndex,
+        reasoning: `🚫 ANTI-STACKING FIX: Moved highest weight player ${highestWeightPlayer.discord_username} (${highestWeight}pts) from strongest team (Team ${strongestTeamIndex + 1}) to weakest team (Team ${weakestTeamIndex + 1}) to prevent skill concentration.`,
+        teamStatesAfter: JSON.parse(JSON.stringify(adjustedTeams)).map((team, index) => ({
+          teamIndex: index, totalPoints: team.reduce((sum, p) => sum + p.evidenceWeight, 0),
+          playerCount: team.length, eliteCount: team.filter(p => p.isElite).length
+        })),
+        phase: 'atlas_optimization_swap',
+      });
+
+      adjustments.redistributions.push({
+        player: `🚫 ${highestWeightPlayer.discord_username} ↔ ${swapCandidate.discord_username}`,
+        fromTeam: strongestTeamIndex,
+        toTeam: weakestTeamIndex,
+        reason: `Anti-stacking: Prevented highest weight player from being on strongest team`,
+        type: 'skill_fix'
+      });
+
+      decisions.push({
+        type: 'anti_stacking_fix',
+        reasoning: `Moved highest weight player from strongest team to prevent skill concentration`,
+        confidence: 1.0,
+        priority: 'CRITICAL'
+      });
+      
+      atlasLogger.info(`🚫 ANTI-STACKING FIX APPLIED: ${highestWeightPlayer.discord_username} moved to prevent concentration`);
     }
   }
 

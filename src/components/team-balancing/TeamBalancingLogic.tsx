@@ -6,6 +6,7 @@ import { enhancedSnakeDraft } from "./EnhancedSnakeDraft";
 import { evidenceBasedSnakeDraft } from "./EvidenceBasedSnakeDraft";
 import { calculateAdaptiveWeight, ExtendedUserRankData } from "@/utils/adaptiveWeightSystem";
 import { calculateEvidenceBasedWeight, EvidenceBasedConfig } from "@/utils/evidenceBasedWeightSystem";
+import { validateAntiStacking, logAntiStackingResults } from "@/utils/antiStackingValidator";
 
 interface UseTeamBalancingProps {
   tournamentId: string;
@@ -219,7 +220,7 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
     // Get tournament settings for this function scope
     const { data: tournament } = await supabase
       .from('tournaments')
-      .select('enable_adaptive_weights')
+      .select('name, enable_adaptive_weights')
       .eq('id', tournamentId)
       .single();
 
@@ -357,11 +358,30 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
       }
     }
 
-    // Save balance analysis to tournament (including post-validation swaps)
-    await saveBalanceAnalysis(balanceSteps, finalBalance, createdTeams, teamSize, tournament?.enable_adaptive_weights || false, (result as any).validationResult);
+    // CRITICAL: Perform anti-stacking validation after team creation
+    const antiStackingResult = validateAntiStacking(teams);
+    logAntiStackingResults(antiStackingResult, `🏛️ ${tournament?.enable_adaptive_weights ? 'ATLAS' : 'Standard'} Team Creation`);
+
+    if (!antiStackingResult.isValid) {
+      console.error(`❌ ANTI-STACKING VIOLATIONS DETECTED in ${tournament?.name || 'tournament'}`);
+      
+      // Log critical violations for admin attention
+      const criticalViolations = antiStackingResult.violations.filter(v => v.severity === 'critical');
+      if (criticalViolations.length > 0) {
+        console.error(`🚨 CRITICAL: ${criticalViolations.length} anti-stacking violations found!`);
+        criticalViolations.forEach(violation => {
+          console.error(`🚨 ${violation.violationType}: ${violation.playerName} (${violation.playerWeight}pts) on Team ${violation.teamIndex + 1}`);
+        });
+      }
+    } else {
+      console.log(`✅ Anti-stacking validation PASSED for ${tournament?.name || 'tournament'}`);
+    }
+
+    // Save balance analysis to tournament (including post-validation swaps and anti-stacking results)
+    await saveBalanceAnalysis(balanceSteps, finalBalance, createdTeams, teamSize, tournament?.enable_adaptive_weights || false, (result as any).validationResult, antiStackingResult);
   };
 
-  const saveBalanceAnalysis = async (balanceSteps: any[], finalBalance: any, createdTeams: any[], teamSize: number, adaptiveWeightsEnabled: boolean, validationResult?: any) => {
+  const saveBalanceAnalysis = async (balanceSteps: any[], finalBalance: any, createdTeams: any[], teamSize: number, adaptiveWeightsEnabled: boolean, validationResult?: any, antiStackingResult?: any) => {
     // Enhanced analysis for ATLAS system
     const atlasEnhanced = adaptiveWeightsEnabled && validationResult;
     
@@ -426,7 +446,17 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
         totalDecisions: validationResult.miniAiDecisions?.length || 0
       } : null,
       
-      method: `${adaptiveWeightsEnabled ? 'ATLAS Evidence-Based Draft' : 'Snake Draft'} (${teamSize}v${teamSize})${adaptiveWeightsEnabled ? ' with ATLAS Intelligence' : ''}${validationResult?.adjustmentsMade ? (validationResult.adjustmentsMade.swaps?.length > 0 || validationResult.adjustmentsMade.redistributions?.length > 0 ? ' + ATLAS Optimization' : '') : ''}`,
+      // Anti-stacking validation results
+      antiStackingValidation: antiStackingResult ? {
+        isValid: antiStackingResult.isValid,
+        violations: antiStackingResult.violations,
+        highestWeightPlayerTeam: antiStackingResult.highestWeightPlayerTeam,
+        strongestTeamIndex: antiStackingResult.strongestTeamIndex,
+        teamTotals: antiStackingResult.teamTotals,
+        summary: `${antiStackingResult.violations.length} violations found (${antiStackingResult.violations.filter(v => v.severity === 'critical').length} critical, ${antiStackingResult.violations.filter(v => v.severity === 'warning').length} warnings)`
+      } : null,
+      
+      method: `${adaptiveWeightsEnabled ? 'ATLAS Evidence-Based Draft' : 'Snake Draft'} (${teamSize}v${teamSize})${adaptiveWeightsEnabled ? ' with ATLAS Intelligence' : ''}${validationResult?.adjustmentsMade ? (validationResult.adjustmentsMade.swaps?.length > 0 || validationResult.adjustmentsMade.redistributions?.length > 0 ? ' + ATLAS Optimization' : '') : ''}${antiStackingResult && !antiStackingResult.isValid ? ' + Anti-Stacking Violations Detected' : ''}`,
       timestamp: new Date().toISOString()
     };
 

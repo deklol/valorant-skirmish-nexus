@@ -137,20 +137,28 @@ export const enhancedSnakeDraft = async (
   const balanceSteps: BalanceStep[] = [];
   let stepCounter = 0;
 
-  // ATLAS INTELLIGENT ASSIGNMENT: Use true skill-based distribution to prevent any form of stacking
+  // ATLAS INTELLIGENT ASSIGNMENT: Use true skill-based distribution with anti-stacking logic
   const assignPlayerWithAtlasLogic = (player: any, allPlayers: any[]): number => {
     const teamTotals = teams.map(team => 
       team.reduce((sum, p) => sum + p.adaptiveWeight, 0)
     );
     
-    // ATLAS Strategy: Always assign to the team that will result in the most balanced overall distribution
-    // This prevents both elite stacking AND skill stacking of any kind
+    // CRITICAL FIX: Identify if this is the highest weight player
+    const isHighestWeightPlayer = player.adaptiveWeight === Math.max(...allPlayers.map(p => p.adaptiveWeight));
+    const currentStrongestTeamIndex = teamTotals.indexOf(Math.max(...teamTotals));
     
+    // ATLAS Strategy: Prevent highest weight player from being on strongest team
     let bestTeamIndex = 0;
     let bestBalance = Infinity;
     
     for (let i = 0; i < numTeams; i++) {
       if (teams[i].length >= teamSize) continue; // Team is full
+      
+      // ANTI-STACKING: If this is the highest weight player, prevent them from joining the strongest team
+      if (isHighestWeightPlayer && i === currentStrongestTeamIndex && numTeams > 1) {
+        atlasLogger.info(`🚫 ANTI-STACKING: Preventing highest weight player ${player.discord_username} from joining strongest team (Team ${i + 1})`);
+        continue; // Skip strongest team for highest weight player
+      }
       
       // Calculate what the balance would be if we add this player to team i
       const hypotheticalTotals = [...teamTotals];
@@ -166,7 +174,13 @@ export const enhancedSnakeDraft = async (
         penalty = teamHighValueCount * 50; // Penalty for stacking high-value players
       }
       
-      const totalScore = maxDiff + penalty;
+      // Extra penalty for creating the new strongest team with high-value players
+      let antiStackingPenalty = 0;
+      if (player.adaptiveWeight >= 250 && hypotheticalTotals[i] > Math.max(...hypotheticalTotals.filter((_, idx) => idx !== i))) {
+        antiStackingPenalty = 100; // Heavy penalty for creating new strongest team
+      }
+      
+      const totalScore = maxDiff + penalty + antiStackingPenalty;
       
       if (totalScore < bestBalance) {
         bestBalance = totalScore;
@@ -174,7 +188,11 @@ export const enhancedSnakeDraft = async (
       }
     }
     
-    atlasLogger.playerAssigned(player.discord_username, player.adaptiveWeight, bestTeamIndex, `ATLAS balance optimization: ${Math.round(bestBalance)}`);
+    const reasoning = isHighestWeightPlayer 
+      ? `🚫 ANTI-STACKING: Highest weight player strategically placed to prevent concentration`
+      : `ATLAS balance optimization: ${Math.round(bestBalance)}`;
+    
+    atlasLogger.playerAssigned(player.discord_username, player.adaptiveWeight, bestTeamIndex, reasoning);
     return bestTeamIndex;
   };
 
