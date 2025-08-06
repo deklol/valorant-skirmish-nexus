@@ -59,8 +59,8 @@ const DraggablePlayer = ({ player, enableAdaptiveWeights }: DraggablePlayerProps
         const result = await calculateEvidenceBasedWeightWithMiniAi(player as ExtendedUserRankData, {
           enableEvidenceBasedWeights: true,
           tournamentWinBonus: 15,
-          rankDecayThreshold: 2,
-          maxDecayPercent: 0.25,
+          underrankedBonusThreshold: 1.5,
+          maxUnderrankedBonus: 0.35,
           skillTierCaps: {
             enabled: true,
             eliteThreshold: 400,

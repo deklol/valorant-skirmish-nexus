@@ -60,36 +60,31 @@ const DEFAULT_CONFIG: AdaptiveWeightConfig = {
 };
 
 /**
- * Enhanced rank decay calculation with tier-based weighting
- * Considers both absolute point difference and tier gaps for more nuanced decay
+ * Calculate underranked bonus for players significantly below their peak
+ * Progressive bonus system that rewards demonstrated higher skill levels
  */
-function calculateRankDecay(currentPoints: number, peakPoints: number): number {
-  if (peakPoints <= currentPoints) return 0; // No decay, current is equal or better
+function calculateUnderrankedBonus(currentPoints: number, peakPoints: number): number {
+  if (peakPoints <= currentPoints) return 0; // No bonus needed, current is equal or better
   
   const pointDifference = peakPoints - currentPoints;
   
-  // Calculate tier-based decay - larger gaps between tiers should have more impact
-  const tierGaps = {
-    50: 0.2,   // Minor tier drop (e.g., Gold 3 to Gold 2)
-    100: 0.4,  // Major tier drop (e.g., Diamond to Platinum)
-    200: 0.6,  // Severe drop (e.g., Immortal to Gold)
-    300: 0.8   // Extreme drop (e.g., Radiant to Silver)
-  };
+  // Start giving bonuses at 75+ point drops (1.5 tiers)
+  if (pointDifference < 75) return 0;
   
-  let decayFactor = 0;
-  for (const [threshold, factor] of Object.entries(tierGaps)) {
-    if (pointDifference >= parseInt(threshold)) {
-      decayFactor = factor;
-    }
-  }
+  const tierDrops = pointDifference / 50; // Exact tier drops (can be decimal)
   
-  // Add progressive scaling for very large gaps
-  if (pointDifference > 300) {
-    const extraDecay = Math.min((pointDifference - 300) / 200, 0.15);
-    decayFactor = Math.min(decayFactor + extraDecay, 0.95); // Cap at 95%
-  }
+  // Progressive bonus system - more generous for larger drops
+  let bonusPercent = 0;
+  if (tierDrops >= 1.5) bonusPercent += 0.10; // First 1.5 tiers: +10%
+  if (tierDrops >= 2.5) bonusPercent += 0.08; // Next tier: +8% more (18% total)
+  if (tierDrops >= 3.5) bonusPercent += 0.07; // Next tier: +7% more (25% total)
+  if (tierDrops >= 4.5) bonusPercent += 0.05; // Next tier: +5% more (30% total)
+  if (tierDrops >= 5.5) bonusPercent += 0.05; // Additional tiers: +5% more (35% total)
   
-  return decayFactor;
+  // Cap at 35% max bonus
+  bonusPercent = Math.min(bonusPercent, 0.35);
+  
+  return bonusPercent;
 }
 
 /**
@@ -322,8 +317,8 @@ export function calculateAdaptiveWeight(
     };
   }
 
-  // Calculate adaptive blending for ranked current with higher peak
-  const rankDecay = calculateRankDecay(currentRankPoints, peakRankPoints);
+  // Calculate underranked bonus for ranked current with higher peak
+  const underrankedBonusPercent = calculateUnderrankedBonus(currentRankPoints, peakRankPoints);
   
   // Calculate time weight if last rank update is available
   let timeWeight = 0;
@@ -333,8 +328,8 @@ export function calculateAdaptiveWeight(
     timeWeight = calculateTimeWeight(timeSincePeakDays, config);
   }
 
-  // Enhanced adaptive factor calculation with confidence scoring
-  let adaptiveFactor = config.baseFactor + (rankDecay * config.decayMultiplier) + timeWeight;
+  // Enhanced adaptive factor calculation - more weight to peak if underranked
+  let adaptiveFactor = config.baseFactor + (underrankedBonusPercent * 0.8) + timeWeight;
   
   // Confidence boost: if peak is significantly higher, trust it more
   const rankGap = peakRankPoints - currentRankPoints;
@@ -344,12 +339,12 @@ export function calculateAdaptiveWeight(
   // Cap the adaptive factor
   adaptiveFactor = Math.min(adaptiveFactor, 0.75); // Max 75% peak influence for stability
   
-  // Smart blending with variance consideration
+  // Smart blending with underranked bonus
   const baseBlend = (currentRankPoints * (1 - adaptiveFactor)) + (peakRankPoints * adaptiveFactor);
   
-  // Add small variance reduction for more consistent results
-  const varianceReduction = Math.min(rankGap * 0.02, 10); // Small adjustment for smoother transitions
-  let adaptiveWeight = Math.floor(baseBlend - varianceReduction);
+  // Apply underranked bonus as additional points
+  const underrankedBonusPoints = Math.floor(currentRankPoints * underrankedBonusPercent);
+  let adaptiveWeight = Math.floor(baseBlend) + underrankedBonusPoints;
   
   // Apply tournament winner bonus to ranked players as well
   const isElitePlayer = peakRankPoints >= 400;
@@ -362,12 +357,13 @@ export function calculateAdaptiveWeight(
     `Adaptive: ${Math.round((1 - adaptiveFactor) * 100)}%/${Math.round(adaptiveFactor * 100)}% blend`
   ];
 
+  if (underrankedBonusPoints > 0) {
+    const tierDrops = (peakRankPoints - currentRankPoints) / 50;
+    reasoningParts.push(`Underranked Bonus: ${tierDrops.toFixed(1)} tier drop = +${Math.round(underrankedBonusPercent * 100)}% (+${underrankedBonusPoints})`);
+  }
+
   if (tournamentBonus.bonus > 0) {
     reasoningParts.push(`Tournament bonus: +${Math.round(tournamentBonus.bonus)} pts`);
-  }
-  
-  if (rankDecay > 0) {
-    reasoningParts.push(`Decay: ${Math.round(rankDecay * 100)}%`);
   }
   
   reasoningParts.push(`Final: ${adaptiveWeight} pts`);
@@ -391,7 +387,6 @@ export function calculateAdaptiveWeight(
         calculatedAdaptiveWeight: adaptiveWeight,
         weightSource: 'adaptive_weight',
         calculationReasoning: reasoningParts.join('. '),
-        rankDecayFactor: rankDecay,
         timeSincePeakDays: timeSincePeakDays > 0 ? timeSincePeakDays : undefined,
         tournamentWinsBonus: tournamentBonus.bonus,
         tournamentsWon: userData.tournaments_won || 0,

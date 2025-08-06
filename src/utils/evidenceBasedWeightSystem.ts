@@ -14,8 +14,8 @@ export interface ExtendedUserRankData extends UserRankData {
 export interface EvidenceBasedConfig {
   enableEvidenceBasedWeights: boolean;
   tournamentWinBonus: number; // Points to ADD per tournament win (e.g. 15)
-  rankDecayThreshold: number; // How many tiers down before applying decay (e.g. 2 tiers)
-  maxDecayPercent: number; // Maximum decay percentage (e.g. 0.25 = 25%)
+  underrankedBonusThreshold: number; // How many tiers down before applying bonus (e.g. 1.5 tiers)
+  maxUnderrankedBonus: number; // Maximum underranked bonus percentage (e.g. 0.35 = 35%)
   skillTierCaps: {
     enabled: boolean;
     eliteThreshold: number; // Points threshold for "elite" players (e.g. 400)
@@ -53,8 +53,8 @@ export interface EvidenceWithMiniAi {
 const DEFAULT_EVIDENCE_CONFIG: EvidenceBasedConfig = {
   enableEvidenceBasedWeights: true,
   tournamentWinBonus: 15, // +15 points per tournament win
-  rankDecayThreshold: 2, // Only apply decay if dropped 2+ tiers
-  maxDecayPercent: 0.25, // Max 25% decay
+  underrankedBonusThreshold: 1.5, // Start applying bonus at 1.5 tier drop (75 points)
+  maxUnderrankedBonus: 0.35, // Max 35% underranked bonus
   skillTierCaps: {
     enabled: true,
     eliteThreshold: 400, // 400+ points = elite
@@ -226,15 +226,25 @@ export function calculateEvidenceBasedWeight(
     const peakPoints = RANK_POINT_MAPPING[peakRank];
     const pointDifference = peakPoints - currentPoints;
     
-    // Only apply bonus if dropped significantly (2+ tiers = 100+ points)
-    if (pointDifference >= 100) {
-      const tierDrops = Math.floor(pointDifference / 50); // Each tier ~50 points
-      if (tierDrops >= config.rankDecayThreshold) {
-        // Gradual bonus: 5% per tier beyond threshold, capped at maxDecayPercent
-        const bonusPercent = Math.min((tierDrops - config.rankDecayThreshold + 1) * 0.05, config.maxDecayPercent);
-        underrankedBonus = Math.floor(basePoints * bonusPercent);
-        evidenceFactors.push(`Underranked Bonus (+${underrankedBonus})`);
-      }
+    // Apply generous bonus for any meaningful rank drop (1.5+ tiers = 75+ points)
+    const thresholdPoints = config.underrankedBonusThreshold * 50; // Convert tiers to points
+    if (pointDifference >= thresholdPoints) {
+      const tierDrops = pointDifference / 50; // Exact tier drops (can be decimal)
+      
+      // Progressive bonus system: more generous for larger drops
+      // 10% for first tier, then increasing increments
+      let bonusPercent = 0;
+      if (tierDrops >= 1.5) bonusPercent += 0.10; // First 1.5 tiers: +10%
+      if (tierDrops >= 2.5) bonusPercent += 0.08; // Next tier: +8% more (18% total)
+      if (tierDrops >= 3.5) bonusPercent += 0.07; // Next tier: +7% more (25% total)
+      if (tierDrops >= 4.5) bonusPercent += 0.05; // Next tier: +5% more (30% total)
+      if (tierDrops >= 5.5) bonusPercent += 0.05; // Additional tiers: +5% more (35% total)
+      
+      // Cap at max bonus
+      bonusPercent = Math.min(bonusPercent, config.maxUnderrankedBonus);
+      underrankedBonus = Math.floor(basePoints * bonusPercent);
+      
+      evidenceFactors.push(`Underranked Bonus: ${tierDrops.toFixed(1)} tier drop = +${Math.round(bonusPercent * 100)}% (+${underrankedBonus})`);
     }
   }
 
