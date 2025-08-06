@@ -211,33 +211,66 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
   };
 
   const getUnifiedATLASCalculations = () => {
-    // Unified ATLAS data handling - merge all calculation sources
+    // First try to get actual calculation data
     const calculations = balanceAnalysis.atlasCalculations || 
                         balanceAnalysis.adaptiveWeightCalculations || 
                         balanceAnalysis.adaptive_weight_calculations || 
                         balanceAnalysis.evidenceCalculations || 
                         [];
     
-    // Remove duplicates based on userId
-    const uniqueCalculations = calculations.filter((calc, index, self) => 
-      index === self.findIndex(c => c.userId === calc.userId)
-    );
+    // If we have calculation data, use it
+    if (calculations.length > 0) {
+      // Remove duplicates based on userId
+      const uniqueCalculations = calculations.filter((calc, index, self) => 
+        index === self.findIndex(c => c.userId === calc.userId)
+      );
+      
+      // Enhanced filtering: show calculations for players in balance steps
+      const balanceSteps = getBalanceSteps();
+      const balancedPlayerIds = balanceSteps.map(step => step.player.id);
+      const balancedCalculations = uniqueCalculations.filter(calc => 
+        balancedPlayerIds.includes(calc.userId)
+      );
+      
+      console.log('🏛️ ATLAS TRANSPARENCY: Retrieved unified calculations:', {
+        total: calculations.length,
+        unique: uniqueCalculations.length,
+        balanced: balancedCalculations.length,
+        sources: [...new Set(balancedCalculations.map(c => c.calculation?.weightSource))]
+      });
+      
+      return balancedCalculations;
+    }
     
-    // Enhanced filtering: show calculations for players in balance steps
+    // Fallback: Generate calculation data from balance steps
     const balanceSteps = getBalanceSteps();
-    const balancedPlayerIds = balanceSteps.map(step => step.player.id);
-    const balancedCalculations = uniqueCalculations.filter(calc => 
-      balancedPlayerIds.includes(calc.userId)
-    );
+    const fallbackCalculations = balanceSteps.map(step => ({
+      userId: step.player.id || 'unknown',
+      calculation: {
+        currentRank: step.player.rank,
+        currentRankPoints: step.player.points || 0,
+        peakRank: step.player.rank, // We don't have peak data in steps
+        peakRankPoints: step.player.points || 0,
+        calculatedAdaptiveWeight: step.player.points || 0,
+        adaptiveFactor: 1.0,
+        calculationReasoning: step.reasoning || 'Balance assignment',
+        weightSource: step.player.source || 'evidence_based',
+        finalPoints: step.player.points || 0,
+        tournamentsWon: 0, // Not available in balance steps
+        evidenceFactors: [step.player.source || 'evidence_based'],
+        tournamentBonus: 0,
+        basePoints: step.player.points || 0,
+        rankDecayApplied: 0,
+        isEliteTier: (step.player.points || 0) >= 400
+      }
+    }));
     
-    console.log('🏛️ ATLAS TRANSPARENCY: Retrieved unified calculations:', {
-      total: calculations.length,
-      unique: uniqueCalculations.length,
-      balanced: balancedCalculations.length,
-      sources: [...new Set(balancedCalculations.map(c => c.calculation?.weightSource))]
+    console.log('🏛️ ATLAS TRANSPARENCY: Using fallback from balance steps:', {
+      total: fallbackCalculations.length,
+      source: 'balance_steps_fallback'
     });
     
-    return balancedCalculations;
+    return fallbackCalculations;
   };
 
   const getATLASStats = () => {
@@ -270,6 +303,11 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
     const { calculation } = calc;
     const parts: string[] = [];
     
+    // Check if we have meaningful calculation data
+    if (!calculation || !calculation.finalPoints) {
+      return `${calculation?.currentRank || 'Unknown'} rank (${calculation?.currentRankPoints || 0} pts) - Assignment based on balance algorithm`;
+    }
+    
     // Base rank information
     if (calculation.peakRank && calculation.currentRank !== calculation.peakRank) {
       parts.push(`Peak: ${calculation.peakRank} (${calculation.peakRankPoints} pts)`);
@@ -279,7 +317,7 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
         parts.push(`Currently Unranked`);
       }
     } else if (calculation.currentRank) {
-      parts.push(`${calculation.currentRank} (${calculation.currentRankPoints} pts)`);
+      parts.push(`${calculation.currentRank} (${calculation.currentRankPoints || calculation.finalPoints} pts)`);
     }
     
     // Tournament bonuses
