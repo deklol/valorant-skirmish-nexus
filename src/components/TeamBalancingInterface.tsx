@@ -404,15 +404,18 @@ fetchTeamsAndPlayers();
       })
     );
     
-    // Validate Radiant distribution
-    const validation = validateRadiantDistribution(newTeams.map(team => team.members));
-    if (!validation.isValid) {
-      console.warn('🚨 RADIANT DISTRIBUTION VIOLATION:', validation.violations);
-      toast({
-        title: "Radiant Distribution Warning",
-        description: validation.violations[0]?.reason || "Radiant player on strongest team detected",
-        variant: "destructive",
-      });
+    // Skip Radiant distribution validation when ATLAS is enabled
+    // ATLAS anti-stacking handles this more comprehensively
+    if (!tournament?.enable_adaptive_weights) {
+      const validation = validateRadiantDistribution(newTeams.map(team => team.members));
+      if (!validation.isValid) {
+        console.warn('🚨 RADIANT DISTRIBUTION VIOLATION:', validation.violations);
+        toast({
+          title: "Radiant Distribution Warning", 
+          description: validation.violations[0]?.reason || "Radiant player on strongest team detected",
+          variant: "destructive",
+        });
+      }
     }
     
     setTeams(newTeams);
@@ -1080,30 +1083,31 @@ variant: "destructive",
       })));
 
 
-      // VALIDATE RADIANT DISTRIBUTION after autobalance
-      const finalTeams = fullSnakeDraftResult.teams.map((draftedTeam, index) => {
-        const originalTeam = availableTeams[index];
-        return [...originalTeam.members, ...draftedTeam];
-      });
-      
-      const radiantValidation = validateRadiantDistribution(finalTeams);
-      if (!radiantValidation.isValid) {
-        console.error('🚨 RADIANT DISTRIBUTION VIOLATION AFTER AUTOBALANCE:', radiantValidation.violations);
-        
-        // Show warning to user
-        toast({
-          title: "⚠️ Radiant Player Distribution Warning",
-          description: `${radiantValidation.violations[0]?.reason} - Manual adjustment may be needed.`,
-          variant: "destructive",
+      // SKIP RADIANT DISTRIBUTION VALIDATION when ATLAS is enabled
+      // ATLAS anti-stacking already handles this more comprehensively
+      if (!tournament?.enable_adaptive_weights) {
+        const finalTeams = fullSnakeDraftResult.teams.map((draftedTeam, index) => {
+          const originalTeam = availableTeams[index];
+          return [...originalTeam.members, ...draftedTeam];
         });
         
-        // Add notification for admin attention
-        notifications.sendNotification({
-          type: "warning",
-          title: "Radiant Distribution Issue",
-          message: `Tournament ${tournamentName}: ${radiantValidation.violations[0]?.reason}`,
-          tournamentId
-        });
+        const radiantValidation = validateRadiantDistribution(finalTeams);
+        if (!radiantValidation.isValid) {
+          console.error('🚨 RADIANT DISTRIBUTION VIOLATION AFTER AUTOBALANCE:', radiantValidation.violations);
+          
+          toast({
+            title: "⚠️ Radiant Player Distribution Warning",
+            description: `${radiantValidation.violations[0]?.reason} - Manual adjustment may be needed.`,
+            variant: "destructive",
+          });
+          
+          notifications.sendNotification({
+            type: "warning",
+            title: "Radiant Distribution Issue",
+            message: `Tournament ${tournamentName}: ${radiantValidation.violations[0]?.reason}`,
+            tournamentId
+          });
+        }
       }
 
       // Show completion message based on draft type

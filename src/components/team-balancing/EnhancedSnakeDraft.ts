@@ -283,24 +283,16 @@ export const enhancedSnakeDraft = async (
     return lowestTeamIndex;
   }
 
-  // FINAL VALIDATION: Check for Radiant distribution violations
-  const radiantValidation = validateRadiantDistribution(teams);
-  if (!radiantValidation.isValid) {
-    atlasLogger.radiantViolation(radiantValidation.violations);
-    
-    // Log violation details for debugging
-    radiantValidation.violations.forEach(violation => {
-      console.error(`❌ ${violation.reason}`);
-    });
-  }
+  // SKIP RADIANT VALIDATION: Let ATLAS anti-stacking handle this more comprehensively
+  // The radiant validation is redundant with ATLAS's intelligent anti-stacking system
+  console.log('🏛️ ATLAS: Skipping legacy Radiant validation - using comprehensive anti-stacking instead');
 
   return {
     teams,
     balanceSteps: allBalanceSteps,
     validationResult,
     adaptiveWeightCalculations: adaptiveWeightCalculations.length > 0 ? adaptiveWeightCalculations : undefined,
-    finalBalance,
-    radiantValidation // Add validation results to output
+    finalBalance
   };
 };
 
