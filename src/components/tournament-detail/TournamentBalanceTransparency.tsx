@@ -764,13 +764,13 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                               <div>
                                 <span className="text-muted-foreground">Current Rank:</span>
                                 <span className="ml-1 text-foreground font-medium">
-                                  {calc.calculation.currentRank || 'Unranked'} ({calc.calculation.currentRankPoints || 0} pts)
+                                  {(player as any)?.current_rank || calc.calculation.currentRank || 'Unranked'} ({calc.calculation.currentRankPoints || 0} pts)
                                 </span>
                               </div>
                               <div>
                                 <span className="text-muted-foreground">Peak Rank:</span>
                                 <span className="ml-1 text-foreground font-medium">
-                                  {calc.calculation.peakRank || 'Unranked'} ({calc.calculation.peakRankPoints || 0} pts)
+                                  {(player as any)?.peak_rank || calc.calculation.peakRank || 'Unranked'} ({calc.calculation.peakRankPoints || 0} pts)
                                 </span>
                               </div>
                               <div>
