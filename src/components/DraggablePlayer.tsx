@@ -100,7 +100,7 @@ const DraggablePlayer = ({ player, enableAdaptiveWeights }: DraggablePlayerProps
       className={`cursor-move ${isDragging ? 'opacity-50' : ''}`}
     >
       <Card className={`bg-slate-700 border-slate-600 hover:bg-slate-600 transition-colors ${
-        isRecentWinner ? 'shadow-[0_0_15px_rgba(255,215,0,0.6)] border-yellow-400/50' : ''
+        isRecentWinner ? 'shadow-[0_0_8px_rgba(245,158,11,0.4)] border-amber-500/40' : ''
       }`}>
         <CardContent className="p-3 flex items-center gap-3">
           <GripVertical className="w-4 h-4 text-slate-400" />

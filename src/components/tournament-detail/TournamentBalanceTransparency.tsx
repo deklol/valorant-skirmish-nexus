@@ -676,7 +676,7 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                     return (
                       <div key={calc.userId || index} className={`relative p-4 bg-gradient-to-br from-card/80 to-card/40 rounded-xl border hover:border-primary/30 transition-all duration-200 hover:shadow-lg ${
                         isRecentWinner 
-                          ? 'border-yellow-400/50 shadow-[0_0_15px_rgba(255,215,0,0.6)]' 
+                          ? 'border-amber-500/40 shadow-[0_0_8px_rgba(245,158,11,0.4)]' 
                           : 'border-border/30'
                       }`}>
                         {/* Header with player info */}
