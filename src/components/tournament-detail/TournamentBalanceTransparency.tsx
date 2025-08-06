@@ -18,6 +18,7 @@ interface BalanceStep {
     points: number;
     source?: string;
     evidenceWeight?: number; // ATLAS evidence weight
+    evidenceReasoning?: string; // ATLAS reasoning
   };
   assignedTo?: string; // Old format
   assignedTeam?: number; // New format
@@ -247,26 +248,33 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
       const currentRank = step.player.rank;
       const finalPoints = step.player.evidenceWeight || step.player.points || 0;
       
+      // FIRST: Check if we already have evidence reasoning from the balancing process
+      if (step.player.evidenceReasoning) {
+        console.log(`🔍 Found existing evidence reasoning for ${step.player.discord_username}:`, step.player.evidenceReasoning);
+      }
+      
       // Reconstruct ATLAS reasoning based on evidence
-      const reasoning = reconstructATLASReasoning(currentRank, finalPoints);
+      const reasoning = step.player.evidenceReasoning 
+        ? { reasoning: step.player.evidenceReasoning, evidenceFactors: [], currentRankPoints: 0, peakRank: currentRank, peakRankPoints: 0, basePoints: 0, tournamentBonus: 0, tournamentsWon: 0, rankDecay: 0, adaptiveFactor: 1.0 }
+        : reconstructATLASReasoning(currentRank, finalPoints);
       
       return {
         userId: step.player.id || 'unknown',
         calculation: {
           currentRank: currentRank,
-          currentRankPoints: reasoning.currentRankPoints,
-          peakRank: reasoning.peakRank,
-          peakRankPoints: reasoning.peakRankPoints,
+          currentRankPoints: typeof reasoning === 'string' ? 0 : reasoning.currentRankPoints,
+          peakRank: typeof reasoning === 'string' ? currentRank : reasoning.peakRank,
+          peakRankPoints: typeof reasoning === 'string' ? 0 : reasoning.peakRankPoints,
           calculatedAdaptiveWeight: finalPoints,
-          adaptiveFactor: reasoning.adaptiveFactor,
-          calculationReasoning: reasoning.reasoning,
+          adaptiveFactor: typeof reasoning === 'string' ? 1.0 : reasoning.adaptiveFactor,
+          calculationReasoning: typeof reasoning === 'string' ? reasoning : reasoning.reasoning,
           weightSource: 'evidence_based',
           finalPoints: finalPoints,
-          tournamentsWon: reasoning.tournamentsWon,
-          evidenceFactors: reasoning.evidenceFactors,
-          tournamentBonus: reasoning.tournamentBonus,
-          basePoints: reasoning.basePoints,
-          rankDecayApplied: reasoning.rankDecay,
+          tournamentsWon: typeof reasoning === 'string' ? 0 : reasoning.tournamentsWon,
+          evidenceFactors: typeof reasoning === 'string' ? [] : reasoning.evidenceFactors,
+          tournamentBonus: typeof reasoning === 'string' ? 0 : reasoning.tournamentBonus,
+          basePoints: typeof reasoning === 'string' ? 0 : reasoning.basePoints,
+          rankDecayApplied: typeof reasoning === 'string' ? 0 : reasoning.rankDecay,
           isEliteTier: finalPoints >= 400
         }
       };
