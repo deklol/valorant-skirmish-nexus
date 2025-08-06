@@ -282,10 +282,10 @@ const DetailedBalanceAnalysis = ({ balanceResult, tournamentName }: DetailedBala
                       <div key={index} className="bg-slate-700 rounded-lg p-3">
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-white font-medium">
-                            {player?.player.discord_username || 'Unknown Player'}
+                            {player?.player?.discord_username || `Player ${index + 1}`}
                           </span>
                           <Badge className="bg-emerald-600 text-white">
-                            {calculation.calculatedAdaptiveWeight || calculation.finalPoints} pts ({isAtlasEvidence ? 'ATLAS' : 'ADAPTIVE'})
+                            {calculation.finalPoints || calculation.calculatedAdaptiveWeight || 150} pts ({isAtlasEvidence ? 'ATLAS' : 'ADAPTIVE'})
                           </Badge>
                         </div>
                         <div className="text-sm text-slate-300 mb-2">
@@ -293,10 +293,10 @@ const DetailedBalanceAnalysis = ({ balanceResult, tournamentName }: DetailedBala
                         </div>
                         <div className="grid grid-cols-2 gap-4 text-xs text-slate-400">
                           <div>
-                            <span className="font-medium">Current:</span> {calculation.currentRank || 'Unranked'} ({calculation.currentRankPoints || calculation.basePoints} pts)
+                            <span className="font-medium">Current:</span> {calculation.currentRank || 'Unranked'} ({calculation.basePoints || calculation.currentRankPoints || 150} pts)
                           </div>
                           <div>
-                            <span className="font-medium">Peak:</span> {calculation.peakRank || 'N/A'} ({calculation.peakRankPoints} pts)
+                            <span className="font-medium">Peak:</span> {calculation.peakRank || 'N/A'} ({calculation.peakRankPoints || 'N/A'} pts)
                           </div>
                           {calculation.adaptiveFactor !== undefined && (
                             <div>
@@ -311,12 +311,12 @@ const DetailedBalanceAnalysis = ({ balanceResult, tournamentName }: DetailedBala
                               <span className="font-medium">Rank Decay:</span> {Math.round(calculation.rankDecayFactor * 100)}%
                             </div>
                           )}
-                          {calculation.rankDecayApplied !== undefined && (
-                            <div>
-                              <span className="font-medium">Decay Applied:</span> -{calculation.rankDecayApplied} pts
-                            </div>
+                           {calculation.rankDecayApplied !== undefined && calculation.rankDecayApplied > 0 && (
+                             <div>
+                               <span className="font-medium">Decay Applied:</span> -{calculation.rankDecayApplied} pts
+                             </div>
                           )}
-                          {calculation.tournamentBonus > 0 && (
+                          {(calculation.tournamentBonus > 0 || calculation.tournamentsWon > 0) && (
                             <div>
                               <span className="font-medium">Tournament Bonus:</span> +{calculation.tournamentBonus} pts
                             </div>
