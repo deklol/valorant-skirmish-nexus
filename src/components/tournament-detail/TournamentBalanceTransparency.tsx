@@ -617,11 +617,15 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
         {atlasCalculations.length > 0 && (
           <div className="mb-6">
             <div 
-              className={`relative flex items-center justify-between p-4 bg-secondary/5 rounded-lg cursor-pointer hover:bg-secondary/10 transition-all duration-300 ${
+              className={`flex items-center justify-between p-4 bg-secondary/5 rounded-lg cursor-pointer hover:bg-secondary/10 transition-all duration-300 ${
                 !isATLASExpanded 
-                  ? 'before:absolute before:inset-0 before:rounded-lg before:p-[1px] before:bg-gradient-to-r before:from-primary/40 before:via-accent/40 before:to-primary/40 before:animate-spin before:[animation-duration:3s] before:[mask:linear-gradient(#fff_0_0)_content-box,linear-gradient(#fff_0_0)] before:[mask-composite:xor] before:[mask-composite:exclude]' 
+                  ? 'border-2 animate-[rgb-border_2s_ease-in-out_infinite]' 
                   : 'border border-secondary/20'
               }`}
+              style={!isATLASExpanded ? {
+                borderImage: 'linear-gradient(45deg, #8b5cf6, #3b82f6, #8b5cf6) 1',
+                animation: 'rgb-border 2s ease-in-out infinite'
+              } : {}}
               onClick={() => setIsATLASExpanded(!isATLASExpanded)}
             >
               <div className="flex items-center gap-3">
