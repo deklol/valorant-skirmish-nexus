@@ -211,30 +211,40 @@ function createAtlasBalancedTeams(players: any[], numTeams: number, teamSize: nu
     });
   } else {
     // Multi-team distribution with enhanced balancing
+    // CRITICAL FIX: Ensure equal team sizes first, then balance skill
     while (remainingPlayers.length > 0) {
-      const teamTotals = teams.map(team => team.reduce((sum, p) => sum + p.evidenceWeight, 0));
-      const weakerTeamIndex = teamTotals.indexOf(Math.min(...teamTotals));
-      const strongerTeamIndex = teamTotals.indexOf(Math.max(...teamTotals));
-
-      // Enhanced logic: Always assign strongest available to weakest team
-      if (remainingPlayers.length > 0 && teams[weakerTeamIndex].length < teamSize) {
-        const strongestPlayer = remainingPlayers.shift();
-        if (strongestPlayer) {
-          teams[weakerTeamIndex].push(strongestPlayer);
+      // Find teams that still need players (have less than teamSize)
+      const teamsNeedingPlayers = teams
+        .map((team, index) => ({ team, index, count: team.length }))
+        .filter(t => t.count < teamSize)
+        .sort((a, b) => a.count - b.count); // Fill teams with fewer players first
+      
+      if (teamsNeedingPlayers.length === 0) {
+        console.warn('🏛️ ATLAS WARNING: All teams full but players remaining');
+        break;
+      }
+      
+      // Priority 1: Fill teams to equal size first
+      if (teamsNeedingPlayers.some(t => t.count < Math.ceil(players.length / numTeams))) {
+        const teamToFill = teamsNeedingPlayers[0]; // Team with fewest players
+        const playerToAssign = remainingPlayers.shift();
+        
+        if (playerToAssign) {
+          teams[teamToFill.index].push(playerToAssign);
           steps.push({
             step: ++stepCounter,
             player: {
-              id: strongestPlayer.id, 
-              discord_username: strongestPlayer.discord_username || 'Unknown',
-              points: strongestPlayer.evidenceWeight, 
-              rank: strongestPlayer.displayRank || 'Unranked',
-              source: strongestPlayer.weightSource || 'unknown', 
-              evidenceWeight: strongestPlayer.evidenceWeight, 
-              isElite: strongestPlayer.isElite,
-              evidenceReasoning: strongestPlayer.evidenceCalculation?.calculationReasoning,
+              id: playerToAssign.id, 
+              discord_username: playerToAssign.discord_username || 'Unknown',
+              points: playerToAssign.evidenceWeight, 
+              rank: playerToAssign.displayRank || 'Unranked',
+              source: playerToAssign.weightSource || 'unknown', 
+              evidenceWeight: playerToAssign.evidenceWeight, 
+              isElite: playerToAssign.isElite,
+              evidenceReasoning: playerToAssign.evidenceCalculation?.calculationReasoning,
             },
-            assignedTeam: weakerTeamIndex,
-            reasoning: `🏛️ ATLAS Smart Balance: ${strongestPlayer.discord_username} (${strongestPlayer.evidenceWeight}pts) → weakest team (Team ${weakerTeamIndex + 1})`,
+            assignedTeam: teamToFill.index,
+            reasoning: `🏛️ ATLAS Equal Distribution: ${playerToAssign.discord_username} (${playerToAssign.evidenceWeight}pts) → Team ${teamToFill.index + 1} (Size Balance: ${teamToFill.count}→${teamToFill.count + 1})`,
             teamStatesAfter: JSON.parse(JSON.stringify(teams)).map((team, index) => ({
               teamIndex: index, totalPoints: team.reduce((sum, p) => sum + p.evidenceWeight, 0),
               playerCount: team.length, eliteCount: team.filter(p => p.isElite).length
@@ -242,27 +252,30 @@ function createAtlasBalancedTeams(players: any[], numTeams: number, teamSize: nu
             phase: 'atlas_team_formation',
           });
         }
-      }
-
-      // Assign weakest to strongest team (if needed for team size balance)
-      if (remainingPlayers.length > 0 && teams[strongerTeamIndex].length < teamSize) {
-        const weakestPlayer = remainingPlayers.pop();
-        if (weakestPlayer) {
-          teams[strongerTeamIndex].push(weakestPlayer);
+      } else {
+        // Priority 2: All teams have equal base size, now balance skill
+        const teamTotals = teams.map(team => team.reduce((sum, p) => sum + p.evidenceWeight, 0));
+        const weakerTeamIndex = teamTotals.indexOf(Math.min(...teamTotals));
+        
+        const availableTeam = teamsNeedingPlayers.find(t => t.index === weakerTeamIndex) || teamsNeedingPlayers[0];
+        const playerToAssign = remainingPlayers.shift();
+        
+        if (playerToAssign && availableTeam) {
+          teams[availableTeam.index].push(playerToAssign);
           steps.push({
             step: ++stepCounter,
             player: {
-              id: weakestPlayer.id, 
-              discord_username: weakestPlayer.discord_username || 'Unknown',
-              points: weakestPlayer.evidenceWeight, 
-              rank: weakestPlayer.displayRank || 'Unranked',
-              source: weakestPlayer.weightSource || 'unknown', 
-              evidenceWeight: weakestPlayer.evidenceWeight, 
-              isElite: weakestPlayer.isElite,
-              evidenceReasoning: weakestPlayer.evidenceCalculation?.calculationReasoning,
+              id: playerToAssign.id, 
+              discord_username: playerToAssign.discord_username || 'Unknown',
+              points: playerToAssign.evidenceWeight, 
+              rank: playerToAssign.displayRank || 'Unranked',
+              source: playerToAssign.weightSource || 'unknown', 
+              evidenceWeight: playerToAssign.evidenceWeight, 
+              isElite: playerToAssign.isElite,
+              evidenceReasoning: playerToAssign.evidenceCalculation?.calculationReasoning,
             },
-            assignedTeam: strongerTeamIndex,
-            reasoning: `🏛️ ATLAS Counter-Balance: ${weakestPlayer.discord_username} (${weakestPlayer.evidenceWeight}pts) → strongest team (Team ${strongerTeamIndex + 1})`,
+            assignedTeam: availableTeam.index,
+            reasoning: `🏛️ ATLAS Skill Balance: ${playerToAssign.discord_username} (${playerToAssign.evidenceWeight}pts) → Team ${availableTeam.index + 1} (Weakest: ${teamTotals[availableTeam.index]}pts)`,
             teamStatesAfter: JSON.parse(JSON.stringify(teams)).map((team, index) => ({
               teamIndex: index, totalPoints: team.reduce((sum, p) => sum + p.evidenceWeight, 0),
               playerCount: team.length, eliteCount: team.filter(p => p.isElite).length
