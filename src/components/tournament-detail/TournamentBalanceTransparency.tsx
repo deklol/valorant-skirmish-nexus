@@ -636,7 +636,7 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
             
             {isATLASExpanded && (
               <div className="mt-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
                   {atlasCalculations.map((calc, index) => {
                     // Find matching player name from balance steps
                     const matchingStep = balanceSteps.find(step => step.player.id === calc.userId);
@@ -644,64 +644,97 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                     const playerRank = matchingStep?.player.rank || calc.calculation.currentRank || 'Unknown';
                     const finalPoints = calc.calculation.finalPoints || calc.calculation.calculatedAdaptiveWeight || 0;
                     
+                    // Find what team the player is on
+                    const playerTeam = teams.find(team => 
+                      team.team_members?.some(member => member.user_id === calc.userId)
+                    );
+                    
+                    // Get skill tier based on points
+                    const getSkillTier = (points: number) => {
+                      if (points >= 400) return { label: 'Elite', color: 'bg-red-500/10 text-red-600 border-red-500/20' };
+                      if (points >= 300) return { label: 'High Skilled', color: 'bg-purple-500/10 text-purple-600 border-purple-500/20' };
+                      if (points >= 200) return { label: 'Intermediate', color: 'bg-blue-500/10 text-blue-600 border-blue-500/20' };
+                      return { label: 'Developing', color: 'bg-gray-500/10 text-gray-600 border-gray-500/20' };
+                    };
+                    
+                    const skillTier = getSkillTier(finalPoints);
+                    const tournamentWins = calc.calculation.tournamentsWon || 0;
+                    const tournamentBonus = calc.calculation.tournamentBonus || 0;
+                    
                     return (
-                      <div key={calc.userId || index} className="p-4 bg-card/50 rounded-lg border border-border/50 hover:border-border transition-colors">
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="font-medium text-foreground truncate">{playerName}</h4>
-                          {calc.calculation.isEliteTier && (
-                            <Badge variant="secondary" className="text-xs bg-amber-500/10 text-amber-600 border-amber-500/20">
-                              Elite
-                            </Badge>
-                          )}
-                        </div>
-                        
-                        <div className="flex items-center gap-2 mb-3">
-                          <Badge variant="outline" className="text-xs">
-                            {playerRank}
-                          </Badge>
-                          <Badge variant="secondary" className="text-xs bg-primary/10 text-primary">
-                            {finalPoints} pts
-                          </Badge>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          {/* Enhanced reasoning */}
-                          <div className="text-sm bg-muted/30 p-3 rounded border">
-                            <div className="font-medium text-foreground mb-1">Calculation Breakdown:</div>
-                            <div className="text-muted-foreground text-xs leading-relaxed">
-                              {calc.calculation.calculationReasoning || `${playerRank} (${finalPoints} pts)`}
+                      <div key={calc.userId || index} className="relative p-4 bg-gradient-to-br from-card/80 to-card/40 rounded-xl border border-border/30 hover:border-primary/30 transition-all duration-200 hover:shadow-lg">
+                        {/* Header with player info */}
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-foreground text-sm truncate">{playerName}</h4>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Badge variant="outline" className="text-xs px-2 py-0.5">
+                                {playerRank}
+                              </Badge>
+                              <Badge className={`text-xs px-2 py-0.5 ${skillTier.color}`}>
+                                {skillTier.label}
+                              </Badge>
                             </div>
                           </div>
-                          
-                          {/* Evidence factors as compact badges */}
-                          {calc.calculation.evidenceFactors && calc.calculation.evidenceFactors.length > 0 && (
-                            <div className="flex flex-wrap gap-1">
-                              {calc.calculation.evidenceFactors.slice(0, 3).map((factor, idx) => (
-                                <Badge key={idx} variant="outline" className="text-xs">
-                                  {factor}
-                                </Badge>
-                              ))}
-                              {calc.calculation.evidenceFactors.length > 3 && (
-                                <Badge variant="outline" className="text-xs">
-                                  +{calc.calculation.evidenceFactors.length - 3} more
+                          <div className="text-right">
+                            <div className="text-lg font-bold text-primary">{finalPoints}</div>
+                            <div className="text-xs text-muted-foreground">points</div>
+                          </div>
+                        </div>
+
+                        {/* Team assignment */}
+                        {playerTeam && (
+                          <div className="mb-3 p-2 bg-muted/20 rounded-lg border border-muted/30">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full bg-primary"></div>
+                              <span className="text-xs font-medium text-foreground">{playerTeam.name}</span>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Tournament achievements */}
+                        {tournamentWins > 0 && (
+                          <div className="mb-3 p-2 bg-amber-500/10 rounded-lg border border-amber-500/20">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Trophy className="h-3 w-3 text-amber-600" />
+                                <span className="text-xs font-medium text-amber-700">
+                                  {tournamentWins} Tournament Win{tournamentWins !== 1 ? 's' : ''}
+                                </span>
+                              </div>
+                              {tournamentBonus > 0 && (
+                                <Badge className="text-xs bg-green-500/10 text-green-600 border-green-500/20">
+                                  +{tournamentBonus}pts
                                 </Badge>
                               )}
                             </div>
-                          )}
-                          
-                          {/* Tournament achievements */}
-                          {calc.calculation.tournamentsWon && calc.calculation.tournamentsWon > 0 && (
-                            <div className="flex items-center gap-2 text-xs p-2 bg-amber-500/5 rounded border border-amber-500/20">
-                              <Trophy className="h-3 w-3 text-amber-500" />
-                              <span className="text-foreground">
-                                🏆 {calc.calculation.tournamentsWon} win{calc.calculation.tournamentsWon !== 1 ? 's' : ''}
-                                {calc.calculation.tournamentBonus && (
-                                  <span className="text-green-500 ml-1">+{calc.calculation.tournamentBonus}pts</span>
-                                )}
-                              </span>
-                            </div>
-                          )}
+                          </div>
+                        )}
+                        
+                        {/* Calculation breakdown */}
+                        <div className="bg-muted/10 p-3 rounded-lg border border-muted/20">
+                          <div className="text-xs font-medium text-foreground mb-2">Calculation Details:</div>
+                          <div className="text-xs text-muted-foreground leading-relaxed">
+                            {calc.calculation.calculationReasoning || `${playerRank} ranking (${finalPoints} total points)`}
+                          </div>
                         </div>
+                        
+                        {/* Evidence factors (simplified) */}
+                        {calc.calculation.evidenceFactors && calc.calculation.evidenceFactors.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-1">
+                            {calc.calculation.evidenceFactors.slice(0, 2).map((factor, idx) => (
+                              <Badge key={idx} variant="outline" className="text-xs px-2 py-0.5">
+                                {factor.replace('🏆 ', '').substring(0, 20)}
+                                {factor.length > 20 ? '...' : ''}
+                              </Badge>
+                            ))}
+                            {calc.calculation.evidenceFactors.length > 2 && (
+                              <Badge variant="outline" className="text-xs px-2 py-0.5 opacity-60">
+                                +{calc.calculation.evidenceFactors.length - 2}
+                              </Badge>
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
