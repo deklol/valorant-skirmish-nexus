@@ -204,7 +204,6 @@
     transform: translateY(100vh);
     opacity: 0;
   }
-  }
 }
 
 @keyframes rgb-border {
@@ -228,3 +227,4 @@
     border-color: #8b5cf6;
     box-shadow: 0 0 8px rgba(139, 92, 246, 0.3);
   }
+}
