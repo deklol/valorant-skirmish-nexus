@@ -1,7 +1,11 @@
-// Unified Weight System - Single source of truth for all player weight calculations
-import { getRankPointsWithManualOverride, EnhancedRankPointsResult } from "./rankingSystemWithOverrides";
-import { calculateEvidenceBasedWeightWithMiniAi, EvidenceWithMiniAi } from "./evidenceBasedWeightSystem";
+/**
+ * Unified Weight System - Single source of truth for player weight calculations
+ * Consolidates various ranking and evidence-based systems with fallbacks and validation
+ */
+import { calculateEvidenceBasedWeightWithMiniAi } from "./evidenceBasedWeightSystem";
+import { getRankPointsWithManualOverride } from "./rankingSystemWithOverrides";
 import { RANK_POINT_MAPPING } from "./rankingSystem";
+import { atlasLogger } from "./atlasLogger";
 
 export interface UnifiedPlayerWeight {
   points: number;
@@ -40,7 +44,7 @@ export async function getUnifiedPlayerWeight(
   const cacheKey = `${userData.user_id || userData.id}_${userData.current_rank}_${userData.peak_rank}_${userData.manual_rank_override}_${enableATLAS}`;
   
   if (isTargetPlayer) {
-    console.log('🎯 UNIFIED WEIGHT CALCULATION for KERA:', {
+    atlasLogger.debug('UNIFIED WEIGHT CALCULATION for KERA', {
       userData,
       enableATLAS,
       options,
@@ -78,7 +82,7 @@ export async function getUnifiedPlayerWeight(
       const isElite = points >= 400;
 
       if (isTargetPlayer) {
-        console.log('🎯 KERA ATLAS RESULT:', {
+        atlasLogger.debug('KERA ATLAS RESULT', {
           points,
           reasoning: atlasResult.adjustmentReasoning,
           isValid,
@@ -108,7 +112,7 @@ export async function getUnifiedPlayerWeight(
       const isElite = points >= 400;
 
       if (isTargetPlayer) {
-        console.log('🎯 KERA STANDARD RESULT:', {
+        atlasLogger.debug('KERA STANDARD RESULT', {
           points,
           source: standardResult.source,
           rank: standardResult.rank,
@@ -130,14 +134,14 @@ export async function getUnifiedPlayerWeight(
       };
     }
   } catch (error) {
-    console.error('🚨 UNIFIED WEIGHT CALCULATION FAILED:', error);
+    atlasLogger.error('UNIFIED WEIGHT CALCULATION FAILED', error);
     
     // Enhanced fallback to basic rank points
     const fallbackRank = userData.current_rank || userData.peak_rank || 'Unranked';
     const fallbackPoints = RANK_POINT_MAPPING[fallbackRank] || 150;
 
     if (isTargetPlayer) {
-      console.log('🎯 KERA FALLBACK RESULT:', {
+      atlasLogger.debug('KERA FALLBACK RESULT', {
         fallbackRank,
         fallbackPoints,
         error: error.message

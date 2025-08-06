@@ -3,6 +3,7 @@ import { getRankPointsWithManualOverride } from "@/utils/rankingSystemWithOverri
 import { calculateEvidenceBasedWeightWithMiniAi, EvidenceWithMiniAi, EvidenceBasedConfig } from "@/utils/evidenceBasedWeightSystem";
 import { AtlasDecisionSystem } from "@/utils/miniAiDecisionSystem";
 import { getUnifiedPlayerWeight, validateRadiantDistribution, logWeightCalculation, hasRadiantHistory, type UnifiedPlayerWeight } from "@/utils/unifiedWeightSystem";
+import { atlasLogger } from "@/utils/atlasLogger";
 
 export interface BalanceStep {
   step: number;
@@ -114,7 +115,7 @@ export const enhancedSnakeDraft = async (
 
     // Check for 0 weight issue (should be fixed by unified system)
     if (unifiedResult.points <= 0) {
-      console.error(`🚨 ZERO WEIGHT DETECTED for ${player.discord_username}:`, unifiedResult);
+      atlasLogger.error(`Zero weight detected for ${player.discord_username}`, unifiedResult);
       throw new Error(`Player ${player.discord_username} has invalid weight: ${unifiedResult.points}`);
     }
 
@@ -173,7 +174,7 @@ export const enhancedSnakeDraft = async (
       }
     }
     
-    console.log(`🏛️ ATLAS: Player ${player.discord_username} (${player.adaptiveWeight}pts${player.isElite ? ', Elite' : ''}) → Team ${bestTeamIndex + 1} (balance optimization: ${Math.round(bestBalance)})`);
+    atlasLogger.playerAssigned(player.discord_username, player.adaptiveWeight, bestTeamIndex, `ATLAS balance optimization: ${Math.round(bestBalance)}`);
     return bestTeamIndex;
   };
 
@@ -242,7 +243,7 @@ export const enhancedSnakeDraft = async (
     allBalanceSteps = [...balanceSteps, ...validatedTeams.validationSteps];
     teams = validatedTeams.teams;
   } else {
-    console.log("🏛️ ATLAS enabled - skipping post-validation to preserve strategic team composition");
+    atlasLogger.info('ATLAS enabled - skipping post-validation to preserve strategic team composition');
   }
 
   // Add missing assignPlayerToLowestTeam function for non-ATLAS mode
@@ -267,7 +268,7 @@ export const enhancedSnakeDraft = async (
   // FINAL VALIDATION: Check for Radiant distribution violations
   const radiantValidation = validateRadiantDistribution(teams);
   if (!radiantValidation.isValid) {
-    console.error('🚨 RADIANT DISTRIBUTION VIOLATION in Enhanced Snake Draft:', radiantValidation.violations);
+    atlasLogger.radiantViolation(radiantValidation.violations);
     
     // Log violation details for debugging
     radiantValidation.violations.forEach(violation => {

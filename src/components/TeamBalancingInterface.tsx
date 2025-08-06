@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { DndContext, closestCenter, DragEndEvent, DragOverlay, useDraggable, useDroppable } from '@dnd-kit/core';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { atlasLogger } from "@/utils/atlasLogger";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -376,7 +377,7 @@ fetchTeamsAndPlayers();
   };
 
   const recalculateTeamTotals = async (useAdaptiveWeights: boolean) => {
-    console.log(`🔄 Recalculating team totals with UNIFIED ATLAS: ${useAdaptiveWeights}`);
+    atlasLogger.debug(`Recalculating team totals with UNIFIED ATLAS: ${useAdaptiveWeights}`);
     
     // Use UNIFIED weight system for ALL calculations
     const newTeams = await Promise.all(
@@ -949,7 +950,7 @@ variant: "destructive",
       // ==================================================================
       if (tournament?.enable_adaptive_weights) {
         // Use ATLAS-enhanced evidence-based snake draft
-        console.log("🚀 Executing evidenceBasedSnakeDraft (ATLAS is ON)");
+        atlasLogger.info("Executing evidenceBasedSnakeDraft (ATLAS is ON)");
         setCurrentPhase('atlas-initializing');
         
         fullSnakeDraftResult = await evidenceBasedSnakeDraft(
@@ -970,7 +971,7 @@ variant: "destructive",
         );
       } else {
         // Use standard enhanced snake draft
-        console.log("Standard snake draft (ATLAS is OFF)");
+        atlasLogger.info("Standard snake draft (ATLAS is OFF)");
         fullSnakeDraftResult = await enhancedSnakeDraft(
           sortedPlayers, 
           numTeams, 

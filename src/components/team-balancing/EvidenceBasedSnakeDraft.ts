@@ -2,6 +2,7 @@
 import { calculateEvidenceBasedWeightWithMiniAi, EvidenceBasedConfig, EvidenceBasedCalculation } from "@/utils/evidenceBasedWeightSystem";
 // import { processAtlasDecisions } from "@/utils/miniAiDecisionSystem";
 import { RANK_POINT_MAPPING } from "@/utils/rankingSystem";
+import { atlasLogger } from "@/utils/atlasLogger";
 import { 
   balanceTeamsConstraintFirst,
   type ConstraintConfig,
@@ -140,7 +141,7 @@ function createAtlasBalancedTeams(players: any[], numTeams: number, teamSize: nu
       return { teams, steps };
   }
 
-  console.log('🏛️ ATLAS PHASE 1 FIX: Implementing Balanced Captain Distribution');
+  atlasLogger.info('Phase 1: Implementing balanced captain distribution');
 
   // PHASE 1 FIX: Balanced Captain Assignment
   // Instead of sequential assignment, use round-robin with load balancing
@@ -175,7 +176,7 @@ function createAtlasBalancedTeams(players: any[], numTeams: number, teamSize: nu
         evidenceReasoning: captain.evidenceCalculation?.calculationReasoning,
       },
       assignedTeam: targetTeamIndex,
-      reasoning: `🏛️ ATLAS Strategic Captain: ${captain.discord_username} (${captain.evidenceWeight}pts) → Team ${targetTeamIndex + 1}. Balanced captain distribution prevents Team 0 dominance.`,
+      reasoning: `Strategic captain: ${captain.discord_username} (${captain.evidenceWeight}pts) → Team ${targetTeamIndex + 1}. Balanced distribution prevents Team 0 dominance.`,
       teamStatesAfter: JSON.parse(JSON.stringify(teams)).map((team, index) => ({
         teamIndex: index, totalPoints: team.reduce((sum, p) => sum + p.evidenceWeight, 0),
         playerCount: team.length, eliteCount: team.filter(p => p.isElite).length
@@ -185,7 +186,7 @@ function createAtlasBalancedTeams(players: any[], numTeams: number, teamSize: nu
   });
 
   // ATLAS COMBINATORIAL OPTIMIZATION: Find optimal team combinations for all tournaments
-  console.log(`🏛️ ATLAS COMBINATORIAL OPTIMIZATION: ${remainingPlayers.length} players, ${numTeams} teams, max ${teamSize} per team`);
+  atlasLogger.formationStarted(remainingPlayers.length, numTeams, teamSize);
   
   if (remainingPlayers.length > 0) {
     const optimalAssignment = findOptimalTeamCombination(remainingPlayers, teams, numTeams, teamSize, config);
@@ -208,7 +209,7 @@ function createAtlasBalancedTeams(players: any[], numTeams: number, teamSize: nu
           evidenceReasoning: player.evidenceCalculation?.calculationReasoning,
         },
         assignedTeam: assignment.teamIndex,
-        reasoning: `🏛️ ATLAS Optimal: ${player.discord_username} (${player.evidenceWeight}pts) → Team ${assignment.teamIndex + 1}. ${assignment.reasoning}`,
+        reasoning: `Optimal: ${player.discord_username} (${player.evidenceWeight}pts) → Team ${assignment.teamIndex + 1}. ${assignment.reasoning}`,
         teamStatesAfter: JSON.parse(JSON.stringify(teams)).map((team, index) => ({
           teamIndex: index, totalPoints: team.reduce((sum, p) => sum + p.evidenceWeight, 0),
           playerCount: team.length, eliteCount: team.filter(p => p.isElite).length
@@ -217,11 +218,8 @@ function createAtlasBalancedTeams(players: any[], numTeams: number, teamSize: nu
       });
     });
     
-    console.log('🏛️ ATLAS OPTIMAL COMBINATION SELECTED:');
-    console.log(`   - Combinations evaluated: ${optimalAssignment.combinationsEvaluated}`);
-    console.log(`   - Final balance score: ${optimalAssignment.finalScore.toFixed(2)}`);
-    console.log(`   - Elite distribution: ${optimalAssignment.eliteDistribution.join(', ')}`);
-    console.log(`   - Team totals: ${teams.map((team, i) => `T${i+1}=${team.reduce((sum, p) => sum + p.evidenceWeight, 0)}`).join(', ')}`);
+    atlasLogger.optimizationComplete(optimalAssignment.finalScore, optimalAssignment.eliteDistribution);
+    atlasLogger.combinationsEvaluated(optimalAssignment.combinationsEvaluated, optimalAssignment.finalScore);
   }
 
   return { teams, steps };
@@ -250,7 +248,7 @@ function findOptimalTeamCombination(
   config: EvidenceBasedConfig
 ): OptimalCombinationResult {
   
-  console.log('🏛️ ATLAS OPTIMIZATION: Starting combinatorial analysis...');
+  atlasLogger.debug('Starting combinatorial analysis');
   
   // Sort players by weight for strategic evaluation
   const sortedPlayers = [...players].sort((a, b) => b.evidenceWeight - a.evidenceWeight);
@@ -265,7 +263,7 @@ function findOptimalTeamCombination(
   // Generate and evaluate combinations
   if (players.length <= 6) {
     // Small groups: try all combinations (reduced threshold for true combinatorial)
-    console.log('🏛️ ATLAS: Using TRUE combinatorial optimization for small group');
+    atlasLogger.optimizationStarted('TRUE combinatorial', players.length);
     generateAllCombinations(sortedPlayers, existingTeams, numTeams, teamSize, (combination) => {
       const score = evaluateCombination(combination, existingTeams, config, teamSize, sortedPlayers);
       combinationsEvaluated++;
@@ -280,7 +278,7 @@ function findOptimalTeamCombination(
     });
   } else {
     // Large groups: use smart heuristic approaches
-    console.log('🏛️ ATLAS: Using smart heuristic for large group');
+    atlasLogger.optimizationStarted('Smart heuristic', players.length);
     bestCombination = generateSmartCombination(sortedPlayers, existingTeams, numTeams, teamSize, config);
     bestScore = evaluateCombination(bestCombination, existingTeams, config, teamSize, sortedPlayers);
     combinationsEvaluated = 1;
@@ -335,8 +333,7 @@ function generateSmartCombination(
     }
     
     if (availableTeams.length === 0) {
-      console.error(`🚨 ATLAS CRITICAL ERROR: All teams at capacity (${teamSize} players each). Cannot assign ${player.discord_username} - would violate team size constraints.`);
-      console.error(`🚨 Current team sizes: ${teamSizes} + pending assignments: ${assignments.map(a => a.teamIndex)}`);
+      atlasLogger.capacityError(player.discord_username, teamSizes, teamSize);
       // HARD STOP - do not create oversized teams
       return assignments; // Return current assignments, stop processing remaining players
     }
@@ -366,10 +363,10 @@ function generateSmartCombination(
     
     assignments.push({
       teamIndex: bestTeamIndex,
-      reasoning: `ATLAS Smart Assignment (score: ${bestBalanceScore.toFixed(1)}, team capacity: ${teamSizes[bestTeamIndex] + assignments.filter(a => a.teamIndex === bestTeamIndex).length + 1}/${teamSize})`
+      reasoning: `Smart assignment (score: ${bestBalanceScore.toFixed(1)}, capacity: ${teamSizes[bestTeamIndex] + assignments.filter(a => a.teamIndex === bestTeamIndex).length + 1}/${teamSize})`
     });
     
-    console.log(`🏛️ ATLAS: ${player.discord_username} (${player.evidenceWeight}pts) → Team ${bestTeamIndex + 1} (now ${teamSizes[bestTeamIndex] + assignments.filter(a => a.teamIndex === bestTeamIndex).length + 1}/${teamSize})`);
+    atlasLogger.playerAssigned(player.discord_username, player.evidenceWeight, bestTeamIndex, `Smart heuristic assignment`);
   });
   
   return assignments;
@@ -453,7 +450,7 @@ function evaluateCombination(
   // This should never happen now, but keep as safety check
   const sizeViolations = teamSizes.filter(size => size > teamSize).length;
   if (sizeViolations > 0) {
-    console.error(`🚨 ATLAS CRITICAL ERROR: Size violations detected in evaluation! Teams: ${teamSizes}`);
+    atlasLogger.constraintViolation('Team size', `Teams: ${teamSizes}, max allowed: ${teamSize}`);
     return -100000; // Extremely negative score
   }
   
@@ -551,10 +548,10 @@ export const evidenceBasedSnakeDraft = async (
     }
   };
 
-  console.log('🏛️ STARTING ATLAS-FIRST TEAM FORMATION');
+  atlasLogger.info('Starting ATLAS-first team formation');
 
   // PHASE 2 FIX: Consolidated Weight Calculation with Caching
-  console.log('🏛️ ATLAS PHASE 2 FIX: Implementing Weight Calculation Consolidation');
+  atlasLogger.info('Phase 2: Implementing weight calculation consolidation');
   
   const evidenceCalculations: Array<{ userId: string; calculation: any }> = [];
   const atlasEnhancements: MiniAiEnhancedResult = {
@@ -576,7 +573,7 @@ export const evidenceBasedSnakeDraft = async (
       let evidenceResult;
       if (weightCache.has(cacheKey)) {
         evidenceResult = weightCache.get(cacheKey);
-        console.log(`🏛️ ATLAS CACHE HIT for ${player.discord_username}`);
+        atlasLogger.weightCacheHit(player.discord_username);
       } else {
         evidenceResult = await calculateEvidenceBasedWeightWithMiniAi({
           current_rank: player.current_rank, peak_rank: player.peak_rank,
@@ -587,7 +584,7 @@ export const evidenceBasedSnakeDraft = async (
         }, config, true);
         
         weightCache.set(cacheKey, evidenceResult);
-        console.log(`🏛️ ATLAS WEIGHT CALCULATED for ${player.discord_username}: ${evidenceResult.finalAdjustedPoints}pts`);
+        atlasLogger.weightCalculated(player.discord_username, evidenceResult.finalAdjustedPoints, 'ATLAS unified');
       }
 
       // Enhanced calculation object for transparency
@@ -663,11 +660,10 @@ export const evidenceBasedSnakeDraft = async (
     })
   );
 
-  console.log('🏛️ ATLAS UNIFIED WEIGHT CALCULATIONS COMPLETE');
-  console.log(`🏛️ ATLAS CACHE PERFORMANCE: ${weightCache.size} unique calculations cached`);
+  atlasLogger.info(`Unified weight calculations complete: ${weightCache.size} unique calculations cached`);
 
   // PHASE 3: ATLAS Advanced Team Formation
-  console.log('🏛️ ATLAS PHASE 3: Advanced Team Formation with Mini-AI Integration');
+  atlasLogger.info('Phase 3: Advanced team formation with Mini-AI integration');
   const { teams: atlasCreatedTeams, steps: balanceSteps } = createAtlasBalancedTeams(
     playersWithEvidenceWeights,
     numTeams,
@@ -676,15 +672,14 @@ export const evidenceBasedSnakeDraft = async (
   );
 
   // PHASE 6 FIX: Add comprehensive validation logging
-  console.log('🏛️ ATLAS PHASE 6: Team Formation Validation');
+  atlasLogger.validationStarted(atlasCreatedTeams.length);
   const teamTotals = atlasCreatedTeams.map((team, index) => {
     const total = team.reduce((sum, p) => sum + p.evidenceWeight, 0);
-    console.log(`🏛️ Team ${index + 1}: ${total} points (${team.length} players)`);
     return total;
   });
   
   const maxDiff = Math.max(...teamTotals) - Math.min(...teamTotals);
-  console.log(`🏛️ ATLAS Formation Quality: ${maxDiff} point difference between teams`);
+  atlasLogger.formationComplete(atlasCreatedTeams, maxDiff);
 
   // Simulate progress for the UI with enhanced feedback
   for (let i = 0; i < balanceSteps.length; i++) {
@@ -748,10 +743,10 @@ async function performAtlasValidation(
   const decisions: any[] = [];
   const validationSteps: EvidenceBalanceStep[] = [];
 
-  console.log('🏛️ ATLAS VALIDATION STARTING: Analyzing team composition...');
+  atlasLogger.validationStarted(adjustedTeams.length);
 
   // PHASE 3 FIX: Enhanced Post-Formation Validation (reduced complexity since main formation is improved)
-  console.log('🏛️ ATLAS PHASE 3 FIX: Simplified Post-Formation Validation');
+  atlasLogger.info('Phase 3: Simplified post-formation validation');
   
   // For 2-team tournaments, only apply minimal post-validation since main formation handles balance
   if (adjustedTeams.length === 2) {
@@ -760,7 +755,7 @@ async function performAtlasValidation(
     
     // Only intervene if there's an extreme imbalance (>150 points) after formation
     if (pointDifference > 150) {
-      console.log(`🏛️ ATLAS 2-Team Post-Validation: Point difference ${pointDifference} exceeds threshold`);
+      atlasLogger.warn(`2-Team post-validation: point difference ${pointDifference} exceeds threshold`);
       
       const strongerTeamIndex = teamTotals[0] > teamTotals[1] ? 0 : 1;
       const weakerTeamIndex = 1 - strongerTeamIndex;
@@ -806,7 +801,7 @@ async function performAtlasValidation(
             source: 'ATLAS Post-Validation',
           },
           assignedTeam: -1,
-          reasoning: `🏛️ ATLAS Optimal Balance: Reduced point difference from ${pointDifference} to ${bestSwap.newDifference}. Strategic swap for enhanced 2-team balance.`,
+          reasoning: `Optimal balance: reduced point difference from ${pointDifference} to ${bestSwap.newDifference}. Strategic swap for enhanced 2-team balance.`,
           teamStatesAfter: JSON.parse(JSON.stringify(adjustedTeams)).map((team, index) => ({
             teamIndex: index, totalPoints: team.reduce((sum, p) => sum + p.evidenceWeight, 0),
             playerCount: team.length, eliteCount: team.filter(p => p.isElite).length
@@ -818,7 +813,7 @@ async function performAtlasValidation(
           player: `${bestSwap.strongPlayer.discord_username} ↔ ${bestSwap.weakPlayer.discord_username}`,
           fromTeam: strongerTeamIndex,
           toTeam: weakerTeamIndex,
-          reason: `ATLAS Post-Validation: Optimal swap reduced imbalance from ${pointDifference} to ${bestSwap.newDifference}`,
+          reason: `Post-validation: optimal swap reduced imbalance from ${pointDifference} to ${bestSwap.newDifference}`,
           type: 'balance_fix'
         });
 
