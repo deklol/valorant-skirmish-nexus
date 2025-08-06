@@ -8,6 +8,7 @@ import { GripVertical, Settings, TrendingUp, Zap } from "lucide-react";
 import { StyledUsername } from "./StyledUsername";
 import { getRankPointsWithManualOverride } from "@/utils/rankingSystemWithOverrides";
 import { calculateEvidenceBasedWeightWithMiniAi, ExtendedUserRankData } from "@/utils/evidenceBasedWeightSystem";
+import { useRecentTournamentWinners } from "@/hooks/useRecentTournamentWinners";
 
 interface Player {
   id: string;
@@ -38,6 +39,9 @@ const DraggablePlayer = ({ player, enableAdaptiveWeights }: DraggablePlayerProps
     transition,
     isDragging,
   } = useSortable({ id: player.id });
+  
+  const { recentWinnerIds } = useRecentTournamentWinners();
+  const isRecentWinner = recentWinnerIds.has(player.id);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -95,7 +99,9 @@ const DraggablePlayer = ({ player, enableAdaptiveWeights }: DraggablePlayerProps
       {...listeners}
       className={`cursor-move ${isDragging ? 'opacity-50' : ''}`}
     >
-      <Card className="bg-slate-700 border-slate-600 hover:bg-slate-600 transition-colors">
+      <Card className={`bg-slate-700 border-slate-600 hover:bg-slate-600 transition-colors ${
+        isRecentWinner ? 'shadow-[0_0_15px_rgba(255,215,0,0.6)] border-yellow-400/50' : ''
+      }`}>
         <CardContent className="p-3 flex items-center gap-3">
           <GripVertical className="w-4 h-4 text-slate-400" />
           <div className="flex-1">

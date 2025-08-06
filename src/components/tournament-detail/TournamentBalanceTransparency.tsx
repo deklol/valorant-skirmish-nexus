@@ -6,6 +6,7 @@ import { ChevronDown, ChevronUp, BarChart3, TrendingUp, Users, Trophy, Target, B
 import { useState } from "react";
 import { Team } from "@/types/tournamentDetail";
 import SwapSuggestionsSection from "./SwapSuggestionsSection";
+import { useRecentTournamentWinners } from "@/hooks/useRecentTournamentWinners";
 
 interface BalanceStep {
   step?: number; // New format
@@ -161,6 +162,8 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
   const [isATLASExpanded, setIsATLASExpanded] = useState(false);
   const [hasInteractedWithATLAS, setHasInteractedWithATLAS] = useState(false);
   const [isSwapExpanded, setIsSwapExpanded] = useState(false);
+  
+  const { recentWinnerIds } = useRecentTournamentWinners();
   
   // Helper functions to handle both old and new formats
   const getQualityScore = () => {
@@ -668,9 +671,14 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                     const skillTier = getSkillTier(finalPoints);
                     const tournamentWins = calc.calculation.tournamentsWon || 0;
                     const tournamentBonus = calc.calculation.tournamentBonus || 0;
+                    const isRecentWinner = recentWinnerIds.has(calc.userId);
                     
                     return (
-                      <div key={calc.userId || index} className="relative p-4 bg-gradient-to-br from-card/80 to-card/40 rounded-xl border border-border/30 hover:border-primary/30 transition-all duration-200 hover:shadow-lg">
+                      <div key={calc.userId || index} className={`relative p-4 bg-gradient-to-br from-card/80 to-card/40 rounded-xl border hover:border-primary/30 transition-all duration-200 hover:shadow-lg ${
+                        isRecentWinner 
+                          ? 'border-yellow-400/50 shadow-[0_0_15px_rgba(255,215,0,0.6)]' 
+                          : 'border-border/30'
+                      }`}>
                         {/* Header with player info */}
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1 min-w-0">
