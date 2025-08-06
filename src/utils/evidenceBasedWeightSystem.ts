@@ -236,7 +236,7 @@ export function calculateEvidenceBasedWeight(
     evidenceFactors.push(`🏆 Elite Tier Player (${config.skillTierCaps.eliteThreshold}+ points)`);
   }
 
-  const calculationReasoning = evidenceFactors.join(' | ');
+  const calculationReasoning = evidenceFactors.join(' | ').replace(/Elite Tier Player \(300\+ points\)/g, `Elite Tier Player (${config.skillTierCaps.eliteThreshold}+ points)`);
 
   // Debug logging for specific players
   if ((userData as any).discord_username?.toLowerCase().includes('kera')) {
