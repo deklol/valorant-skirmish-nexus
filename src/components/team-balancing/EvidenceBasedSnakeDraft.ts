@@ -211,79 +211,41 @@ function createAtlasBalancedTeams(players: any[], numTeams: number, teamSize: nu
     });
   } else {
     // Multi-team distribution with enhanced balancing
-    // CRITICAL FIX: Ensure equal team sizes first, then balance skill
+    // CRITICAL FIX: Simple round-robin distribution to ensure equal team sizes
     while (remainingPlayers.length > 0) {
-      // Find teams that still need players (have less than teamSize)
-      const teamsNeedingPlayers = teams
-        .map((team, index) => ({ team, index, count: team.length }))
-        .filter(t => t.count < teamSize)
-        .sort((a, b) => a.count - b.count); // Fill teams with fewer players first
+      // Round-robin assignment - assign to teams in order, prioritizing teams with fewer players
+      const teamCounts = teams.map((team, index) => ({ index, count: team.length }));
+      teamCounts.sort((a, b) => a.count - b.count); // Sort by team size, smallest first
       
-      if (teamsNeedingPlayers.length === 0) {
-        console.warn('🏛️ ATLAS WARNING: All teams full but players remaining');
-        break;
-      }
+      const targetTeamIndex = teamCounts[0].index; // Always assign to the team with fewest players
+      const playerToAssign = remainingPlayers.shift();
       
-      // Priority 1: Fill teams to equal size first
-      if (teamsNeedingPlayers.some(t => t.count < Math.ceil(players.length / numTeams))) {
-        const teamToFill = teamsNeedingPlayers[0]; // Team with fewest players
-        const playerToAssign = remainingPlayers.shift();
-        
-        if (playerToAssign) {
-          teams[teamToFill.index].push(playerToAssign);
-          steps.push({
-            step: ++stepCounter,
-            player: {
-              id: playerToAssign.id, 
-              discord_username: playerToAssign.discord_username || 'Unknown',
-              points: playerToAssign.evidenceWeight, 
-              rank: playerToAssign.displayRank || 'Unranked',
-              source: playerToAssign.weightSource || 'unknown', 
-              evidenceWeight: playerToAssign.evidenceWeight, 
-              isElite: playerToAssign.isElite,
-              evidenceReasoning: playerToAssign.evidenceCalculation?.calculationReasoning,
-            },
-            assignedTeam: teamToFill.index,
-            reasoning: `🏛️ ATLAS Equal Distribution: ${playerToAssign.discord_username} (${playerToAssign.evidenceWeight}pts) → Team ${teamToFill.index + 1} (Size Balance: ${teamToFill.count}→${teamToFill.count + 1})`,
-            teamStatesAfter: JSON.parse(JSON.stringify(teams)).map((team, index) => ({
-              teamIndex: index, totalPoints: team.reduce((sum, p) => sum + p.evidenceWeight, 0),
-              playerCount: team.length, eliteCount: team.filter(p => p.isElite).length
-            })),
-            phase: 'atlas_team_formation',
-          });
-        }
-      } else {
-        // Priority 2: All teams have equal base size, now balance skill
-        const teamTotals = teams.map(team => team.reduce((sum, p) => sum + p.evidenceWeight, 0));
-        const weakerTeamIndex = teamTotals.indexOf(Math.min(...teamTotals));
-        
-        const availableTeam = teamsNeedingPlayers.find(t => t.index === weakerTeamIndex) || teamsNeedingPlayers[0];
-        const playerToAssign = remainingPlayers.shift();
-        
-        if (playerToAssign && availableTeam) {
-          teams[availableTeam.index].push(playerToAssign);
-          steps.push({
-            step: ++stepCounter,
-            player: {
-              id: playerToAssign.id, 
-              discord_username: playerToAssign.discord_username || 'Unknown',
-              points: playerToAssign.evidenceWeight, 
-              rank: playerToAssign.displayRank || 'Unranked',
-              source: playerToAssign.weightSource || 'unknown', 
-              evidenceWeight: playerToAssign.evidenceWeight, 
-              isElite: playerToAssign.isElite,
-              evidenceReasoning: playerToAssign.evidenceCalculation?.calculationReasoning,
-            },
-            assignedTeam: availableTeam.index,
-            reasoning: `🏛️ ATLAS Skill Balance: ${playerToAssign.discord_username} (${playerToAssign.evidenceWeight}pts) → Team ${availableTeam.index + 1} (Weakest: ${teamTotals[availableTeam.index]}pts)`,
-            teamStatesAfter: JSON.parse(JSON.stringify(teams)).map((team, index) => ({
-              teamIndex: index, totalPoints: team.reduce((sum, p) => sum + p.evidenceWeight, 0),
-              playerCount: team.length, eliteCount: team.filter(p => p.isElite).length
-            })),
-            phase: 'atlas_team_formation',
-          });
-        }
-      }
+      if (!playerToAssign) break;
+      
+      teams[targetTeamIndex].push(playerToAssign);
+      
+      console.log(`🏛️ ATLAS ROUND-ROBIN: ${playerToAssign.discord_username} → Team ${targetTeamIndex + 1} (Size: ${teams[targetTeamIndex].length})`);
+      
+      steps.push({
+        step: ++stepCounter,
+        player: {
+          id: playerToAssign.id, 
+          discord_username: playerToAssign.discord_username || 'Unknown',
+          points: playerToAssign.evidenceWeight, 
+          rank: playerToAssign.displayRank || 'Unranked',
+          source: playerToAssign.weightSource || 'unknown', 
+          evidenceWeight: playerToAssign.evidenceWeight, 
+          isElite: playerToAssign.isElite,
+          evidenceReasoning: playerToAssign.evidenceCalculation?.calculationReasoning,
+        },
+        assignedTeam: targetTeamIndex,
+        reasoning: `🏛️ ATLAS Round-Robin: ${playerToAssign.discord_username} (${playerToAssign.evidenceWeight}pts) → Team ${targetTeamIndex + 1} (Equal Distribution: ${teams[targetTeamIndex].length} players)`,
+        teamStatesAfter: JSON.parse(JSON.stringify(teams)).map((team, index) => ({
+          teamIndex: index, totalPoints: team.reduce((sum, p) => sum + p.evidenceWeight, 0),
+          playerCount: team.length, eliteCount: team.filter(p => p.isElite).length
+        })),
+        phase: 'atlas_team_formation',
+      });
     }
   }
 
