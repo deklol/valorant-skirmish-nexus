@@ -960,10 +960,10 @@ variant: "destructive",
           sortedPlayers,
           numTeams,
           teamSize,
-          (progress: number, stage: string) => {
-            setProgressStep(Math.round(progress * 100));
-            setCurrentPhase(stage.includes('atlas') ? 'atlas-analyzing' : 
-                           stage.includes('validation') ? 'atlas-validating' : 'atlas-calculating');
+          (step) => {
+            setProgressStep(step.step);
+            setCurrentPhase(step.phase === 'team_formation' ? 'atlas-analyzing' : 
+                           step.phase === 'anti_stacking_validation' ? 'atlas-validating' : 'atlas-calculating');
           },
           () => {
             setCurrentPhase('atlas-validating');

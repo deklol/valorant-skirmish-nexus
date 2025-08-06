@@ -235,8 +235,8 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
           playerData,
           teamsToCreate,
           teamSize,
-          (progress: number, stage: string) => {
-            console.log(`🏛️ ATLAS balancing: ${Math.round(progress * 100)}% - ${stage}`);
+          (step) => {
+            console.log(`🏛️ ATLAS step ${step.step}: ${step.reasoning}`);
           },
           () => {
             console.log('🏛️ Starting ATLAS validation...');
