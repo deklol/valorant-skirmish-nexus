@@ -211,20 +211,39 @@ function createAtlasBalancedTeams(players: any[], numTeams: number, teamSize: nu
     });
   } else {
     // Multi-team distribution with enhanced balancing
-    // CRITICAL FIX: Simple round-robin distribution to ensure equal team sizes
+    // ATLAS RULE: Each team gets exactly 5 players (if enough players available)
+    const targetPlayersPerTeam = 5;
+    const maxPossibleTeams = Math.floor(remainingPlayers.length / targetPlayersPerTeam) + numTeams; // Count captains already assigned
+    
+    console.log(`🏛️ ATLAS TEAM SIZE ENFORCEMENT: Target ${targetPlayersPerTeam} players per team`);
+    console.log(`🏛️ ATLAS: ${remainingPlayers.length} remaining players, ${numTeams} teams with captains`);
+    
     while (remainingPlayers.length > 0) {
-      // Round-robin assignment - assign to teams in order, prioritizing teams with fewer players
+      // Find teams that still need players (less than 5 total including captain)
       const teamCounts = teams.map((team, index) => ({ index, count: team.length }));
       teamCounts.sort((a, b) => a.count - b.count); // Sort by team size, smallest first
       
-      const targetTeamIndex = teamCounts[0].index; // Always assign to the team with fewest players
-      const playerToAssign = remainingPlayers.shift();
+      // Find the team with fewest players that still needs players
+      const targetTeam = teamCounts.find(team => team.count < targetPlayersPerTeam);
       
+      if (!targetTeam) {
+        console.warn(`🏛️ ATLAS: All teams have ${targetPlayersPerTeam} players, but ${remainingPlayers.length} players remaining`);
+        // If all teams are full but players remain, distribute evenly
+        const targetTeamIndex = teamCounts[0].index;
+        const playerToAssign = remainingPlayers.shift();
+        if (playerToAssign) {
+          teams[targetTeamIndex].push(playerToAssign);
+          console.log(`🏛️ ATLAS OVERFLOW: ${playerToAssign.discord_username} → Team ${targetTeamIndex + 1} (Size: ${teams[targetTeamIndex].length})`);
+        }
+        continue;
+      }
+      
+      const playerToAssign = remainingPlayers.shift();
       if (!playerToAssign) break;
       
-      teams[targetTeamIndex].push(playerToAssign);
+      teams[targetTeam.index].push(playerToAssign);
       
-      console.log(`🏛️ ATLAS ROUND-ROBIN: ${playerToAssign.discord_username} → Team ${targetTeamIndex + 1} (Size: ${teams[targetTeamIndex].length})`);
+      console.log(`🏛️ ATLAS 5-PLAYER RULE: ${playerToAssign.discord_username} → Team ${targetTeam.index + 1} (Size: ${teams[targetTeam.index].length}/${targetPlayersPerTeam})`);
       
       steps.push({
         step: ++stepCounter,
@@ -238,8 +257,8 @@ function createAtlasBalancedTeams(players: any[], numTeams: number, teamSize: nu
           isElite: playerToAssign.isElite,
           evidenceReasoning: playerToAssign.evidenceCalculation?.calculationReasoning,
         },
-        assignedTeam: targetTeamIndex,
-        reasoning: `🏛️ ATLAS Round-Robin: ${playerToAssign.discord_username} (${playerToAssign.evidenceWeight}pts) → Team ${targetTeamIndex + 1} (Equal Distribution: ${teams[targetTeamIndex].length} players)`,
+        assignedTeam: targetTeam.index,
+        reasoning: `🏛️ ATLAS 5-Player Rule: ${playerToAssign.discord_username} (${playerToAssign.evidenceWeight}pts) → Team ${targetTeam.index + 1} (${teams[targetTeam.index].length}/${targetPlayersPerTeam} players)`,
         teamStatesAfter: JSON.parse(JSON.stringify(teams)).map((team, index) => ({
           teamIndex: index, totalPoints: team.reduce((sum, p) => sum + p.evidenceWeight, 0),
           playerCount: team.length, eliteCount: team.filter(p => p.isElite).length
