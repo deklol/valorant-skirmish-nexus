@@ -669,7 +669,17 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
         )}
 
         {/* ATLAS Decision System Section */}
-        {(balanceAnalysis.evidenceCalculations || balanceAnalysis.adaptiveWeightCalculations) && (
+        {(() => {
+          const evidenceCalcs = balanceAnalysis.evidenceCalculations || balanceAnalysis.adaptiveWeightCalculations || balanceAnalysis.adaptive_weight_calculations;
+          console.log('🏛️ ATLAS UI DEBUG:', { 
+            evidenceCalculations: balanceAnalysis.evidenceCalculations,
+            adaptiveWeightCalculations: balanceAnalysis.adaptiveWeightCalculations, 
+            adaptive_weight_calculations: balanceAnalysis.adaptive_weight_calculations,
+            method: balanceAnalysis.method,
+            balanceAnalysisKeys: Object.keys(balanceAnalysis)
+          });
+          return evidenceCalcs && evidenceCalcs.length > 0;
+        })() && (
           <div className="border-t border-border pt-4">
             <Button
               variant="ghost"
