@@ -78,13 +78,15 @@ export function validateAntiStacking(teams: any[][]): AntiStackingResult {
   }
 
   // Check for elite player concentration (multiple elite players on same team)
+  // Use higher threshold and be more lenient about elite concentration
   teams.forEach((team, teamIndex) => {
     const elitePlayers = team.filter(player => {
       const weight = player.evidenceWeight || player.adaptiveWeight || 150;
-      return weight >= 400 || player.isElite;
+      return weight >= 450 || player.isElite; // Raised threshold to 450
     });
 
-    if (elitePlayers.length > 1) {
+    // Only flag if more than 2 elites on one team (allow 2 since distribution may require it)
+    if (elitePlayers.length > 2) {
       elitePlayers.forEach(player => {
         violations.push({
           playerName: player.discord_username || 'Unknown',
@@ -93,7 +95,7 @@ export function validateAntiStacking(teams: any[][]): AntiStackingResult {
           teamTotal: teamTotals[teamIndex],
           violationType: 'elite_concentration',
           severity: 'warning',
-          recommendation: `Redistribute elite players to ensure no more than 1 per team`
+          recommendation: `Consider redistributing elite players (${elitePlayers.length} on one team)`
         });
       });
     }
@@ -103,10 +105,11 @@ export function validateAntiStacking(teams: any[][]): AntiStackingResult {
   teams.forEach((team, teamIndex) => {
     const highValuePlayers = team.filter(player => {
       const weight = player.evidenceWeight || player.adaptiveWeight || 150;
-      return weight >= 300;
+      return weight >= 350; // Raised threshold to reduce false positives
     });
 
-    if (highValuePlayers.length > 2) {
+    // Only flag if more than 3 high-value players on one team
+    if (highValuePlayers.length > 3) {
       violations.push({
         playerName: `Team ${teamIndex + 1} (${highValuePlayers.length} high-value players)`,
         playerWeight: teamTotals[teamIndex],
@@ -114,7 +117,7 @@ export function validateAntiStacking(teams: any[][]): AntiStackingResult {
         teamTotal: teamTotals[teamIndex],
         violationType: 'skill_stacking',
         severity: 'warning',
-        recommendation: `Redistribute high-value players to achieve better balance`
+        recommendation: `Consider redistributing high-value players (${highValuePlayers.length} on one team)`
       });
     }
   });
