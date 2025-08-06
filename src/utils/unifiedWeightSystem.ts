@@ -244,7 +244,9 @@ export function logWeightCalculation(
   result: UnifiedPlayerWeight,
   context: string = ''
 ): void {
-  console.log(`⚖️ WEIGHT CALC [${context}]: ${username}`, {
+  atlasLogger.weightCalculated(username, result.points, result.source);
+  atlasLogger.debug(`Weight calculation details [${context}]`, {
+    username,
     points: result.points,
     source: result.source,
     rank: result.rank,
