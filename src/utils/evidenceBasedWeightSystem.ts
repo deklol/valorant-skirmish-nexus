@@ -29,7 +29,7 @@ export interface EvidenceBasedCalculation {
   peakRank?: string;
   basePoints: number;
   tournamentBonus: number;
-  rankDecayApplied: number;
+  underrankedBonus: number;
   finalPoints: number;
   weightSource: 'manual_override' | 'evidence_based' | 'current_rank' | 'peak_rank' | 'default';
   calculationReasoning: string;
@@ -170,7 +170,7 @@ export function calculateEvidenceBasedWeight(
         peakRank: userData.peak_rank || undefined,
         basePoints: manualResult.points,
         tournamentBonus: 0,
-        rankDecayApplied: 0,
+        underrankedBonus: 0,
         finalPoints: manualResult.points,
         weightSource: 'manual_override',
         calculationReasoning: `Manual override: ${manualResult.rank} (${manualResult.points} points)`,
@@ -219,27 +219,27 @@ export function calculateEvidenceBasedWeight(
     evidenceFactors.push(`Tournament Winner: ${tournamentsWon} (+${tournamentBonus})`);
   }
 
-  // ONLY apply rank decay if there's concrete evidence of skill drop
-  let rankDecay = 0;
+  // ONLY apply underranked bonus if there's concrete evidence of being below peak skill
+  let underrankedBonus = 0;
   if (weightSource === 'current_rank' && peakRank && RANK_POINT_MAPPING[peakRank]) {
     const currentPoints = basePoints;
     const peakPoints = RANK_POINT_MAPPING[peakRank];
     const pointDifference = peakPoints - currentPoints;
     
-    // Only apply decay if dropped significantly (2+ tiers = 100+ points)
+    // Only apply bonus if dropped significantly (2+ tiers = 100+ points)
     if (pointDifference >= 100) {
       const tierDrops = Math.floor(pointDifference / 50); // Each tier ~50 points
       if (tierDrops >= config.rankDecayThreshold) {
-        // Gradual decay: 5% per tier beyond threshold, capped at maxDecayPercent
-        const decayPercent = Math.min((tierDrops - config.rankDecayThreshold + 1) * 0.05, config.maxDecayPercent);
-        rankDecay = Math.floor(basePoints * decayPercent);
-        evidenceFactors.push(`Underranked Bonus (+${Math.abs(rankDecay)})`);
+        // Gradual bonus: 5% per tier beyond threshold, capped at maxDecayPercent
+        const bonusPercent = Math.min((tierDrops - config.rankDecayThreshold + 1) * 0.05, config.maxDecayPercent);
+        underrankedBonus = Math.floor(basePoints * bonusPercent);
+        evidenceFactors.push(`Underranked Bonus (+${underrankedBonus})`);
       }
     }
   }
 
   // Calculate final points
-  const finalPoints = Math.max(basePoints + tournamentBonus - rankDecay, 100); // Minimum 100 points
+  const finalPoints = Math.max(basePoints + tournamentBonus + underrankedBonus, 100); // Minimum 100 points
 
   // Determine if this is an elite tier player
   const isEliteTier = finalPoints >= config.skillTierCaps.eliteThreshold;
@@ -252,7 +252,7 @@ export function calculateEvidenceBasedWeight(
     atlasLogger.debug(`Evidence-based calculation for ${(userData as any).discord_username}`, {
       basePoints,
       tournamentBonus,
-      rankDecay,
+      underrankedBonus,
       finalPoints,
       evidenceFactors,
       isEliteTier,
@@ -275,7 +275,7 @@ export function calculateEvidenceBasedWeight(
       peakRank: peakRank || undefined,
       basePoints,
       tournamentBonus,
-      rankDecayApplied: rankDecay,
+      underrankedBonus,
       finalPoints,
       weightSource: 'evidence_based',
       calculationReasoning,
