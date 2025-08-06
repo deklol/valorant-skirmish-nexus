@@ -293,14 +293,13 @@ const EnhancedTeamBalancingTool = ({
           assignedTeam: step.assignedTeam,
           reasoning: step.reasoning,
           teamStatesAfter: step.teamStatesAfter,
-          round: step.round,
-          direction: step.direction
+          phase: step.phase
         })),
-        validation_result: balanceResult.validationResult ? {
-          originalBalance: balanceResult.validationResult.originalBalance,
-          adjustmentsMade: balanceResult.validationResult.adjustmentsMade,
-          finalBalance: balanceResult.validationResult.finalBalance,
-          validationTime: balanceResult.validationResult.validationTime
+        validation_result: balanceResult.finalAnalysis ? {
+          antiStackingValid: balanceResult.finalAnalysis.antiStackingResults.isValid,
+          violations: balanceResult.finalAnalysis.antiStackingResults.violations,
+          smartBalanceApplied: balanceResult.finalAnalysis.smartBalanceApplied || false,
+          optimizationSteps: balanceResult.finalAnalysis.optimizationSteps || 0
         } : null,
         final_balance: {
           averageTeamPoints: balanceResult.finalAnalysis.pointBalance.averageTeamPoints,
@@ -548,8 +547,8 @@ const EnhancedTeamBalancingTool = ({
               </Badge>
               <span className="text-slate-300 text-sm">
                 {balanceResult.teams.length} teams • Max difference: {balanceResult.finalAnalysis.pointBalance.maxPointDifference} pts
-                {balanceResult.validationResult && (
-                  <span className="ml-2 text-blue-400">• Validated</span>
+                {balanceResult.finalAnalysis.antiStackingResults.isValid && (
+                  <span className="ml-2 text-green-400">• ATLAS Validated</span>
                 )}
               </span>
             </div>
