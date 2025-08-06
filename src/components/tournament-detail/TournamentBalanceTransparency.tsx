@@ -579,12 +579,14 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                         </Badge>
                       </div>
 
-                      {/* Reasoning */}
-                      <div className="text-sm text-foreground/80 mb-3 p-2 rounded bg-muted/30">
-                        {calc.calculation.calculationReasoning.split('. ').map((line, i) => (
-                          <div key={i} className="py-0.5">{line.trim()}</div>
-                        ))}
-                      </div>
+                      {/* Reasoning - Safe handling */}
+                      {calc.calculation.calculationReasoning && typeof calc.calculation.calculationReasoning === 'string' && (
+                        <div className="text-sm text-foreground/80 mb-3 p-2 rounded bg-muted/30">
+                          {calc.calculation.calculationReasoning.split('. ').map((line, i) => (
+                            <div key={i} className="py-0.5">{line.trim()}</div>
+                          ))}
+                        </div>
+                      )}
 
                       {/* Detailed Metrics Grid */}
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
@@ -732,11 +734,11 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                     {getEvidenceCalculations()
                       .sort((a, b) => (b.calculation.finalPoints || 0) - (a.calculation.finalPoints || 0))
                       .map((calc, index) => {
-                        // First try to find player in balance steps
+                        // Enhanced data fetching for accurate player information
                         const balanceSteps = getBalanceSteps();
                         const playerFromSteps = balanceSteps.find(step => step.player.id === calc.userId);
                         
-                        // Try multiple sources for player data
+                        // Try multiple sources for player data including actual DB data
                         const playerFromTeams = teams.flatMap(team => team.team_members || [])
                           .find(member => member.users?.id === calc.userId)?.users;
                         
@@ -747,20 +749,38 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                         const playerName = player?.discord_username || (playerFromSteps?.player?.discord_username) || `Player ${index + 1}`;
                         const points = calc.calculation.finalPoints || calc.calculation.calculatedAdaptiveWeight || 0;
                         
-                        // Get actual rank information - prioritize multiple sources
-                        const actualCurrentRank = playerFromTeams?.current_rank || (playerFromAnalysis as any)?.current_rank || calc.calculation.currentRank || 'Unranked';
-                        const actualPeakRank = playerFromTeams?.peak_rank || (playerFromAnalysis as any)?.peak_rank || calc.calculation.peakRank || 'Unranked';
+                        // Enhanced rank information retrieval - prioritize actual user data
+                        const actualCurrentRank = playerFromTeams?.current_rank || calc.calculation.currentRank || 'Unranked';
+                        const actualPeakRank = playerFromTeams?.peak_rank || calc.calculation.peakRank || 'Unranked'; 
                         const actualRankPoints = playerFromTeams?.rank_points || calc.calculation.currentRankPoints || 0;
-                        const actualWeightRating = playerFromTeams?.weight_rating || calc.calculation.finalPoints || calc.calculation.calculatedAdaptiveWeight || 0;
+                        const actualWeightRating = playerFromTeams?.weight_rating || calc.calculation.finalPoints || calc.calculation.calculatedAdaptiveWeight || 150;
+                        
+                        // Find which team this player is on
+                        let playerTeamIndex = -1;
+                        let playerTeamName = 'No Team';
+                        teams.forEach((team, teamIdx) => {
+                          if (team.team_members?.some(member => member.users?.id === calc.userId)) {
+                            playerTeamIndex = teamIdx;
+                            playerTeamName = team.name || `Team ${teamIdx + 1}`;
+                          }
+                        });
                         
                         return (
                           <div key={calc.userId} className="p-3 bg-muted/30 rounded-lg border border-border">
                             <div className="flex items-start justify-between mb-2">
-                              <span className="font-medium text-foreground">{playerName}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-foreground">{playerName}</span>
+                                {playerTeamIndex >= 0 && (
+                                  <span className="text-xs px-2 py-1 bg-primary/20 text-primary rounded-full">
+                                    {playerTeamName}
+                                  </span>
+                                )}
+                              </div>
                               <span className="text-sm font-bold text-foreground">{points} pts</span>
                             </div>
                             
-                            {calc.calculation.calculationReasoning && (
+                            {/* ATLAS Analysis - Safe handling of calculationReasoning */}
+                            {calc.calculation.calculationReasoning && typeof calc.calculation.calculationReasoning === 'string' && (
                               <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-950/30 rounded border border-blue-200/50 dark:border-blue-800/30">
                                 <div className="text-xs font-medium text-blue-800 dark:text-blue-300 mb-1">ATLAS Analysis:</div>
                                 <div className="text-xs text-blue-700 dark:text-blue-400">
@@ -769,31 +789,38 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                               </div>
                             )}
                             
+                            {/* Enhanced rank display with actual data */}
                             <div className="grid grid-cols-2 gap-3 text-xs">
                               <div>
                                 <span className="text-muted-foreground">Current Rank:</span>
                                 <span className="ml-1 text-foreground font-medium">
-                                  {actualCurrentRank} ({actualRankPoints} pts)
+                                  {actualCurrentRank} {actualRankPoints > 0 && `(${actualRankPoints} RR)`}
                                 </span>
                               </div>
                               <div>
                                 <span className="text-muted-foreground">Peak Rank:</span>
                                 <span className="ml-1 text-foreground font-medium">
-                                  {actualPeakRank} ({actualWeightRating} pts)
+                                  {actualPeakRank}
                                 </span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Weight Rating:</span>
+                                <span className="ml-1 text-foreground font-medium">{actualWeightRating}</span>
                               </div>
                               <div>
                                 <span className="text-muted-foreground">Weight Source:</span>
                                 <span className="ml-1 text-foreground font-medium">{calc.calculation.weightSource || 'evidence based'}</span>
                               </div>
-                              <div>
-                                <span className="text-muted-foreground">Rank Decay:</span>
-                                <span className="ml-1 text-foreground font-medium">
-                                  {Math.round((calc.calculation.rankDecayFactor || 0) * 100)}%
-                                </span>
-                              </div>
+                              {calc.calculation.rankDecayFactor && (
+                                <div>
+                                  <span className="text-muted-foreground">Rank Decay:</span>
+                                  <span className="ml-1 text-foreground font-medium">
+                                    {Math.round((calc.calculation.rankDecayFactor || 0) * 100)}%
+                                  </span>
+                                </div>
+                              )}
                               {calc.calculation.tournamentsWon && (
-                                <div className="col-span-2">
+                                <div>
                                   <span className="text-muted-foreground">Tournaments Won:</span>
                                   <span className="ml-1 text-foreground font-medium">{calc.calculation.tournamentsWon}</span>
                                 </div>
