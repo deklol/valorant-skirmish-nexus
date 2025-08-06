@@ -781,7 +781,7 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                         
                         {/* Tournament Achievements */}
                         {tournamentWins > 0 && (
-                          <div className="mt-4 p-4 bg-gradient-to-r from-amber-500/10 to-yellow-500/5 rounded-xl border border-amber-400/30">
+                          <div className="mt-4 p-4 bg-gradient-to-r from-amber-500/10 to-yellow-500/5 rounded-xl border border-amber-400/30 min-h-[80px]">
                             <div className="flex items-center justify-between mb-3">
                               <div className="flex items-center gap-2">
                                 <Trophy className="h-4 w-4 text-amber-600" />
@@ -843,40 +843,6 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                             )}
                           </div>
                         </div>
-                        
-                        {/* Evidence Factors */}
-                        {calc.calculation.evidenceFactors && calc.calculation.evidenceFactors.length > 0 && (
-                          <div className="mt-4">
-                            <div className="text-xs font-medium text-muted-foreground mb-2">Evidence Factors</div>
-                            <div className="flex flex-wrap gap-2">
-                              {calc.calculation.evidenceFactors.slice(0, 2).map((factor, idx) => (
-                                <Badge key={idx} variant="secondary" className="text-xs px-3 py-1">
-                                  {factor.replace('🏆 ', '')}
-                                </Badge>
-                              ))}
-                              
-                              {calc.calculation.evidenceFactors.length > 2 && (
-                                <>
-                                  {expandedPlayerFactors.has(calc.userId) ? (
-                                    calc.calculation.evidenceFactors.slice(2).map((factor, idx) => (
-                                      <Badge key={idx + 2} variant="secondary" className="text-xs px-3 py-1">
-                                        {factor.replace('🏆 ', '')}
-                                      </Badge>
-                                    ))
-                                  ) : (
-                                    <Badge 
-                                      variant="outline" 
-                                      className="text-xs px-3 py-1 cursor-pointer hover:bg-muted/50 transition-colors"
-                                      onClick={() => togglePlayerFactors(calc.userId)}
-                                    >
-                                      +{calc.calculation.evidenceFactors.length - 2} more
-                                    </Badge>
-                                  )}
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        )}
                       </div>
                     );
                   })}
