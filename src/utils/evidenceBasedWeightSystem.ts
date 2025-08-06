@@ -73,11 +73,20 @@ export function calculateEvidenceBasedWeightWithMiniAi(
   return new Promise(async (resolve) => {
     const evidenceResult = calculateEvidenceBasedWeight(userData, config);
     
-    if (!enableMiniAi) {
+    // Skip ATLAS if we have sufficient evidence data to prevent double-counting
+    const hasSufficientEvidence = userData.peak_rank && 
+      (userData.current_rank || userData.peak_rank) &&
+      userData.peak_rank !== 'Unranked';
+    
+    if (!enableMiniAi || hasSufficientEvidence) {
+      const reasoning = hasSufficientEvidence && enableMiniAi 
+        ? evidenceResult.evidenceCalculation?.calculationReasoning + '\n[ATLAS disabled - sufficient evidence data]'
+        : evidenceResult.evidenceCalculation?.calculationReasoning || 'Standard evidence-based calculation';
+        
       resolve({
         evidenceResult,
         finalAdjustedPoints: evidenceResult.points,
-        adjustmentReasoning: evidenceResult.evidenceCalculation?.calculationReasoning || 'Standard evidence-based calculation'
+        adjustmentReasoning: reasoning
       });
       return;
     }
