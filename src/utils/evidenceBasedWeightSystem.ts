@@ -128,7 +128,7 @@ export function calculateEvidenceBasedWeightWithMiniAi(
           analysisFlags: playerAnalysis.analysisFlags
         });
         
-        adjustmentReasoning += ` | ATLAS ${adjustmentType}: ${playerAnalysis.adjustmentReason} (${pointDifference > 0 ? '+' : ''}${pointDifference} pts, Confidence: ${playerAnalysis.confidenceScore}%)`;
+        adjustmentReasoning += `\nATLAS ${adjustmentType}: ${playerAnalysis.adjustmentReason} (${pointDifference > 0 ? '+' : ''}${pointDifference} pts, Confidence: ${playerAnalysis.confidenceScore}%)`;
       }
 
       resolve({

@@ -845,34 +845,36 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                         {calc.calculation.evidenceFactors && calc.calculation.evidenceFactors.length > 0 && (
                           <div className="mt-2">
                             <div className="flex flex-wrap gap-1">
+                              {/* Show first 2 factors always */}
                               {calc.calculation.evidenceFactors.slice(0, 2).map((factor, idx) => (
                                 <Badge key={idx} variant="outline" className="text-xs px-2 py-0.5">
-                                  {factor.replace('🏆 ', '').substring(0, 20)}
-                                  {factor.length > 20 ? '...' : ''}
+                                  {factor.replace('🏆 ', '')}
                                 </Badge>
                               ))}
+                              
+                              {/* Show remaining factors when expanded, or +N button when collapsed */}
                               {calc.calculation.evidenceFactors.length > 2 && (
-                                <Badge 
-                                  variant="outline" 
-                                  className="text-xs px-2 py-0.5 opacity-60 cursor-pointer hover:opacity-100 transition-opacity"
-                                  onClick={() => togglePlayerFactors(calc.userId)}
-                                >
-                                  +{calc.calculation.evidenceFactors.length - 2}
-                                </Badge>
+                                <>
+                                  {expandedPlayerFactors.has(calc.userId) ? (
+                                    // Show all remaining factors when expanded
+                                    calc.calculation.evidenceFactors.slice(2).map((factor, idx) => (
+                                      <Badge key={idx + 2} variant="outline" className="text-xs px-2 py-0.5">
+                                        {factor.replace('🏆 ', '')}
+                                      </Badge>
+                                    ))
+                                  ) : (
+                                    // Show +N button when collapsed
+                                    <Badge 
+                                      variant="outline" 
+                                      className="text-xs px-2 py-0.5 opacity-60 cursor-pointer hover:opacity-100 transition-opacity"
+                                      onClick={() => togglePlayerFactors(calc.userId)}
+                                    >
+                                      +{calc.calculation.evidenceFactors.length - 2}
+                                    </Badge>
+                                  )}
+                                </>
                               )}
                             </div>
-                            
-                            {/* Expanded evidence factors */}
-                            {expandedPlayerFactors.has(calc.userId) && calc.calculation.evidenceFactors.length > 2 && (
-                              <div className="mt-2 flex flex-wrap gap-1">
-                                {calc.calculation.evidenceFactors.slice(2).map((factor, idx) => (
-                                  <Badge key={idx + 2} variant="outline" className="text-xs px-2 py-0.5">
-                                    {factor.replace('🏆 ', '').substring(0, 20)}
-                                    {factor.length > 20 ? '...' : ''}
-                                  </Badge>
-                                ))}
-                              </div>
-                            )}
                           </div>
                         )}
                       </div>
