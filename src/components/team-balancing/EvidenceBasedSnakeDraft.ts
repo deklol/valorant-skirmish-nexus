@@ -5,6 +5,32 @@ import { validateAntiStacking, logAntiStackingResults } from "@/utils/antiStacki
 
 // ============= CORE INTERFACES =============
 
+interface SwapSuggestion {
+  strategy: 'direct' | 'secondary' | 'cascading' | 'fallback';
+  player1: {
+    name: string;
+    rank: string;
+    points: number;
+    currentTeam: number;
+  };
+  player2?: {
+    name: string;
+    rank: string;
+    points: number;
+    currentTeam: number;
+  };
+  targetTeam?: number;
+  expectedImprovement: number;
+  reasoning: string;
+  outcome: 'executed' | 'rejected' | 'considered';
+  rejectionReason?: string;
+  balanceImpact: {
+    beforeBalance: number;
+    afterBalance: number;
+    violationResolved: boolean;
+  };
+}
+
 export interface EvidenceBalanceStep {
   step: number;
   player: {
@@ -471,7 +497,7 @@ function performSmartAtlasBalancing(
     
     // Strategy 1: Direct highest player swap (original approach)
     atlasLogger.info(`🔄 Strategy 1: Attempting direct highest player swap`);
-    const directSwapResult = findOptimalHighestPlayerSwap(optimizedTeams, highestWeightPlayer, highestPlayerTeamIndex);
+    const directSwapResult = findOptimalHighestPlayerSwapWithTracking(optimizedTeams, highestWeightPlayer, highestPlayerTeamIndex, []);
     
     if (directSwapResult.swapFound) {
       const { result: swapResult, steps: directSteps } = performPlayerSwap(
@@ -490,7 +516,7 @@ function performSmartAtlasBalancing(
     } else {
       // Strategy 2: Secondary player swaps on strongest team
       atlasLogger.info(`🔄 Strategy 2: Attempting secondary player swap on strongest team`);
-      const secondarySwapResult = findOptimalSecondaryPlayerSwap(optimizedTeams, highestWeightPlayer, highestPlayerTeamIndex);
+      const secondarySwapResult = findOptimalSecondaryPlayerSwapWithTracking(optimizedTeams, highestWeightPlayer, highestPlayerTeamIndex, []);
       
       if (secondarySwapResult.swapFound) {
         const { result: swapResult, steps: secondarySteps } = performPlayerSwap(
@@ -509,7 +535,7 @@ function performSmartAtlasBalancing(
       } else {
         // Strategy 3: Cascading swaps (try multiple combinations)
         atlasLogger.info(`🔄 Strategy 3: Attempting cascading swap combinations`);
-        const cascadingResult = findOptimalCascadingSwaps(optimizedTeams, highestWeightPlayer, highestPlayerTeamIndex);
+        const cascadingResult = findOptimalCascadingSwapsWithTracking(optimizedTeams, highestWeightPlayer, highestPlayerTeamIndex, []);
         
         if (cascadingResult.swapsFound) {
           for (const swap of cascadingResult.swaps!) {
@@ -530,7 +556,7 @@ function performSmartAtlasBalancing(
         } else {
           // Fallback: Force move strategy
           atlasLogger.info(`⚡ FALLBACK: All strategies failed, forcing move to weakest team`);
-          const fallbackResult = performForcedMove(optimizedTeams, highestWeightPlayer, highestPlayerTeamIndex, stepCounter);
+          const fallbackResult = performForcedMoveWithTracking(optimizedTeams, highestWeightPlayer, highestPlayerTeamIndex, stepCounter, []);
           if (fallbackResult) {
             optimizedTeams = fallbackResult.result;
             optimizationSteps.push(...fallbackResult.steps);
@@ -595,10 +621,11 @@ function performPlayerSwap(
 
 // ============= SWAP STRATEGY FUNCTIONS =============
 
-function findOptimalHighestPlayerSwap(
+function findOptimalHighestPlayerSwapWithTracking(
   teams: any[][],
   highestWeightPlayer: any,
-  highestPlayerTeamIndex: number
+  highestPlayerTeamIndex: number,
+  swapSuggestions: SwapSuggestion[]
 ): { swapFound: boolean; targetPlayer?: any; targetTeamIndex?: number; improvement?: number } {
   let bestSwap: { swapFound: boolean; targetPlayer?: any; targetTeamIndex?: number; improvement: number } = { 
     swapFound: false, 
@@ -628,6 +655,32 @@ function findOptimalHighestPlayerSwap(
       const newHighestPlayerTeamStrength = newTeamTotals.indexOf(Math.max(...newTeamTotals));
       const highestPlayerMovesToWeakerTeam = teamIndex !== newHighestPlayerTeamStrength;
       
+      // Track this suggestion
+      const suggestion: SwapSuggestion = {
+        strategy: 'direct',
+        player1: {
+          name: highestWeightPlayer.discord_username,
+          rank: highestWeightPlayer.rank || 'Unknown',
+          points: highestWeightPlayer.evidenceWeight,
+          currentTeam: highestPlayerTeamIndex
+        },
+        player2: {
+          name: targetPlayer.discord_username,
+          rank: targetPlayer.rank || 'Unknown',
+          points: targetPlayer.evidenceWeight,
+          currentTeam: teamIndex
+        },
+        expectedImprovement: improvement,
+        reasoning: `Direct swap of highest player (${highestWeightPlayer.discord_username}) with ${targetPlayer.discord_username} to reduce team strength imbalance`,
+        outcome: improvement > bestSwap.improvement && highestPlayerMovesToWeakerTeam ? 'considered' : 'rejected',
+        rejectionReason: improvement <= bestSwap.improvement ? 'Insufficient improvement' : !highestPlayerMovesToWeakerTeam ? 'Does not resolve violation' : undefined,
+        balanceImpact: {
+          beforeBalance: currentBalance,
+          afterBalance: newBalance,
+          violationResolved: highestPlayerMovesToWeakerTeam
+        }
+      };
+      
       if (improvement > bestSwap.improvement && highestPlayerMovesToWeakerTeam) {
         bestSwap = {
           swapFound: true,
@@ -635,7 +688,10 @@ function findOptimalHighestPlayerSwap(
           targetTeamIndex: teamIndex,
           improvement
         };
+        suggestion.outcome = 'executed';
       }
+      
+      swapSuggestions.push(suggestion);
     });
   });
   
@@ -644,10 +700,11 @@ function findOptimalHighestPlayerSwap(
   return bestSwap;
 }
 
-function findOptimalSecondaryPlayerSwap(
+function findOptimalSecondaryPlayerSwapWithTracking(
   teams: any[][],
   highestWeightPlayer: any,
-  strongestTeamIndex: number
+  strongestTeamIndex: number,
+  swapSuggestions: SwapSuggestion[]
 ): { swapFound: boolean; swapPlayer?: any; targetPlayer?: any; targetTeamIndex?: number; improvement?: number } {
   let bestSwap: { swapFound: boolean; swapPlayer?: any; targetPlayer?: any; targetTeamIndex?: number; improvement: number } = { 
     swapFound: false, 
@@ -685,6 +742,32 @@ function findOptimalSecondaryPlayerSwap(
           const newStrongestTeamIndex = newTeamTotals.indexOf(Math.max(...newTeamTotals));
           const violationResolved = newStrongestTeamIndex !== strongestTeamIndex;
           
+          // Track this suggestion
+          const suggestion: SwapSuggestion = {
+            strategy: 'secondary',
+            player1: {
+              name: secondaryPlayer.discord_username,
+              rank: secondaryPlayer.rank || 'Unknown',
+              points: secondaryPlayer.evidenceWeight,
+              currentTeam: strongestTeamIndex
+            },
+            player2: {
+              name: targetPlayer.discord_username,
+              rank: targetPlayer.rank || 'Unknown',
+              points: targetPlayer.evidenceWeight,
+              currentTeam: teamIndex
+            },
+            expectedImprovement: improvement,
+            reasoning: `Secondary player swap from strongest team to reduce overall team strength while keeping highest player in place`,
+            outcome: improvement > bestSwap.improvement && violationResolved ? 'considered' : 'rejected',
+            rejectionReason: improvement <= bestSwap.improvement ? 'Insufficient improvement' : !violationResolved ? 'Does not resolve violation' : undefined,
+            balanceImpact: {
+              beforeBalance: currentBalance,
+              afterBalance: newBalance,
+              violationResolved
+            }
+          };
+          
           if (improvement > bestSwap.improvement && violationResolved) {
             bestSwap = {
               swapFound: true,
@@ -693,7 +776,10 @@ function findOptimalSecondaryPlayerSwap(
               targetTeamIndex: teamIndex,
               improvement
             };
+            suggestion.outcome = 'executed';
           }
+          
+          swapSuggestions.push(suggestion);
         });
       });
     });
@@ -703,10 +789,11 @@ function findOptimalSecondaryPlayerSwap(
   return bestSwap;
 }
 
-function findOptimalCascadingSwaps(
+function findOptimalCascadingSwapsWithTracking(
   teams: any[][],
   highestWeightPlayer: any,
-  strongestTeamIndex: number
+  strongestTeamIndex: number,
+  swapSuggestions: SwapSuggestion[]
 ): { swapsFound: boolean; swaps?: Array<{player1: any, player2: any, team1Index: number, team2Index: number}>; improvement?: number } {
   const currentTeamTotals = teams.map(team => team.reduce((sum, p) => sum + p.evidenceWeight, 0));
   const currentBalance = Math.max(...currentTeamTotals) - Math.min(...currentTeamTotals);
@@ -754,6 +841,34 @@ function findOptimalCascadingSwaps(
     const newStrongestTeamIndex = simulatedTotals.indexOf(Math.max(...simulatedTotals));
     const violationResolved = newStrongestTeamIndex !== strongestTeamIndex;
     
+    // Track this cascading suggestion
+    const suggestion: SwapSuggestion = {
+      strategy: 'cascading',
+      player1: {
+        name: swap.player1.discord_username,
+        rank: swap.player1.rank || 'Unknown',
+        points: swap.player1.evidenceWeight,
+        currentTeam: swap.team1Index
+      },
+      player2: {
+        name: swap.player2.discord_username,
+        rank: swap.player2.rank || 'Unknown',
+        points: swap.player2.evidenceWeight,
+        currentTeam: swap.team2Index
+      },
+      expectedImprovement: improvement,
+      reasoning: `Cascading swap sequence to progressively reduce strongest team strength through multiple player exchanges`,
+      outcome: improvement > 0 && violationResolved ? 'executed' : 'rejected',
+      rejectionReason: improvement <= 0 ? 'No improvement' : !violationResolved ? 'Does not resolve violation' : undefined,
+      balanceImpact: {
+        beforeBalance: currentBalance,
+        afterBalance: newBalance,
+        violationResolved
+      }
+    };
+    
+    swapSuggestions.push(suggestion);
+    
     if (improvement > 0 && violationResolved) {
       atlasLogger.info(`🔍 Cascading Swap Analysis: Found beneficial cascading swap with ${improvement.toFixed(1)} point improvement`);
       return {
@@ -768,11 +883,12 @@ function findOptimalCascadingSwaps(
   return { swapsFound: false };
 }
 
-function performForcedMove(
+function performForcedMoveWithTracking(
   teams: any[][],
   highestWeightPlayer: any,
   highestPlayerTeamIndex: number,
-  stepCounter: number
+  stepCounter: number,
+  swapSuggestions: SwapSuggestion[]
 ): { result: any[][], steps: EvidenceBalanceStep[] } | null {
   const teamTotals = teams.map(team => team.reduce((sum, p) => sum + p.evidenceWeight, 0));
   const weakestTeamIndex = teamTotals.indexOf(Math.min(...teamTotals));
@@ -786,7 +902,56 @@ function performForcedMove(
     .filter(p => p.evidenceWeight < highestWeightPlayer.evidenceWeight * 0.7)
     .sort((a, b) => a.evidenceWeight - b.evidenceWeight)[0];
   
-  if (!moveBackPlayer) return null;
+  if (!moveBackPlayer) {
+    // Track failed fallback
+    const suggestion: SwapSuggestion = {
+      strategy: 'fallback',
+      player1: {
+        name: highestWeightPlayer.discord_username,
+        rank: highestWeightPlayer.rank || 'Unknown',
+        points: highestWeightPlayer.evidenceWeight,
+        currentTeam: highestPlayerTeamIndex
+      },
+      targetTeam: weakestTeamIndex,
+      expectedImprovement: 0,
+      reasoning: `Fallback strategy to force move highest player to weakest team`,
+      outcome: 'rejected',
+      rejectionReason: 'No suitable lighter player found for counter-move',
+      balanceImpact: {
+        beforeBalance: teams.map(team => team.reduce((sum, p) => sum + p.evidenceWeight, 0)).reduce((max, current) => Math.max(max, current), 0) - teams.map(team => team.reduce((sum, p) => sum + p.evidenceWeight, 0)).reduce((min, current) => Math.min(min, current), Infinity),
+        afterBalance: 0,
+        violationResolved: false
+      }
+    };
+    swapSuggestions.push(suggestion);
+    return null;
+  }
+  
+  // Track successful fallback
+  const suggestion: SwapSuggestion = {
+    strategy: 'fallback',
+    player1: {
+      name: highestWeightPlayer.discord_username,
+      rank: highestWeightPlayer.rank || 'Unknown',
+      points: highestWeightPlayer.evidenceWeight,
+      currentTeam: highestPlayerTeamIndex
+    },
+    player2: {
+      name: moveBackPlayer.discord_username,
+      rank: moveBackPlayer.rank || 'Unknown',
+      points: moveBackPlayer.evidenceWeight,
+      currentTeam: weakestTeamIndex
+    },
+    expectedImprovement: 50, // Estimated improvement
+    reasoning: `Fallback forced move strategy - swapping highest player with lighter player from weakest team`,
+    outcome: 'executed',
+    balanceImpact: {
+      beforeBalance: teams.map(team => team.reduce((sum, p) => sum + p.evidenceWeight, 0)).reduce((max, current) => Math.max(max, current), 0) - teams.map(team => team.reduce((sum, p) => sum + p.evidenceWeight, 0)).reduce((min, current) => Math.min(min, current), Infinity),
+      afterBalance: 0, // Will be calculated after swap
+      violationResolved: true
+    }
+  };
+  swapSuggestions.push(suggestion);
   
   return performPlayerSwap(
     teams,

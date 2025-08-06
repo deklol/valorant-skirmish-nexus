@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronUp, BarChart3, TrendingUp, Users, Trophy, Target, Zap, Shield, AlertTriangle, Clock, Brain } from "lucide-react";
 import { useState } from "react";
 import { Team } from "@/types/tournamentDetail";
+import SwapSuggestionsSection from "./SwapSuggestionsSection";
 
 interface BalanceStep {
   step?: number; // New format
@@ -61,6 +62,41 @@ interface AdaptiveWeightCalculation {
   };
 }
 
+interface SwapSuggestion {
+  strategy: 'direct' | 'secondary' | 'cascading' | 'fallback';
+  player1: {
+    name: string;
+    rank: string;
+    points: number;
+    currentTeam: number;
+  };
+  player2?: {
+    name: string;
+    rank: string;
+    points: number;
+    currentTeam: number;
+  };
+  targetTeam?: number;
+  expectedImprovement: number;
+  reasoning: string;
+  outcome: 'executed' | 'rejected' | 'considered';
+  rejectionReason?: string;
+  balanceImpact: {
+    beforeBalance: number;
+    afterBalance: number;
+    violationResolved: boolean;
+  };
+}
+
+interface SwapAnalysis {
+  totalSuggestionsConsidered: number;
+  strategiesAttempted: string[];
+  successfulSwaps: SwapSuggestion[];
+  rejectedSwaps: SwapSuggestion[];
+  finalOutcome: 'improved' | 'no_improvement' | 'fallback_used';
+  overallImprovement: number;
+}
+
 interface BalanceAnalysis {
   // Old format properties
   qualityScore?: number;
@@ -94,6 +130,9 @@ interface BalanceAnalysis {
   adaptive_weight_calculations?: AdaptiveWeightCalculation[]; // Database format
   evidenceCalculations?: AdaptiveWeightCalculation[]; // ATLAS evidence format
   
+  // Swap analysis (new)
+  swapAnalysis?: SwapAnalysis;
+  
   // Common properties
   method: string;
   timestamp: string;
@@ -108,6 +147,7 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
   const [isExpanded, setIsExpanded] = useState(false);
   const [isAdaptiveExpanded, setIsAdaptiveExpanded] = useState(false);
   const [isAtlasExpanded, setIsAtlasExpanded] = useState(false);
+  const [isSwapExpanded, setIsSwapExpanded] = useState(false);
   
   // Helper functions to handle both old and new formats
   const getQualityScore = () => {
@@ -1037,6 +1077,13 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
             </div>
           )}
         </div>
+
+        {/* Swap Suggestions Section */}
+        {balanceAnalysis.swapAnalysis && (
+          <div className="mt-6">
+            <SwapSuggestionsSection swapAnalysis={balanceAnalysis.swapAnalysis} />
+          </div>
+        )}
 
         <div className="text-xs text-muted-foreground text-center pt-2 border-t border-border">
           Balanced on {new Date(balanceAnalysis.timestamp).toLocaleString()}
