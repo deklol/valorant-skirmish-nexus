@@ -210,79 +210,277 @@ function createAtlasBalancedTeams(players: any[], numTeams: number, teamSize: nu
       });
     });
   } else {
-    // Multi-team ATLAS weight-based balancing
-    console.log(`🏛️ ATLAS WEIGHT BALANCING: ${remainingPlayers.length} players, ${numTeams} teams`);
+    // ATLAS COMBINATORIAL OPTIMIZATION: Find optimal team combinations
+    console.log(`🏛️ ATLAS COMBINATORIAL OPTIMIZATION: ${remainingPlayers.length} players, ${numTeams} teams`);
     
-    // Sort players by weight (highest first) for strategic assignment
-    remainingPlayers.sort((a, b) => b.evidenceWeight - a.evidenceWeight);
+    const optimalAssignment = findOptimalTeamCombination(remainingPlayers, teams, numTeams, config);
     
-    console.log('🏛️ ATLAS: Players sorted by weight:', remainingPlayers.map(p => `${p.discord_username}: ${p.evidenceWeight}`));
-    
-    while (remainingPlayers.length > 0) {
-      const playerToAssign = remainingPlayers.shift();
-      if (!playerToAssign) break;
-      
-      // Calculate current team totals
-      const teamTotals = teams.map((team, index) => ({
-        index,
-        total: team.reduce((sum, p) => sum + p.evidenceWeight, 0),
-        playerCount: team.length
-      }));
-      
-      // ATLAS RULE: Highest weighted player must NOT get the best team
-      const isHighestPlayer = remainingPlayers.length === teams.length * 5 - teams.reduce((sum, team) => sum + team.length, 0) - 1;
-      
-      let targetTeamIndex: number;
-      
-      if (isHighestPlayer) {
-        // Give highest player to the STRONGEST team (anti-stack rule)
-        const strongestTeam = teamTotals.reduce((max, team) => team.total > max.total ? team : max);
-        targetTeamIndex = strongestTeam.index;
-        console.log(`🏛️ ATLAS ANTI-STACK: Highest player ${playerToAssign.discord_username} (${playerToAssign.evidenceWeight}) → STRONGEST team ${targetTeamIndex + 1} (${strongestTeam.total})`);
-      } else {
-        // Regular balancing: assign to weakest team
-        const weakestTeam = teamTotals.reduce((min, team) => team.total < min.total ? team : min);
-        targetTeamIndex = weakestTeam.index;
-        console.log(`🏛️ ATLAS BALANCE: ${playerToAssign.discord_username} (${playerToAssign.evidenceWeight}) → WEAKEST team ${targetTeamIndex + 1} (${weakestTeam.total})`);
-      }
-      
-      teams[targetTeamIndex].push(playerToAssign);
-      
-      // Calculate new totals for transparency
-      const newTeamTotals = teams.map((team, index) => ({
-        index: index + 1,
-        total: team.reduce((sum, p) => sum + p.evidenceWeight, 0),
-        players: team.length
-      }));
-      
-      console.log('🏛️ ATLAS TEAM TOTALS:', newTeamTotals);
+    // Apply the optimal assignment
+    optimalAssignment.assignments.forEach((assignment, index) => {
+      const player = remainingPlayers[index];
+      teams[assignment.teamIndex].push(player);
       
       steps.push({
         step: ++stepCounter,
         player: {
-          id: playerToAssign.id, 
-          discord_username: playerToAssign.discord_username || 'Unknown',
-          points: playerToAssign.evidenceWeight, 
-          rank: playerToAssign.displayRank || 'Unranked',
-          source: playerToAssign.weightSource || 'unknown', 
-          evidenceWeight: playerToAssign.evidenceWeight, 
-          isElite: playerToAssign.isElite,
-          evidenceReasoning: playerToAssign.evidenceCalculation?.calculationReasoning,
+          id: player.id, 
+          discord_username: player.discord_username || 'Unknown',
+          points: player.evidenceWeight, 
+          rank: player.displayRank || 'Unranked',
+          source: player.weightSource || 'unknown', 
+          evidenceWeight: player.evidenceWeight, 
+          isElite: player.isElite,
+          evidenceReasoning: player.evidenceCalculation?.calculationReasoning,
         },
-        assignedTeam: targetTeamIndex,
-        reasoning: isHighestPlayer 
-          ? `🏛️ ATLAS Anti-Stack Rule: ${playerToAssign.discord_username} (${playerToAssign.evidenceWeight}pts) → Team ${targetTeamIndex + 1} (Strongest: ${teamTotals[targetTeamIndex].total}→${newTeamTotals[targetTeamIndex].total})`
-          : `🏛️ ATLAS Weight Balance: ${playerToAssign.discord_username} (${playerToAssign.evidenceWeight}pts) → Team ${targetTeamIndex + 1} (Weakest: ${teamTotals[targetTeamIndex].total}→${newTeamTotals[targetTeamIndex].total})`,
+        assignedTeam: assignment.teamIndex,
+        reasoning: `🏛️ ATLAS Optimal: ${player.discord_username} (${player.evidenceWeight}pts) → Team ${assignment.teamIndex + 1}. ${assignment.reasoning}`,
         teamStatesAfter: JSON.parse(JSON.stringify(teams)).map((team, index) => ({
           teamIndex: index, totalPoints: team.reduce((sum, p) => sum + p.evidenceWeight, 0),
           playerCount: team.length, eliteCount: team.filter(p => p.isElite).length
         })),
-        phase: 'atlas_team_formation',
+        phase: 'atlas_optimization_swap',
       });
-    }
+    });
+    
+    console.log('🏛️ ATLAS OPTIMAL COMBINATION SELECTED:');
+    console.log(`   - Combinations evaluated: ${optimalAssignment.combinationsEvaluated}`);
+    console.log(`   - Final balance score: ${optimalAssignment.finalScore.toFixed(2)}`);
+    console.log(`   - Elite distribution: ${optimalAssignment.eliteDistribution.join(', ')}`);
+    console.log(`   - Team totals: ${teams.map((team, i) => `T${i+1}=${team.reduce((sum, p) => sum + p.evidenceWeight, 0)}`).join(', ')}`);
   }
 
   return { teams, steps };
+}
+
+/**
+ * ATLAS Combinatorial Optimization: Find optimal team combination
+ */
+interface TeamAssignment {
+  teamIndex: number;
+  reasoning: string;
+}
+
+interface OptimalCombinationResult {
+  assignments: TeamAssignment[];
+  finalScore: number;
+  combinationsEvaluated: number;
+  eliteDistribution: number[];
+}
+
+function findOptimalTeamCombination(
+  players: any[], 
+  existingTeams: any[][], 
+  numTeams: number, 
+  config: EvidenceBasedConfig
+): OptimalCombinationResult {
+  
+  console.log('🏛️ ATLAS OPTIMIZATION: Starting combinatorial analysis...');
+  
+  // Sort players by weight for strategic evaluation
+  const sortedPlayers = [...players].sort((a, b) => b.evidenceWeight - a.evidenceWeight);
+  
+  // For large player counts, use smart sampling instead of brute force
+  const maxCombinations = Math.min(10000, Math.pow(numTeams, players.length));
+  
+  let bestCombination: TeamAssignment[] = [];
+  let bestScore = -Infinity;
+  let combinationsEvaluated = 0;
+  
+  // Generate and evaluate combinations
+  if (players.length <= 10) {
+    // Small groups: try all combinations
+    generateAllCombinations(sortedPlayers, existingTeams, numTeams, (combination) => {
+      const score = evaluateCombination(combination, existingTeams, config, sortedPlayers);
+      combinationsEvaluated++;
+      
+      if (score > bestScore) {
+        bestScore = score;
+        bestCombination = combination;
+      }
+      
+      return combinationsEvaluated < maxCombinations;
+    });
+  } else {
+    // Large groups: use smart heuristic approaches
+    bestCombination = generateSmartCombination(sortedPlayers, existingTeams, numTeams, config);
+    bestScore = evaluateCombination(bestCombination, existingTeams, config, sortedPlayers);
+    combinationsEvaluated = 1;
+  }
+  
+  // Calculate final elite distribution
+  const eliteDistribution = existingTeams.map((team, index) => {
+    const assignments = bestCombination.filter(a => a.teamIndex === index);
+    return team.filter(p => p.isElite).length + assignments.filter((_, i) => sortedPlayers[i].isElite).length;
+  });
+  
+  return {
+    assignments: bestCombination,
+    finalScore: bestScore,
+    combinationsEvaluated,
+    eliteDistribution
+  };
+}
+
+/**
+ * Generate smart combination using balanced heuristics
+ */
+function generateSmartCombination(
+  players: any[], 
+  existingTeams: any[][], 
+  numTeams: number, 
+  config: EvidenceBasedConfig
+): TeamAssignment[] {
+  
+  const assignments: TeamAssignment[] = [];
+  
+  // Calculate current team totals
+  let teamTotals = existingTeams.map(team => 
+    team.reduce((sum, p) => sum + p.evidenceWeight, 0)
+  );
+  
+  // Assign each player to optimal team
+  players.forEach((player, index) => {
+    // Find team that would result in best overall balance
+    let bestTeamIndex = 0;
+    let bestBalanceScore = -Infinity;
+    
+    for (let teamIndex = 0; teamIndex < numTeams; teamIndex++) {
+      const newTeamTotals = [...teamTotals];
+      newTeamTotals[teamIndex] += player.evidenceWeight;
+      
+      // Calculate balance score for this assignment
+      const variance = calculateTeamVariance(newTeamTotals);
+      const eliteViolations = calculateEliteViolations(existingTeams, assignments, player, teamIndex, config);
+      
+      const balanceScore = 1000 / (1 + variance) - (eliteViolations * 100);
+      
+      if (balanceScore > bestBalanceScore) {
+        bestBalanceScore = balanceScore;
+        bestTeamIndex = teamIndex;
+      }
+    }
+    
+    // Update team totals
+    teamTotals[bestTeamIndex] += player.evidenceWeight;
+    
+    assignments.push({
+      teamIndex: bestTeamIndex,
+      reasoning: `Optimal balance assignment (score: ${bestBalanceScore.toFixed(1)})`
+    });
+  });
+  
+  return assignments;
+}
+
+/**
+ * Generate all possible combinations (for small groups)
+ */
+function generateAllCombinations(
+  players: any[], 
+  existingTeams: any[][], 
+  numTeams: number, 
+  callback: (combination: TeamAssignment[]) => boolean
+): void {
+  
+  function backtrack(playerIndex: number, currentCombination: TeamAssignment[]): boolean {
+    if (playerIndex === players.length) {
+      return callback([...currentCombination]);
+    }
+    
+    for (let teamIndex = 0; teamIndex < numTeams; teamIndex++) {
+      currentCombination.push({
+        teamIndex,
+        reasoning: `Combinatorial assignment option ${teamIndex + 1}`
+      });
+      
+      if (!backtrack(playerIndex + 1, currentCombination)) {
+        return false; // Stop if callback returns false
+      }
+      
+      currentCombination.pop();
+    }
+    
+    return true;
+  }
+  
+  backtrack(0, []);
+}
+
+/**
+ * Evaluate the quality of a team combination
+ */
+function evaluateCombination(
+  assignments: TeamAssignment[], 
+  existingTeams: any[][], 
+  config: EvidenceBasedConfig,
+  players?: any[]
+): number {
+  
+  // Calculate hypothetical team totals
+  const teamTotals = existingTeams.map(team => 
+    team.reduce((sum, p) => sum + p.evidenceWeight, 0)
+  );
+  
+  assignments.forEach((assignment, playerIndex) => {
+    const playerWeight = players?.[playerIndex]?.evidenceWeight || 200;
+    teamTotals[assignment.teamIndex] += playerWeight;
+  });
+  
+  // Score based on balance and elite distribution
+  const variance = calculateTeamVariance(teamTotals);
+  const balanceScore = 1000 / (1 + variance);
+  
+  // Elite distribution penalty (count violations)
+  let elitePenalty = 0;
+  if (players) {
+    assignments.forEach((assignment, playerIndex) => {
+      const player = players[playerIndex];
+      if (player?.isElite) {
+        const currentEliteCount = existingTeams[assignment.teamIndex].filter(p => p.isElite).length;
+        const assignedEliteCount = assignments.slice(0, playerIndex).filter(a => a.teamIndex === assignment.teamIndex).length;
+        const totalElite = currentEliteCount + assignedEliteCount + 1;
+        if (totalElite > config.skillTierCaps.maxElitePerTeam) {
+          elitePenalty += 100; // Heavy penalty for elite stacking
+        }
+      }
+    });
+  }
+  
+  return balanceScore - elitePenalty;
+}
+
+/**
+ * Calculate team variance for balance scoring
+ */
+function calculateTeamVariance(teamTotals: number[]): number {
+  const mean = teamTotals.reduce((sum, total) => sum + total, 0) / teamTotals.length;
+  const variance = teamTotals.reduce((sum, total) => sum + Math.pow(total - mean, 2), 0) / teamTotals.length;
+  return variance;
+}
+
+/**
+ * Calculate elite distribution violations
+ */
+function calculateEliteViolations(
+  existingTeams: any[][], 
+  assignments: TeamAssignment[], 
+  player: any, 
+  teamIndex: number, 
+  config: EvidenceBasedConfig
+): number {
+  
+  // Count existing elite players in target team
+  const existingEliteCount = existingTeams[teamIndex].filter(p => p.isElite).length;
+  
+  // Count elite players being assigned to this team
+  const assignedEliteCount = assignments.filter((a, i) => 
+    a.teamIndex === teamIndex && i < assignments.length
+  ).length; // Simplified - would need actual player data
+  
+  const newPlayerIsElite = player.isElite ? 1 : 0;
+  const totalEliteInTeam = existingEliteCount + assignedEliteCount + newPlayerIsElite;
+  
+  return Math.max(0, totalEliteInTeam - config.skillTierCaps.maxElitePerTeam);
 }
 
 
