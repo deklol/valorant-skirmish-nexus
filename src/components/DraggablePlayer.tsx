@@ -58,7 +58,7 @@ const DraggablePlayer = ({ player, enableAdaptiveWeights }: DraggablePlayerProps
         // Use ATLAS evidence-based system
         const result = await calculateEvidenceBasedWeightWithMiniAi(player as ExtendedUserRankData, {
           enableEvidenceBasedWeights: true,
-          tournamentWinBonus: 20,
+          tournamentWinBonus: 15,
           underrankedBonusThreshold: 1.5,
           maxUnderrankedBonus: 0.35,
           skillTierCaps: {

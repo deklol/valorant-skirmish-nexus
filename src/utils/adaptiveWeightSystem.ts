@@ -51,9 +51,9 @@ const DEFAULT_CONFIG: AdaptiveWeightConfig = {
   timeWeightDays: 60, // More aggressive time consideration after 60 days
   tournamentWinnerBonuses: {
     enabled: true,
-    oneWin: 20, // +15 points for 1 tournament win
-    twoWins: 40, // +25 points for 2 tournament wins
-    threeOrMoreWins: 50, // +35 points for 3+ tournament wins
+    oneWin: 15, // +15 points for 1 tournament win
+    twoWins: 25, // +25 points for 2 tournament wins
+    threeOrMoreWins: 35, // +35 points for 3+ tournament wins
     recentWinMultiplier: 1.5, // 50% more bonus for recent wins
     eliteWinnerMultiplier: 1.2 // 20% more bonus for elite winners
   }

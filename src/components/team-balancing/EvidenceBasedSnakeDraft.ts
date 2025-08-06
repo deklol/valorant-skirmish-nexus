@@ -119,7 +119,7 @@ export async function evidenceBasedSnakeDraft(
       try {
         const config = adaptiveConfig || {
           enableEvidenceBasedWeights: true,
-          tournamentWinBonus: 20,
+          tournamentWinBonus: 15,
           underrankedBonusThreshold: 1.5,
           maxUnderrankedBonus: 0.35,
           skillTierCaps: {
