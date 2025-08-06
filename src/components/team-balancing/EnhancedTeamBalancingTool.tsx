@@ -170,7 +170,7 @@ const EnhancedTeamBalancingTool = ({
         },
         {
           enableEvidenceBasedWeights: true,
-          tournamentWinBonus: 15,
+          tournamentWinBonus: 20,
           underrankedBonusThreshold: 1.5,
           maxUnderrankedBonus: 0.35,
           skillTierCaps: {

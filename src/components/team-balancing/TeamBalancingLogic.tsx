@@ -97,7 +97,7 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
             tournaments_won: a.users.tournaments_won || 0
           }, {
             enableEvidenceBasedWeights: true,
-            tournamentWinBonus: 15,
+            tournamentWinBonus: 20,
             underrankedBonusThreshold: 1.5,
             maxUnderrankedBonus: 0.35,
             skillTierCaps: {
@@ -111,7 +111,7 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
             tournaments_won: b.users.tournaments_won || 0
           }, {
             enableEvidenceBasedWeights: true,
-            tournamentWinBonus: 15,
+            tournamentWinBonus: 20,
             underrankedBonusThreshold: 1.5,
             maxUnderrankedBonus: 0.35,
             skillTierCaps: {
@@ -172,7 +172,7 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
             tournaments_won: player.users.tournaments_won || 0
           }, {
             enableEvidenceBasedWeights: true,
-            tournamentWinBonus: 15,
+            tournamentWinBonus: 20,
             underrankedBonusThreshold: 1.5,
             maxUnderrankedBonus: 0.35,
             skillTierCaps: {
@@ -250,7 +250,7 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
       },
       {
         enableEvidenceBasedWeights: true,
-        tournamentWinBonus: 15,
+        tournamentWinBonus: 20,
         underrankedBonusThreshold: 1.5,
         maxUnderrankedBonus: 0.35,
         skillTierCaps: {
@@ -301,7 +301,7 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
           tournaments_won: player.tournaments_won || 0
         }, {
           enableEvidenceBasedWeights: true,
-          tournamentWinBonus: 15,
+          tournamentWinBonus: 20,
           underrankedBonusThreshold: 1.5,
           maxUnderrankedBonus: 0.35,
           skillTierCaps: {

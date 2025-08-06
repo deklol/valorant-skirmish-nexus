@@ -67,7 +67,7 @@ export async function getUnifiedPlayerWeight(
         last_tournament_win: userData.last_tournament_win
       }, {
         enableEvidenceBasedWeights: true,
-        tournamentWinBonus: 15,
+        tournamentWinBonus: 20,
         underrankedBonusThreshold: 1.5,
         maxUnderrankedBonus: 0.35,
         skillTierCaps: {
