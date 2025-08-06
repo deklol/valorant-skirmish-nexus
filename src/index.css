@@ -228,3 +228,14 @@
     box-shadow: 0 0 8px rgba(139, 92, 246, 0.3);
   }
 }
+
+@keyframes breathe {
+  0%, 100% {
+    border-color: rgba(96, 165, 250, 0.4);
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+  }
+  50% {
+    border-color: rgba(147, 197, 253, 0.6);
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.35);
+  }
+}
