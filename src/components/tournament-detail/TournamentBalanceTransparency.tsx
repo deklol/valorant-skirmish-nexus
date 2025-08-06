@@ -818,7 +818,15 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                         <div className="bg-muted/10 p-3 rounded-lg border border-muted/20">
                           <div className="text-xs font-medium text-foreground mb-2">Calculation Details:</div>
                           <div className="text-xs text-muted-foreground leading-relaxed">
-                            {calc.calculation.calculationReasoning || `${playerRank} ranking (${finalPoints} total points)`}
+                            {calc.calculation.calculationReasoning ? (
+                              <div className="space-y-1">
+                                {calc.calculation.calculationReasoning.split('\n').map((line: string, idx: number) => (
+                                  <div key={idx}>{line}</div>
+                                ))}
+                              </div>
+                            ) : (
+                              `${playerRank} ranking (${finalPoints} total points)`
+                            )}
                           </div>
                         </div>
                         

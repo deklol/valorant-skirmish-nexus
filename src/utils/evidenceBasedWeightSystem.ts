@@ -203,7 +203,7 @@ export function calculateEvidenceBasedWeight(
     basePoints = RANK_POINT_MAPPING[peakRank];
     primaryRank = peakRank;
     weightSource = 'peak_rank';
-    evidenceFactors.push(`Peak Rank: ${peakRank} (${basePoints} base points - current unranked)`);
+    evidenceFactors.push(`Peak Rank: ${peakRank} (+${basePoints})`);
   }
   // Priority 3: Default
   else {
@@ -216,7 +216,7 @@ export function calculateEvidenceBasedWeight(
   // BOOST for tournament wins (evidence of maintained skill)
   const tournamentBonus = tournamentsWon * config.tournamentWinBonus;
   if (tournamentBonus > 0) {
-    evidenceFactors.push(`Tournament Wins Bonus: +${tournamentBonus} points (${tournamentsWon} wins × ${config.tournamentWinBonus})`);
+    evidenceFactors.push(`Tournament Winner: ${tournamentsWon} (+${tournamentBonus})`);
   }
 
   // ONLY apply rank decay if there's concrete evidence of skill drop
@@ -233,7 +233,7 @@ export function calculateEvidenceBasedWeight(
         // Gradual decay: 5% per tier beyond threshold, capped at maxDecayPercent
         const decayPercent = Math.min((tierDrops - config.rankDecayThreshold + 1) * 0.05, config.maxDecayPercent);
         rankDecay = Math.floor(basePoints * decayPercent);
-        evidenceFactors.push(`Rank Decay: -${rankDecay} points (${tierDrops} tier drop from ${peakRank})`);
+        evidenceFactors.push(`Underranked Bonus (+${Math.abs(rankDecay)})`);
       }
     }
   }
@@ -244,10 +244,10 @@ export function calculateEvidenceBasedWeight(
   // Determine if this is an elite tier player
   const isEliteTier = finalPoints >= config.skillTierCaps.eliteThreshold;
   if (isEliteTier) {
-    evidenceFactors.push(`🏆 Elite Tier Player (${config.skillTierCaps.eliteThreshold}+ points)`);
+    evidenceFactors.push(`Elite Tier Player`);
   }
 
-  const calculationReasoning = evidenceFactors.join(' | ').replace(/Elite Tier Player \(300\+ points\)/g, `Elite Tier Player (${config.skillTierCaps.eliteThreshold}+ points)`);
+  const calculationReasoning = evidenceFactors.join('\n');
 
   // Debug logging for specific players
   if ((userData as any).discord_username?.toLowerCase().includes('alexbo') || 
