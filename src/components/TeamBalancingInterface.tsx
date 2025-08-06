@@ -956,24 +956,16 @@ variant: "destructive",
           sortedPlayers,
           numTeams,
           teamSize,
-          (step: EvidenceBalanceStep, currentStep: number, totalSteps: number) => {
-            setProgressStep(currentStep);
-            setLastProgressStep(step as any);
-            if (step.phase === 'atlas_adjustment') {
-              setCurrentPhase('atlas-analyzing');
-            } else if (step.phase === 'mini_ai_adjustment') {
-              setCurrentPhase('atlas-validating');
-            } else if (step.phase === 'elite_distribution' || step.phase === 'regular_distribution') {
-              setCurrentPhase('atlas-distributing');
-            }
+          (progress: number, stage: string) => {
+            setProgressStep(Math.round(progress * 100));
+            setCurrentPhase(stage.includes('atlas') ? 'atlas-analyzing' : 
+                           stage.includes('validation') ? 'atlas-validating' : 'atlas-calculating');
           },
           () => {
             setCurrentPhase('atlas-validating');
           },
-          (phase: string, current: number, total: number) => {
-            if (phase === 'evidence_calculation') {
-              setCurrentPhase('atlas-calculating');
-            }
+          (playerId: string, weight: number) => {
+            setCurrentPhase('atlas-calculating');
           }
         );
       } else {

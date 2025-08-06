@@ -234,14 +234,14 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
           playerData,
           teamsToCreate,
           teamSize,
-          (step, currentStep, totalSteps) => {
-            console.log(`🏛️ ATLAS balancing step ${currentStep}/${totalSteps}:`, step.reasoning);
+          (progress: number, stage: string) => {
+            console.log(`🏛️ ATLAS balancing: ${Math.round(progress * 100)}% - ${stage}`);
           },
           () => {
             console.log('🏛️ Starting ATLAS validation...');
           },
-          (phase, current, total) => {
-            console.log(`🏛️ ${phase}: ${current}/${total}`);
+          (playerId: string, weight: number) => {
+            console.log(`🏛️ ATLAS weight calculated for ${playerId}: ${weight}`);
           },
           {
             enableEvidenceBasedWeights: true,

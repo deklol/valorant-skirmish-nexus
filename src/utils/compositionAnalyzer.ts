@@ -357,19 +357,30 @@ function analyzeCompetitiveness(team: PlayerComposition[]) {
 }
 
 function calculateRoleDiversity(distribution: any): number {
-  const totalPlayers = Object.values(distribution).reduce((sum: number, count) => sum + (count as number), 0);
+  const totalPlayers = Object.values(distribution).reduce((sum: number, count: unknown) => sum + (count as number), 0) as number;
   if (totalPlayers === 0) return 0;
   
-  // Shannon diversity index for roles
-  let diversity = 0;
-  Object.values(distribution).forEach(count => {
-    const numCount = count as number;
-    if (numCount > 0) {
-      const proportion = numCount / totalPlayers;
-      diversity -= proportion * (Math.log(proportion) / Math.LN2);
-    }
-  });
+  // Simple diversity calculation - avoid problematic Shannon index
+  const nonZeroRoles = Object.values(distribution).filter(count => (count as number) > 0).length;
+  const maxPossibleRoles = 5; // duelist, controller, initiator, sentinel, flex
   
-  // Normalize to 0-1 scale (max diversity for 5 roles = log2(5) ≈ 2.32)
-  return Math.min(1, diversity / 2.32);
+  // Calculate evenness - how evenly distributed are the roles
+  let evenness = 0;
+  if (nonZeroRoles > 1) {
+    const counts = Object.values(distribution)
+      .map(count => count as number)
+      .filter(count => count > 0);
+    
+    const mean: number = totalPlayers / nonZeroRoles;
+    let variance = 0;
+    for (const count of counts) {
+      variance += Math.pow(count - mean, 2);
+    }
+    variance = variance / nonZeroRoles;
+    evenness = 1 / (1 + variance / mean);
+  }
+  
+  // Combine role count diversity with evenness
+  const diversityScore = (nonZeroRoles / maxPossibleRoles) * 0.7 + evenness * 0.3;
+  return Math.min(1, diversityScore);
 }
