@@ -263,8 +263,9 @@ function findOptimalTeamCombination(
   let combinationsEvaluated = 0;
   
   // Generate and evaluate combinations
-  if (players.length <= 10) {
-    // Small groups: try all combinations
+  if (players.length <= 6) {
+    // Small groups: try all combinations (reduced threshold for true combinatorial)
+    console.log('🏛️ ATLAS: Using TRUE combinatorial optimization for small group');
     generateAllCombinations(sortedPlayers, existingTeams, numTeams, teamSize, (combination) => {
       const score = evaluateCombination(combination, existingTeams, config, teamSize, sortedPlayers);
       combinationsEvaluated++;
@@ -274,10 +275,12 @@ function findOptimalTeamCombination(
         bestCombination = combination;
       }
       
-      return combinationsEvaluated < maxCombinations;
+      // Remove artificial cap for small groups
+      return combinationsEvaluated < 50000;
     });
   } else {
     // Large groups: use smart heuristic approaches
+    console.log('🏛️ ATLAS: Using smart heuristic for large group');
     bestCombination = generateSmartCombination(sortedPlayers, existingTeams, numTeams, teamSize, config);
     bestScore = evaluateCombination(bestCombination, existingTeams, config, teamSize, sortedPlayers);
     combinationsEvaluated = 1;
@@ -332,11 +335,10 @@ function generateSmartCombination(
     }
     
     if (availableTeams.length === 0) {
-      console.error(`🚨 ATLAS ERROR: No available teams for player ${player.discord_username}`);
-      // Emergency fallback - find team with smallest size violation
-      const teamWithSmallestSize = teamSizes.reduce((minIndex, size, index) => 
-        size < teamSizes[minIndex] ? index : minIndex, 0);
-      availableTeams.push(teamWithSmallestSize);
+      console.error(`🚨 ATLAS CRITICAL ERROR: All teams at capacity (${teamSize} players each). Cannot assign ${player.discord_username} - would violate team size constraints.`);
+      console.error(`🚨 Current team sizes: ${teamSizes} + pending assignments: ${assignments.map(a => a.teamIndex)}`);
+      // HARD STOP - do not create oversized teams
+      return assignments; // Return current assignments, stop processing remaining players
     }
     
     // Find best team among available teams
@@ -364,8 +366,10 @@ function generateSmartCombination(
     
     assignments.push({
       teamIndex: bestTeamIndex,
-      reasoning: `Smart assignment (score: ${bestBalanceScore.toFixed(1)}, capacity-enforced)`
+      reasoning: `ATLAS Smart Assignment (score: ${bestBalanceScore.toFixed(1)}, team capacity: ${teamSizes[bestTeamIndex] + assignments.filter(a => a.teamIndex === bestTeamIndex).length + 1}/${teamSize})`
     });
+    
+    console.log(`🏛️ ATLAS: ${player.discord_username} (${player.evidenceWeight}pts) → Team ${bestTeamIndex + 1} (now ${teamSizes[bestTeamIndex] + assignments.filter(a => a.teamIndex === bestTeamIndex).length + 1}/${teamSize})`);
   });
   
   return assignments;
