@@ -288,7 +288,9 @@ const EnhancedTeamBalancingTool = ({
             discord_username: step.player.discord_username,
             points: step.player.points,
             rank: step.player.rank,
-            source: step.player.source
+            source: step.player.source,
+            evidenceWeight: step.player.evidenceWeight,
+            evidenceReasoning: step.player.evidenceReasoning
           },
           assignedTeam: step.assignedTeam,
           reasoning: step.reasoning,
