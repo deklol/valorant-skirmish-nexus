@@ -115,7 +115,9 @@ export function calculateEvidenceBasedWeightWithMiniAi(
       
       if (playerAnalysis && playerAnalysis.adjustedPoints !== playerAnalysis.originalPoints) {
         finalPoints = playerAnalysis.adjustedPoints;
-        adjustmentReasoning += ` | ATLAS: ${playerAnalysis.adjustmentReason} (Confidence: ${playerAnalysis.confidenceScore}%)`;
+        const pointDifference = playerAnalysis.adjustedPoints - playerAnalysis.originalPoints;
+        const adjustmentType = pointDifference > 0 ? 'boost' : 'reduction';
+        adjustmentReasoning += ` | ATLAS ${adjustmentType}: ${playerAnalysis.adjustmentReason} (${pointDifference > 0 ? '+' : ''}${pointDifference} pts, Confidence: ${playerAnalysis.confidenceScore}%)`;
       }
 
       resolve({
@@ -231,7 +233,7 @@ export function calculateEvidenceBasedWeight(
   // Determine if this is an elite tier player
   const isEliteTier = finalPoints >= config.skillTierCaps.eliteThreshold;
   if (isEliteTier) {
-    evidenceFactors.push(`🏆 Elite Tier Player (${finalPoints}+ points)`);
+    evidenceFactors.push(`🏆 Elite Tier Player (${config.skillTierCaps.eliteThreshold}+ points)`);
   }
 
   const calculationReasoning = evidenceFactors.join(' | ');
