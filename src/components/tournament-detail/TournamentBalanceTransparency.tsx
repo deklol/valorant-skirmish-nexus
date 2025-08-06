@@ -730,93 +730,93 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                     const isRecentWinner = recentWinnerIds.has(calc.userId);
                     
                     return (
-                      <div key={calc.userId || index} className={`relative p-4 bg-gradient-to-br from-card/80 to-card/40 rounded-xl border hover:border-primary/30 transition-all duration-200 hover:shadow-lg ${
+                      <div key={calc.userId || index} className={`group relative p-6 bg-gradient-to-br from-card to-card/60 rounded-2xl border transition-all duration-300 hover:shadow-xl hover:scale-[1.02] ${
                         isRecentWinner 
-                          ? 'border-amber-500/40 shadow-[0_0_8px_rgba(245,158,11,0.4)]' 
-                          : 'border-border/30'
+                          ? 'border-amber-400/50 shadow-[0_0_20px_rgba(245,158,11,0.15)] ring-1 ring-amber-400/20' 
+                          : 'border-border/20 hover:border-primary/40'
                       }`}>
-                        {/* Header with player info */}
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-semibold text-foreground text-sm truncate">{playerName}</h4>
-                             <div className="flex flex-col gap-1 mt-1">
-                               <Badge 
-                                 variant="outline" 
-                                 className="text-xs px-2 py-0.5 border-[1px] inline-flex items-center gap-1 w-fit"
-                                 style={{
-                                   color: getRankInfo(playerRank).primary,
-                                   borderColor: getRankInfo(playerRank).primary + '80'
-                                 }}
-                               >
-                                 <span>{getRankInfo(playerRank).emoji}</span>
-                                 {playerRank}
-                               </Badge>
-                                <Badge 
-                                  className="text-xs px-2 py-0.5 w-fit inline-block"
-                                  style={{
-                                    backgroundColor: getRankInfo(playerRank).primary + '20',
-                                    color: getRankInfo(playerRank).primary,
-                                    borderColor: getRankInfo(playerRank).primary + '40'
-                                  }}
-                                >
-                                  {skillTier.label}
-                                </Badge>
-                             </div>
+                        
+                        {/* Header Section */}
+                        <div className="space-y-4">
+                          {/* Player Name & Points */}
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-bold text-foreground text-base leading-tight">{playerName}</h4>
+                            <div className="text-right">
+                              <div className="text-2xl font-black text-primary">{finalPoints}</div>
+                              <div className="text-xs text-muted-foreground font-medium">POINTS</div>
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <div className="text-lg font-bold text-primary">{finalPoints}</div>
-                            <div className="text-xs text-muted-foreground">points</div>
+                          
+                          {/* Rank & Skill Level */}
+                          <div className="flex items-center gap-2">
+                            <Badge 
+                              variant="outline" 
+                              className="text-sm px-3 py-1.5 font-medium border-2"
+                              style={{
+                                color: getRankInfo(playerRank).primary,
+                                borderColor: getRankInfo(playerRank).primary + '60',
+                                backgroundColor: getRankInfo(playerRank).primary + '10'
+                              }}
+                            >
+                              <span className="mr-2">{getRankInfo(playerRank).emoji}</span>
+                              {playerRank}
+                            </Badge>
+                            <Badge 
+                              className={`text-xs px-2 py-1 font-medium ${skillTier.color}`}
+                            >
+                              {skillTier.label}
+                            </Badge>
                           </div>
                         </div>
 
-                        {/* Team assignment */}
+                        {/* Team Assignment */}
                         {playerTeam && (
-                          <div className="mb-3 p-2 bg-muted/20 rounded-lg border border-muted/30">
-                            <div className="flex items-center gap-2">
-                              <div className="w-2 h-2 rounded-full bg-primary"></div>
-                              <span className="text-xs font-medium text-foreground">{playerTeam.name}</span>
+                          <div className="mt-4 p-3 bg-gradient-to-r from-muted/30 to-muted/10 rounded-xl border border-muted/40">
+                            <div className="flex items-center gap-3">
+                              <div className="w-3 h-3 rounded-full bg-primary shadow-sm"></div>
+                              <span className="text-sm font-semibold text-foreground">{playerTeam.name}</span>
                             </div>
                           </div>
                         )}
                         
-                        {/* Tournament achievements with detailed breakdown */}
+                        {/* Tournament Achievements */}
                         {tournamentWins > 0 && (
-                          <div className="mb-3 p-2 bg-amber-500/10 rounded-lg border border-amber-500/20">
-                            <div className="flex items-center justify-between mb-2">
+                          <div className="mt-4 p-4 bg-gradient-to-r from-amber-500/10 to-yellow-500/5 rounded-xl border border-amber-400/30">
+                            <div className="flex items-center justify-between mb-3">
                               <div className="flex items-center gap-2">
-                                <Trophy className="h-3 w-3 text-amber-600" />
-                                <span className="text-xs font-medium text-amber-700">
+                                <Trophy className="h-4 w-4 text-amber-600" />
+                                <span className="text-sm font-bold text-amber-800">
                                   {tournamentWins} Tournament Win{tournamentWins !== 1 ? 's' : ''}
                                 </span>
                               </div>
                               {tournamentBonus > 0 && (
-                                <Badge className="text-xs bg-green-500/10 text-green-600 border-green-500/20">
+                                <Badge className="text-sm bg-emerald-500/20 text-emerald-700 border-emerald-500/30 font-bold">
                                   +{tournamentBonus}pts
                                 </Badge>
                               )}
                             </div>
                             
-                            {/* Tournament bonus breakdown */}
+                            {/* Detailed Bonus Breakdown */}
                             {tournamentBonus > 0 && tournamentBonus !== (tournamentWins * 15) && (
-                              <div className="space-y-1 text-xs">
+                              <div className="space-y-2 text-sm bg-amber-50/50 p-3 rounded-lg">
                                 <div className="flex justify-between text-muted-foreground">
-                                  <span>Base bonus ({tournamentWins} × 15pts):</span>
-                                  <span>+{tournamentWins * 15}pts</span>
+                                  <span>Base wins ({tournamentWins} × 15pts):</span>
+                                  <span className="font-medium">+{tournamentWins * 15}pts</span>
                                 </div>
                                 {finalPoints >= 400 && (
                                   <div className="flex justify-between text-red-600">
                                     <span>Elite tier bonus:</span>
-                                    <span>+10pts</span>
+                                    <span className="font-medium">+10pts</span>
                                   </div>
                                 )}
                                 {(calc.calculation.calculationReasoning?.includes('underranked') || 
                                   calc.calculation.calculationReasoning?.includes('dropped significantly')) && (
                                   <div className="flex justify-between text-orange-600">
                                     <span>Underranked bonus:</span>
-                                    <span>+{tournamentBonus - (tournamentWins * 15) - (finalPoints >= 400 ? 10 : 0)}pts</span>
+                                    <span className="font-medium">+{tournamentBonus - (tournamentWins * 15) - (finalPoints >= 400 ? 10 : 0)}pts</span>
                                   </div>
                                 )}
-                                <div className="flex justify-between font-medium text-amber-700 border-t border-amber-500/20 pt-1">
+                                <div className="flex justify-between font-bold text-amber-800 border-t border-amber-400/30 pt-2">
                                   <span>Total bonus:</span>
                                   <span>+{tournamentBonus}pts</span>
                                 </div>
@@ -825,14 +825,17 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                           </div>
                         )}
                         
-                        {/* Calculation breakdown */}
-                        <div className="bg-muted/10 p-3 rounded-lg border border-muted/20">
-                          <div className="text-xs font-medium text-foreground mb-2">Calculation Details:</div>
-                          <div className="text-xs text-muted-foreground leading-relaxed">
+                        {/* Calculation Details */}
+                        <div className="mt-4 p-4 bg-gradient-to-br from-muted/20 to-muted/5 rounded-xl border border-muted/30">
+                          <div className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
+                            <Brain className="h-4 w-4" />
+                            Calculation Breakdown
+                          </div>
+                          <div className="text-sm text-muted-foreground leading-relaxed">
                             {calc.calculation.calculationReasoning ? (
-                              <div className="space-y-1">
+                              <div className="space-y-1.5">
                                 {calc.calculation.calculationReasoning.split('\n').map((line: string, idx: number) => (
-                                  <div key={idx}>{line}</div>
+                                  <div key={idx} className="leading-relaxed">{line}</div>
                                 ))}
                               </div>
                             ) : (
@@ -841,35 +844,32 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                           </div>
                         </div>
                         
-                        {/* Evidence factors (expandable) */}
+                        {/* Evidence Factors */}
                         {calc.calculation.evidenceFactors && calc.calculation.evidenceFactors.length > 0 && (
-                          <div className="mt-2">
-                            <div className="flex flex-wrap gap-1">
-                              {/* Show first 2 factors always */}
+                          <div className="mt-4">
+                            <div className="text-xs font-medium text-muted-foreground mb-2">Evidence Factors</div>
+                            <div className="flex flex-wrap gap-2">
                               {calc.calculation.evidenceFactors.slice(0, 2).map((factor, idx) => (
-                                <Badge key={idx} variant="outline" className="text-xs px-2 py-0.5">
+                                <Badge key={idx} variant="secondary" className="text-xs px-3 py-1">
                                   {factor.replace('🏆 ', '')}
                                 </Badge>
                               ))}
                               
-                              {/* Show remaining factors when expanded, or +N button when collapsed */}
                               {calc.calculation.evidenceFactors.length > 2 && (
                                 <>
                                   {expandedPlayerFactors.has(calc.userId) ? (
-                                    // Show all remaining factors when expanded
                                     calc.calculation.evidenceFactors.slice(2).map((factor, idx) => (
-                                      <Badge key={idx + 2} variant="outline" className="text-xs px-2 py-0.5">
+                                      <Badge key={idx + 2} variant="secondary" className="text-xs px-3 py-1">
                                         {factor.replace('🏆 ', '')}
                                       </Badge>
                                     ))
                                   ) : (
-                                    // Show +N button when collapsed
                                     <Badge 
                                       variant="outline" 
-                                      className="text-xs px-2 py-0.5 opacity-60 cursor-pointer hover:opacity-100 transition-opacity"
+                                      className="text-xs px-3 py-1 cursor-pointer hover:bg-muted/50 transition-colors"
                                       onClick={() => togglePlayerFactors(calc.userId)}
                                     >
-                                      +{calc.calculation.evidenceFactors.length - 2}
+                                      +{calc.calculation.evidenceFactors.length - 2} more
                                     </Badge>
                                   )}
                                 </>
