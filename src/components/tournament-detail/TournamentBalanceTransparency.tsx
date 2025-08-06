@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, BarChart3, TrendingUp, Users, Trophy, Target, Zap, Shield, AlertTriangle } from "lucide-react";
+import { ChevronDown, ChevronUp, BarChart3, TrendingUp, Users, Trophy, Target, Zap, Shield, AlertTriangle, Clock, Brain } from "lucide-react";
 import { useState } from "react";
 import { Team } from "@/types/tournamentDetail";
 
@@ -53,6 +53,11 @@ interface AdaptiveWeightCalculation {
     weightSource: string;
     rankDecayFactor?: number;
     timeSincePeakDays?: number;
+    // ATLAS-specific fields
+    finalPoints?: number;
+    tournamentsWon?: number;
+    evidenceFactors?: string[];
+    tournamentBonus?: number;
   };
 }
 
@@ -102,6 +107,7 @@ interface TournamentBalanceTransparencyProps {
 const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBalanceTransparencyProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isAdaptiveExpanded, setIsAdaptiveExpanded] = useState(false);
+  const [isAtlasExpanded, setIsAtlasExpanded] = useState(false);
   
   // Helper functions to handle both old and new formats
   const getQualityScore = () => {
@@ -181,6 +187,24 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
     });
     
     return balancedCalculations;
+  };
+
+  const getEvidenceCalculations = () => {
+    return balanceAnalysis.evidenceCalculations || 
+           balanceAnalysis.adaptiveWeightCalculations || 
+           balanceAnalysis.adaptive_weight_calculations || 
+           [];
+  };
+
+  const getBalanceQuality = () => {
+    const quality = balanceAnalysis.final_balance?.balanceQuality || 'good';
+    return quality === 'ideal' ? 'excellent' : 
+           quality === 'good' ? 'good' : 
+           quality === 'warning' ? 'warning' : 'poor';
+  };
+
+  const getMaxTeamDifference = () => {
+    return getMaxPointDifference();
   };
   
   const qualityScore = getQualityScore();
@@ -644,7 +668,167 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
           </div>
         )}
 
-        {/* Expandable Balance Steps */}
+        {/* ATLAS Decision System Section */}
+        {(balanceAnalysis.evidenceCalculations || balanceAnalysis.adaptiveWeightCalculations) && (
+          <div className="border-t border-border pt-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsAtlasExpanded(!isAtlasExpanded)}
+              className="w-full flex items-center justify-between p-2 h-auto"
+            >
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-purple-500" />
+                <span className="text-sm font-medium text-foreground">
+                  ATLAS Decision System
+                </span>
+              </div>
+              {isAtlasExpanded ? (
+                <ChevronUp className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              )}
+            </Button>
+            
+            {isAtlasExpanded && (
+              <div className="mt-4 space-y-4">
+                {/* ATLAS Summary Stats */}
+                <div className="grid grid-cols-3 gap-4 p-3 bg-muted/20 rounded-lg border border-border">
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-foreground">
+                      {getEvidenceCalculations().length}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Players Analyzed</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-yellow-600">
+                      {getBalanceQuality()}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Balance Quality</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-foreground">
+                      {Math.round(getMaxTeamDifference())}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Max Difference</div>
+                  </div>
+                </div>
+
+                {/* ATLAS Adaptive Weight Calculations */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-semibold text-foreground">ATLAS Adaptive Weight Calculations</h4>
+                  
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {getEvidenceCalculations()
+                      .sort((a, b) => (b.calculation.finalPoints || 0) - (a.calculation.finalPoints || 0))
+                      .map((calc, index) => {
+                        const player = teams.flatMap(team => team.team_members || []).map(member => member.users).find(user => user.id === calc.userId);
+                        const playerName = player?.discord_username || `Player ${index + 1}`;
+                        const points = calc.calculation.finalPoints || calc.calculation.calculatedAdaptiveWeight || 0;
+                        
+                        return (
+                          <div key={calc.userId} className="p-3 bg-muted/30 rounded-lg border border-border">
+                            <div className="flex items-start justify-between mb-2">
+                              <span className="font-medium text-foreground">{playerName}</span>
+                              <span className="text-sm font-bold text-foreground">{points} pts</span>
+                            </div>
+                            
+                            {calc.calculation.calculationReasoning && (
+                              <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-950/30 rounded border border-blue-200/50 dark:border-blue-800/30">
+                                <div className="text-xs font-medium text-blue-800 dark:text-blue-300 mb-1">ATLAS Analysis:</div>
+                                <div className="text-xs text-blue-700 dark:text-blue-400">
+                                  {calc.calculation.calculationReasoning}
+                                </div>
+                              </div>
+                            )}
+                            
+                            <div className="grid grid-cols-2 gap-3 text-xs">
+                              <div>
+                                <span className="text-muted-foreground">Current Rank:</span>
+                                <span className="ml-1 text-foreground font-medium">
+                                  {calc.calculation.currentRank || 'Unranked'} ({calc.calculation.currentRankPoints || 0} pts)
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Peak Rank:</span>
+                                <span className="ml-1 text-foreground font-medium">
+                                  {calc.calculation.peakRank || 'Unranked'} ({calc.calculation.peakRankPoints || 0} pts)
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Weight Source:</span>
+                                <span className="ml-1 text-foreground font-medium">{calc.calculation.weightSource || 'evidence based'}</span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Rank Decay:</span>
+                                <span className="ml-1 text-foreground font-medium">
+                                  {Math.round((calc.calculation.rankDecayFactor || 0) * 100)}%
+                                </span>
+                              </div>
+                              {calc.calculation.tournamentsWon && (
+                                <div className="col-span-2">
+                                  <span className="text-muted-foreground">Tournaments Won:</span>
+                                  <span className="ml-1 text-foreground font-medium">{calc.calculation.tournamentsWon}</span>
+                                </div>
+                              )}
+                            </div>
+                            
+                            {calc.calculation.evidenceFactors && calc.calculation.evidenceFactors.length > 0 && (
+                              <div className="mt-3">
+                                <div className="text-xs font-medium text-muted-foreground mb-2">Evidence Factors:</div>
+                                <div className="space-y-1">
+                                  {calc.calculation.evidenceFactors.map((factor: string, i: number) => (
+                                    <div key={i} className="text-xs text-muted-foreground bg-background/50 p-2 rounded border border-border/50">
+                                      {factor}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+
+                {/* How ATLAS Works */}
+                <div className="p-3 bg-muted/20 rounded-lg border border-border">
+                  <h4 className="text-sm font-semibold text-foreground mb-3">How ATLAS Works</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                    <div className="flex items-start gap-2">
+                      <Clock className="h-3 w-3 text-muted-foreground mt-0.5 flex-shrink-0" />
+                      <div>
+                        <div className="font-medium text-foreground">Rank Decay Analysis</div>
+                        <div className="text-muted-foreground">Adjusts weights based on time since peak rank</div>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <Trophy className="h-3 w-3 text-muted-foreground mt-0.5 flex-shrink-0" />
+                      <div>
+                        <div className="font-medium text-foreground">Tournament History</div>
+                        <div className="text-muted-foreground">Factors in past tournament wins and performance</div>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <Users className="h-3 w-3 text-muted-foreground mt-0.5 flex-shrink-0" />
+                      <div>
+                        <div className="font-medium text-foreground">Skill Distribution</div>
+                        <div className="text-muted-foreground">Prevents stacking of elite players on same team</div>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <Brain className="h-3 w-3 text-muted-foreground mt-0.5 flex-shrink-0" />
+                      <div>
+                        <div className="font-medium text-foreground">AI Validation</div>
+                        <div className="text-muted-foreground">Mini-AI system validates and refines assignments</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
         <div className="border-t border-border pt-4">
           <Button
             variant="ghost"
