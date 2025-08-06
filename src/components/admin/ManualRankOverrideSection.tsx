@@ -27,6 +27,7 @@ interface ManualRankOverrideSectionProps {
     use_manual_override: boolean;
     rank_override_reason: string | null;
   }) => void;
+  onPeakRankChange?: (peakRank: string | null) => void;
 }
 
 const VALORANT_RANKS = [
@@ -41,11 +42,12 @@ const VALORANT_RANKS = [
   'Radiant'
 ];
 
-const ManualRankOverrideSection = ({ userData, onOverrideChange }: ManualRankOverrideSectionProps) => {
+const ManualRankOverrideSection = ({ userData, onOverrideChange, onPeakRankChange }: ManualRankOverrideSectionProps) => {
   const [useOverride, setUseOverride] = useState(userData.use_manual_override || false);
   const [selectedRank, setSelectedRank] = useState(userData.manual_rank_override || '');
   const [customWeight, setCustomWeight] = useState(userData.manual_weight_override?.toString() || '');
   const [reason, setReason] = useState(userData.rank_override_reason || '');
+  const [selectedPeakRank, setSelectedPeakRank] = useState(userData.peak_rank || '');
 
   const handleOverrideToggle = (enabled: boolean) => {
     setUseOverride(enabled);

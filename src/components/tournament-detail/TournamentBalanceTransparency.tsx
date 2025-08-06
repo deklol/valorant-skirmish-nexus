@@ -157,7 +157,7 @@ interface TournamentBalanceTransparencyProps {
 }
 
 const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBalanceTransparencyProps) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true); // Start expanded
   const [isATLASExpanded, setIsATLASExpanded] = useState(false);
   const [isSwapExpanded, setIsSwapExpanded] = useState(false);
   
@@ -617,7 +617,7 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
         {atlasCalculations.length > 0 && (
           <div className="mb-6">
             <div 
-              className="flex items-center justify-between p-4 bg-secondary/5 rounded-lg border border-secondary/20 cursor-pointer hover:bg-secondary/10 transition-colors"
+              className={`flex items-center justify-between p-4 bg-secondary/5 rounded-lg border border-secondary/20 cursor-pointer hover:bg-secondary/10 transition-all duration-300 ${!isATLASExpanded ? 'animate-pulse' : ''}`}
               onClick={() => setIsATLASExpanded(!isATLASExpanded)}
             >
               <div className="flex items-center gap-3">

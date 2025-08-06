@@ -62,7 +62,8 @@ const UserManagement = () => {
     twitch_handle: '',
     profile_visibility: 'public',
     riot_id: '',
-    spendable_points: 0
+    spendable_points: 0,
+    peak_rank: null as string | null
   });
   const [manualOverrideForm, setManualOverrideForm] = useState({
     manual_rank_override: null as string | null,
@@ -163,7 +164,8 @@ const UserManagement = () => {
       twitch_handle: user.twitch_handle || '',
       profile_visibility: user.profile_visibility || 'public',
       riot_id: user.riot_id || '',
-      spendable_points: user.spendable_points || 0
+      spendable_points: user.spendable_points || 0,
+      peak_rank: user.peak_rank
     });
     setManualOverrideForm({
       manual_rank_override: user.manual_rank_override,
@@ -188,6 +190,7 @@ const UserManagement = () => {
           profile_visibility: editForm.profile_visibility,
           riot_id: editForm.riot_id || null,
           spendable_points: editForm.spendable_points,
+          peak_rank: editForm.peak_rank,
           // Manual rank override fields
           manual_rank_override: manualOverrideForm.manual_rank_override,
           manual_weight_override: manualOverrideForm.manual_weight_override,
@@ -578,6 +581,7 @@ const UserManagement = () => {
                   weight_rating: editingUser?.weight_rating
                 }}
                 onOverrideChange={(overrideData) => setManualOverrideForm(overrideData)}
+                onPeakRankChange={(peakRank) => setEditForm(prev => ({ ...prev, peak_rank: peakRank }))}
               />
 
               {/* Profile Section */}
