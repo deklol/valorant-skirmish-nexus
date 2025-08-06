@@ -768,10 +768,10 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                           </div>
                         )}
                         
-                        {/* Tournament achievements */}
+                        {/* Tournament achievements with detailed breakdown */}
                         {tournamentWins > 0 && (
                           <div className="mb-3 p-2 bg-amber-500/10 rounded-lg border border-amber-500/20">
-                            <div className="flex items-center justify-between">
+                            <div className="flex items-center justify-between mb-2">
                               <div className="flex items-center gap-2">
                                 <Trophy className="h-3 w-3 text-amber-600" />
                                 <span className="text-xs font-medium text-amber-700">
@@ -784,6 +784,33 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                                 </Badge>
                               )}
                             </div>
+                            
+                            {/* Tournament bonus breakdown */}
+                            {tournamentBonus > 0 && tournamentBonus !== (tournamentWins * 15) && (
+                              <div className="space-y-1 text-xs">
+                                <div className="flex justify-between text-muted-foreground">
+                                  <span>Base bonus ({tournamentWins} × 15pts):</span>
+                                  <span>+{tournamentWins * 15}pts</span>
+                                </div>
+                                {finalPoints >= 400 && (
+                                  <div className="flex justify-between text-red-600">
+                                    <span>Elite tier bonus:</span>
+                                    <span>+10pts</span>
+                                  </div>
+                                )}
+                                {(calc.calculation.calculationReasoning?.includes('underranked') || 
+                                  calc.calculation.calculationReasoning?.includes('dropped significantly')) && (
+                                  <div className="flex justify-between text-orange-600">
+                                    <span>Underranked bonus:</span>
+                                    <span>+{tournamentBonus - (tournamentWins * 15) - (finalPoints >= 400 ? 10 : 0)}pts</span>
+                                  </div>
+                                )}
+                                <div className="flex justify-between font-medium text-amber-700 border-t border-amber-500/20 pt-1">
+                                  <span>Total bonus:</span>
+                                  <span>+{tournamentBonus}pts</span>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                         
