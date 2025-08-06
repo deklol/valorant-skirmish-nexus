@@ -219,11 +219,17 @@ export function calculateEvidenceBasedWeight(
     evidenceFactors.push(`Tournament Winner: ${tournamentsWon} (+${tournamentBonus})`);
   }
 
-  // ONLY apply underranked bonus if there's concrete evidence of being below peak skill
+  // Apply underranked bonus for any player below their peak skill level
   let underrankedBonus = 0;
-  if (weightSource === 'current_rank' && peakRank && RANK_POINT_MAPPING[peakRank]) {
-    const currentPoints = basePoints;
+  if (peakRank && RANK_POINT_MAPPING[peakRank]) {
     const peakPoints = RANK_POINT_MAPPING[peakRank];
+    let currentPoints = basePoints;
+    
+    // For peak rank usage, compare against default unrated points (150)
+    if (weightSource === 'peak_rank') {
+      currentPoints = 150; // Unrated baseline
+    }
+    
     const pointDifference = peakPoints - currentPoints;
     
     // Apply generous bonus for any meaningful rank drop (1.5+ tiers = 75+ points)
@@ -244,7 +250,8 @@ export function calculateEvidenceBasedWeight(
       bonusPercent = Math.min(bonusPercent, config.maxUnderrankedBonus);
       underrankedBonus = Math.floor(basePoints * bonusPercent);
       
-      evidenceFactors.push(`Underranked Bonus: ${tierDrops.toFixed(1)} tier drop = +${Math.round(bonusPercent * 100)}% (+${underrankedBonus})`);
+      const rankStatus = weightSource === 'peak_rank' ? 'Unrated' : currentRank || 'Unknown';
+      evidenceFactors.push(`Underranked Bonus: ${rankStatus} vs ${peakRank} peak = ${tierDrops.toFixed(1)} tier drop = +${Math.round(bonusPercent * 100)}% (+${underrankedBonus})`);
     }
   }
 
