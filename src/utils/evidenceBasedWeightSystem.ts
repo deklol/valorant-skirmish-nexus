@@ -244,7 +244,7 @@ export function calculateEvidenceBasedWeight(
     // Apply generous bonus for any meaningful rank drop (1.5+ tiers = 75+ points)
     const thresholdPoints = config.underrankedBonusThreshold * 50; // Convert tiers to points
     if (pointDifference >= thresholdPoints) {
-      const tierDrops = pointDifference / 50; // Exact tier drops (can be decimal)
+      const tierDrops = pointDifference / 100; // Exact tier drops (can be decimal)
       
       // Progressive bonus system: more generous for larger drops
       // 10% for first tier, then increasing increments
