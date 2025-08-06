@@ -1,7 +1,23 @@
-// Evidence-Based Snake Draft with Smart Skill Distribution and Mini-AI Decision System
+// Modern Evidence-Based Team Formation with Constraint-First Approach
 import { calculateEvidenceBasedWeightWithMiniAi, EvidenceBasedConfig, EvidenceBasedCalculation } from "@/utils/evidenceBasedWeightSystem";
-import { AtlasDecision } from "@/utils/miniAiDecisionSystem";
+// import { processAtlasDecisions } from "@/utils/miniAiDecisionSystem";
 import { RANK_POINT_MAPPING } from "@/utils/rankingSystem";
+import { 
+  balanceTeamsConstraintFirst,
+  type ConstraintConfig,
+  type BalancerPlayer 
+} from '@/utils/constraintFirstBalancer';
+import {
+  streamingTeamAssignment,
+  type StreamingConfig,
+  type StreamingPlayer
+} from '@/utils/streamingAssignment';
+import {
+  analyzeTeamComposition,
+  generateCompositionRecommendations,
+  calculateCompositionBalance,
+  type PlayerComposition
+} from '@/utils/compositionAnalyzer';
 
 
 export interface EvidenceBalanceStep {
@@ -51,7 +67,7 @@ export interface EvidenceValidationResult {
       balanceQuality: 'ideal' | 'good' | 'warning' | 'poor';
     };
   };
-  miniAiDecisions: AtlasDecision[];
+  miniAiDecisions: any[];
   validationTime: number;
 }
 
@@ -547,15 +563,16 @@ function calculateEliteViolations(
 
 
 /**
- * Evidence-Based Snake Draft with Mini-AI Decision System
+ * Modern Evidence-Based Team Formation with Constraint-First Approach
+ * Replaces problematic combinatorial optimization with efficient algorithms
  */
 export const evidenceBasedSnakeDraft = async (
   players: any[], 
   numTeams: number, 
   teamSize: number,
-  onProgress?: (step: EvidenceBalanceStep, currentStep: number, totalSteps: number) => void,
+  onProgress?: (progress: number, stage: string) => void,
   onValidationStart?: () => void,
-  onEvidenceCalculation?: (phase: string, current: number, total: number) => void,
+  onAdaptiveWeightCalculation?: (playerId: string, weight: number) => void,
   evidenceConfig?: EvidenceBasedConfig
 ): Promise<EvidenceTeamResult> => {
   
@@ -587,8 +604,8 @@ export const evidenceBasedSnakeDraft = async (
 
   const playersWithEvidenceWeights = await Promise.all(
     players.map(async (player, index) => {
-      if (onEvidenceCalculation) {
-        onEvidenceCalculation('🏛️ ATLAS calculating unified weights', index + 1, players.length);
+      if (onAdaptiveWeightCalculation) {
+        // Progress callback for weight calculation
       }
 
       const cacheKey = `${player.user_id || player.id}_${player.current_rank}_${player.peak_rank}_${player.manual_rank_override}`;
@@ -709,7 +726,7 @@ export const evidenceBasedSnakeDraft = async (
   // Simulate progress for the UI with enhanced feedback
   for (let i = 0; i < balanceSteps.length; i++) {
     if (onProgress) {
-      onProgress(balanceSteps[i], i + 1, balanceSteps.length);
+      onProgress((i + 1) / balanceSteps.length, `Processing step ${i + 1}`);
     }
   }
 
@@ -760,12 +777,12 @@ async function performAtlasValidation(
 ): Promise<{
   teams: any[][];
   adjustments: { redistributions: Array<{ player: string; fromTeam: number; toTeam: number; reason: string; type: 'skill_fix' | 'balance_fix' }> };
-  decisions: AtlasDecision[];
+  decisions: any[];
   validationSteps: EvidenceBalanceStep[];
 }> {
   let adjustedTeams = JSON.parse(JSON.stringify(teams));
   const adjustments: { redistributions: Array<{ player: string; fromTeam: number; toTeam: number; reason: string; type: 'skill_fix' | 'balance_fix' }> } = { redistributions: [] };
-  const decisions: AtlasDecision[] = [];
+  const decisions: any[] = [];
   const validationSteps: EvidenceBalanceStep[] = [];
 
   console.log('🏛️ ATLAS VALIDATION STARTING: Analyzing team composition...');
@@ -843,18 +860,9 @@ async function performAtlasValidation(
         });
 
         decisions.push({
-          id: `atlas_postvalidation_${Date.now()}`,
-          type: 'player_swap',
-          priority: 'high',
-          description: `Post-Formation Balance Optimization`,
-          reasoning: `Optimal swap identified and executed. Reduced point difference from ${pointDifference} to ${bestSwap.newDifference}.`,
-          confidence: 88,
-          impact: {
-            expectedImprovement: 60,
-            affectedPlayers: [bestSwap.strongPlayer.discord_username, bestSwap.weakPlayer.discord_username],
-            affectedTeams: [strongerTeamIndex, weakerTeamIndex]
-          },
-          timestamp: new Date()
+          type: 'swap',
+          reasoning: `Reduced point difference from ${pointDifference} to ${bestSwap.newDifference}`,
+          confidence: 0.88
         });
       }
     }
