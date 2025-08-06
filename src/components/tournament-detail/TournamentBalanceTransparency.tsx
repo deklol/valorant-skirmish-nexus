@@ -728,31 +728,29 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1 min-w-0">
                             <h4 className="font-semibold text-foreground text-sm truncate">{playerName}</h4>
-                            <div className="flex flex-col gap-1 mt-1">
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm">{getRankInfo(playerRank).emoji}</span>
-                                <Badge 
-                                  variant="outline" 
-                                  className="text-xs px-2 py-0.5 border-[1px]"
-                                  style={{
-                                    color: getRankInfo(playerRank).primary,
-                                    borderColor: getRankInfo(playerRank).primary + '80'
-                                  }}
-                                >
-                                  {playerRank}
-                                </Badge>
-                              </div>
+                             <div className="flex flex-col gap-1 mt-1">
                                <Badge 
-                                 className="text-xs px-2 py-0.5"
+                                 variant="outline" 
+                                 className="text-xs px-2 py-0.5 border-[1px] inline-flex items-center gap-1 w-fit"
                                  style={{
-                                   backgroundColor: getRankInfo(playerRank).primary + '20',
                                    color: getRankInfo(playerRank).primary,
-                                   borderColor: getRankInfo(playerRank).primary + '40'
+                                   borderColor: getRankInfo(playerRank).primary + '80'
                                  }}
                                >
-                                 {skillTier.label}
+                                 <span>{getRankInfo(playerRank).emoji}</span>
+                                 {playerRank}
                                </Badge>
-                            </div>
+                                <Badge 
+                                  className="text-xs px-2 py-0.5 w-fit inline-block"
+                                  style={{
+                                    backgroundColor: getRankInfo(playerRank).primary + '20',
+                                    color: getRankInfo(playerRank).primary,
+                                    borderColor: getRankInfo(playerRank).primary + '40'
+                                  }}
+                                >
+                                  {skillTier.label}
+                                </Badge>
+                             </div>
                           </div>
                           <div className="text-right">
                             <div className="text-lg font-bold text-primary">{finalPoints}</div>
