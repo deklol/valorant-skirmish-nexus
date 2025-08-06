@@ -40,7 +40,6 @@ export function useTournamentData(): UseTournamentDataResult {
         .from('tournaments')
         .select(`
           *,
-          balance_analysis,
           teams (
             *,
             team_members (
