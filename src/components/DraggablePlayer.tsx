@@ -10,6 +10,46 @@ import { getRankPointsWithManualOverride } from "@/utils/rankingSystemWithOverri
 import { calculateEvidenceBasedWeightWithMiniAi, ExtendedUserRankData } from "@/utils/evidenceBasedWeightSystem";
 import { useRecentTournamentWinners } from "@/hooks/useRecentTournamentWinners";
 
+// Rank configuration with icons and colors
+const RANK_CONFIG = {
+  'Iron': { emoji: '🔻', primary: '#4A4A4A', accent: '#7E7E7E' },
+  'Bronze': { emoji: '🟫', primary: '#A97142', accent: '#C28E5C' },
+  'Silver': { emoji: '🟨', primary: '#C0C0C0', accent: '#D8D8D8' },
+  'Gold': { emoji: '🟧', primary: '#FFD700', accent: '#FFEA8A' },
+  'Platinum': { emoji: '🟩', primary: '#4ED1B3', accent: '#8FFCE1' },
+  'Diamond': { emoji: '🔷', primary: '#5CA3E4', accent: '#B3DAFF' },
+  'Ascendant': { emoji: '🟪', primary: '#84FF6F', accent: '#B6FFA8' },
+  'Immortal': { emoji: '🩸', primary: '#A52834', accent: '#D24357' },
+  'Radiant': { emoji: '🔱', primary: '#FFF176', accent: '#FFFFFF' },
+  'Unranked': { emoji: '❓', primary: '#6B7280', accent: '#9CA3AF' }
+};
+
+const getRankInfo = (rank: string) => {
+  if (!rank || rank === 'Unranked') return RANK_CONFIG['Unranked'];
+  
+  // Extract rank name (e.g., "Immortal 1" -> "Immortal")
+  const rankName = rank.split(' ')[0];
+  return RANK_CONFIG[rankName as keyof typeof RANK_CONFIG] || RANK_CONFIG['Unranked'];
+};
+
+const getSkillLevel = (points: number) => {
+  if (points >= 400) return 'Elite';
+  if (points >= 350) return 'High Skilled';
+  if (points >= 250) return 'Intermediate';
+  if (points >= 150) return 'Developing';
+  return 'New Player';
+};
+
+const getSkillLevelColor = (skillLevel: string) => {
+  switch (skillLevel) {
+    case 'Elite': return '#A52834';
+    case 'High Skilled': return '#84FF6F';
+    case 'Intermediate': return '#5CA3E4';
+    case 'Developing': return '#FFD700';
+    default: return '#6B7280';
+  }
+};
+
 interface Player {
   id: string;
   discord_username: string;
@@ -91,6 +131,11 @@ const DraggablePlayer = ({ player, enableAdaptiveWeights }: DraggablePlayerProps
     });
   }
 
+  const currentRank = player.current_rank || 'Unranked';
+  const rankInfo = getRankInfo(currentRank);
+  const skillLevel = getSkillLevel(rankResult.points);
+  const skillColor = getSkillLevelColor(skillLevel);
+
   return (
     <div
       ref={setNodeRef}
@@ -106,33 +151,56 @@ const DraggablePlayer = ({ player, enableAdaptiveWeights }: DraggablePlayerProps
           <GripVertical className="w-4 h-4 text-slate-400" />
           <div className="flex-1">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <span className="text-white font-medium">
                   <StyledUsername username={player.discord_username} userId={player.id} />
                 </span>
-                <span className="text-slate-300">-</span>
-                <span className="text-slate-300 text-sm">
-                  {player.current_rank || 'Unranked'}
-                </span>
-                <span className="text-slate-300">-</span>
-                <span className="text-slate-300 text-sm font-medium">
-                  {rankResult.points} pts
-                </span>
-                {rankResult.source === 'evidence_based' && (
-                  <Badge variant="outline" className="text-emerald-400 border-emerald-400 text-xs">
-                    ATLAS
-                  </Badge>
-                )}
-                {rankResult.source === 'manual_override' && (
-                  <Badge variant="outline" className="text-purple-400 border-purple-400 text-xs">
-                    Override
-                  </Badge>
-                )}
-                {rankResult.source === 'peak_rank' && (
-                  <Badge variant="outline" className="text-amber-400 border-amber-400 text-xs">
-                    Peak
-                  </Badge>
-                )}
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-1">
+                    <span className="text-lg">{rankInfo.emoji}</span>
+                    <span 
+                      className="text-sm font-medium"
+                      style={{ color: rankInfo.primary }}
+                    >
+                      {currentRank}
+                    </span>
+                    <Badge 
+                      variant="outline" 
+                      className="text-xs"
+                      style={{ 
+                        color: rankInfo.primary,
+                        borderColor: rankInfo.primary + '80'
+                      }}
+                    >
+                      {rankResult.points} pts
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span 
+                      className="text-xs"
+                      style={{ color: skillColor }}
+                    >
+                      {skillLevel}
+                    </span>
+                    <div className="flex gap-1">
+                      {rankResult.source === 'evidence_based' && (
+                        <Badge variant="outline" className="text-emerald-400 border-emerald-400 text-xs">
+                          ATLAS
+                        </Badge>
+                      )}
+                      {rankResult.source === 'manual_override' && (
+                        <Badge variant="outline" className="text-purple-400 border-purple-400 text-xs">
+                          Override
+                        </Badge>
+                      )}
+                      {rankResult.source === 'peak_rank' && (
+                        <Badge variant="outline" className="text-amber-400 border-amber-400 text-xs">
+                          Peak
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
