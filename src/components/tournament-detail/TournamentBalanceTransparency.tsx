@@ -732,8 +732,16 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                     {getEvidenceCalculations()
                       .sort((a, b) => (b.calculation.finalPoints || 0) - (a.calculation.finalPoints || 0))
                       .map((calc, index) => {
-                        const player = teams.flatMap(team => team.team_members || []).map(member => member.users).find(user => user.id === calc.userId);
-                        const playerName = player?.discord_username || `Player ${index + 1}`;
+                        // First try to find player in balance steps
+                        const balanceSteps = getBalanceSteps();
+                        const playerFromSteps = balanceSteps.find(step => step.player.id === calc.userId);
+                        
+                        // Fallback to team members if not found in steps
+                        const playerFromTeams = teams.flatMap(team => team.team_members || [])
+                          .find(member => member.users?.id === calc.userId)?.users;
+                        
+                        const player = playerFromSteps?.player || playerFromTeams;
+                        const playerName = player?.discord_username || (playerFromSteps?.player?.name) || `Player ${index + 1}`;
                         const points = calc.calculation.finalPoints || calc.calculation.calculatedAdaptiveWeight || 0;
                         
                         return (
