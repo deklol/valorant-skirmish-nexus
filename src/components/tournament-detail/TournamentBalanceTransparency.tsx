@@ -250,7 +250,30 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
         calculationStructure: balancedCalculations[0] ? Object.keys(balancedCalculations[0].calculation || {}) : []
       });
       
-      return balancedCalculations;
+      // Map stored calculation structure to expected format
+      return balancedCalculations.map(calc => {
+        const storedCalc = calc.calculation as any; // Type assertion for stored structure
+        return {
+          userId: calc.userId,
+          calculation: {
+            currentRank: storedCalc.rank || 'Unranked',
+            currentRankPoints: storedCalc.evidenceCalculation?.currentRankPoints || 0,
+            peakRank: storedCalc.evidenceCalculation?.peakRank || storedCalc.rank || 'Unranked',
+            peakRankPoints: storedCalc.evidenceCalculation?.peakRankPoints || 0,
+            calculatedAdaptiveWeight: storedCalc.points || 0,
+            adaptiveFactor: storedCalc.evidenceCalculation?.adaptiveFactor || 1.0,
+            calculationReasoning: storedCalc.evidenceCalculation?.calculationReasoning || `${storedCalc.rank || 'Unranked'} (${storedCalc.points || 0} points)`,
+            weightSource: storedCalc.source || 'adaptive_weight',
+            finalPoints: storedCalc.points || 0,
+            tournamentsWon: storedCalc.evidenceCalculation?.tournamentsWon || 0,
+            evidenceFactors: storedCalc.evidenceCalculation?.evidenceFactors || [],
+            tournamentBonus: storedCalc.evidenceCalculation?.tournamentBonus || 0,
+            basePoints: storedCalc.evidenceCalculation?.basePoints || 0,
+            rankDecayApplied: storedCalc.evidenceCalculation?.rankDecayApplied || 0,
+            isEliteTier: (storedCalc.points || 0) >= 400
+          }
+        };
+      });
     }
     
     // Generate ATLAS reasoning from balance steps evidence
