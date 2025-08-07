@@ -1,13 +1,11 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sparkles, PlayCircle, Trophy } from "lucide-react";
-import MatrixRain from "@/components/MatrixRain";
 
 const HomeHero = () => {
   return (
     <header className="relative overflow-hidden rounded-xl border border-slate-700 bg-gradient-to-br from-slate-900/70 via-slate-900/40 to-indigo-900/40 p-6 md:p-10">
       <div className="pointer-events-none absolute inset-0 opacity-30">
-        <MatrixRain />
       </div>
 
       <div className="relative z-10 grid gap-6 md:grid-cols-2 items-center">
