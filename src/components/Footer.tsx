@@ -90,7 +90,7 @@ const Footer = () => {
             </div>
             
             <div className="flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
-              <span>&copy; 2024 The Last Resort</span>
+              <span>&copy; 2025 The Last Resort</span>
               <Button 
                 variant="ghost" 
                 size="sm"
