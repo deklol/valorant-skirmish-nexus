@@ -250,10 +250,10 @@ export function calculateEvidenceBasedWeight(
       // 10% for first tier, then increasing increments
       let bonusPercent = 0;
       if (tierDrops >= 1.5) bonusPercent += 0.10; // First 1.5 tiers: +10%
-      if (tierDrops >= 2.5) bonusPercent += 0.08; // Next tier: +8% more (18% total)
-      if (tierDrops >= 3.5) bonusPercent += 0.07; // Next tier: +7% more (25% total)
-      if (tierDrops >= 4.5) bonusPercent += 0.05; // Next tier: +5% more (30% total)
-      if (tierDrops >= 5.5) bonusPercent += 0.05; // Additional tiers: +5% more (35% total)
+      if (tierDrops >= 2.5) bonusPercent += 0.05; // Next tier: +5% more (15% total)
+      if (tierDrops >= 3.5) bonusPercent += 0.02; // Next tier: +2% more (17% total)
+      if (tierDrops >= 4.5) bonusPercent += 0.03; // Optional: soft bump (20% total)
+      if (tierDrops >= 5.5) bonusPercent += 0.02; // Additional: (22% total)
       
       // Cap at max bonus
       bonusPercent = Math.min(bonusPercent, config.maxUnderrankedBonus);
