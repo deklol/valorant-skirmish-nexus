@@ -28,7 +28,7 @@ const HomeHero = () => {
             </Link>
             <Link to="/vods">
               <Button size="lg" variant="outline" className="border-slate-600">
-                <PlayCircle className="mr-2 h-4 w-4" /> Watch VODs
+                <PlayCircle className="mr-2 h-4 w-4" /> Watch Tournament VODs
               </Button>
             </Link>
           </div>
