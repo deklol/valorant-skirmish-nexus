@@ -14,6 +14,10 @@ import TwitchEmbed from "@/components/TwitchEmbed";
 import RecentWinners from "@/components/RecentWinners";
 import MemberHighlights from "@/components/MemberHighlights";
 import SponsorDisplay from "@/components/SponsorDisplay";
+import HomeHero from "@/components/home/HomeHero";
+import HomeVODSpotlight from "@/components/home/HomeVODSpotlight";
+import UpcomingTournamentsRail from "@/components/home/UpcomingTournamentsRail";
+import CommunityTestimonials from "@/components/home/CommunityTestimonials";
 
 const Index = () => {
   const { user } = useAuth();
@@ -24,6 +28,44 @@ const Index = () => {
     completedMatches: 0
   });
   const [loading, setLoading] = useState(true);
+
+  // Basic SEO for homepage
+  useEffect(() => {
+    document.title = "AI-Balanced Valorant Tournaments | The Last Resort";
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) metaDesc.setAttribute("content", "Host, join, and watch AI‑balanced Valorant tournaments with live brackets, VODs, and fair ATLAS player weighting.");
+    else {
+      const m = document.createElement("meta");
+      m.name = "description";
+      m.content = "Host, join, and watch AI‑balanced Valorant tournaments with live brackets, VODs, and fair ATLAS player weighting.";
+      document.head.appendChild(m);
+    }
+    const canonical = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    if (canonical) canonical.href = window.location.origin + "/";
+    else {
+      const l = document.createElement("link");
+      l.rel = "canonical";
+      l.href = window.location.origin + "/";
+      document.head.appendChild(l);
+    }
+
+    // Structured data
+    const ld = document.createElement("script");
+    ld.type = "application/ld+json";
+    ld.text = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "The Last Resort - Skirmish Hub",
+      "url": window.location.origin + "/",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": window.location.origin + "/players?search={query}",
+        "query-input": "required name=query"
+      }
+    });
+    document.head.appendChild(ld);
+    return () => { document.head.removeChild(ld); };
+  }, []);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -80,16 +122,7 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
       {/* Hero/Main Headline */}
       <section className="container mx-auto px-4 pt-8 pb-6">
-        <div className="text-center space-y-4">
-          <h1 className="text-5xl md:text-7xl font-bold text-white">
-            The Last Resort
-            <span className="text-red-500"> — Skirmish Hub</span>
-          </h1>
-          <p className="text-xl text-slate-300 max-w-2xl mx-auto">
-            The Skirmish Hub,
-            Easy to use, built specifically for our events. Track tournament progress, statistics, history all in one place!
-          </p>
-        </div>
+        <HomeHero />
       </section>
 
       {/* Announcement Full Width */}
@@ -140,6 +173,16 @@ const Index = () => {
       {/* Live Matches Section */}
       <section className="container mx-auto px-4 pt-4 pb-8">
         <LiveMatches />
+      </section>
+
+      {/* VOD Spotlight */}
+      <section className="container mx-auto px-4 pb-8">
+        <HomeVODSpotlight />
+      </section>
+
+      {/* Upcoming Tournaments Rail */}
+      <section className="container mx-auto px-4 pb-8">
+        <UpcomingTournamentsRail />
       </section>
 
       {/* Enhanced 3-col grid: L=Top Players | M=Tournaments | R=Recent Winner */}
