@@ -99,7 +99,7 @@ const Footer = () => {
               >
                 System
               </Button>
-              <span>Built with ❤️</span>
+              <span>Built with ❤️ by dek</span>
             </div>
           </div>
         </div>
