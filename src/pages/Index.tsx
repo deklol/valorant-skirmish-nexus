@@ -15,9 +15,6 @@ import RecentWinners from "@/components/RecentWinners";
 import MemberHighlights from "@/components/MemberHighlights";
 import SponsorDisplay from "@/components/SponsorDisplay";
 import HomeHero from "@/components/home/HomeHero";
-import HomeVODSpotlight from "@/components/home/HomeVODSpotlight";
-import UpcomingTournamentsRail from "@/components/home/UpcomingTournamentsRail";
-import CommunityTestimonials from "@/components/home/CommunityTestimonials";
 
 const Index = () => {
   const { user } = useAuth();
@@ -173,16 +170,6 @@ const Index = () => {
       {/* Live Matches Section */}
       <section className="container mx-auto px-4 pt-4 pb-8">
         <LiveMatches />
-      </section>
-
-      {/* VOD Spotlight */}
-      <section className="container mx-auto px-4 pb-8">
-        <HomeVODSpotlight />
-      </section>
-
-      {/* Upcoming Tournaments Rail */}
-      <section className="container mx-auto px-4 pb-8">
-        <UpcomingTournamentsRail />
       </section>
 
       {/* Enhanced 3-col grid: L=Top Players | M=Tournaments | R=Recent Winner */}
