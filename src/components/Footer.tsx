@@ -1,19 +1,19 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog-with-matrix";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import SponsorDisplay from "@/components/SponsorDisplay";
-import { 
-  Code, 
-  Database, 
-  Gamepad2, 
-  Trophy, 
-  Users, 
-  Shield, 
-  Zap, 
+import {
+  Code,
+  Database,
+  Gamepad2,
+  Trophy,
+  Users,
+  Shield,
+  Zap,
   Target,
   GitBranch,
   Server,
@@ -91,8 +91,8 @@ const Footer = () => {
             
             <div className="flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
               <span>&copy; 2025 The Last Resort</span>
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 size="sm"
                 onClick={() => setSystemModalOpen(true)}
                 className="text-muted-foreground hover:text-foreground"
@@ -106,7 +106,7 @@ const Footer = () => {
       </footer>
 
       <Dialog open={systemModalOpen} onOpenChange={setSystemModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-slate-800 border-slate-700" showMatrix={false}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-slate-800 border-slate-700">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-2xl">
               <Settings className="w-6 h-6 text-red-500" />
@@ -130,9 +130,9 @@ const Footer = () => {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {Object.entries(techDetails).map(([key, tech]) => (
-                    <Badge 
+                    <Badge
                       key={key}
-                      variant="secondary" 
+                      variant="secondary"
                       className="w-full justify-center"
                     >
                       {tech.name}
@@ -147,7 +147,7 @@ const Footer = () => {
 
             {/* Interactive Tournament Flow */}
             <Card className="bg-slate-700 border-slate-600">
-              <Collapsible 
+              <Collapsible
                 open={expandedSections.has('tournament-flow')}
                 onOpenChange={() => toggleSection('tournament-flow')}
               >
@@ -158,8 +158,8 @@ const Footer = () => {
                         <Trophy className="w-5 h-5 text-yellow-400" />
                         Tournament Management System
                       </div>
-                      {expandedSections.has('tournament-flow') ? 
-                        <ChevronDown className="w-4 h-4" /> : 
+                      {expandedSections.has('tournament-flow') ?
+                        <ChevronDown className="w-4 h-4" /> :
                         <ChevronRight className="w-4 h-4" />
                       }
                     </CardTitle>
@@ -225,7 +225,7 @@ const Footer = () => {
 
             {/* Interactive Team Balancing */}
             <Card className="bg-slate-700 border-slate-600">
-              <Collapsible 
+              <Collapsible
                 open={expandedSections.has('team-balancing')}
                 onOpenChange={() => toggleSection('team-balancing')}
               >
@@ -236,8 +236,8 @@ const Footer = () => {
                         <Shield className="w-5 h-5 text-green-400" />
                         Team Balancing Algorithm
                       </div>
-                      {expandedSections.has('team-balancing') ? 
-                        <ChevronDown className="w-4 h-4" /> : 
+                      {expandedSections.has('team-balancing') ?
+                        <ChevronDown className="w-4 h-4" /> :
                         <ChevronRight className="w-4 h-4" />
                       }
                     </CardTitle>
@@ -331,7 +331,7 @@ const Footer = () => {
 
             {/* Interactive Map Veto System */}
             <Card className="bg-slate-700 border-slate-600">
-              <Collapsible 
+              <Collapsible
                 open={expandedSections.has('map-veto')}
                 onOpenChange={() => toggleSection('map-veto')}
               >
@@ -342,8 +342,8 @@ const Footer = () => {
                         <Target className="w-5 h-5 text-purple-400" />
                         Map Veto & Fair Odds System
                       </div>
-                      {expandedSections.has('map-veto') ? 
-                        <ChevronDown className="w-4 h-4" /> : 
+                      {expandedSections.has('map-veto') ?
+                        <ChevronDown className="w-4 h-4" /> :
                         <ChevronRight className="w-4 h-4" />
                       }
                     </CardTitle>
@@ -410,7 +410,7 @@ const Footer = () => {
 
             {/* Interactive Database Architecture */}
             <Card className="bg-slate-700 border-slate-600">
-              <Collapsible 
+              <Collapsible
                 open={expandedSections.has('database')}
                 onOpenChange={() => toggleSection('database')}
               >
@@ -421,8 +421,8 @@ const Footer = () => {
                         <Database className="w-5 h-5 text-orange-400" />
                         Database Architecture & Security
                       </div>
-                      {expandedSections.has('database') ? 
-                        <ChevronDown className="w-4 h-4" /> : 
+                      {expandedSections.has('database') ?
+                        <ChevronDown className="w-4 h-4" /> :
                         <ChevronRight className="w-4 h-4" />
                       }
                     </CardTitle>
@@ -484,7 +484,7 @@ const Footer = () => {
 
             {/* Interactive Medic Tools */}
             <Card className="bg-slate-700 border-slate-600">
-              <Collapsible 
+              <Collapsible
                 open={expandedSections.has('medic-tools')}
                 onOpenChange={() => toggleSection('medic-tools')}
               >
@@ -496,8 +496,8 @@ const Footer = () => {
                         Tournament Medic Tools
                         <Badge variant="destructive" className="text-xs">Admin Only</Badge>
                       </div>
-                      {expandedSections.has('medic-tools') ? 
-                        <ChevronDown className="w-4 h-4" /> : 
+                      {expandedSections.has('medic-tools') ?
+                        <ChevronDown className="w-4 h-4" /> :
                         <ChevronRight className="w-4 h-4" />
                       }
                     </CardTitle>
@@ -553,7 +553,7 @@ const Footer = () => {
             </Card>
 
             <Separator className="bg-slate-600" />
-            
+
             <div className="text-center text-sm text-muted-foreground animate-fade-in">
               <p className="mb-2">💡 <strong>Pro Tip:</strong> Click on any section above to explore detailed technical information</p>
               <p>This platform represents hundreds of hours of development and countless iterations.</p>
