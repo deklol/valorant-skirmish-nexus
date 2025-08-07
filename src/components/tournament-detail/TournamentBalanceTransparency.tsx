@@ -7,6 +7,8 @@ import { useState } from "react";
 import { Team } from "@/types/tournamentDetail";
 import SwapSuggestionsSection from "./SwapSuggestionsSection";
 import { useRecentTournamentWinners } from "@/hooks/useRecentTournamentWinners";
+import { RANK_POINT_MAPPING } from "@/utils/rankingSystem";
+import { EVIDENCE_CONFIG } from "@/utils/evidenceBasedWeightSystem";
 
 // Rank configuration with emojis and colors
 const RANK_CONFIG = {
@@ -384,19 +386,8 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
 
   // Reconstruct ATLAS reasoning based on current rank and final points
   const reconstructATLASReasoning = (currentRank: string, finalPoints: number) => {
-    const RANK_POINTS = {
-      'Radiant': 500, 'Immortal 3': 450, 'Immortal 2': 415, 'Immortal 1': 300,
-      'Ascendant 3': 265, 'Ascendant 2': 240, 'Ascendant 1': 215,
-      'Diamond 3': 190, 'Diamond 2': 170, 'Diamond 1': 150,
-      'Platinum 3': 130, 'Platinum 2': 115, 'Platinum 1': 100,
-      'Gold 3': 85, 'Gold 2': 75, 'Gold 1': 70,
-      'Silver 3': 60, 'Silver 2': 55, 'Silver 1': 50,
-      'Bronze 3': 40, 'Bronze 2': 35, 'Bronze 1': 30,
-      'Iron 3': 25, 'Iron 2': 20, 'Iron 1': 15,
-      'Unrated': 150, 'Unranked': 150
-    };
-    
-    const currentRankPoints = RANK_POINTS[currentRank] || 150;
+  // Use shared rank mapping to avoid drift
+  const currentRankPoints = RANK_POINT_MAPPING[currentRank] || 150;
     const pointDifference = finalPoints - currentRankPoints;
     
     let reasoning = '';
@@ -416,7 +407,7 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
       peakRankPoints = 500;
       basePoints = 500;
       tournamentBonus = Math.max(0, finalPoints - 500);
-      tournamentsWon = Math.floor(tournamentBonus / 15);
+      tournamentsWon = Math.floor(tournamentBonus / EVIDENCE_CONFIG.tournamentWinBonus);
       reasoning = `Peak Radiant (500 pts)`;
       evidenceFactors.push('Peak Rank: Radiant');
       evidenceFactors.push('Currently Unrated');
@@ -427,7 +418,7 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
     } else if (pointDifference > 50) {
       // Likely has tournament bonuses or peak rank boost
       tournamentBonus = pointDifference;
-      tournamentsWon = Math.floor(tournamentBonus / 15);
+      tournamentsWon = Math.floor(tournamentBonus / EVIDENCE_CONFIG.tournamentWinBonus);
       basePoints = currentRankPoints;
       reasoning = `${currentRank} (${currentRankPoints} pts)`;
       evidenceFactors.push(`Current Rank: ${currentRank}`);
@@ -438,7 +429,8 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
     } else if (pointDifference < 0) {
       // Likely has rank decay from peak
       const possiblePeakPoints = finalPoints + Math.abs(pointDifference);
-      peakRank = Object.keys(RANK_POINTS).find(rank => RANK_POINTS[rank] === possiblePeakPoints) || currentRank;
+      const rankEntry = Object.entries(RANK_POINT_MAPPING).find(([_, pts]) => pts === possiblePeakPoints);
+      peakRank = (rankEntry && rankEntry[0]) || currentRank;
       peakRankPoints = possiblePeakPoints;
       rankDecay = Math.abs(pointDifference);
       basePoints = peakRankPoints;

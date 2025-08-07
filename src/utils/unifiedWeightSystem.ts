@@ -2,14 +2,14 @@
  * Unified Weight System - Single source of truth for player weight calculations
  * Consolidates various ranking and evidence-based systems with fallbacks and validation
  */
-import { calculateEvidenceBasedWeightWithMiniAi } from "./evidenceBasedWeightSystem";
+import { calculateEvidenceBasedWeightWithMiniAi, EVIDENCE_CONFIG } from "./evidenceBasedWeightSystem";
 import { getRankPointsWithManualOverride } from "./rankingSystemWithOverrides";
 import { RANK_POINT_MAPPING } from "./rankingSystem";
 import { atlasLogger } from "./atlasLogger";
 
 export interface UnifiedPlayerWeight {
   points: number;
-  source: 'manual_override' | 'atlas_evidence' | 'current_rank' | 'peak_rank' | 'default';
+  source: 'manual_override' | 'atlas_evidence' | 'evidence_based' | 'current_rank' | 'peak_rank' | 'default';
   rank: string;
   reasoning: string;
   isElite: boolean;
@@ -65,21 +65,11 @@ export async function getUnifiedPlayerWeight(
         weight_rating: userData.weight_rating,
         tournaments_won: userData.tournaments_won,
         last_tournament_win: userData.last_tournament_win
-      }, {
-        enableEvidenceBasedWeights: true,
-        tournamentWinBonus: 15,
-        underrankedBonusThreshold: 1.5,
-        maxUnderrankedBonus: 0.35,
-        skillTierCaps: {
-          enabled: true,
-          eliteThreshold: 400,
-          maxElitePerTeam: 1
-        }
-      }, true);
+      }, EVIDENCE_CONFIG, true);
 
       const points = atlasResult.finalAdjustedPoints;
       const isValid = points > 0 && !isNaN(points);
-      const isElite = points >= 400;
+      const isElite = points >= EVIDENCE_CONFIG.skillTierCaps.eliteThreshold;
 
       if (isTargetPlayer) {
         atlasLogger.debug('KERA ATLAS RESULT', {
@@ -94,9 +84,11 @@ export async function getUnifiedPlayerWeight(
       // PHASE 6 FIX: Enhanced validation with proper fallback
       const validatedPoints = forceValidation && !isValid ? 150 : points;
 
+      const src = (atlasResult.evidenceResult as any)?.miniAiAnalysis ? 'atlas_evidence' : ((atlasResult.evidenceResult as any)?.evidenceCalculation?.weightSource || 'adaptive_weight');
+
       return {
         points: validatedPoints,
-        source: 'atlas_evidence',
+        source: src,
         rank: atlasResult.evidenceResult.rank,
         reasoning: `🏛️ ATLAS: ${atlasResult.adjustmentReasoning}`,
         isElite,
@@ -109,7 +101,7 @@ export async function getUnifiedPlayerWeight(
       const standardResult = getRankPointsWithManualOverride(userData);
       const points = standardResult.points;
       const isValid = points > 0 && !isNaN(points);
-      const isElite = points >= 400;
+      const isElite = points >= EVIDENCE_CONFIG.skillTierCaps.eliteThreshold;
 
       if (isTargetPlayer) {
         atlasLogger.debug('KERA STANDARD RESULT', {
@@ -153,7 +145,7 @@ export async function getUnifiedPlayerWeight(
       source: 'default',
       rank: fallbackRank,
       reasoning: `🚨 Fallback: ${fallbackRank} (${fallbackPoints} points) - Primary calculation failed: ${error.message}`,
-      isElite: fallbackPoints >= 400,
+      isElite: fallbackPoints >= EVIDENCE_CONFIG.skillTierCaps.eliteThreshold,
       isValid: true
     };
   }

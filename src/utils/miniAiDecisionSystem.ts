@@ -84,8 +84,8 @@ export class AtlasDecisionSystem {
       enableTeamRedistribution: true,
       enablePlayerSwaps: true,
       aggressivenessLevel: 'moderate',
-      confidenceThreshold: 70,
-      maxAdjustmentPercent: 0.25,
+      confidenceThreshold: 75,
+      maxAdjustmentPercent: 0.30,
       eliteThreshold: 400,
       logging: {
         enableDetailedLogging: true,

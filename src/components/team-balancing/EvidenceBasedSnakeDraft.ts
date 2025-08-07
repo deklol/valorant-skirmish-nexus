@@ -1,5 +1,5 @@
 // Clean ATLAS Team Formation System - Pure Implementation
-import { calculateEvidenceBasedWeightWithMiniAi, EvidenceBasedConfig } from "@/utils/evidenceBasedWeightSystem";
+import { calculateEvidenceBasedWeightWithMiniAi, EvidenceBasedConfig, EVIDENCE_CONFIG } from "@/utils/evidenceBasedWeightSystem";
 import { atlasLogger } from "@/utils/atlasLogger";
 import { validateAntiStacking, logAntiStackingResults } from "@/utils/antiStackingValidator";
 
@@ -117,17 +117,7 @@ export async function evidenceBasedSnakeDraft(
   const processedPlayers = await Promise.all(
     players.map(async (player) => {
       try {
-        const config = adaptiveConfig || {
-          enableEvidenceBasedWeights: true,
-          tournamentWinBonus: 15,
-          underrankedBonusThreshold: 1.5,
-          maxUnderrankedBonus: 0.35,
-          skillTierCaps: {
-            enabled: true,
-            eliteThreshold: 400,
-            maxElitePerTeam: 1
-          }
-        };
+        const config = adaptiveConfig || EVIDENCE_CONFIG;
         const evidenceResult = await calculateEvidenceBasedWeightWithMiniAi(player, config);
         
         const processedPlayer = {
@@ -136,7 +126,7 @@ export async function evidenceBasedSnakeDraft(
           evidenceCalculation: evidenceResult.evidenceResult.evidenceCalculation,
           evidenceReasoning: evidenceResult.evidenceResult.evidenceCalculation?.calculationReasoning,
           weightSource: evidenceResult.evidenceResult.evidenceCalculation?.weightSource || 'evidence_based',
-          isElite: evidenceResult.finalAdjustedPoints >= 400
+          isElite: evidenceResult.finalAdjustedPoints >= EVIDENCE_CONFIG.skillTierCaps.eliteThreshold
         };
         
         console.log(`🔍 ATLAS calculation for ${player.discord_username}:`, {
@@ -307,7 +297,7 @@ function createBalancedTeamsWithAntiStacking(
     const targetTeamIndex = findOptimalTeamForPlayer(player, currentWeights, teams, teamSize);
     
     // Additional anti-stacking check for elite players  
-    const isElitePlayer = player.evidenceWeight >= 400; // Updated threshold
+    const isElitePlayer = player.evidenceWeight >= EVIDENCE_CONFIG.skillTierCaps.eliteThreshold; // Updated threshold
     const strongestTeamIndex = currentWeights.indexOf(Math.max(...currentWeights));
     
     let finalTeamIndex = targetTeamIndex;

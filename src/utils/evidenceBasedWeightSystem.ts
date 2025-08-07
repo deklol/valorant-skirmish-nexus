@@ -62,6 +62,9 @@ const DEFAULT_EVIDENCE_CONFIG: EvidenceBasedConfig = {
   }
 };
 
+// Export shared config to prevent drift across modules
+export const EVIDENCE_CONFIG = DEFAULT_EVIDENCE_CONFIG;
+
 /**
  * Calculate evidence-based weight with Mini-AI enhancement
  */
@@ -73,16 +76,9 @@ export function calculateEvidenceBasedWeightWithMiniAi(
   return new Promise(async (resolve) => {
     const evidenceResult = calculateEvidenceBasedWeight(userData, config);
     
-    // Skip ATLAS if we have sufficient evidence data to prevent double-counting
-    const hasSufficientEvidence = userData.peak_rank && 
-      (userData.current_rank || userData.peak_rank) &&
-      userData.peak_rank !== 'Unranked';
-    
-    if (!enableMiniAi || hasSufficientEvidence) {
-      const reasoning = hasSufficientEvidence && enableMiniAi 
-        ? evidenceResult.evidenceCalculation?.calculationReasoning + '\n[ATLAS disabled - sufficient evidence data]'
-        : evidenceResult.evidenceCalculation?.calculationReasoning || 'Standard evidence-based calculation';
-        
+    // ATLAS enabled path control
+    if (!enableMiniAi) {
+      const reasoning = evidenceResult.evidenceCalculation?.calculationReasoning || 'Evidence-based calculation (ATLAS disabled)';
       resolve({
         evidenceResult,
         finalAdjustedPoints: evidenceResult.points,
