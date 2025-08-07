@@ -89,13 +89,15 @@ export function calculateEvidenceBasedWeightWithMiniAi(
 
     try {
       // Convert to PlayerSkillData format for Mini-AI
+      // IMPORTANT: prevent double-counting of tournament/underranked bonuses already applied in evidenceResult
       const playerSkillData: PlayerSkillData = {
         userId: (userData as any).id || 'unknown',
         username: (userData as any).discord_username || 'Unknown',
         currentRank: userData.current_rank,
-        peakRank: userData.peak_rank,
-        basePoints: evidenceResult.points,
-        tournamentsWon: userData.tournaments_won || 0,
+        // Sanitize ATLAS inputs to avoid re-adding bonuses: treat peak as current and zero out tournamentsWon
+        peakRank: userData.current_rank,
+        basePoints: evidenceResult.points, // includes tournament + underranked from evidence
+        tournamentsWon: 0,
         tournamentsPlayed: (userData as any).tournaments_played,
         wins: (userData as any).wins,
         losses: (userData as any).losses,
