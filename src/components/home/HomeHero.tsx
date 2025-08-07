@@ -15,10 +15,10 @@ const HomeHero = () => {
             Powered by ATLAS balancing
           </div>
           <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight text-white">
-            Competitive Valorant Tournaments, Balanced by AI
+            Competitive Valorant Tournaments, Balanced by ATLAS
           </h1>
           <p className="text-slate-300 max-w-xl">
-            Host, join, and watch fair matches with live brackets, VODs, and transparent ATLAS player weighting.
+            ATLAS is our bespoke balancing algorithm that aims to weight players fairly using evidence based performance and ranked data.
           </p>
           <div className="flex flex-wrap gap-3 pt-1">
             <Link to="/tournaments">
@@ -46,8 +46,8 @@ const HomeHero = () => {
                 <div className="text-xs text-slate-400">Matches</div>
               </div>
               <div className="rounded-lg bg-slate-900/60 p-3">
-                <div className="text-xl font-bold text-white">VOD</div>
-                <div className="text-xs text-slate-400">Library</div>
+                <div className="text-xl font-bold text-white">SOLO</div>
+                <div className="text-xs text-slate-400">Sign-ups</div>
               </div>
             </div>
           </div>

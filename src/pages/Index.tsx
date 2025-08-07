@@ -28,13 +28,13 @@ const Index = () => {
 
   // Basic SEO for homepage
   useEffect(() => {
-    document.title = "AI-Balanced Valorant Tournaments | The Last Resort";
+    document.title = "TLRHub.pro - The Last Resort Skirmish Hub";
     const metaDesc = document.querySelector('meta[name="description"]');
-    if (metaDesc) metaDesc.setAttribute("content", "Host, join, and watch AI‑balanced Valorant tournaments with live brackets, VODs, and fair ATLAS player weighting.");
+    if (metaDesc) metaDesc.setAttribute("content", "Join, and watch solo-signup Valorant tournaments with live brackets, VODs, and fair ATLAS player weighting.");
     else {
       const m = document.createElement("meta");
       m.name = "description";
-      m.content = "Host, join, and watch AI‑balanced Valorant tournaments with live brackets, VODs, and fair ATLAS player weighting.";
+      m.content = "Join, and watch solo-signup Valorant tournaments with live brackets, VODs, and fair ATLAS player weighting.";
       document.head.appendChild(m);
     }
     const canonical = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
