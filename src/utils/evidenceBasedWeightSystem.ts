@@ -120,22 +120,19 @@ export function calculateEvidenceBasedWeightWithMiniAi(
       let finalPoints = evidenceResult.points;
       let adjustmentReasoning = evidenceResult.evidenceCalculation?.calculationReasoning || '';
       
-      if (playerAnalysis && playerAnalysis.adjustedPoints !== playerAnalysis.originalPoints) {
-        finalPoints = playerAnalysis.adjustedPoints;
-        const pointDifference = playerAnalysis.adjustedPoints - playerAnalysis.originalPoints;
-        const adjustmentType = pointDifference > 0 ? 'boost' : 'reduction';
-        
-        // CRITICAL DEBUG: Log when ATLAS makes adjustments
-        console.log(`🚨 ATLAS ADJUSTMENT for ${(userData as any).discord_username}:`, {
-          originalPoints: playerAnalysis.originalPoints,
-          adjustedPoints: playerAnalysis.adjustedPoints,
-          pointDifference,
-          adjustmentReason: playerAnalysis.adjustmentReason,
-          confidenceScore: playerAnalysis.confidenceScore,
-          analysisFlags: playerAnalysis.analysisFlags
+      // IMPORTANT: Analysis-only mode. We do NOT modify points here to avoid double-counting
+      // Tournament wins and underranked bonuses are already included in evidenceResult.points
+      // Keep ATLAS outputs for transparency only.
+      if (atlasAnalysis && atlasAnalysis.playerAnalyses?.length) {
+        const pa = atlasAnalysis.playerAnalyses[0];
+        console.log(`🧪 ATLAS analysis (no adjustment) for ${(userData as any).discord_username}:`, {
+          originalPoints: pa.originalPoints,
+          suggestedAdjustedPoints: pa.adjustedPoints,
+          suggestedDelta: pa.adjustedPoints - pa.originalPoints,
+          suggestionReason: pa.adjustmentReason,
+          confidenceScore: pa.confidenceScore,
+          analysisFlags: pa.analysisFlags
         });
-        
-        adjustmentReasoning += `\nATLAS ${adjustmentType}: ${playerAnalysis.adjustmentReason} (${pointDifference > 0 ? '+' : ''}${pointDifference} pts, Confidence: ${playerAnalysis.confidenceScore}%)`;
       }
 
       resolve({
