@@ -217,6 +217,19 @@ export function calculateEvidenceBasedWeight(
     evidenceFactors.push(`Default: 150 points (no rank evidence)`);
   }
 
+  // Transparency: rank data freshness (no impact on points)
+  const lastRankUpdateRaw = (userData as any).last_rank_update;
+  if (lastRankUpdateRaw) {
+    const lastRankUpdate = new Date(lastRankUpdateRaw);
+    const daysAgo = Math.floor((Date.now() - lastRankUpdate.getTime()) / (1000 * 60 * 60 * 24));
+    evidenceFactors.push(`Rank data freshness: ${isNaN(daysAgo) ? 'unknown' : daysAgo + ' days ago'}`);
+  }
+  if (userData.last_tournament_win) {
+    const lastWin = new Date(userData.last_tournament_win as any);
+    const daysAgo = Math.floor((Date.now() - lastWin.getTime()) / (1000 * 60 * 60 * 24));
+    evidenceFactors.push(`Last tournament win: ${isNaN(daysAgo) ? 'unknown' : daysAgo + ' days ago'}`);
+  }
+
   // BOOST for tournament wins (evidence of maintained skill)
   const tournamentBonus = tournamentsWon * config.tournamentWinBonus;
   if (tournamentBonus > 0) {
@@ -344,8 +357,15 @@ export function assignWithSkillDistribution(
   const distributionSteps: any[] = [];
   let stepCounter = 0;
 
-  // Sort players by points (highest first)
-  const sortedPlayers = players.sort((a, b) => (b.evidenceWeight || b.adaptiveWeight || 150) - (a.evidenceWeight || a.adaptiveWeight || 150));
+  // Sort players by points (highest first) with deterministic tiebreaker by username
+  const sortedPlayers = [...players].sort((a, b) => {
+    const aPts = a.evidenceWeight || a.adaptiveWeight || 150;
+    const bPts = b.evidenceWeight || b.adaptiveWeight || 150;
+    if (bPts !== aPts) return bPts - aPts;
+    const aName = (a.discord_username || '').toLowerCase();
+    const bName = (b.discord_username || '').toLowerCase();
+    return aName.localeCompare(bName);
+  });
 
   // Separate elite and non-elite players
   const elitePlayers = sortedPlayers.filter(p => (p.evidenceWeight || p.adaptiveWeight || 150) >= config.skillTierCaps.eliteThreshold);

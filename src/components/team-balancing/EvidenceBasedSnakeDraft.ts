@@ -249,8 +249,13 @@ function createBalancedTeamsWithAntiStacking(
   const steps: EvidenceBalanceStep[] = [];
   let stepCounter = initialStepCounter;
 
-  // Sort players by evidence weight (highest first)
-  const sortedPlayers = [...players].sort((a, b) => b.evidenceWeight - a.evidenceWeight);
+  // Sort players by evidence weight (highest first) with deterministic tiebreaker
+  const sortedPlayers = [...players].sort((a, b) => {
+    if (b.evidenceWeight !== a.evidenceWeight) return b.evidenceWeight - a.evidenceWeight;
+    const aName = (a.discord_username || '').toLowerCase();
+    const bName = (b.discord_username || '').toLowerCase();
+    return aName.localeCompare(bName);
+  });
   
   if (sortedPlayers.length < numTeams) {
     atlasLogger.error('Insufficient players for team formation');

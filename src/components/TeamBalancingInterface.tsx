@@ -5,6 +5,7 @@ import { atlasLogger } from "@/utils/atlasLogger";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertTriangle, Users, Shuffle, Save, Plus, GripVertical, Zap, TrendingUp, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -66,6 +67,7 @@ const DraggablePlayer = ({ player, enableAdaptiveWeights }: { player: Player, en
   // Use UNIFIED weight system for consistency
   const [displayWeight, setDisplayWeight] = useState<number>(150);
   const [displaySource, setDisplaySource] = useState<string>('loading');
+  const [displayReasoning, setDisplayReasoning] = useState<string>('');
   
   // Calculate weight using unified system
   useEffect(() => {
@@ -76,6 +78,7 @@ const DraggablePlayer = ({ player, enableAdaptiveWeights }: { player: Player, en
     }).then(result => {
       setDisplayWeight(result.points);
       setDisplaySource(result.source);
+      setDisplayReasoning(result.reasoning || '');
       
       // Log for transparency
       logWeightCalculation(player.discord_username, result, 'UI Display');
@@ -85,6 +88,7 @@ const DraggablePlayer = ({ player, enableAdaptiveWeights }: { player: Player, en
       const fallbackResult = getUnifiedPlayerWeightSync(player, enableAdaptiveWeights);
       setDisplayWeight(fallbackResult.points);
       setDisplaySource(fallbackResult.source);
+      setDisplayReasoning(fallbackResult.reasoning || '');
     });
   }, [enableAdaptiveWeights, player]);
 
@@ -95,7 +99,7 @@ const DraggablePlayer = ({ player, enableAdaptiveWeights }: { player: Player, en
   };
   const fallbackResult = getRankPointsWithFallback(player.current_rank, player.peak_rank);
 
-  return (
+  const content = (
     <div
       ref={setNodeRef}
       style={style}
@@ -151,6 +155,23 @@ const DraggablePlayer = ({ player, enableAdaptiveWeights }: { player: Player, en
         </div>
       </div>
     </div>
+  );
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          {content}
+        </TooltipTrigger>
+        {displayReasoning && (
+          <TooltipContent className="max-w-[320px] whitespace-pre-wrap">
+            <div className="text-xs">
+              {displayReasoning}
+            </div>
+          </TooltipContent>
+        )}
+      </Tooltip>
+    </TooltipProvider>
   );
 };
 
