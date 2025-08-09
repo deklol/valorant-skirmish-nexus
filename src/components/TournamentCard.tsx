@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StandardBadge, StandardHeading, StandardText } from "@/components/ui";
@@ -20,31 +19,31 @@ interface TournamentCardProps {
 const TournamentCard = ({ tournament }: TournamentCardProps) => {
   const navigate = useNavigate();
 
-type BadgeStatus = "success" | "warning" | "error" | "info" | "neutral";
+  type BadgeStatus = "success" | "warning" | "error" | "info" | "neutral";
 
-const mapStatusToBadge = (status: string): BadgeStatus => {
-  switch (status) {
-    case "open":
-      return "success";
-    case "balancing":
-      return "warning";
-    case "live":
-      return "error";
-    case "completed":
-      return "info";
-    case "draft":
-    case "archived":
-    default:
-      return "neutral";
-  }
-};
+  const mapStatusToBadge = (status: string): BadgeStatus => {
+    switch (status) {
+      case "open":
+        return "success";
+      case "balancing":
+        return "warning";
+      case "live":
+        return "error";
+      case "completed":
+        return "info";
+      case "draft":
+      case "archived":
+      default:
+        return "neutral";
+    }
+  };
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString("en-GB", {
       day: "2-digit",
       month: "short",
       hour: "2-digit",
-      minute: "2-digit"
+      minute: "2-digit",
     });
   };
 
@@ -58,10 +57,14 @@ const mapStatusToBadge = (status: string): BadgeStatus => {
   };
 
   return (
-    <Card 
-      className="group overflow-hidden border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md hover-scale animate-fade-in cursor-pointer"
+    <Card
+      className={`group overflow-hidden border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md hover-scale animate-fade-in cursor-pointer ${
+        // If there's no image, make the card a flex column to fill height
+        !tournament.banner_image_url ? "flex flex-col" : ""
+      }`}
       onClick={handleCardClick}
     >
+      {/* This part for the card with a banner image is unchanged */}
       {tournament.banner_image_url && (
         <div className="relative overflow-hidden">
           <AspectRatio ratio={16 / 9}>
@@ -77,25 +80,36 @@ const mapStatusToBadge = (status: string): BadgeStatus => {
                 {tournament.name}
               </StandardHeading>
               <StandardBadge status={mapStatusToBadge(tournament.status)}>
-                {tournament.status.charAt(0).toUpperCase() + tournament.status.slice(1)}
+                {tournament.status.charAt(0).toUpperCase() +
+                  tournament.status.slice(1)}
               </StandardBadge>
             </div>
           </AspectRatio>
         </div>
       )}
 
+      {/* This is the header for cards WITHOUT an image */}
       {!tournament.banner_image_url && (
-        <CardHeader className="flex items-start justify-between gap-3">
+        <CardHeader className="flex flex-row items-start justify-between gap-3">
           <StandardHeading level="h4" className="truncate">
             {tournament.name}
           </StandardHeading>
           <StandardBadge status={mapStatusToBadge(tournament.status)}>
-            {tournament.status.charAt(0).toUpperCase() + tournament.status.slice(1)}
+            {tournament.status.charAt(0).toUpperCase() +
+              tournament.status.slice(1)}
           </StandardBadge>
         </CardHeader>
       )}
 
-      <CardContent className="space-y-4 p-4 pt-3 sm:p-5">
+      <CardContent
+        className={`space-y-4 p-4 pt-3 sm:p-5 ${
+          // For cards without an image, make the content area grow and distribute its content vertically
+          !tournament.banner_image_url
+            ? "flex flex-col flex-grow justify-between"
+            : ""
+        }`}
+      >
+        {/* This grid contains the player, format, prize, and time info */}
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div className="flex items-center gap-2 text-muted-foreground">
             <Users className="w-4 h-4" />
@@ -122,22 +136,24 @@ const mapStatusToBadge = (status: string): BadgeStatus => {
             </StandardText>
           </div>
         </div>
-        
+
+        {/* This div contains the action buttons */}
         <div className="flex gap-3 pt-1">
-          <Button 
-            variant="default" 
-            size="sm" 
+          <Button
+            variant="default"
+            size="sm"
             className="flex-1"
             onClick={handleCardClick}
           >
             View Details
           </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             className="flex-1"
             onClick={handleBracketClick}
-            disabled>
+            disabled
+          >
             View Bracket
           </Button>
         </div>
