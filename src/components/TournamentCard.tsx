@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Users, Clock, Trophy, Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Tournament } from "@/types/tournament";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 interface TournamentCardProps {
   tournament: Tournament & {
@@ -61,6 +62,18 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
       className="bg-slate-800 border-slate-700 hover:border-slate-600 transition-all cursor-pointer hover:bg-slate-800/80"
       onClick={handleCardClick}
     >
+      {tournament.banner_image_url && (
+        <div className="overflow-hidden rounded-t-md">
+          <AspectRatio ratio={16 / 9}>
+            <img
+              src={tournament.banner_image_url}
+              alt={`${tournament.name} banner image`}
+              className="w-full h-full object-cover"
+              loading="lazy"
+            />
+          </AspectRatio>
+        </div>
+      )}
       <CardHeader>
         <div className="flex items-start justify-between">
           <CardTitle className="text-white text-lg">{tournament.name}</CardTitle>

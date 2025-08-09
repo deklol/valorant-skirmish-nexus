@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Edit, Calendar, Clock, Users, Trophy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import BannerImageInput from "@/components/BannerImageInput";
 
 interface Tournament {
   id: string;
@@ -23,6 +24,7 @@ interface Tournament {
   max_teams: number;
   max_players: number;
   prize_pool: string | null;
+  banner_image_url?: string | null;
   match_format: string | null;
   bracket_type: string | null;
 }
@@ -36,20 +38,21 @@ const TournamentEditDialog = ({ tournament, onTournamentUpdated }: TournamentEdi
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    name: tournament.name,
-    description: tournament.description || '',
-    start_time: tournament.start_time ? new Date(tournament.start_time).toISOString().slice(0, 16) : '',
-    end_time: tournament.end_time ? new Date(tournament.end_time).toISOString().slice(0, 16) : '',
-    registration_opens_at: tournament.registration_opens_at ? new Date(tournament.registration_opens_at).toISOString().slice(0, 16) : '',
-    registration_closes_at: tournament.registration_closes_at ? new Date(tournament.registration_closes_at).toISOString().slice(0, 16) : '',
-    check_in_starts_at: tournament.check_in_starts_at ? new Date(tournament.check_in_starts_at).toISOString().slice(0, 16) : '',
-    check_in_ends_at: tournament.check_in_ends_at ? new Date(tournament.check_in_ends_at).toISOString().slice(0, 16) : '',
-    max_teams: tournament.max_teams.toString(),
-    max_players: tournament.max_players.toString(),
-    prize_pool: tournament.prize_pool || '',
-    match_format: tournament.match_format || 'BO1',
-    bracket_type: tournament.bracket_type || 'single_elimination'
-  });
+  name: tournament.name,
+  description: tournament.description || '',
+  banner_image_url: tournament.banner_image_url || '',
+  start_time: tournament.start_time ? new Date(tournament.start_time).toISOString().slice(0, 16) : '',
+  end_time: tournament.end_time ? new Date(tournament.end_time).toISOString().slice(0, 16) : '',
+  registration_opens_at: tournament.registration_opens_at ? new Date(tournament.registration_opens_at).toISOString().slice(0, 16) : '',
+  registration_closes_at: tournament.registration_closes_at ? new Date(tournament.registration_closes_at).toISOString().slice(0, 16) : '',
+  check_in_starts_at: tournament.check_in_starts_at ? new Date(tournament.check_in_starts_at).toISOString().slice(0, 16) : '',
+  check_in_ends_at: tournament.check_in_ends_at ? new Date(tournament.check_in_ends_at).toISOString().slice(0, 16) : '',
+  max_teams: tournament.max_teams.toString(),
+  max_players: tournament.max_players.toString(),
+  prize_pool: tournament.prize_pool || '',
+  match_format: tournament.match_format || 'BO1',
+  bracket_type: tournament.bracket_type || 'single_elimination'
+});
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -60,6 +63,7 @@ const TournamentEditDialog = ({ tournament, onTournamentUpdated }: TournamentEdi
       const updateData = {
         name: formData.name,
         description: formData.description || null,
+        banner_image_url: formData.banner_image_url || null,
         start_time: formData.start_time ? new Date(formData.start_time).toISOString() : null,
         end_time: formData.end_time ? new Date(formData.end_time).toISOString() : null,
         registration_opens_at: formData.registration_opens_at ? new Date(formData.registration_opens_at).toISOString() : null,
@@ -147,6 +151,13 @@ const TournamentEditDialog = ({ tournament, onTournamentUpdated }: TournamentEdi
               rows={3}
             />
           </div>
+
+          <BannerImageInput
+            label="Banner Image (optional)"
+            value={formData.banner_image_url}
+            onChange={(val) => setFormData(prev => ({ ...prev, banner_image_url: val }))}
+            helpText="Upload an image or paste a URL. Displayed on cards and the details page."
+          />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">

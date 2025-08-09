@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, Trophy, Map, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import BannerImageInput from "@/components/BannerImageInput";
 
 interface CreateTournamentDialogProps {
   open?: boolean;
@@ -21,6 +22,7 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
   const [formData, setFormData] = useState({
     name: "",
     description: "",
+    banner_image_url: "",
     registration_type: "solo" as "solo" | "team",
     match_format: "BO3" as "BO1" | "BO3" | "BO5",
     semifinal_match_format: "default" as "default" | "BO1" | "BO3" | "BO5",
@@ -72,6 +74,7 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
       const tournamentData = {
         name: formData.name,
         description: formData.description,
+        banner_image_url: formData.banner_image_url || null,
         registration_type: formData.registration_type,
         match_format: formData.match_format,
         semifinal_match_format: formData.semifinal_match_format === "default" ? null : formData.semifinal_match_format,
@@ -115,6 +118,7 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
       setFormData({
         name: "",
         description: "",
+        banner_image_url: "",
         registration_type: "solo",
         match_format: "BO3",
         semifinal_match_format: "default",
@@ -206,6 +210,13 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
                   rows={3}
                 />
               </div>
+
+              <BannerImageInput
+                label="Banner Image (optional)"
+                value={formData.banner_image_url}
+                onChange={(val) => setFormData(prev => ({ ...prev, banner_image_url: val }))}
+                helpText="Upload an image or paste a URL. Displayed on tournament cards and the details page."
+              />
 
               <div className="space-y-2">
                 <Label htmlFor="registration_type" className="text-white">Registration Type</Label>

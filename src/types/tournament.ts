@@ -16,6 +16,7 @@ export interface Tournament {
   max_players: number;
   team_size: number;
   prize_pool: string | null;
+  banner_image_url?: string | null;
   status: "draft" | "open" | "balancing" | "live" | "completed" | "archived";
   match_format: "BO1" | "BO3" | "BO5" | null;
   bracket_type: string | null;

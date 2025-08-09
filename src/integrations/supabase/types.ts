@@ -1451,6 +1451,7 @@ export type Database = {
       tournaments: {
         Row: {
           balance_analysis: Json | null
+          banner_image_url: string | null
           bracket_type: string | null
           check_in_ends_at: string | null
           check_in_required: boolean | null
@@ -1484,6 +1485,7 @@ export type Database = {
         }
         Insert: {
           balance_analysis?: Json | null
+          banner_image_url?: string | null
           bracket_type?: string | null
           check_in_ends_at?: string | null
           check_in_required?: boolean | null
@@ -1519,6 +1521,7 @@ export type Database = {
         }
         Update: {
           balance_analysis?: Json | null
+          banner_image_url?: string | null
           bracket_type?: string | null
           check_in_ends_at?: string | null
           check_in_required?: boolean | null

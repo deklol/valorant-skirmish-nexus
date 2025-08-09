@@ -9,6 +9,7 @@ import { Edit, Save, Calendar, Users, Trophy, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Tournament } from "@/types/tournament";
+import BannerImageInput from "@/components/BannerImageInput";
 
 interface ComprehensiveTournamentEditorProps {
   tournament: Tournament;
@@ -21,6 +22,7 @@ const ComprehensiveTournamentEditor = ({ tournament, onTournamentUpdated }: Comp
   const [formData, setFormData] = useState({
     name: tournament.name,
     description: tournament.description || '',
+    banner_image_url: (tournament as any).banner_image_url || '',
     start_time: tournament.start_time ? new Date(tournament.start_time).toISOString().slice(0, 16) : '',
     registration_opens_at: tournament.registration_opens_at ? new Date(tournament.registration_opens_at).toISOString().slice(0, 16) : '',
     registration_closes_at: tournament.registration_closes_at ? new Date(tournament.registration_closes_at).toISOString().slice(0, 16) : '',
@@ -42,6 +44,7 @@ const ComprehensiveTournamentEditor = ({ tournament, onTournamentUpdated }: Comp
       const updateData = {
         name: formData.name,
         description: formData.description || null,
+        banner_image_url: formData.banner_image_url || null,
         start_time: formData.start_time ? new Date(formData.start_time).toISOString() : null,
         registration_opens_at: formData.registration_opens_at ? new Date(formData.registration_opens_at).toISOString() : null,
         registration_closes_at: formData.registration_closes_at ? new Date(formData.registration_closes_at).toISOString() : null,
@@ -86,6 +89,7 @@ const ComprehensiveTournamentEditor = ({ tournament, onTournamentUpdated }: Comp
     setFormData({
       name: tournament.name,
       description: tournament.description || '',
+      banner_image_url: (tournament as any).banner_image_url || '',
       start_time: tournament.start_time ? new Date(tournament.start_time).toISOString().slice(0, 16) : '',
       registration_opens_at: tournament.registration_opens_at ? new Date(tournament.registration_opens_at).toISOString().slice(0, 16) : '',
       registration_closes_at: tournament.registration_closes_at ? new Date(tournament.registration_closes_at).toISOString().slice(0, 16) : '',
@@ -163,6 +167,14 @@ const ComprehensiveTournamentEditor = ({ tournament, onTournamentUpdated }: Comp
               <Label className="text-slate-300">Description</Label>
               <p className="text-white mt-1">{tournament.description || 'No description provided'}</p>
             </div>
+            { (tournament as any).banner_image_url && (
+              <div>
+                <Label className="text-slate-300">Banner Image</Label>
+                <div className="mt-2 overflow-hidden rounded">
+                  <img src={(tournament as any).banner_image_url as any} alt={`${tournament.name} banner`} className="w-full h-auto object-cover" loading="lazy" />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Capacity */}
