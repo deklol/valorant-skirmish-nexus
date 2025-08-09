@@ -59,29 +59,42 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
 
   return (
     <Card 
-      className="bg-slate-800 border-slate-700 hover:border-slate-600 transition-all cursor-pointer hover:bg-slate-800/80"
+      className="group bg-slate-800 border-slate-700 hover:border-slate-600 transition-all cursor-pointer hover:bg-slate-800/80 hover-scale animate-fade-in"
       onClick={handleCardClick}
     >
       {tournament.banner_image_url && (
-        <div className="overflow-hidden rounded-t-md">
+        <div className="relative overflow-hidden rounded-t-md">
           <AspectRatio ratio={16 / 9}>
             <img
               src={tournament.banner_image_url}
               alt={`${tournament.name} banner image`}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover transform transition-transform duration-300 group-hover:scale-[1.03]"
               loading="lazy"
             />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent" />
+            <div className="absolute bottom-0 left-0 right-0 p-4 flex items-end justify-between">
+              <CardTitle className="text-white text-base sm:text-lg pr-2">
+                {tournament.name}
+              </CardTitle>
+              <Badge className={getStatusColor(tournament.status)}>
+                {tournament.status.charAt(0).toUpperCase() + tournament.status.slice(1)}
+              </Badge>
+            </div>
           </AspectRatio>
         </div>
       )}
-      <CardHeader>
-        <div className="flex items-start justify-between">
-          <CardTitle className="text-white text-lg">{tournament.name}</CardTitle>
-          <Badge className={getStatusColor(tournament.status)}>
-            {tournament.status.charAt(0).toUpperCase() + tournament.status.slice(1)}
-          </Badge>
-        </div>
-      </CardHeader>
+
+      {!tournament.banner_image_url && (
+        <CardHeader>
+          <div className="flex items-start justify-between">
+            <CardTitle className="text-white text-lg">{tournament.name}</CardTitle>
+            <Badge className={getStatusColor(tournament.status)}>
+              {tournament.status.charAt(0).toUpperCase() + tournament.status.slice(1)}
+            </Badge>
+          </div>
+        </CardHeader>
+      )}
+
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div className="flex items-center gap-2 text-slate-300">
@@ -116,7 +129,7 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
             size="sm" 
             className="flex-1 border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
             onClick={handleBracketClick}
-          disabled>
+            disabled>
             View Bracket
           </Button>
         </div>
