@@ -3,12 +3,20 @@ import { Button } from "@/components/ui/button";
 import { Sparkles, PlayCircle, Trophy } from "lucide-react";
 
 const HomeHero = () => {
-  return (
-    <header className="relative overflow-hidden rounded-xl border border-slate-700 bg-gradient-to-br from-slate-900/70 via-slate-900/40 to-indigo-900/40 p-6 md:p-10">
-      <div className="pointer-events-none absolute inset-0 opacity-30">
-      </div>
+  const heroBackgroundImage = "https://cmsassets.rgpub.io/sanity/images/dsfx7636/news/0c67438c8b3a418b5ca28f9f234506745493ae42-854x484.png";
 
-      <div className="relative z-10 grid gap-6 md:grid-cols-2 items-center">
+  return (
+    <header 
+      className="relative overflow-hidden rounded-xl border border-slate-700 bg-cover bg-center"
+      style={{ backgroundImage: `url(${heroBackgroundImage})` }}
+    >
+      {/* This div creates the angled gradient overlay */}
+      <div 
+        className="absolute inset-0"
+        style={{ background: 'linear-gradient(60deg, rgba(15, 23, 42, 1) 40%, rgba(15, 23, 42, 0) 100%)' }}
+      />
+
+      <div className="relative z-10 grid gap-6 p-6 md:p-10 md:grid-cols-2 items-center">
         <div className="space-y-4 animate-fade-in">
           <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3 py-1 text-xs text-indigo-200">
             <Sparkles className="h-3.5 w-3.5" />
@@ -34,23 +42,8 @@ const HomeHero = () => {
           </div>
         </div>
 
-        <div className="relative">
-          <div className="rounded-xl border border-slate-700 bg-slate-800/60 p-4 backdrop-blur">
-            <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="rounded-lg bg-slate-900/60 p-3">
-                <div className="text-xl font-bold text-white">AI</div>
-                <div className="text-xs text-slate-400">ATLAS</div>
-              </div>
-              <div className="rounded-lg bg-slate-900/60 p-3">
-                <div className="text-xl font-bold text-white">Live</div>
-                <div className="text-xs text-slate-400">Matches</div>
-              </div>
-              <div className="rounded-lg bg-slate-900/60 p-3">
-                <div className="text-xl font-bold text-white">SOLO</div>
-                <div className="text-xs text-slate-400">Sign-ups</div>
-              </div>
-            </div>
-          </div>
+        <div className="relative hidden md:block">
+          {/* This content is now visually balanced by the gradient and can be simpler */}
         </div>
       </div>
     </header>
