@@ -64,7 +64,7 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
       }`}
       onClick={handleCardClick}
     >
-      {/* This part for the card with a banner image is unchanged */}
+      {/* This part for the card with a banner image is changed */}
       {tournament.banner_image_url && (
         <div className="relative overflow-hidden">
           <AspectRatio ratio={16 / 9}>
@@ -74,7 +74,8 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
               loading="lazy"
             />
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/80 via-background/20 to-transparent" />
+            {/* UPDATED: This div creates the feathered gradient effect */}
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background to-transparent" />
             <div className="absolute inset-x-0 bottom-0 p-4 flex items-end justify-between">
               <StandardHeading level="h4" className="pr-2 text-white">
                 {tournament.name}
