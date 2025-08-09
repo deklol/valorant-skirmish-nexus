@@ -7,8 +7,11 @@ const HomeHero = () => {
 
   return (
     <header 
-      className="relative overflow-hidden rounded-xl border border-slate-700 bg-cover bg-center"
-      style={{ backgroundImage: `url(${heroBackgroundImage})` }}
+      className="relative overflow-hidden rounded-xl border border-slate-700 bg-cover"
+      style={{ 
+        backgroundImage: `url(${heroBackgroundImage})`,
+        backgroundPosition: 'center calc(50% + 15px)' 
+      }}
     >
       {/* This div creates the angled gradient overlay */}
       <div 
