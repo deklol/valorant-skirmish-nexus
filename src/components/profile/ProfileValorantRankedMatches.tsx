@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils"; // Assuming you have a class name utility
 
 interface Props {
   userId: string;
@@ -51,14 +52,13 @@ export default function ProfileValorantRankedMatches({ userId, size = 10 }: Prop
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <Card key={i} className="bg-slate-700 border-slate-600">
+          <Card key={i} className="bg-slate-700 border-slate-600 h-36">
             <CardHeader>
               <Skeleton className="h-5 w-40 bg-slate-600" />
             </CardHeader>
             <CardContent className="space-y-2">
               <Skeleton className="h-4 w-24 bg-slate-600" />
               <Skeleton className="h-4 w-32 bg-slate-600" />
-              <Skeleton className="h-4 w-20 bg-slate-600" />
             </CardContent>
           </Card>
         ))}
@@ -88,40 +88,56 @@ export default function ProfileValorantRankedMatches({ userId, size = 10 }: Prop
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {matches.map((m) => (
-        <Card key={m.match_id} className="bg-slate-700 border-slate-600 hover:border-slate-500 transition-colors">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-white text-base">{m.map} • {m.mode}</CardTitle>
-            {m.result && (
-              <Badge className={m.result.won ? "bg-green-600 text-white" : "bg-red-600 text-white"}>
-                {m.result.won ? "Win" : "Loss"} {m.result.team_score}-{m.result.enemy_score}
-              </Badge>
+      {matches.map((m) => {
+        // --- LOGIC TO CHECK MAP ---
+        const isLotus = m.map?.toLowerCase() === 'lotus';
+
+        return (
+          // --- CONDITIONAL STYLING APPLIED HERE ---
+          <Card
+            key={m.match_id}
+            className={cn(
+              "border-slate-600 hover:border-slate-500 transition-all overflow-hidden relative",
+              // If it's Lotus, apply the background image. Otherwise, use the default color.
+              isLotus ? "bg-[url('https://i.imgur.com/gMphFlF.png')] bg-cover bg-center" : "bg-slate-700"
             )}
-          </CardHeader>
-          <CardContent className="text-sm text-slate-300">
-            <div className="flex justify-between mb-2">
-              <div>
-                <div className="text-slate-200">
-                  {formatDistanceToNow(new Date(m.started_at || Date.now()), { addSuffix: true })}
-                </div>
-                {typeof m.rounds_played === 'number' && (
-                  <div className="text-slate-400">Rounds: {m.rounds_played}</div>
+          >
+            {/* This overlay ensures text is readable on top of the background image */}
+            <div className="bg-black/60 p-4 h-full">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0 mb-2">
+                <CardTitle className="text-white text-base">{m.map} • {m.mode}</CardTitle>
+                {m.result && (
+                  <Badge className={cn("border-none", m.result.won ? "bg-green-600 text-white" : "bg-red-600 text-white")}>
+                    {m.result.won ? "Win" : "Loss"} {m.result.team_score}-{m.result.enemy_score}
+                  </Badge>
                 )}
-                <div className="text-slate-400">Region: {m.region.toUpperCase()}</div>
-              </div>
-              {m.user && (
-                <div className="text-right">
-                  <div className="text-slate-200 font-medium">{m.user.character}</div>
-                  <div className="text-slate-200">{m.user.kda}</div>
-                  {typeof m.user.headshot_percent === 'number' && (
-                    <div className="text-slate-400">HS: {m.user.headshot_percent}%</div>
+              </CardHeader>
+              <CardContent className="p-0 text-sm text-slate-300">
+                <div className="flex justify-between">
+                  <div>
+                    <div className="text-slate-200">
+                      {formatDistanceToNow(new Date(m.started_at || Date.now()), { addSuffix: true })}
+                    </div>
+                    {typeof m.rounds_played === 'number' && (
+                      <div className="text-slate-400">Rounds: {m.rounds_played}</div>
+                    )}
+                    <div className="text-slate-400">Region: {m.region.toUpperCase()}</div>
+                  </div>
+                  {m.user && (
+                    <div className="text-right">
+                      <div className="text-slate-200 font-medium">{m.user.character}</div>
+                      <div className="text-slate-200">{m.user.kda}</div>
+                      {typeof m.user.headshot_percent === 'number' && (
+                        <div className="text-slate-400">HS: {m.user.headshot_percent}%</div>
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
+              </CardContent>
             </div>
-          </CardContent>
-        </Card>
-      ))}
+          </Card>
+        );
+      })}
     </div>
   );
 }
