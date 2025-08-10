@@ -57,7 +57,7 @@ const PublicProfile = () => {
           <CardContent className="p-8 text-center">
             <User className="w-16 h-16 text-slate-400 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-white mb-2">Profile Not Found</h2>
-            <p className="text-slate-400">This user profile does not exist or has been made private.</p>
+            <p className="text-slate-400">This user profile does not exist or has been made private. Due to this restriction, some information may be missing.</p>
           </CardContent>
         </Card>
       </PageLayout>
