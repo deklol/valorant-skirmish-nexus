@@ -290,8 +290,8 @@ const PublicProfile = () => {
         <Card className="bg-slate-800 border-slate-700">
           <CardContent className="p-8 text-center">
             <Lock className="w-16 h-16 text-slate-400 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-white mb-2">Private Profile</h3>
-            <p className="text-slate-400">This user has made their profile private.</p>
+            <h3 className="text-xl font-bold text-white mb-2">🔒 Private Profile</h3>
+            <p className="text-slate-400">Unfortunately, this user has made their profile private.</p>
           </CardContent>
         </Card>
       )}
