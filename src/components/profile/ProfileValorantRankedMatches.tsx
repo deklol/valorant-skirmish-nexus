@@ -108,6 +108,9 @@ const StatsSummary = ({ matches }: { matches: RankedMatchItem[] }) => {
 
     return (
         <Card className="bg-slate-800 border-slate-700 mb-6">
+            <CardHeader>
+                <CardTitle className="text-lg text-white"> </CardTitle>
+            </CardHeader>
             <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
                     <div className="bg-slate-700 p-3 rounded-lg flex flex-col justify-center">
