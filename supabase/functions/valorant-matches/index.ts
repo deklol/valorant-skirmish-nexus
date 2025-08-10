@@ -68,7 +68,7 @@ const handler = async (req: Request): Promise<Response> => {
     // 1) Resolve account -> get puuid and region
     const accountUrl = `https://api.henrikdev.xyz/valorant/v1/account/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`;
     const accountRes = await fetch(accountUrl, {
-      headers: henrikApiKey ? { Authorization: `Bearer ${henrikApiKey}` } : undefined,
+      headers: henrikApiKey ? { Authorization: `${henrikApiKey}` } : undefined,
     });
     const accountJson = (await accountRes.json()) as HenrikAccountResponse;
 
@@ -89,7 +89,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     const matchesUrl = `https://api.henrikdev.xyz/valorant/v3/by-puuid/matches/${encodeURIComponent(region)}/${encodeURIComponent(puuid)}${params.toString() ? `?${params.toString()}` : ''}`;
     const matchesRes = await fetch(matchesUrl, {
-      headers: henrikApiKey ? { Authorization: `Bearer ${henrikApiKey}` } : undefined,
+      headers: henrikApiKey ? { Authorization: `${henrikApiKey}` } : undefined,
     });
     const matchesJson = (await matchesRes.json()) as HenrikMatchesResponse;
 
