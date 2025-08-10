@@ -109,7 +109,7 @@ const StatsSummary = ({ matches }: { matches: RankedMatchItem[] }) => {
     return (
         <Card className="bg-slate-800 border-slate-700 mb-6">
             <CardHeader>
-                <CardTitle className="text-lg text-white"> </CardTitle>
+                <CardTitle className="text-lg text-white">Last {stats.totalMatches} Ranked Matches Summary</CardTitle>
             </CardHeader>
             <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
@@ -187,44 +187,46 @@ export default function ProfileValorantRankedMatches({ userId, size = 10 }: Prop
     <div className="space-y-6">
       <StatsSummary matches={matches} />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {matches.map((m) => {
-          const mapName = m.map?.toLowerCase();
-          const bgImage = mapName ? mapBackgrounds[mapName] : undefined;
-          return (
-            <Card
-              key={m.match_id}
-              style={bgImage ? { backgroundImage: `url(${bgImage})` } : {}}
-              className={cn("border-slate-600 hover:border-slate-500 transition-all overflow-hidden relative", bgImage ? "bg-cover bg-center" : "bg-slate-700")}
-            >
-              <div className="bg-black/60 p-4 h-full flex flex-col justify-between">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0 mb-2">
-                  <CardTitle className="text-white text-base">{m.map} • {m.mode}</CardTitle>
-                  {m.result && (
-                    <Badge className={cn("border-none", m.result.won ? "bg-green-600 text-white" : "bg-red-600 text-white")}>
-                      {m.result.won ? "Win" : "Loss"} {m.result.team_score}-{m.result.enemy_score}
-                    </Badge>
-                  )}
-                </CardHeader>
-                <CardContent className="p-0 text-sm text-slate-300">
-                  <div className="flex justify-between">
-                    <div>
-                      <div className="text-slate-200">{formatDistanceToNow(new Date(m.started_at || Date.now()), { addSuffix: true })}</div>
-                      {typeof m.rounds_played === 'number' && <div className="text-slate-400">Rounds: {m.rounds_played}</div>}
-                      <div className="text-slate-400">Region: {m.region.toUpperCase()}</div>
-                    </div>
-                    {m.user && (
-                      <div className="text-right">
-                        <div className="text-slate-200 font-medium">{m.user.character}</div>
-                        <div className="text-slate-200">{m.user.kda}</div>
-                        {typeof m.user.headshot_percent === 'number' && <div className="text-slate-400">HS: {m.user.headshot_percent}%</div>}
-                      </div>
+        {matches
+          .filter(m => m.mode === 'Competitive') // <-- ADDED THIS LINE TO FILTER MATCHES
+          .map((m) => {
+            const mapName = m.map?.toLowerCase();
+            const bgImage = mapName ? mapBackgrounds[mapName] : undefined;
+            return (
+              <Card
+                key={m.match_id}
+                style={bgImage ? { backgroundImage: `url(${bgImage})` } : {}}
+                className={cn("border-slate-600 hover:border-slate-500 transition-all overflow-hidden relative", bgImage ? "bg-cover bg-center" : "bg-slate-700")}
+              >
+                <div className="bg-black/60 p-4 h-full flex flex-col justify-between">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0 mb-2">
+                    <CardTitle className="text-white text-base">{m.map} • {m.mode}</CardTitle>
+                    {m.result && (
+                      <Badge className={cn("border-none", m.result.won ? "bg-green-600 text-white" : "bg-red-600 text-white")}>
+                        {m.result.won ? "Win" : "Loss"} {m.result.team_score}-{m.result.enemy_score}
+                      </Badge>
                     )}
-                  </div>
-                </CardContent>
-              </div>
-            </Card>
-          );
-        })}
+                  </CardHeader>
+                  <CardContent className="p-0 text-sm text-slate-300">
+                    <div className="flex justify-between">
+                      <div>
+                        <div className="text-slate-200">{formatDistanceToNow(new Date(m.started_at || Date.now()), { addSuffix: true })}</div>
+                        {typeof m.rounds_played === 'number' && <div className="text-slate-400">Rounds: {m.rounds_played}</div>}
+                        <div className="text-slate-400">Region: {m.region.toUpperCase()}</div>
+                      </div>
+                      {m.user && (
+                        <div className="text-right">
+                          <div className="text-slate-200 font-medium">{m.user.character}</div>
+                          <div className="text-slate-200">{m.user.kda}</div>
+                          {typeof m.user.headshot_percent === 'number' && <div className="text-slate-400">HS: {m.user.headshot_percent}%</div>}
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </div>
+              </Card>
+            );
+          })}
       </div>
     </div>
   );
