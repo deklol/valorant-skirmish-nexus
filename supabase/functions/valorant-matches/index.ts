@@ -68,7 +68,7 @@ const handler = async (req: Request): Promise<Response> => {
     // 1) Resolve account -> get puuid and region
     const accountUrl = `https://api.henrikdev.xyz/valorant/v1/account/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`;
     const accountRes = await fetch(accountUrl, {
-      headers: henrikApiKey ? { Authorization: `Bearer ${henrikApiKey}` } : undefined,
+      headers: henrikApiKey ? { Authorization: `${henrikApiKey}` } : undefined,
     });
     const accountJson = (await accountRes.json()) as HenrikAccountResponse;
 
@@ -82,20 +82,20 @@ const handler = async (req: Request): Promise<Response> => {
 
     const { puuid, region } = accountJson.data;
 
-    // 2) Fetch recent matches by puuid
-    // NOTE: The v3 matches endpoint is what contains the detailed shot counts
+    // 2) Fetch recent competitive matches by puuid
     const params = new URLSearchParams();
+    params.set('filter', 'competitive');
     if (size) params.set('size', String(size));
 
-    const matchesUrl = `https://api.henrikdev.xyz/valorant/v3/by-puuid/matches/${encodeURIComponent(region)}/${encodeURIComponent(puuid)}?${params.toString()}`;
+    const matchesUrl = `https://api.henrikdev.xyz/valorant/v3/by-puuid/matches/${encodeURIComponent(region)}/${encodeURIComponent(puuid)}${params.toString() ? `?${params.toString()}` : ''}`;
     const matchesRes = await fetch(matchesUrl, {
-      headers: henrikApiKey ? { Authorization: `Bearer ${henrikApiKey}` } : undefined,
+      headers: henrikApiKey ? { Authorization: `${henrikApiKey}` } : undefined,
     });
     const matchesJson = (await matchesRes.json()) as HenrikMatchesResponse;
 
     if (!matchesRes.ok || matchesJson.status !== 200 || !matchesJson.data) {
       console.error('Matches lookup failed:', matchesJson);
-      return new Response(JSON.stringify({ error: 'Failed to fetch matches' }), {
+      return new Response(JSON.stringify({ error: 'Failed to fetch ranked matches' }), {
         status: 502,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -111,17 +111,6 @@ const handler = async (req: Request): Promise<Response> => {
       const userTeam = me?.team?.toLowerCase();
       const teamStats = userTeam ? teams[userTeam] : undefined;
       const enemyStats = userTeam === 'red' ? teams['blue'] : teams['red'];
-
-      // --- HEADSHOT PERCENTAGE CALCULATION ---
-      let headshotPercent = null;
-      const playerStats = me?.stats;
-      if (playerStats && typeof playerStats.headshots === 'number' && typeof playerStats.bodyshots === 'number' && typeof playerStats.legshots === 'number') {
-          const totalShots = playerStats.headshots + playerStats.bodyshots + playerStats.legshots;
-          if (totalShots > 0) {
-              headshotPercent = Math.round((playerStats.headshots / totalShots) * 100);
-          }
-      }
-      // --- END OF CALCULATION ---
 
       return {
         match_id: m.metadata?.matchid || m.match_id,
@@ -139,7 +128,7 @@ const handler = async (req: Request): Promise<Response> => {
               deaths: me.stats?.deaths,
               assists: me.stats?.assists,
               kda: me.stats ? `${me.stats.kills}/${me.stats.deaths}/${me.stats.assists}` : null,
-              headshot_percent: headshotPercent, // Use our calculated value
+              headshot_percent: me.stats?.headshots_percentage,
             }
           : null,
         result: teamStats
