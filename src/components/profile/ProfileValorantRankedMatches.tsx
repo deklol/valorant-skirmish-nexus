@@ -114,7 +114,12 @@ const StatsSummary = ({ matches }: { matches: RankedMatchItem[] }) => {
             <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
                     <div className="bg-slate-700 p-3 rounded-lg flex flex-col justify-center">
-                        <div className="text-2xl font-bold text-green-400">{stats.wins}W <span className="text-white">-</span> {stats.losses}L</div>
+                        <div className={cn(
+                            "text-2xl font-bold",
+                            stats.winRate >= 50 ? "text-green-400" : "text-red-400"
+                        )}>
+                            {stats.wins}W <span className="text-white">-</span> {stats.losses}L
+                        </div>
                         <div className="text-sm text-slate-400">Win Rate: {stats.winRate}%</div>
                     </div>
                      <div className="bg-slate-700 p-3 rounded-lg flex flex-col justify-center">
