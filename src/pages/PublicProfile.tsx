@@ -252,7 +252,7 @@ const PublicProfile = () => {
                   Match History
                 </TabsTrigger>
                 <TabsTrigger value="ranked-matches" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
-                  Ranked Matches
+                  Ranked Stats
                 </TabsTrigger>
                 <TabsTrigger value="tournaments" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
                   Tournaments
