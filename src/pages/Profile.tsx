@@ -18,6 +18,7 @@ import RankHistory from "@/components/RankHistory";
 import ProfileMatchHistory from '@/components/profile/ProfileMatchHistory';
 import ProfileTournamentHistory from '@/components/profile/ProfileTournamentHistory';
 import ProfileRankHistory from '@/components/profile/ProfileRankHistory';
+import ProfileValorantRankedMatches from '@/components/profile/ProfileValorantRankedMatches';
 import ProfileAchievements from '@/components/profile/ProfileAchievements';
 import { getTrackerGGUrl } from "@/utils/getTrackerGGUrl";
 import { useUserTeam } from "@/hooks/useUserTeam";
@@ -416,7 +417,7 @@ const Profile = () => {
       <Card className="bg-slate-800 border-slate-700">
         <CardContent className="p-6">
           <Tabs defaultValue="settings" className="w-full">
-            <TabsList className="grid w-full grid-cols-6 bg-slate-800/90 border border-slate-700">
+            <TabsList className="grid w-full grid-cols-7 bg-slate-800/90 border border-slate-700">
               <TabsTrigger value="settings" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
                 <Settings className="w-4 h-4 mr-2" />
                 Settings
@@ -433,6 +434,9 @@ const Profile = () => {
               <TabsTrigger value="rank-history" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
                 <TrendingUp className="w-4 h-4 mr-2" />
                 Rank History
+              </TabsTrigger>
+              <TabsTrigger value="ranked-matches" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
+                Ranked Matches
               </TabsTrigger>
               <TabsTrigger value="notifications" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
                 <Bell className="w-4 h-4 mr-2" />
@@ -585,6 +589,10 @@ const Profile = () => {
 
             <TabsContent value="rank-history" className="mt-6">
               <ProfileRankHistory userId={user.id} />
+            </TabsContent>
+
+            <TabsContent value="ranked-matches" className="mt-6">
+              <ProfileValorantRankedMatches userId={user.id} />
             </TabsContent>
 
             <TabsContent value="notifications" className="mt-6">
