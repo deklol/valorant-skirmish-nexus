@@ -16,6 +16,7 @@ import { useUserTeam } from "@/hooks/useUserTeam";
 import ClickableTeamName from "@/components/ClickableTeamName";
 import { Username } from "@/components/Username";
 import { PageLayout } from "@/components/ui/page-layout";
+import ProfileValorantRankedMatches from '@/components/profile/ProfileValorantRankedMatches';
 
 const PublicProfile = () => {
   const { userId } = useParams<{ userId: string }>();
@@ -243,7 +244,7 @@ const PublicProfile = () => {
         <Card className="bg-slate-800 border-slate-700">
           <CardContent className="p-6">
             <Tabs defaultValue="matches" className="w-full">
-              <TabsList className="grid w-full grid-cols-4 bg-slate-800/90 border border-slate-700">
+              <TabsList className="grid w-full grid-cols-5 bg-slate-800/90 border border-slate-700">
                 <TabsTrigger value="awards" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
                   Achievements
                 </TabsTrigger>
@@ -255,6 +256,9 @@ const PublicProfile = () => {
                 </TabsTrigger>
                 <TabsTrigger value="ranks" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
                   Rank History
+                </TabsTrigger>
+                <TabsTrigger value="ranked-matches" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
+                  Ranked Matches
                 </TabsTrigger>
               </TabsList>
 
@@ -272,6 +276,10 @@ const PublicProfile = () => {
               
               <TabsContent value="ranks" className="mt-6">
                 <ProfileRankHistory userId={userId!} />
+              </TabsContent>
+
+              <TabsContent value="ranked-matches" className="mt-6">
+                <ProfileValorantRankedMatches userId={userId!} />
               </TabsContent>
             </Tabs>
           </CardContent>
