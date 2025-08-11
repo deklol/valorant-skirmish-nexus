@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, BarChart3, TrendingUp, Users, Trophy, Target, Brain, Play, Pause, RotateCcw } from "lucide-react";
+import { ChevronDown, ChevronUp, BarChart3, TrendingUp, Users, Trophy, Target, Brain, Play, Pause, RotateCcw, ArrowRight, CheckCircle2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Team } from "@/types/tournamentDetail";
 import SwapSuggestionsSection from "./SwapSuggestionsSection";
@@ -211,6 +211,7 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
   const [hasInteractedWithATLAS, setHasInteractedWithATLAS] = useState(false);
   const [isSwapExpanded, setIsSwapExpanded] = useState(false);
   const [expandedPlayerFactors, setExpandedPlayerFactors] = useState<Set<string>>(new Set());
+  const [isStepsExpanded, setIsStepsExpanded] = useState(false);
   
   const togglePlayerFactors = (playerId: string) => {
     const newExpanded = new Set(expandedPlayerFactors);
@@ -547,7 +548,7 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
   const [simIndex, setSimIndex] = useState(0);
   const [swapIndex, setSwapIndex] = useState(0);
   const [simPhase, setSimPhase] = useState<'assign' | 'swaps' | 'done'>('assign');
-  const [simTeams, setSimTeams] = useState<{ id?: string; name: string; key: string; }[][]>(
+const [simTeams, setSimTeams] = useState<{ id?: string; name: string; key: string; assignedOrder?: number; originTeam?: number; movedFromTeam?: number; }[][]>(
     Array.from({ length: 4 }, () => [])
   );
 
@@ -560,20 +561,24 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
     return null;
   };
 
-  const applyAssignmentStep = (step: BalanceStep) => {
+const applyAssignmentStep = (step: BalanceStep) => {
     const teamIdx = parseTeamIndex(step);
     const playerId = step.player.id || step.player.discord_username || step.player.name || `anon-${Math.random()}`;
     const playerName = step.player.discord_username || step.player.name || 'Unknown';
+    const order = (step.step || step.round || simIndex + 1);
     setSimTeams(prev => {
       const next = prev.map(col => col.filter(p => p.id !== playerId)); // remove duplicates
       if (teamIdx !== null && teamIdx >= 0 && teamIdx < 4) {
-        next[teamIdx] = [...next[teamIdx], { id: playerId, name: playerName, key: `${playerId}-${simIndex}` }];
+        next[teamIdx] = [
+          ...next[teamIdx],
+          { id: playerId, name: playerName, key: `${playerId}-${simIndex}`, assignedOrder: order, originTeam: teamIdx }
+        ];
       }
       return next;
     });
   };
 
-  const performSwap = (swap: SwapSuggestion) => {
+const performSwap = (swap: SwapSuggestion) => {
     const p1Name = swap.player1.name;
     const p2Name = swap.player2?.name;
     setSimTeams(prev => {
@@ -589,20 +594,22 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
         const a = findIdx(p1Name);
         const b = findIdx(p2Name);
         if (a && b) {
-          const temp = next[a.t][a.idx];
-          next[a.t][a.idx] = next[b.t][b.idx];
-          next[b.t][b.idx] = temp;
+          const aObj = next[a.t][a.idx];
+          const bObj = next[b.t][b.idx];
+          // Swap with annotations
+          next[a.t][a.idx] = { ...bObj, movedFromTeam: b.t, key: `${bObj.id}-swap-${swapIndex}` };
+          next[b.t][b.idx] = { ...aObj, movedFromTeam: a.t, key: `${aObj.id}-swap-${swapIndex}` };
         } else if (a && swap.player2?.currentTeam !== undefined) {
           const target = Math.min(3, swap.player2.currentTeam);
           const obj = next[a.t].splice(a.idx, 1)[0];
-          next[target].push({ ...obj, key: `${obj.id}-swap-${swapIndex}` });
+          next[target].push({ ...obj, movedFromTeam: a.t, key: `${obj.id}-swap-${swapIndex}` });
         }
       } else if (swap.targetTeam !== undefined) {
         const a = findIdx(p1Name);
         const target = Math.min(3, swap.targetTeam);
         if (a) {
           const obj = next[a.t].splice(a.idx, 1)[0];
-          next[target].push({ ...obj, key: `${obj.id}-swap-${swapIndex}` });
+          next[target].push({ ...obj, movedFromTeam: a.t, key: `${obj.id}-swap-${swapIndex}` });
         }
       }
       return next;
@@ -937,45 +944,55 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
           </div>
         )}
 
-        {/* Balance Assignment Steps */}
-        {balanceSteps.length > 0 && (
-          <div className="mb-6">
-            <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-              <Target className="h-4 w-4" />
-              Balance Assignment Steps ({balanceSteps.length} players)
-            </h3>
-            <div className="space-y-2 max-h-64 overflow-y-auto">
-              {balanceSteps.map((step, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-secondary/5 rounded-lg border border-secondary/10">
-                  <div className="flex items-center gap-3">
-                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
-                      <span className="text-xs font-medium text-primary">{step.step || step.round || index + 1}</span>
-                    </div>
-                    <div>
-                      <div className="font-medium text-foreground">
-                        {step.player.discord_username || step.player.name}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {step.player.rank} • {step.player.points} pts
-                        {step.player.source && (
-                          <span className="ml-1">• {step.player.source}</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm font-medium text-foreground">
-                      Team {(step.assignedTeam !== undefined ? step.assignedTeam + 1 : step.assignedTo) || 'TBD'}
-                    </div>
-                    <div className="text-xs text-muted-foreground max-w-xs truncate">
-                      {step.reasoning}
-                    </div>
-                  </div>
+{/* Balance Assignment Steps */}
+{balanceSteps.length > 0 && (
+  <div className="mb-6">
+    <div
+      className="flex items-center justify-between p-4 bg-secondary/5 rounded-xl border border-secondary/20 cursor-pointer hover:bg-secondary/10"
+      onClick={() => setIsStepsExpanded(!isStepsExpanded)}
+    >
+      <div className="flex items-center gap-2">
+        <Target className="h-4 w-4" />
+        <h3 className="text-sm font-semibold text-foreground">
+          Balance Assignment Steps ({balanceSteps.length} players)
+        </h3>
+      </div>
+      {isStepsExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+    </div>
+    {isStepsExpanded && (
+      <div className="mt-3 space-y-2 max-h-64 overflow-y-auto">
+        {balanceSteps.map((step, index) => (
+          <div key={index} className="flex items-center justify-between p-3 bg-secondary/5 rounded-lg border border-secondary/10">
+            <div className="flex items-center gap-3">
+              <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
+                <span className="text-xs font-medium text-primary">{step.step || step.round || index + 1}</span>
+              </div>
+              <div>
+                <div className="font-medium text-foreground">
+                  {step.player.discord_username || step.player.name}
                 </div>
-              ))}
+                <div className="text-xs text-muted-foreground">
+                  {step.player.rank} • {step.player.points} pts
+                  {step.player.source && (
+                    <span className="ml-1">• {step.player.source}</span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-sm font-medium text-foreground">
+                Team {(step.assignedTeam !== undefined ? step.assignedTeam + 1 : step.assignedTo) || 'TBD'}
+              </div>
+              <div className="text-xs text-muted-foreground max-w-xs truncate">
+                {step.reasoning}
+              </div>
             </div>
           </div>
-        )}
+        ))}
+      </div>
+    )}
+  </div>
+)}
 
         {/* Assignment Simulator */}
         <div className="mb-6">
@@ -1005,14 +1022,34 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[0,1,2,3].map((i) => (
               <div key={i} className="p-3 rounded-lg bg-secondary/5 border border-secondary/10 min-h-[140px]">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-semibold text-foreground">{teams[i]?.name || `Team ${i + 1}`}</span>
+<div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-foreground">{teams[i]?.name || `Team ${i + 1}`}</span>
+                    {simPhase === 'done' && (
+                      <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                        <CheckCircle2 className="h-3 w-3" /> Completed
+                      </Badge>
+                    )}
+                  </div>
                   <Badge variant="outline" className="text-xs">{simTeams[i]?.length || 0} players</Badge>
                 </div>
                 <div className="space-y-1">
-                  {(simTeams[i] || []).map(p => (
-                    <div key={p.key} className="px-2 py-1 rounded-md bg-card/50 border border-border/20 text-sm text-foreground animate-fade-in">
-                      {p.name}
+{(simTeams[i] || []).map(p => (
+                    <div key={p.key} className="px-2 py-1 rounded-md bg-card/50 border border-border/20 text-sm text-foreground animate-fade-in flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {p.assignedOrder && (
+                          <div className="w-5 h-5 rounded-full bg-primary/20 text-primary text-xs font-semibold flex items-center justify-center">
+                            {p.assignedOrder}
+                          </div>
+                        )}
+                        <span className="truncate">{p.name}</span>
+                      </div>
+                      {typeof p.movedFromTeam === 'number' && p.movedFromTeam !== i && (
+                        <div className="flex items-center gap-1 text-emerald-600">
+                          <ArrowRight className="h-3 w-3" />
+                          <span className="text-xs">T{(p.movedFromTeam + 1)}</span>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
