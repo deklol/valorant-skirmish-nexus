@@ -109,6 +109,7 @@ interface UnifiedATLASCalculation {
     tournamentsWon?: number;
     evidenceFactors?: string[];
     tournamentBonus?: number;
+    perWinBonus?: number; // ✅ ADDED: To hold the adaptive rate
     basePoints?: number;
     rankDecayApplied?: number;
     isEliteTier?: boolean;
@@ -277,10 +278,10 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
   const getUnifiedATLASCalculations = () => {
     // First try to get actual calculation data
     const calculations = balanceAnalysis.atlasCalculations || 
-                        balanceAnalysis.adaptiveWeightCalculations || 
-                        balanceAnalysis.adaptive_weight_calculations || 
-                        balanceAnalysis.evidenceCalculations || 
-                        [];
+                         balanceAnalysis.adaptiveWeightCalculations || 
+                         balanceAnalysis.adaptive_weight_calculations || 
+                         balanceAnalysis.evidenceCalculations || 
+                         [];
     
     console.log('🔍 ATLAS TRANSPARENCY DEBUG:', {
       hasBalanceAnalysis: !!balanceAnalysis,
@@ -330,6 +331,7 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
             tournamentsWon: storedCalc.evidenceCalculation?.tournamentsWon || 0,
             evidenceFactors: storedCalc.evidenceCalculation?.evidenceFactors || [],
             tournamentBonus: storedCalc.evidenceCalculation?.tournamentBonus || 0,
+            perWinBonus: storedCalc.evidenceCalculation?.perWinBonus || 15, // ✅ ADDED: Map the per-win bonus with a safe fallback
             basePoints: storedCalc.evidenceCalculation?.basePoints || 0,
             rankDecayApplied: storedCalc.evidenceCalculation?.rankDecayApplied || 0,
             isEliteTier: (storedCalc.points || 0) >= 400
@@ -726,6 +728,7 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                     const skillTier = getSkillTier(finalPoints);
                     const tournamentWins = calc.calculation.tournamentsWon || 0;
                     const tournamentBonus = calc.calculation.tournamentBonus || 0;
+                    const perWinBonus = calc.calculation.perWinBonus || 15; // ✅ ADDED: Extract perWinBonus for use in JSX
                     const isRecentWinner = recentWinnerIds.has(calc.userId);
                     
                     return (
@@ -785,9 +788,7 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                         
                         {/* Tournament Achievements */}
                         {tournamentWins > 0 && (
-                          <div className={`mt-4 p-4 bg-gradient-to-r from-amber-500/10 to-yellow-500/5 rounded-xl border border-amber-400/30 ${
-                            tournamentBonus > 0 && tournamentBonus !== (tournamentWins * 15) ? 'min-h-[80px]' : ''
-                          }`}>
+                          <div className="mt-4 p-4 bg-gradient-to-r from-amber-500/10 to-yellow-500/5 rounded-xl border border-amber-400/30">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
                                 <Trophy className="h-4 w-4 text-amber-600" />
@@ -802,31 +803,37 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                               )}
                             </div>
                             
-                            {/* Detailed Bonus Breakdown */}
-                            {tournamentBonus > 0 && tournamentBonus !== (tournamentWins * 15) && (
-                              <div className="space-y-2 text-sm bg-amber-50/50 p-3 rounded-lg mt-3">
-                                <div className="flex justify-between text-muted-foreground">
-                                  <span>Base wins ({tournamentWins} × 15pts):</span>
-                                  <span className="font-medium">+{tournamentWins * 15}pts</span>
+                            {/* ✅ CHANGED: Detailed Bonus Breakdown now uses real data */}
+                            {tournamentBonus > 0 && (
+                                <div className="space-y-2 text-sm bg-amber-50/50 p-3 rounded-lg mt-3">
+                                    {/* Display Adaptive Win Bonus */}
+                                    <div className="flex justify-between text-muted-foreground">
+                                        <span>Adaptive Bonus ({tournamentWins} {tournamentWins === 1 ? 'win' : 'wins'} × {perWinBonus} pts):</span>
+                                        <span className="font-medium">+{tournamentWins * perWinBonus}pts</span>
+                                    </div>
+
+                                    {/* Calculate and display other bonus components if they exist */}
+                                    {(() => {
+                                        const otherBonus = tournamentBonus - (tournamentWins * perWinBonus);
+                                        if (otherBonus > 0) {
+                                            return (
+                                                <div className="flex justify-between text-orange-600">
+                                                    <span>Underranked / Other Bonus:</span>
+                                                    <span className="font-medium">+{otherBonus}pts</span>
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    })()}
+
+                                    {/* Show the total line only if there was another bonus to sum up */}
+                                    {tournamentBonus > (tournamentWins * perWinBonus) && (
+                                        <div className="flex justify-between font-bold text-amber-800 border-t border-amber-400/30 pt-2">
+                                            <span>Total Bonus:</span>
+                                            <span>+{tournamentBonus}pts</span>
+                                        </div>
+                                    )}
                                 </div>
-                                {finalPoints >= 400 && (
-                                  <div className="flex justify-between text-red-600">
-                                    <span>Elite tier bonus:</span>
-                                    <span className="font-medium">+10pts</span>
-                                  </div>
-                                )}
-                                {(calc.calculation.calculationReasoning?.includes('underranked') || 
-                                  calc.calculation.calculationReasoning?.includes('dropped significantly')) && (
-                                  <div className="flex justify-between text-orange-600">
-                                    <span>Underranked bonus:</span>
-                                    <span className="font-medium">+{tournamentBonus - (tournamentWins * 15) - (finalPoints >= 400 ? 10 : 0)}pts</span>
-                                  </div>
-                                )}
-                                <div className="flex justify-between font-bold text-amber-800 border-t border-amber-400/30 pt-2">
-                                  <span>Total bonus:</span>
-                                  <span>+{tournamentBonus}pts</span>
-                                </div>
-                              </div>
                             )}
                           </div>
                         )}

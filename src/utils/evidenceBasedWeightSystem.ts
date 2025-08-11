@@ -43,6 +43,7 @@ export interface EvidenceBasedCalculation {
   calculationReasoning: string;
   isEliteTier: boolean;
   tournamentsWon: number;
+  perWinBonus?: number; // New tournament bonus property
   evidenceFactors: string[];
 }
 
@@ -196,6 +197,7 @@ export function calculateEvidenceBasedWeight(
         calculationReasoning: `Manual override: ${manualResult.rank} (${manualResult.points} points)`,
         isEliteTier: manualResult.points >= config.skillTierCaps.eliteThreshold,
         tournamentsWon: userData.tournaments_won || 0,
+        perWinBonus: perWinBonus, // Adaptive calculated per tournament-win bonus
         evidenceFactors: ['Manual Override Applied']
       }
     };
