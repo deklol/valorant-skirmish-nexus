@@ -2,14 +2,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, BarChart3, TrendingUp, Users, Trophy, Target, Brain, Play, Pause, RefreshCw } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { ChevronDown, ChevronUp, BarChart3, TrendingUp, Users, Trophy, Target, Brain } from "lucide-react";
+import { useState } from "react";
 import { Team } from "@/types/tournamentDetail";
 import SwapSuggestionsSection from "./SwapSuggestionsSection";
 import { useRecentTournamentWinners } from "@/hooks/useRecentTournamentWinners";
 import { RANK_POINT_MAPPING } from "@/utils/rankingSystem";
 import { EVIDENCE_CONFIG } from "@/utils/evidenceBasedWeightSystem";
-import { motion, AnimatePresence } from "framer-motion";
 
 // Rank configuration with emojis and colors
 const RANK_CONFIG = {
@@ -47,9 +46,18 @@ const getRankInfo = (rank: string) => {
   return RANK_CONFIG[rank] || RANK_CONFIG['Unranked'];
 };
 
+const getSkillLevel = (rank: string) => {
+  return getRankInfo(rank).skill;
+};
+
+const getSkillLevelColor = (rank: string) => {
+  const info = getRankInfo(rank);
+  return info.primary;
+};
+
 interface BalanceStep {
-  step?: number;
-  round?: number;
+  step?: number; // New format
+  round?: number; // Old format
   player: {
     id?: string;
     name?: string;
@@ -57,13 +65,18 @@ interface BalanceStep {
     rank: string;
     points: number;
     source?: string;
-    evidenceWeight?: number;
-    evidenceReasoning?: string;
+    evidenceWeight?: number; // ATLAS evidence weight
+    evidenceReasoning?: string; // ATLAS reasoning
   };
-  assignedTo?: string;
-  assignedTeam?: number;
+  assignedTo?: string; // Old format
+  assignedTeam?: number; // New format
   reasoning: string;
-  teamStatesAfter?: Array<{
+  teamStates?: Array<{ // Old format
+    name: string;
+    totalPoints: number;
+    playerCount: number;
+  }>;
+  teamStatesAfter?: Array<{ // New format
     teamIndex: number;
     totalPoints: number;
     playerCount: number;
@@ -89,31 +102,100 @@ interface UnifiedATLASCalculation {
     adaptiveFactor: number;
     calculationReasoning: string;
     weightSource: string;
+    rankDecayFactor?: number;
+    timeSincePeakDays?: number;
+    // Unified ATLAS fields
     finalPoints?: number;
     tournamentsWon?: number;
     evidenceFactors?: string[];
     tournamentBonus?: number;
-    perWinBonus?: number;
+    perWinBonus?: number; // ✅ ADDED: To hold the adaptive rate
     basePoints?: number;
     rankDecayApplied?: number;
     isEliteTier?: boolean;
+    // Enhanced reasoning components
+    rankSource?: 'current' | 'peak' | 'manual' | 'default';
+    bonusBreakdown?: {
+      tournamentWins?: number;
+      recentWinBonus?: number;
+      eliteWinnerBonus?: number;
+    };
   };
 }
 
+interface SwapSuggestion {
+  strategy: 'direct' | 'secondary' | 'cascading' | 'fallback';
+  player1: {
+    name: string;
+    rank: string;
+    points: number;
+    currentTeam: number;
+  };
+  player2?: {
+    name: string;
+    rank: string;
+    points: number;
+    currentTeam: number;
+  };
+  targetTeam?: number;
+  expectedImprovement: number;
+  reasoning: string;
+  outcome: 'executed' | 'rejected' | 'considered';
+  rejectionReason?: string;
+  balanceImpact: {
+    beforeBalance: number;
+    afterBalance: number;
+    violationResolved: boolean;
+  };
+}
+
+interface SwapAnalysis {
+  totalSuggestionsConsidered: number;
+  strategiesAttempted: string[];
+  successfulSwaps: SwapSuggestion[];
+  rejectedSwaps: SwapSuggestion[];
+  finalOutcome: 'improved' | 'no_improvement' | 'fallback_used';
+  overallImprovement: number;
+}
+
 interface BalanceAnalysis {
+  // Old format properties
   qualityScore?: number;
   maxPointDifference?: number;
   avgPointDifference?: number;
   balanceSteps?: BalanceStep[];
-  finalTeamStats?: Array<{ name: string; totalPoints: number; playerCount: number; avgPoints: number; }>;
+  finalTeamStats?: Array<{
+    name: string;
+    totalPoints: number;
+    playerCount: number;
+    avgPoints: number;
+  }>;
+  
+  // New format properties
   final_balance?: FinalBalance;
   balance_steps?: BalanceStep[];
-  teams_created?: Array<{ name: string; members: Array<any>; total_points: number; seed: number }>;
+  teams_created?: Array<{
+    name: string;
+    members: Array<{
+      discord_username: string;
+      rank: string;
+      points: number;
+      source: string;
+    }>;
+    total_points: number;
+    seed: number;
+  }>;
+  
+  // Unified ATLAS Adaptive Weight calculations
   atlasCalculations?: UnifiedATLASCalculation[];
   adaptiveWeightCalculations?: UnifiedATLASCalculation[];
-  adaptive_weight_calculations?: UnifiedATLASCalculation[];
-  evidenceCalculations?: UnifiedATLASCalculation[];
-  swapAnalysis?: any;
+  adaptive_weight_calculations?: UnifiedATLASCalculation[]; // Database format
+  evidenceCalculations?: UnifiedATLASCalculation[]; // ATLAS evidence format
+  
+  // Swap analysis (new)
+  swapAnalysis?: SwapAnalysis;
+  
+  // Common properties
   method: string;
   timestamp: string;
 }
@@ -123,115 +205,26 @@ interface TournamentBalanceTransparencyProps {
   teams: Team[];
 }
 
-// ✅ NEW COMPONENT: BalanceStepAnimator
-const BalanceStepAnimator = ({ steps, teams: initialTeams }: { steps: BalanceStep[], teams: any[] }) => {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentStep, setCurrentStep] = useState(-1);
-  const [animatedTeams, setAnimatedTeams] = useState<any[][]>(() => initialTeams.map(() => []));
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  const teamNames = initialTeams.map(t => t.name);
-
-  useEffect(() => {
-    if (isPlaying && currentStep < steps.length - 1) {
-      intervalRef.current = setTimeout(() => {
-        setCurrentStep(prev => prev + 1);
-      }, 500);
-    } else if (currentStep >= steps.length - 1) {
-      setIsPlaying(false);
-    }
-    return () => {
-      if (intervalRef.current) clearTimeout(intervalRef.current);
-    };
-  }, [isPlaying, currentStep, steps.length]);
-
-  useEffect(() => {
-    if (currentStep === -1) {
-      setAnimatedTeams(initialTeams.map(() => []));
-      return;
-    }
-    const step = steps[currentStep];
-    if (!step || step.assignedTeam === undefined) return;
-
-    setAnimatedTeams(prevTeams => {
-      const newTeams = prevTeams.map(team => [...team]); // Create shallow copies
-      const teamIndex = step.assignedTeam;
-      if (newTeams[teamIndex] && !newTeams[teamIndex].some(p => p.player.id === step.player.id)) {
-        newTeams[teamIndex].push(step);
-      }
-      return newTeams;
-    });
-  }, [currentStep, steps, initialTeams]);
-
-  const handlePlayPause = () => {
-    if (currentStep >= steps.length - 1) {
-      setCurrentStep(-1);
-      setIsPlaying(true);
-    } else {
-      setIsPlaying(!isPlaying);
-    }
-  };
-
-  const handleReset = () => {
-    setIsPlaying(false);
-    setCurrentStep(-1);
-  };
-
-  return (
-    <div className="mb-6">
-      <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-        <Target className="h-4 w-4" />
-        Balance Assignment Steps ({steps.length} players)
-      </h3>
-      <div className="p-4 bg-secondary/10 border border-secondary/20 rounded-lg">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {animatedTeams.map((team, index) => (
-            <div key={index} className="bg-slate-800/50 p-3 rounded-md min-h-[200px] flex flex-col">
-              <h4 className="font-bold text-sm text-white mb-2 border-b border-slate-700 pb-2">{teamNames[index] || `Team ${index + 1}`}</h4>
-              <div className="space-y-1 flex-grow">
-                <AnimatePresence>
-                  {team.map((step) => (
-                    <motion.div
-                      key={step.player.id}
-                      layout
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.3 }}
-                      className="text-xs bg-slate-700/50 p-1.5 rounded"
-                    >
-                      <p className="font-medium text-slate-200 truncate">{step.player.discord_username || step.player.name}</p>
-                      <p className="text-slate-400">{step.player.points} pts • {step.player.rank}</p>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="flex items-center justify-center gap-4 mt-4 pt-4 border-t border-secondary/20">
-          <Button onClick={handlePlayPause} variant="outline" size="sm" className="w-28">
-            {isPlaying ? <Pause className="h-4 w-4 mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-            {isPlaying ? 'Pause' : (currentStep >= steps.length - 1 ? 'Replay' : 'Play')}
-          </Button>
-          <Button onClick={handleReset} variant="ghost" size="sm">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Reset
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-
 const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBalanceTransparencyProps) => {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(true); // Start expanded
   const [isATLASExpanded, setIsATLASExpanded] = useState(false);
   const [hasInteractedWithATLAS, setHasInteractedWithATLAS] = useState(false);
+  const [isSwapExpanded, setIsSwapExpanded] = useState(false);
+  const [expandedPlayerFactors, setExpandedPlayerFactors] = useState<Set<string>>(new Set());
+  
+  const togglePlayerFactors = (playerId: string) => {
+    const newExpanded = new Set(expandedPlayerFactors);
+    if (newExpanded.has(playerId)) {
+      newExpanded.delete(playerId);
+    } else {
+      newExpanded.add(playerId);
+    }
+    setExpandedPlayerFactors(newExpanded);
+  };
   
   const { recentWinnerIds } = useRecentTournamentWinners();
   
+  // Helper functions to handle both old and new formats
   const getQualityScore = () => {
     if (balanceAnalysis.qualityScore !== undefined) {
       return balanceAnalysis.qualityScore;
@@ -258,7 +251,7 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
       return balanceAnalysis.avgPointDifference;
     }
     if (balanceAnalysis.final_balance) {
-      return balanceAnalysis.final_balance.maxPointDifference / 2;
+      return balanceAnalysis.final_balance.maxPointDifference / 2; // Approximate from max difference
     }
     return 0;
   };
@@ -272,7 +265,7 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
         name: team.name,
         totalPoints: team.total_points,
         playerCount: team.members.length,
-        avgPoints: team.members.length > 0 ? team.total_points / team.members.length : 0
+        avgPoints: team.total_points / team.members.length
       }));
     }
     return [];
@@ -283,12 +276,23 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
   };
 
   const getUnifiedATLASCalculations = () => {
+    // First try to get actual calculation data
     const calculations = balanceAnalysis.atlasCalculations || 
                          balanceAnalysis.adaptiveWeightCalculations || 
                          balanceAnalysis.adaptive_weight_calculations || 
                          balanceAnalysis.evidenceCalculations || 
                          [];
     
+    console.log('🔍 ATLAS TRANSPARENCY DEBUG:', {
+      hasBalanceAnalysis: !!balanceAnalysis,
+      hasEvidenceCalculations: !!(balanceAnalysis.evidenceCalculations),
+      calculationsLength: calculations.length,
+      firstCalculation: calculations[0],
+      balanceAnalysisKeys: Object.keys(balanceAnalysis || {}),
+      rawBalanceAnalysis: balanceAnalysis
+    });
+    
+    // If we have calculation data, use it
     if (calculations.length > 0) {
       const uniqueCalculations = calculations.filter((calc, index, self) => 
         index === self.findIndex(c => c.userId === calc.userId)
@@ -297,21 +301,236 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
       const balanceSteps = getBalanceSteps();
       const balancedPlayerIds = balanceSteps.map(step => step.player.id);
       const balancedCalculations = uniqueCalculations.filter(calc => 
-        calc.userId && balancedPlayerIds.includes(calc.userId)
+        balancedPlayerIds.includes(calc.userId)
       );
       
+      console.log('🏛️ ATLAS TRANSPARENCY: Retrieved unified calculations:', {
+        total: calculations.length,
+        unique: uniqueCalculations.length,
+        balanced: balancedCalculations.length,
+        sources: [...new Set(balancedCalculations.map(c => (c.calculation as any)?.weightSource || (c.calculation as any)?.source || 'unknown'))],
+        sampleCalculation: balancedCalculations[0],
+        calculationStructure: balancedCalculations[0] ? Object.keys(balancedCalculations[0].calculation || {}) : []
+      });
+      
+      // Map stored calculation structure to expected format
       return balancedCalculations.map(calc => {
-        const storedCalc = calc.calculation as any;
+        const storedCalc = calc.calculation as any; // Type assertion for stored structure
         return {
           userId: calc.userId,
           calculation: {
-            ...storedCalc,
-            perWinBonus: storedCalc.perWinBonus || 15,
+            currentRank: storedCalc.rank || 'Unranked',
+            currentRankPoints: storedCalc.evidenceCalculation?.currentRankPoints || 0,
+            peakRank: storedCalc.evidenceCalculation?.peakRank || storedCalc.rank || 'Unranked',
+            peakRankPoints: storedCalc.evidenceCalculation?.peakRankPoints || 0,
+            calculatedAdaptiveWeight: storedCalc.points || 0,
+            adaptiveFactor: storedCalc.evidenceCalculation?.adaptiveFactor || 1.0,
+            calculationReasoning: (storedCalc.evidenceCalculation?.calculationReasoning || `${storedCalc.rank || 'Unranked'} (${storedCalc.points || 0} points)`).replace(/Elite Tier Player \(300\+ points\)/g, 'Elite Tier Player (400+ points)'),
+            weightSource: storedCalc.source || 'adaptive_weight',
+            finalPoints: storedCalc.points || 0,
+            tournamentsWon: storedCalc.evidenceCalculation?.tournamentsWon || 0,
+            evidenceFactors: storedCalc.evidenceCalculation?.evidenceFactors || [],
+            tournamentBonus: storedCalc.evidenceCalculation?.tournamentBonus || 0,
+            perWinBonus: storedCalc.evidenceCalculation?.perWinBonus || 15, // ✅ ADDED: Map the per-win bonus with a safe fallback
+            basePoints: storedCalc.evidenceCalculation?.basePoints || 0,
+            rankDecayApplied: storedCalc.evidenceCalculation?.rankDecayApplied || 0,
+            isEliteTier: (storedCalc.points || 0) >= 400
           }
         };
       });
     }
-    return [];
+    
+    // Generate ATLAS reasoning from balance steps evidence
+    const balanceSteps = getBalanceSteps();
+    const atlasCalculations = balanceSteps.map(step => {
+      const currentRank = step.player.rank;
+      const finalPoints = step.player.evidenceWeight || step.player.points || 0;
+      
+      // FIRST: Check if we already have evidence reasoning from the balancing process
+      if (step.player.evidenceReasoning) {
+        console.log(`🔍 Found existing evidence reasoning for ${step.player.discord_username}:`, step.player.evidenceReasoning);
+      }
+      
+      // Reconstruct ATLAS reasoning based on evidence
+      const reasoning = step.player.evidenceReasoning 
+        ? { reasoning: step.player.evidenceReasoning, evidenceFactors: [], currentRankPoints: 0, peakRank: currentRank, peakRankPoints: 0, basePoints: 0, tournamentBonus: 0, tournamentsWon: 0, rankDecay: 0, adaptiveFactor: 1.0 }
+        : reconstructATLASReasoning(currentRank, finalPoints);
+      
+      return {
+        userId: step.player.id || 'unknown',
+        calculation: {
+          currentRank: currentRank,
+          currentRankPoints: typeof reasoning === 'string' ? 0 : reasoning.currentRankPoints,
+          peakRank: typeof reasoning === 'string' ? currentRank : reasoning.peakRank,
+          peakRankPoints: typeof reasoning === 'string' ? 0 : reasoning.peakRankPoints,
+          calculatedAdaptiveWeight: finalPoints,
+          adaptiveFactor: typeof reasoning === 'string' ? 1.0 : reasoning.adaptiveFactor,
+          calculationReasoning: (typeof reasoning === 'string' ? reasoning : reasoning.reasoning).replace(/Elite Tier Player \(300\+ points\)/g, 'Elite Tier Player (400+ points)'),
+          weightSource: 'evidence_based',
+          finalPoints: finalPoints,
+          tournamentsWon: typeof reasoning === 'string' ? 0 : reasoning.tournamentsWon,
+          evidenceFactors: typeof reasoning === 'string' ? [] : reasoning.evidenceFactors,
+          tournamentBonus: typeof reasoning === 'string' ? 0 : reasoning.tournamentBonus,
+          basePoints: typeof reasoning === 'string' ? 0 : reasoning.basePoints,
+          rankDecayApplied: typeof reasoning === 'string' ? 0 : reasoning.rankDecay,
+          isEliteTier: finalPoints >= 400
+        }
+      };
+    });
+    
+    console.log('🏛️ ATLAS TRANSPARENCY: Generated ATLAS reasoning from evidence:', {
+      total: atlasCalculations.length,
+      source: 'reconstructed_from_evidence'
+    });
+    
+    return atlasCalculations;
+  };
+
+  // Reconstruct ATLAS reasoning based on current rank and final points
+  const reconstructATLASReasoning = (currentRank: string, finalPoints: number) => {
+  // Use shared rank mapping to avoid drift
+  const currentRankPoints = RANK_POINT_MAPPING[currentRank] || 150;
+    const pointDifference = finalPoints - currentRankPoints;
+    
+    let reasoning = '';
+    let evidenceFactors: string[] = [];
+    let peakRank = currentRank;
+    let peakRankPoints = currentRankPoints;
+    let basePoints = currentRankPoints;
+    let tournamentBonus = 0;
+    let tournamentsWon = 0;
+    let rankDecay = 0;
+    let adaptiveFactor = 1.0;
+    
+    // Analysis based on point difference
+    if (currentRank === 'Unrated' && finalPoints > 400) {
+      // Likely peaked at Radiant/Immortal
+      peakRank = 'Radiant';
+      peakRankPoints = 500;
+      basePoints = 500;
+      tournamentBonus = Math.max(0, finalPoints - 500);
+      tournamentsWon = Math.floor(tournamentBonus / EVIDENCE_CONFIG.tournamentWinBonus);
+      reasoning = `Peak Radiant (500 pts)`;
+      evidenceFactors.push('Peak Rank: Radiant');
+      evidenceFactors.push('Currently Unrated');
+      if (tournamentBonus > 0) {
+        evidenceFactors.push(`Tournament Winner Bonus: +${tournamentBonus} pts`);
+        reasoning += ` + Tournament bonus (+${tournamentBonus} pts)`;
+      }
+    } else if (pointDifference > 50) {
+      // Likely has tournament bonuses or peak rank boost
+      tournamentBonus = pointDifference;
+      tournamentsWon = Math.floor(tournamentBonus / EVIDENCE_CONFIG.tournamentWinBonus);
+      basePoints = currentRankPoints;
+      reasoning = `${currentRank} (${currentRankPoints} pts)`;
+      evidenceFactors.push(`Current Rank: ${currentRank}`);
+      if (tournamentBonus > 0) {
+        evidenceFactors.push(`Tournament Winner Bonus: +${tournamentBonus} pts`);
+        reasoning += ` + Tournament bonus (+${tournamentBonus} pts)`;
+      }
+    } else if (pointDifference < 0) {
+      // Likely has rank decay from peak
+      const possiblePeakPoints = finalPoints + Math.abs(pointDifference);
+      const rankEntry = Object.entries(RANK_POINT_MAPPING).find(([_, pts]) => pts === possiblePeakPoints);
+      peakRank = (rankEntry && rankEntry[0]) || currentRank;
+      peakRankPoints = possiblePeakPoints;
+      rankDecay = Math.abs(pointDifference);
+      basePoints = peakRankPoints;
+      adaptiveFactor = 0.7;
+      reasoning = `Peak ${peakRank} (${peakRankPoints} pts) → Current ${currentRank}`;
+      evidenceFactors.push(`Peak Rank: ${peakRank}`);
+      evidenceFactors.push(`Current Rank: ${currentRank}`);
+      evidenceFactors.push(`Rank Decay: -${rankDecay} pts`);
+    } else {
+      // Standard ranking
+      reasoning = `${currentRank} (${currentRankPoints} pts)`;
+      evidenceFactors.push(`Current Rank: ${currentRank}`);
+      basePoints = currentRankPoints;
+    }
+    
+    if (finalPoints >= 400) {
+      evidenceFactors.push('🏆 Elite Tier Player (400+ points)');
+    }
+    
+    reasoning += ` = ${finalPoints} pts total`;
+    
+    return {
+      reasoning,
+      evidenceFactors,
+      currentRankPoints,
+      peakRank,
+      peakRankPoints,
+      basePoints,
+      tournamentBonus,
+      tournamentsWon,
+      rankDecay,
+      adaptiveFactor
+    };
+  };
+
+  const getATLASStats = () => {
+    const calculations = getUnifiedATLASCalculations();
+    const playersAnalyzed = calculations.length;
+    const qualityScore = getQualityScore();
+    const maxDifference = getMaxPointDifference();
+    
+    return {
+      playersAnalyzed,
+      balanceQuality: getBalanceQuality(),
+      qualityScore,
+      maxDifference
+    };
+  };
+
+  const getBalanceQuality = () => {
+    const quality = balanceAnalysis.final_balance?.balanceQuality || 'good';
+    return quality === 'ideal' ? 'excellent' : 
+           quality === 'good' ? 'good' : 
+           quality === 'warning' ? 'warning' : 'poor';
+  };
+
+  const getMaxTeamDifference = () => {
+    return getMaxPointDifference();
+  };
+
+  // Enhanced reasoning generation for unified ATLAS display
+  const generateEnhancedReasoning = (calc: UnifiedATLASCalculation): string => {
+    const { calculation } = calc;
+    
+    // Return the pre-calculated reasoning if available
+    if (calculation?.calculationReasoning && !calculation.calculationReasoning.includes('Assignment based on balance algorithm')) {
+      return calculation.calculationReasoning;
+    }
+    
+    // Fallback generation
+    const parts: string[] = [];
+    
+    // Base rank information
+    if (calculation?.peakRank && calculation.currentRank !== calculation.peakRank) {
+      parts.push(`Peak: ${calculation.peakRank} (${calculation.peakRankPoints} pts)`);
+      if (calculation.currentRank && calculation.currentRank !== 'Unranked') {
+        parts.push(`Current: ${calculation.currentRank} (${calculation.currentRankPoints} pts)`);
+      } else {
+        parts.push(`Currently Unranked`);
+      }
+    } else if (calculation?.currentRank) {
+      parts.push(`${calculation.currentRank} (${calculation.currentRankPoints || calculation.finalPoints} pts)`);
+    }
+    
+    // Tournament bonuses
+    if (calculation?.tournamentBonus && calculation.tournamentBonus > 0) {
+      parts.push(`+${calculation.tournamentBonus} tournament bonus (${calculation.tournamentsWon || 0} wins)`);
+    }
+    
+    // Rank decay
+    if (calculation?.rankDecayApplied && calculation.rankDecayApplied > 0) {
+      parts.push(`-${calculation.rankDecayApplied} rank decay`);
+    }
+    
+    // Final calculation
+    parts.push(`= ${calculation?.finalPoints || calculation?.calculatedAdaptiveWeight || 0} pts total`);
+    
+    return parts.join(' ');
   };
   
   const qualityScore = getQualityScore();
@@ -320,10 +539,18 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
   const finalTeamStats = getFinalTeamStats();
   const balanceSteps = getBalanceSteps();
   const atlasCalculations = getUnifiedATLASCalculations();
-  const atlasStats = {
-      playersAnalyzed: atlasCalculations.length,
-      balanceQuality: balanceAnalysis.final_balance?.balanceQuality || 'N/A',
-      maxDifference: maxPointDifference
+  const atlasStats = getATLASStats();
+  
+  const getQualityColor = (score: number) => {
+    if (score >= 85) return "text-emerald-600 bg-emerald-50 border-emerald-200";
+    if (score >= 70) return "text-yellow-600 bg-yellow-50 border-yellow-200";
+    return "text-red-600 bg-red-50 border-red-200";
+  };
+
+  const getQualityLabel = (score: number) => {
+    if (score >= 85) return "Excellent";
+    if (score >= 70) return "Good";
+    return "Fair";
   };
 
   return (
@@ -357,6 +584,7 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
 
       {isExpanded && (
         <CardContent className="pt-0">
+        {/* ATLAS Summary Section */}
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
           <div className="p-4 rounded-lg bg-secondary/10 border border-secondary/20">
             <div className="flex items-center justify-between">
@@ -374,7 +602,7 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Balance Quality</p>
-                <p className="text-lg font-semibold text-foreground">{atlasStats.balanceQuality}</p>
+                <p className="text-lg font-semibold text-foreground">{getQualityLabel(qualityScore)}</p>
               </div>
               <div className="p-2 rounded-lg bg-primary/10">
                 <TrendingUp className="h-4 w-4 text-primary" />
@@ -408,6 +636,7 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
           </div>
         </div>
 
+        {/* Team Point Distribution */}
         {finalTeamStats.length > 0 && (
           <div className="mb-6">
             <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
@@ -438,6 +667,7 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
           </div>
         )}
 
+        {/* ATLAS Adaptive Weight Analysis - Unified Section */}
         {atlasCalculations.length > 0 && (
           <div className="mb-6">
             <div 
@@ -458,7 +688,7 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                 <div>
                   <h3 className="font-semibold text-foreground">ATLAS Adaptive Weight Analysis</h3>
                   <p className="text-sm text-muted-foreground">
-                    Enhanced ranking calculations for {atlasCalculations.length} players
+                    Enhanced ranking calculations for {atlasCalculations.length} players • {atlasStats.balanceQuality} balance quality • {atlasStats.maxDifference}pts max difference
                   </p>
                 </div>
               </div>
@@ -469,51 +699,162 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
               <div className="mt-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
                   {atlasCalculations.map((calc, index) => {
+                    // Find matching player name from balance steps
                     const matchingStep = balanceSteps.find(step => step.player.id === calc.userId);
-                    const playerName = matchingStep?.player.discord_username || `Player ${index + 1}`;
+                    const playerName = matchingStep?.player.discord_username || matchingStep?.player.name || `Player ${index + 1}`;
                     const playerRank = matchingStep?.player.rank || calc.calculation.currentRank || 'Unknown';
-                    const finalPoints = calc.calculation.finalPoints || 0;
+                    const finalPoints = calc.calculation.finalPoints || calc.calculation.calculatedAdaptiveWeight || 0;
+                    
+                    // Get riot ID from team member data
+                    const playerTeamMember = teams.find(team => 
+                      team.team_members?.some(member => member.user_id === calc.userId)
+                    )?.team_members?.find(member => member.user_id === calc.userId);
+                    const riotId = playerTeamMember?.users?.riot_id;
+                    
+                    // Find what team the player is on
+                    const playerTeam = teams.find(team => 
+                      team.team_members?.some(member => member.user_id === calc.userId)
+                    );
+                    
+                    // Get skill tier based on points
+                    const getSkillTier = (points: number) => {
+                      if (points >= 400) return { label: 'Elite', color: 'bg-red-500/10 text-red-600 border-red-500/20' };
+                      if (points >= 350) return { label: 'High Skilled', color: 'bg-purple-500/10 text-purple-600 border-purple-500/20' };
+                      if (points >= 200) return { label: 'Intermediate', color: 'bg-blue-500/10 text-blue-600 border-blue-500/20' };
+                      if (points >= 100) return { label: 'Beginner', color: 'bg-green-500/10 text-green-600 border-green-500/20' };
+                      return { label: 'Developing', color: 'bg-gray-500/10 text-gray-600 border-gray-500/20' };
+                    };
+                    
+                    const skillTier = getSkillTier(finalPoints);
                     const tournamentWins = calc.calculation.tournamentsWon || 0;
                     const tournamentBonus = calc.calculation.tournamentBonus || 0;
+                    const perWinBonus = calc.calculation.perWinBonus || 15; // ✅ ADDED: Extract perWinBonus for use in JSX
                     const isRecentWinner = recentWinnerIds.has(calc.userId);
-
+                    
                     return (
-                      <div key={calc.userId || index} className={`group relative p-4 sm:p-6 bg-gradient-to-br from-card to-card/60 rounded-xl sm:rounded-2xl border transition-all duration-300 hover:shadow-xl hover:scale-[1.02] ${isRecentWinner ? 'border-amber-400/50' : 'border-border/20'}`}>
-                        <div className="flex items-start justify-between gap-3">
-                           <div>
-                             <h4 className="font-bold text-foreground text-sm sm:text-base">{playerName}</h4>
-                             <Badge variant="outline" style={{ color: getRankInfo(playerRank).primary, borderColor: getRankInfo(playerRank).primary + '60', backgroundColor: getRankInfo(playerRank).primary + '10' }}>
-                               {getRankInfo(playerRank).emoji} {playerRank}
-                             </Badge>
-                           </div>
-                           <div className="text-right">
-                             <div className="text-xl sm:text-2xl font-black text-primary">{finalPoints}</div>
-                             <div className="text-xs text-muted-foreground">POINTS</div>
-                           </div>
+                      <div key={calc.userId || index} className={`group relative p-4 sm:p-6 bg-gradient-to-br from-card to-card/60 rounded-xl sm:rounded-2xl border transition-all duration-300 hover:shadow-xl hover:scale-[1.02] ${
+                        isRecentWinner 
+                          ? 'border-amber-400/50 shadow-[0_0_20px_rgba(245,158,11,0.15)] ring-1 ring-amber-400/20' 
+                          : 'border-border/20 hover:border-primary/40'
+                      }`}>
+                        
+                        {/* Header Section */}
+                        <div className="space-y-3 sm:space-y-4">
+                          {/* Player Name & Points */}
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-bold text-foreground text-sm sm:text-base leading-tight">{playerName}</h4>
+                              {riotId && (
+                                <p className="text-xs text-muted-foreground italic mt-0.5">{riotId}</p>
+                              )}
+                            </div>
+                            <div className="text-right flex-shrink-0">
+                              <div className="text-xl sm:text-2xl font-black text-primary">{finalPoints}</div>
+                              <div className="text-xs text-muted-foreground font-medium">POINTS</div>
+                            </div>
+                          </div>
+                          
+                          {/* Rank & Skill Level */}
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge 
+                              variant="outline" 
+                              className="text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-1.5 font-medium border-2"
+                              style={{
+                                color: getRankInfo(playerRank).primary,
+                                borderColor: getRankInfo(playerRank).primary + '60',
+                                backgroundColor: getRankInfo(playerRank).primary + '10'
+                              }}
+                            >
+                              <span className="mr-1 sm:mr-2">{getRankInfo(playerRank).emoji}</span>
+                              {playerRank}
+                            </Badge>
+                            <Badge 
+                              className={`text-xs px-2 py-1 font-medium ${skillTier.color}`}
+                            >
+                              {skillTier.label}
+                            </Badge>
+                          </div>
                         </div>
 
+                        {/* Team Assignment */}
+                        {playerTeam && (
+                          <div className="mt-4 p-3 bg-gradient-to-r from-muted/30 to-muted/10 rounded-xl border border-muted/40">
+                            <div className="flex items-center gap-3">
+                              <div className="w-3 h-3 rounded-full bg-primary shadow-sm"></div>
+                              <span className="text-sm font-semibold text-foreground">{playerTeam.name}</span>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Tournament Achievements */}
                         {tournamentWins > 0 && (
                           <div className="mt-4 p-4 bg-gradient-to-r from-amber-500/10 to-yellow-500/5 rounded-xl border border-amber-400/30">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
                                 <Trophy className="h-4 w-4 text-amber-600" />
-                                <span className="text-sm font-bold text-amber-800">{tournamentWins} Tournament Win{tournamentWins > 1 ? 's' : ''}</span>
+                                <span className="text-sm font-bold text-amber-800">
+                                  {tournamentWins} Tournament Win{tournamentWins !== 1 ? 's' : ''}
+                                </span>
                               </div>
-                              <Badge className="text-sm bg-emerald-500/20 text-emerald-700 border-emerald-500/30 font-bold">+{tournamentBonus}pts</Badge>
+                              {tournamentBonus > 0 && (
+                                <Badge className="text-sm bg-emerald-500/20 text-emerald-700 border-emerald-500/30 font-bold">
+                                  +{tournamentBonus}pts
+                                </Badge>
+                              )}
                             </div>
+                            
+                            {/* ✅ CHANGED: Detailed Bonus Breakdown now uses real data */}
+                            {tournamentBonus > 0 && (
+                                <div className="space-y-2 text-sm bg-amber-50/50 p-3 rounded-lg mt-3">
+                                    {/* Display Adaptive Win Bonus */}
+                                    <div className="flex justify-between text-muted-foreground">
+                                        <span>Adaptive Bonus ({tournamentWins} {tournamentWins === 1 ? 'win' : 'wins'} × {perWinBonus} pts):</span>
+                                        <span className="font-medium">+{tournamentWins * perWinBonus}pts</span>
+                                    </div>
+
+                                    {/* Calculate and display other bonus components if they exist */}
+                                    {(() => {
+                                        const otherBonus = tournamentBonus - (tournamentWins * perWinBonus);
+                                        if (otherBonus > 0) {
+                                            return (
+                                                <div className="flex justify-between text-orange-600">
+                                                    <span>Underranked / Other Bonus:</span>
+                                                    <span className="font-medium">+{otherBonus}pts</span>
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    })()}
+
+                                    {/* Show the total line only if there was another bonus to sum up */}
+                                    {tournamentBonus > (tournamentWins * perWinBonus) && (
+                                        <div className="flex justify-between font-bold text-amber-800 border-t border-amber-400/30 pt-2">
+                                            <span>Total Bonus:</span>
+                                            <span>+{tournamentBonus}pts</span>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                           </div>
                         )}
-
+                        
+                        {/* Calculation Details */}
                         <div className="mt-4 p-4 bg-gradient-to-br from-muted/20 to-muted/5 rounded-xl border border-muted/30">
-                           <div className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
-                             <Brain className="h-4 w-4" />
-                             Calculation Breakdown
-                           </div>
-                           <div className="text-sm text-muted-foreground leading-relaxed space-y-1.5">
-                             {calc.calculation.calculationReasoning.split('\n').map((line: string, idx: number) => (
-                               <div key={idx}>{line}</div>
-                             ))}
-                           </div>
+                          <div className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
+                            <Brain className="h-4 w-4" />
+                            Calculation Breakdown
+                          </div>
+                          <div className="text-sm text-muted-foreground leading-relaxed">
+                            {calc.calculation.calculationReasoning ? (
+                              <div className="space-y-1.5">
+                                {calc.calculation.calculationReasoning.split('\n').map((line: string, idx: number) => (
+                                  <div key={idx} className="leading-relaxed">{line}</div>
+                                ))}
+                              </div>
+                            ) : (
+                              `${playerRank} ranking (${finalPoints} total points)`
+                            )}
+                          </div>
                         </div>
                       </div>
                     );
@@ -524,11 +865,47 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
           </div>
         )}
 
-        {/* ✅ REPLACED: Static list is now the animator component */}
-        {balanceSteps.length > 0 && finalTeamStats.length > 0 && (
-          <BalanceStepAnimator steps={balanceSteps} teams={finalTeamStats} />
+        {/* Balance Assignment Steps */}
+        {balanceSteps.length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+              <Target className="h-4 w-4" />
+              Balance Assignment Steps ({balanceSteps.length} players)
+            </h3>
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {balanceSteps.map((step, index) => (
+                <div key={index} className="flex items-center justify-between p-3 bg-secondary/5 rounded-lg border border-secondary/10">
+                  <div className="flex items-center gap-3">
+                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
+                      <span className="text-xs font-medium text-primary">{step.step || step.round || index + 1}</span>
+                    </div>
+                    <div>
+                      <div className="font-medium text-foreground">
+                        {step.player.discord_username || step.player.name}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {step.player.rank} • {step.player.points} pts
+                        {step.player.source && (
+                          <span className="ml-1">• {step.player.source}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-medium text-foreground">
+                      Team {(step.assignedTeam !== undefined ? step.assignedTeam + 1 : step.assignedTo) || 'TBD'}
+                    </div>
+                    <div className="text-xs text-muted-foreground max-w-xs truncate">
+                      {step.reasoning}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
 
+        {/* Swap Suggestions */}
         {balanceAnalysis.swapAnalysis && (
           <SwapSuggestionsSection swapAnalysis={balanceAnalysis.swapAnalysis} />
         )}
