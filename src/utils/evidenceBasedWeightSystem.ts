@@ -197,7 +197,7 @@ export function calculateEvidenceBasedWeight(
         calculationReasoning: `Manual override: ${manualResult.rank} (${manualResult.points} points)`,
         isEliteTier: manualResult.points >= config.skillTierCaps.eliteThreshold,
         tournamentsWon: userData.tournaments_won || 0,
-        perWinBonus: perWinBonus, // Adaptive calculated per tournament-win bonus
+        perWinBonus: 0, // ✅ FIX: Set to 0 for manual overrides
         evidenceFactors: ['Manual Override Applied']
       }
     };
@@ -250,11 +250,12 @@ export function calculateEvidenceBasedWeight(
 
   // BOOST for tournament wins (evidence of maintained skill)
   let tournamentBonus = 0;
+  let perWinBonus = 0; // ✅ FIX: Initialize perWinBonus
   if (tournamentsWon > 0) {
     const isUnranked = !currentRank || currentRank === 'Unranked' || currentRank === 'Unrated';
     const adaptiveCfg = config.tournamentWinBonusAdaptive;
 
-    let perWinBonus = config.tournamentWinBonus; // fallback to flat bonus
+    perWinBonus = config.tournamentWinBonus; // fallback to flat bonus
 
     if (isUnranked) {
       // Unranked gets standard base +15 (or configured)
@@ -355,6 +356,7 @@ export function calculateEvidenceBasedWeight(
       calculationReasoning,
       isEliteTier,
       tournamentsWon,
+      perWinBonus, // Pass the calculated per-win bonus
       evidenceFactors
     }
   };
