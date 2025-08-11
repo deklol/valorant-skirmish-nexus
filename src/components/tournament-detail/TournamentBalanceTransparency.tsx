@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, BarChart3, TrendingUp, Users, Trophy, Target, Brain, Play, Pause, RotateCcw, ArrowRight, CheckCircle2 } from "lucide-react";
+import { ChevronDown, ChevronUp, BarChart3, TrendingUp, Users, Trophy, Target, Brain, Play, Pause, RotateCcw, ArrowRight, CheckCircle2, Crown } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Team } from "@/types/tournamentDetail";
 import SwapSuggestionsSection from "./SwapSuggestionsSection";
@@ -548,7 +548,7 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
   const [simIndex, setSimIndex] = useState(0);
   const [swapIndex, setSwapIndex] = useState(0);
   const [simPhase, setSimPhase] = useState<'assign' | 'swaps' | 'done'>('assign');
-const [simTeams, setSimTeams] = useState<{ id?: string; name: string; key: string; assignedOrder?: number; originTeam?: number; movedFromTeam?: number; }[][]>(
+const [simTeams, setSimTeams] = useState<{ id?: string; name: string; key: string; assignedOrder?: number; originTeam?: number; movedFromTeam?: number; swapped?: boolean; isSub?: boolean; }[][]>(
     Array.from({ length: 4 }, () => [])
   );
 
@@ -590,26 +590,26 @@ const performSwap = (swap: SwapSuggestion) => {
         }
         return null;
       };
-      if (p2Name) {
+if (p2Name) {
         const a = findIdx(p1Name);
         const b = findIdx(p2Name);
         if (a && b) {
           const aObj = next[a.t][a.idx];
           const bObj = next[b.t][b.idx];
           // Swap with annotations
-          next[a.t][a.idx] = { ...bObj, movedFromTeam: b.t, key: `${bObj.id}-swap-${swapIndex}` };
-          next[b.t][b.idx] = { ...aObj, movedFromTeam: a.t, key: `${aObj.id}-swap-${swapIndex}` };
+          next[a.t][a.idx] = { ...bObj, movedFromTeam: b.t, swapped: true, key: `${bObj.id}-swap-${swapIndex}` };
+          next[b.t][b.idx] = { ...aObj, movedFromTeam: a.t, swapped: true, key: `${aObj.id}-swap-${swapIndex}` };
         } else if (a && swap.player2?.currentTeam !== undefined) {
           const target = Math.min(3, swap.player2.currentTeam);
           const obj = next[a.t].splice(a.idx, 1)[0];
-          next[target].push({ ...obj, movedFromTeam: a.t, key: `${obj.id}-swap-${swapIndex}` });
+          next[target].push({ ...obj, movedFromTeam: a.t, isSub: true, key: `${obj.id}-swap-${swapIndex}` });
         }
       } else if (swap.targetTeam !== undefined) {
         const a = findIdx(p1Name);
         const target = Math.min(3, swap.targetTeam);
         if (a) {
           const obj = next[a.t].splice(a.idx, 1)[0];
-          next[target].push({ ...obj, movedFromTeam: a.t, key: `${obj.id}-swap-${swapIndex}` });
+          next[target].push({ ...obj, movedFromTeam: a.t, isSub: true, key: `${obj.id}-swap-${swapIndex}` });
         }
       }
       return next;
@@ -664,6 +664,12 @@ const performSwap = (swap: SwapSuggestion) => {
     return "Fair";
   };
 
+  // Determine if a player is the captain of a given team
+  const isCaptain = (teamIdx: number, playerName?: string) => {
+    const team = teams[teamIdx];
+    if (!team?.team_members) return false;
+    return team.team_members.some(m => m.is_captain && m.users?.discord_username === playerName);
+  };
   return (
     <Card className="border-secondary/20 bg-card/50 backdrop-blur-sm">
       <CardHeader className="pb-4">
@@ -1025,8 +1031,8 @@ const performSwap = (swap: SwapSuggestion) => {
 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-foreground">{teams[i]?.name || `Team ${i + 1}`}</span>
-                    {simPhase === 'done' && (
-                      <Badge variant="secondary" className="text-xs flex items-center gap-1">
+{simPhase === 'done' && (
+                      <Badge variant="outline" className="text-xs flex items-center gap-1 bg-emerald-500/15 text-emerald-600 border-emerald-500/30">
                         <CheckCircle2 className="h-3 w-3" /> Completed
                       </Badge>
                     )}
@@ -1036,16 +1042,19 @@ const performSwap = (swap: SwapSuggestion) => {
                 <div className="space-y-1">
 {(simTeams[i] || []).map(p => (
                     <div key={p.key} className="px-2 py-1 rounded-md bg-card/50 border border-border/20 text-sm text-foreground animate-fade-in flex items-center justify-between">
-                      <div className="flex items-center gap-2">
+<div className="flex items-center gap-2">
                         {p.assignedOrder && (
                           <div className="w-5 h-5 rounded-full bg-primary/20 text-primary text-xs font-semibold flex items-center justify-center">
                             {p.assignedOrder}
                           </div>
                         )}
+                        {isCaptain(i, p.name) && (
+                          <Crown className="h-3 w-3 text-amber-500" />
+                        )}
                         <span className="truncate">{p.name}</span>
                       </div>
-                      {typeof p.movedFromTeam === 'number' && p.movedFromTeam !== i && (
-                        <div className="flex items-center gap-1 text-emerald-600">
+{typeof p.movedFromTeam === 'number' && p.movedFromTeam !== i && (
+                        <div className={`flex items-center gap-1 ${p.isSub ? 'text-red-600' : 'text-emerald-600'}`}>
                           <ArrowRight className="h-3 w-3" />
                           <span className="text-xs">T{(p.movedFromTeam + 1)}</span>
                         </div>
