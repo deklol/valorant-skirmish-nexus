@@ -1046,14 +1046,18 @@ const resetSimulator = () => {
 {balanceSteps.length > 0 && (
   <div className="mb-6">
     <div
-      className="flex items-center justify-between p-4 bg-secondary/5 rounded-xl border border-secondary/20 cursor-pointer hover:bg-secondary/10"
+      className="flex items-center justify-between p-4 bg-secondary/5 rounded-xl cursor-pointer hover:bg-secondary/10 transition-all duration-300 border border-secondary/20"
       onClick={() => setIsStepsExpanded(!isStepsExpanded)}
     >
-      <div className="flex items-center gap-2">
-        <Target className="h-4 w-4" />
-        <h3 className="text-sm font-semibold text-foreground">
-          Balance Assignment Steps ({balanceSteps.length} players)
-        </h3>
+      <div className="flex items-center gap-3">
+        <div className="p-2 rounded-lg bg-indigo-500/10">
+          <Target className="h-4 w-4 text-indigo-500" />
+        </div>
+        <div>
+          <h3 className="font-semibold text-foreground">
+            Balance Assignment Steps ({balanceSteps.length} players)
+          </h3>
+        </div>
       </div>
       {isStepsExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
     </div>
