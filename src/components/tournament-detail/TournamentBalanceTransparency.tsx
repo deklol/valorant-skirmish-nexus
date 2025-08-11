@@ -2,8 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, BarChart3, TrendingUp, Users, Trophy, Target, Brain, Play, Pause, RotateCcw, ArrowRight, CheckCircle2, Crown } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { ChevronDown, ChevronUp, BarChart3, TrendingUp, Users, Trophy, Target, Brain, Play, Pause, RotateCcw, ArrowRight, CheckCircle2, Crown, ArrowUp, ArrowDown } from "lucide-react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { Team } from "@/types/tournamentDetail";
 import SwapSuggestionsSection from "./SwapSuggestionsSection";
 import { useRecentTournamentWinners } from "@/hooks/useRecentTournamentWinners";
@@ -548,9 +548,17 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
   const [simIndex, setSimIndex] = useState(0);
   const [swapIndex, setSwapIndex] = useState(0);
   const [simPhase, setSimPhase] = useState<'assign' | 'swaps' | 'done'>('assign');
-const [simTeams, setSimTeams] = useState<{ id?: string; name: string; key: string; assignedOrder?: number; originTeam?: number; movedFromTeam?: number; swapped?: boolean; isSub?: boolean; }[][]>(
+const [simTeams, setSimTeams] = useState<{ id?: string; name: string; key: string; points?: number; assignedOrder?: number; originTeam?: number; movedFromTeam?: number; swapped?: boolean; isSub?: boolean; }[][]>(
     Array.from({ length: 4 }, () => [])
   );
+
+  // Simulator: computed totals and deltas per team
+  const teamTotals = useMemo(() => simTeams.map(col => col.reduce((sum, p) => sum + (p.points || 0), 0)), [simTeams]);
+  const prevTotalsRef = useRef<number[]>([0, 0, 0, 0]);
+  const teamDeltas = teamTotals.map((val, idx) => val - (prevTotalsRef.current[idx] ?? 0));
+  useEffect(() => {
+    prevTotalsRef.current = [...teamTotals];
+  }, [teamTotals]);
 
   const parseTeamIndex = (step: BalanceStep): number | null => {
     if (typeof step.assignedTeam === 'number') return step.assignedTeam;
@@ -566,12 +574,13 @@ const applyAssignmentStep = (step: BalanceStep) => {
     const playerId = step.player.id || step.player.discord_username || step.player.name || `anon-${Math.random()}`;
     const playerName = step.player.discord_username || step.player.name || 'Unknown';
     const order = (step.step || step.round || simIndex + 1);
+    const points = (step.player as any).evidenceWeight ?? step.player.points ?? 0;
     setSimTeams(prev => {
       const next = prev.map(col => col.filter(p => p.id !== playerId)); // remove duplicates
       if (teamIdx !== null && teamIdx >= 0 && teamIdx < 4) {
         next[teamIdx] = [
           ...next[teamIdx],
-          { id: playerId, name: playerName, key: `${playerId}-${simIndex}`, assignedOrder: order, originTeam: teamIdx }
+          { id: playerId, name: playerName, key: `${playerId}-${simIndex}`, assignedOrder: order, originTeam: teamIdx, points }
         ];
       }
       return next;
@@ -644,12 +653,13 @@ if (p2Name) {
     return () => clearTimeout(timer);
   }, [isSimPlaying, simPhase, simIndex, swapIndex, balanceSteps, executedSwaps]);
 
-  const resetSimulator = () => {
+const resetSimulator = () => {
     setSimTeams(Array.from({ length: 4 }, () => []));
     setSimIndex(0);
     setSwapIndex(0);
     setSimPhase('assign');
     setIsSimPlaying(false);
+    prevTotalsRef.current = [0, 0, 0, 0];
   };
 
   const getQualityColor = (score: number) => {
@@ -783,6 +793,88 @@ if (p2Name) {
             </div>
           </div>
         )}
+
+        {/* Assignment Simulator */}
+        <div className="mb-6">
+          <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+            <Target className="h-4 w-4" />
+            Assignment Simulator
+          </h3>
+
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-2">
+              <Button size="sm" onClick={() => setIsSimPlaying(true)} disabled={isSimPlaying} className="hover-scale">
+                <Play className="h-4 w-4 mr-2" /> Play
+              </Button>
+              <Button size="sm" variant="secondary" onClick={() => setIsSimPlaying(false)} disabled={!isSimPlaying} className="hover-scale">
+                <Pause className="h-4 w-4 mr-2" /> Pause
+              </Button>
+              <Button size="sm" variant="outline" onClick={resetSimulator} className="hover-scale">
+                <RotateCcw className="h-4 w-4 mr-2" /> Reset
+              </Button>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Step {Math.min(simIndex + swapIndex, balanceSteps.length + executedSwaps.length)}/{balanceSteps.length + executedSwaps.length}
+              {simPhase === 'swaps' && <span className="ml-2">(applying swaps)</span>}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[0,1,2,3].map((i) => (
+              <div key={i} className="p-3 rounded-lg bg-secondary/5 border border-secondary/10 min-h-[140px]">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-foreground">{teams[i]?.name || `Team ${i + 1}`}</span>
+                    {simPhase === 'done' && (
+                      <Badge variant="outline" className="text-xs flex items-center gap-1 bg-emerald-500/15 text-emerald-600 border-emerald-500/30">
+                        <CheckCircle2 className="h-3 w-3" /> Completed
+                      </Badge>
+                    )}
+                  </div>
+                  <Badge variant="outline" className="text-xs">{simTeams[i]?.length || 0} players</Badge>
+                </div>
+
+                {/* Dynamic total points with delta */}
+                <div className="mb-2 flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Total points</span>
+                  <div className="flex items-center gap-1">
+                    <span className="font-semibold text-foreground">{teamTotals[i]} pts</span>
+                    {teamDeltas[i] !== 0 && (
+                      <span className={`flex items-center gap-1 ${teamDeltas[i] > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                        {teamDeltas[i] > 0 ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                        {teamDeltas[i] > 0 ? `+${teamDeltas[i]}` : teamDeltas[i]}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  {(simTeams[i] || []).map(p => (
+                    <div key={p.key} className="px-2 py-1 rounded-md bg-card/50 border border-border/20 text-sm text-foreground animate-fade-in flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {p.assignedOrder && (
+                          <div className="w-5 h-5 rounded-full bg-primary/20 text-primary text-xs font-semibold flex items-center justify-center">
+                            {p.assignedOrder}
+                          </div>
+                        )}
+                        {isCaptain(i, p.name) && (
+                          <Crown className="h-3 w-3 text-amber-500" />
+                        )}
+                        <span className="truncate">{p.name}</span>
+                      </div>
+                      {typeof p.movedFromTeam === 'number' && p.movedFromTeam !== i && (
+                        <div className={`flex items-center gap-1 ${p.isSub ? 'text-red-600' : 'text-emerald-600'}`}>
+                          <ArrowRight className="h-3 w-3" />
+                          <span className="text-xs">T{(p.movedFromTeam + 1)}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
 
         {/* ATLAS Adaptive Weight Analysis - Unified Section */}
         {atlasCalculations.length > 0 && (
@@ -1000,72 +1092,6 @@ if (p2Name) {
   </div>
 )}
 
-        {/* Assignment Simulator */}
-        <div className="mb-6">
-          <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-            <Target className="h-4 w-4" />
-            Assignment Simulator
-          </h3>
-
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3">
-            <div className="flex items-center gap-2">
-              <Button size="sm" onClick={() => setIsSimPlaying(true)} disabled={isSimPlaying} className="hover-scale">
-                <Play className="h-4 w-4 mr-2" /> Play
-              </Button>
-              <Button size="sm" variant="secondary" onClick={() => setIsSimPlaying(false)} disabled={!isSimPlaying} className="hover-scale">
-                <Pause className="h-4 w-4 mr-2" /> Pause
-              </Button>
-              <Button size="sm" variant="outline" onClick={resetSimulator} className="hover-scale">
-                <RotateCcw className="h-4 w-4 mr-2" /> Reset
-              </Button>
-            </div>
-            <div className="text-xs text-muted-foreground">
-              Step {Math.min(simIndex + swapIndex, balanceSteps.length + executedSwaps.length)}/{balanceSteps.length + executedSwaps.length}
-              {simPhase === 'swaps' && <span className="ml-2">(applying swaps)</span>}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {[0,1,2,3].map((i) => (
-              <div key={i} className="p-3 rounded-lg bg-secondary/5 border border-secondary/10 min-h-[140px]">
-<div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-foreground">{teams[i]?.name || `Team ${i + 1}`}</span>
-{simPhase === 'done' && (
-                      <Badge variant="outline" className="text-xs flex items-center gap-1 bg-emerald-500/15 text-emerald-600 border-emerald-500/30">
-                        <CheckCircle2 className="h-3 w-3" /> Completed
-                      </Badge>
-                    )}
-                  </div>
-                  <Badge variant="outline" className="text-xs">{simTeams[i]?.length || 0} players</Badge>
-                </div>
-                <div className="space-y-1">
-{(simTeams[i] || []).map(p => (
-                    <div key={p.key} className="px-2 py-1 rounded-md bg-card/50 border border-border/20 text-sm text-foreground animate-fade-in flex items-center justify-between">
-<div className="flex items-center gap-2">
-                        {p.assignedOrder && (
-                          <div className="w-5 h-5 rounded-full bg-primary/20 text-primary text-xs font-semibold flex items-center justify-center">
-                            {p.assignedOrder}
-                          </div>
-                        )}
-                        {isCaptain(i, p.name) && (
-                          <Crown className="h-3 w-3 text-amber-500" />
-                        )}
-                        <span className="truncate">{p.name}</span>
-                      </div>
-{typeof p.movedFromTeam === 'number' && p.movedFromTeam !== i && (
-                        <div className={`flex items-center gap-1 ${p.isSub ? 'text-red-600' : 'text-emerald-600'}`}>
-                          <ArrowRight className="h-3 w-3" />
-                          <span className="text-xs">T{(p.movedFromTeam + 1)}</span>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
 
         {/* Swap Suggestions */}
         {balanceAnalysis.swapAnalysis && (
