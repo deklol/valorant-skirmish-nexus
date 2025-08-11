@@ -4,7 +4,7 @@ import TournamentWinnerDisplay from "@/components/TournamentWinnerDisplay";
 import TournamentRegistration from "@/components/TournamentRegistration";
 import FeaturedVODs from "@/components/FeaturedVODs";
 import { useTournamentData } from "@/hooks/useTournamentData";
-import TournamentHeader from "@/components/tournament-detail/TournamentHeader";
+import TournamentHero from "@/components/tournament-detail/TournamentHero";
 import TeamsSection from "@/components/tournament-detail/TeamsSection";
 import TournamentTabs from "@/components/tournament-detail/TournamentTabs";
 import { TournamentLoading, TournamentNotFound } from "@/components/tournament-detail/LoadingStates";
@@ -19,6 +19,7 @@ const TournamentDetail = () => {
     parsedMapVetoRounds,
     teams,
     matches,
+    signups,
     loading,
     handleRefresh,
   } = useTournamentData();
@@ -33,7 +34,7 @@ const TournamentDetail = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
       <div className="container mx-auto px-4 py-6">
         {/* Compact Header */}
-        <TournamentHeader tournament={tournament} />
+        <TournamentHero tournament={tournament} stats={{ players: signups?.length || 0, teams: teams?.length || 0, matches: matches?.length || 0 }} />
         
         {/* Winners/Champions and Featured VODs Row - Only for completed tournaments */}
         {tournament.status === "completed" && (
