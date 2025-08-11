@@ -4,7 +4,7 @@ import {
   StandardTabsTrigger, 
   StandardTabsContent 
 } from "@/components/ui/standard-tabs";
-import { Settings, Trophy, Users, Scale, UserCheck } from "lucide-react";
+import { Settings, Trophy, Users, Scale, UserCheck, ScrollText } from "lucide-react";
 import OverviewTab from "./tabs/OverviewTab";
 import BracketTab from "./tabs/BracketTab";
 import ParticipantsTab from "./tabs/ParticipantsTab";
@@ -12,6 +12,7 @@ import AdminTab from "./tabs/AdminTab";
 import PlayersTab from "./tabs/PlayersTab";
 import BalancingTab from "./tabs/BalancingTab";
 import TournamentBalanceTransparency from "./TournamentBalanceTransparency";
+import RulesTab from "./tabs/RulesTab";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function TournamentTabs({
@@ -31,6 +32,10 @@ export default function TournamentTabs({
         <StandardTabsTrigger value="overview">
           <Settings className="w-4 h-4 mr-2" />
           Overview
+        </StandardTabsTrigger>
+        <StandardTabsTrigger value="rules">
+          <ScrollText className="w-4 h-4 mr-2" />
+          Rules
         </StandardTabsTrigger>
         {matches.length > 0 && (
           <StandardTabsTrigger value="bracket">
@@ -62,6 +67,9 @@ export default function TournamentTabs({
       </StandardTabsList>
       <StandardTabsContent value="overview" className="space-y-6">
         <OverviewTab tournament={tournament} parsedMapVetoRounds={parsedMapVetoRounds} teams={teams} />
+      </StandardTabsContent>
+      <StandardTabsContent value="rules" className="space-y-6">
+        <RulesTab />
       </StandardTabsContent>
       {matches.length > 0 && (
         <StandardTabsContent value="bracket" className="space-y-6">

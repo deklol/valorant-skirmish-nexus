@@ -19,7 +19,7 @@ export default function TournamentHero({ tournament, stats }: TournamentHeroProp
   return (
     <header
       className={cn(
-        "relative overflow-hidden rounded-xl border bg-cover",
+        "relative overflow-hidden rounded-xl border bg-cover mb-4 md:mb-6",
         "border-border"
       )}
       style={{
