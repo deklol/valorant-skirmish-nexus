@@ -1,113 +1,85 @@
 import { ShieldCheck, UserCheck, Scale, Mic2, Map } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StandardHeading } from "@/components/ui/standard-heading";
 import { StandardText } from "@/components/ui/standard-text";
-import { cn } from "@/lib/utils";
-
-const rules = [
-  {
-    icon: ShieldCheck,
-    title: "Account & Eligibility",
-    color: "from-red-600 to-red-800",
-    items: [
-      "No smurfing or alternate accounts. Play on the account you signed up with.",
-      "UK citizenship required for monetary prizes.",
-      "Be ready at least 10 minutes before your match."
-    ]
-  },
-  {
-    icon: Scale,
-    title: "Fair Play",
-    color: "from-blue-600 to-blue-800",
-    items: [
-      "No cheating, scripting, or exploit abuse.",
-      "No ghosting – don’t watch or listen to other players’ live streams.",
-      "No trolling, griefing, or intentional throwing."
-    ]
-  },
-  {
-    icon: UserCheck,
-    title: "Conduct",
-    color: "from-yellow-500 to-yellow-700",
-    items: [
-      "Casual banter is fine, but no toxicity, harassment, or hate speech.",
-      "Stay in your assigned Discord voice channel for the whole match."
-    ]
-  },
-  {
-    icon: Mic2,
-    title: "Streaming",
-    color: "from-purple-600 to-purple-800",
-    items: [
-      "If streaming, enable at least a 2-minute delay to prevent ghosting."
-    ]
-  },
-  {
-    icon: Map,
-    title: "Map Pool",
-    color: "from-green-600 to-green-800",
-    items: [
-      "Matches use the current Valorant Active Duty map pool unless both teams agree otherwise."
-    ]
-  }
-];
 
 export default function RulesTab() {
   return (
-    <section aria-labelledby="rules-heading" className="space-y-12">
-      <header className="text-center">
+    <section aria-labelledby="rules-heading" className="space-y-6">
+      <header>
         <StandardHeading id="rules-heading" as="h2" level="h2">
           TLR Valorant Skirmish Rules
         </StandardHeading>
-        <StandardText className="text-muted-foreground mt-2 max-w-3xl mx-auto">
-          Rules are enforced at the discretion of tournament admins. Breaches may result in warnings, penalties, or permanent bans. By signing up, you agree to these terms.
+        <StandardText className="text-muted-foreground mt-1">
+          All rules are enforced at the discretion of tournament admins. Any breach may result in a warning, penalty, or permanent ban. By signing up to this event you agree to these rules.
         </StandardText>
       </header>
 
-      <div className="relative flex gap-8">
-        {/* Progress sidebar */}
-        <div className="hidden lg:flex flex-col items-end sticky top-20 w-48 space-y-4">
-          {rules.map((rule, i) => (
-            <div
-              key={i}
-              className="flex items-center gap-2 text-sm text-white/70 hover:text-white transition"
-            >
-              <rule.icon className="h-4 w-4" />
-              <span>{rule.title}</span>
-            </div>
-          ))}
-        </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader className="flex flex-row items-center gap-2">
+            <ShieldCheck className="h-5 w-5 text-primary" />
+            <CardTitle>1. Account & Eligibility</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="list-disc pl-6 space-y-2">
+              <li>No smurfing or alternate accounts. Players must compete on the exact account used during sign-up.</li>
+              <li>Must be a UK citizen to receive any monetary prizes.</li>
+              <li>Players must be at least 10 minutes early to their scheduled matches.</li>
+            </ul>
+          </CardContent>
+        </Card>
 
-        {/* Scrollable rules */}
-        <div className="flex-1 space-y-16">
-          {rules.map(({ icon: Icon, title, color, items }, i) => (
-            <div
-              id={`rule-${i}`}
-              key={i}
-              className={cn(
-                "relative overflow-hidden rounded-xl border border-neutral-800 shadow-lg",
-                "bg-gradient-to-r",
-                color
-              )}
-            >
-              {/* Icon watermark */}
-              <Icon className="absolute right-4 top-4 h-20 w-20 opacity-10" />
+        <Card>
+          <CardHeader className="flex flex-row items-center gap-2">
+            <Scale className="h-5 w-5 text-primary" />
+            <CardTitle>2. Fair Play</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="list-disc pl-6 space-y-2">
+              <li>No cheating, scripting, or exploit abuse of any kind.</li>
+              <li>No ghosting – watching or listening to another player’s live stream during the match.</li>
+              <li>No trolling, griefing, or intentional throwing of games.</li>
+            </ul>
+          </CardContent>
+        </Card>
 
-              {/* Header */}
-              <div className="p-6 pb-3 border-b border-white/10">
-                <h3 className="text-xl font-bold tracking-wide text-white">{title}</h3>
-              </div>
+        <Card>
+          <CardHeader className="flex flex-row items-center gap-2">
+            <UserCheck className="h-5 w-5 text-primary" />
+            <CardTitle>3. Conduct</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="list-disc pl-6 space-y-2">
+              <li>Casual banter is fine, but extreme toxicity, harassment, hate speech, or targeted abuse will not be tolerated.</li>
+              <li>All players must join their assigned Discord team voice channel and use voice comms for the duration of the match.</li>
+            </ul>
+          </CardContent>
+        </Card>
 
-              {/* Body */}
-              <div className="p-6 pt-3">
-                <ul className="list-disc pl-6 space-y-2 text-white/90">
-                  {items.map((item, idx) => (
-                    <li key={idx}>{item}</li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          ))}
-        </div>
+        <Card>
+          <CardHeader className="flex flex-row items-center gap-2">
+            <Mic2 className="h-5 w-5 text-primary" />
+            <CardTitle>4. Streaming</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="list-disc pl-6 space-y-2">
+              <li>If streaming your matches, you must use a minimum 2-minute delay to avoid ghosting. Failure to do so may result in penalties.</li>
+            </ul>
+          </CardContent>
+        </Card>
+
+        <Card className="md:col-span-2">
+          <CardHeader className="flex flex-row items-center gap-2">
+            <Map className="h-5 w-5 text-primary" />
+            <CardTitle>5. Map Pool</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="list-disc pl-6 space-y-2">
+              <li>Matches will use the current Valorant Active Duty map pool, unless both teams mutually agree to play on a different map.</li>
+            </ul>
+          </CardContent>
+        </Card>
       </div>
     </section>
   );
