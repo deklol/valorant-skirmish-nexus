@@ -21,6 +21,14 @@ export interface EvidenceBasedConfig {
     eliteThreshold: number; // Points threshold for "elite" players (e.g. 400)
     maxElitePerTeam: number; // Max elite players per team (e.g. 1)
   };
+  tournamentWinBonusAdaptive?: {
+    enabled: boolean; // Enable adaptive per-win bonus by rank
+    lowPoint: number; // Base points considered "low rank" (e.g. 150)
+    highPoint: number; // Base points considered "elite/high" (e.g. 400)
+    lowRankBonus: number; // Per-win bonus for low ranks (e.g. 25)
+    highRankBonus: number; // Per-win bonus for elite ranks (e.g. 8)
+    unrankedBonus: number; // Standard per-win for Unranked/Unrated (e.g. 15)
+  };
 }
 
 export interface EvidenceBasedCalculation {
@@ -59,6 +67,14 @@ const DEFAULT_EVIDENCE_CONFIG: EvidenceBasedConfig = {
     enabled: true,
     eliteThreshold: 400, // 400+ points = elite
     maxElitePerTeam: 1 // Max 1 elite player per team
+  },
+  tournamentWinBonusAdaptive: {
+    enabled: true,
+    lowPoint: 150,
+    highPoint: 400,
+    lowRankBonus: 25,
+    highRankBonus: 8,
+    unrankedBonus: 15
   }
 };
 
@@ -231,9 +247,31 @@ export function calculateEvidenceBasedWeight(
   }
 
   // BOOST for tournament wins (evidence of maintained skill)
-  const tournamentBonus = tournamentsWon * config.tournamentWinBonus;
-  if (tournamentBonus > 0) {
-    evidenceFactors.push(`Tournament Winner: ${tournamentsWon} (+${tournamentBonus})`);
+  let tournamentBonus = 0;
+  if (tournamentsWon > 0) {
+    const isUnranked = !currentRank || currentRank === 'Unranked' || currentRank === 'Unrated';
+    const adaptiveCfg = config.tournamentWinBonusAdaptive;
+
+    let perWinBonus = config.tournamentWinBonus; // fallback to flat bonus
+
+    if (isUnranked) {
+      // Unranked gets standard base +15 (or configured)
+      perWinBonus = adaptiveCfg?.unrankedBonus ?? config.tournamentWinBonus;
+      tournamentBonus = tournamentsWon * perWinBonus;
+      evidenceFactors.push(`Tournament Winner: ${tournamentsWon} (+${tournamentBonus}) - Standard +${perWinBonus}/win for Unranked/Unrated`);
+    } else if (adaptiveCfg?.enabled) {
+      // Linear interpolation: low rank -> higher bonus, elite -> lower bonus
+      const lp = adaptiveCfg.lowPoint;
+      const hp = Math.max(adaptiveCfg.highPoint, lp + 1);
+      const t = Math.max(0, Math.min(1, (basePoints - lp) / (hp - lp)));
+      // t=0 => low rank, t=1 => elite
+      perWinBonus = Math.round(adaptiveCfg.lowRankBonus + (adaptiveCfg.highRankBonus - adaptiveCfg.lowRankBonus) * t);
+      tournamentBonus = tournamentsWon * perWinBonus;
+      evidenceFactors.push(`Tournament Winner: ${tournamentsWon} wins • Adaptive bonus ${perWinBonus}/win based on base rank ${primaryRank} (${basePoints} pts) [scale ${adaptiveCfg.lowPoint}-${adaptiveCfg.highPoint} → ${adaptiveCfg.lowRankBonus}-${adaptiveCfg.highRankBonus}] • Total +${tournamentBonus}`);
+    } else {
+      tournamentBonus = tournamentsWon * perWinBonus;
+      evidenceFactors.push(`Tournament Winner: ${tournamentsWon} (+${tournamentBonus})`);
+    }
   }
 
   // Apply underranked bonus for any player below their peak skill level
