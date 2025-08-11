@@ -897,7 +897,7 @@ const resetSimulator = () => {
                 <div>
                   <h3 className="font-semibold text-foreground">ATLAS Adaptive Weight Analysis</h3>
                   <p className="text-sm text-muted-foreground">
-                    Enhanced ranking calculations for {atlasCalculations.length} players • {atlasStats.balanceQuality} balance quality • {atlasStats.maxDifference}pts max difference
+                    Click me for Enhanced ranking calculations for {atlasCalculations.length} players • {atlasStats.balanceQuality} balance quality • {atlasStats.maxDifference}pts max difference
                   </p>
                 </div>
               </div>
