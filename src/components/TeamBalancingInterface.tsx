@@ -21,6 +21,7 @@ import BalancingControlPanel from "@/components/team-balancing/BalancingControlP
 import TeamCleanupTools from "@/components/team-balancing/TeamCleanupTools";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { Username } from "@/components/Username";
+import { EVIDENCE_CONFIG } from '@/utils/evidenceBasedWeightSystem'; // ✅ ADDED: Import the full config
 
 interface TeamBalancingInterfaceProps {
   tournamentId: string;
@@ -828,7 +829,7 @@ variant: "destructive",
             const rankResult = getPlayerWeightSync(member, tournament?.enable_adaptive_weights);
             return sum + rankResult.points;
           }, 0);
-      return { ...team, members: newMembers, totalWeight };
+        return { ...team, members: newMembers, totalWeight };
         }
         return team;
       })
@@ -981,7 +982,7 @@ variant: "destructive",
         (step) => {
           setProgressStep(step.step);
           setCurrentPhase(step.phase === 'team_formation' ? 'atlas-analyzing' : 
-                         step.phase === 'anti_stacking_validation' ? 'atlas-validating' : 'atlas-calculating');
+                          step.phase === 'anti_stacking_validation' ? 'atlas-validating' : 'atlas-calculating');
         },
         () => {
           setCurrentPhase('atlas-validating');
@@ -997,17 +998,7 @@ variant: "destructive",
             reasoning: calculation.adjustmentReasoning || 'ATLAS calculation'
           }, 'Autobalance Step');
         },
-        {
-          enableEvidenceBasedWeights: true,
-          tournamentWinBonus: 15,
-          underrankedBonusThreshold: 1.5,
-          maxUnderrankedBonus: 0.35,
-          skillTierCaps: {
-            enabled: true,
-            eliteThreshold: 400, // Correct Elite threshold: 400+ points
-            maxElitePerTeam: 1
-          }
-        }
+        EVIDENCE_CONFIG // ✅ FIX: Pass the full, correct config object
       );
       
       // Store the balance analysis for later saving
@@ -1412,7 +1403,7 @@ variant: "destructive",
 <Card className="bg-slate-800 border-slate-700">
 <CardHeader>
 <CardTitle className="text-white flex items-center gap-2">
-            <Users className="w-5 h-5" />
+              <Users className="w-5 h-5" />
 Team Balancing
 </CardTitle>
 </CardHeader>
@@ -1494,7 +1485,7 @@ Team Balancing
               />
             </CardContent>
           </Card>
-      
+        
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="space-y-4">
               <h3 className="text-white font-medium flex items-center gap-2">
@@ -1505,7 +1496,7 @@ Team Balancing
                 <DroppableTeam key={team.id} team={team} teamSize={teamSize} enableAdaptiveWeights={enableAdaptiveWeights} />
               ))}
             </div>
-      
+          
             <div className="space-y-4">
               {/* Unassigned Players Section */}
               <div>
