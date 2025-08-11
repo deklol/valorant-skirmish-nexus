@@ -807,10 +807,6 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                             {tournamentBonus > 0 && (
                                 <div className="space-y-2 text-sm bg-amber-50/50 p-3 rounded-lg mt-3">
                                     {/* Display Adaptive Win Bonus */}
-                                    <div className="flex justify-between text-muted-foreground">
-                                        <span>Adaptive Bonus ({tournamentWins} {tournamentWins === 1 ? 'win' : 'wins'} × {perWinBonus} pts):</span>
-                                        <span className="font-medium">+{tournamentWins * perWinBonus}pts</span>
-                                    </div>
 
                                     {/* Calculate and display other bonus components if they exist */}
                                     {(() => {
