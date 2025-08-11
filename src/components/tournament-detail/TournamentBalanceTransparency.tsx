@@ -2,8 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, BarChart3, TrendingUp, Users, Trophy, Target, Brain } from "lucide-react";
-import { useState } from "react";
+import { ChevronDown, ChevronUp, BarChart3, TrendingUp, Users, Trophy, Target, Brain, Play, Pause, RotateCcw } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { Team } from "@/types/tournamentDetail";
 import SwapSuggestionsSection from "./SwapSuggestionsSection";
 import { useRecentTournamentWinners } from "@/hooks/useRecentTournamentWinners";
@@ -541,6 +541,110 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
   const atlasCalculations = getUnifiedATLASCalculations();
   const atlasStats = getATLASStats();
   
+  // Assignment Simulator state and helpers
+  const executedSwaps = useMemo(() => (balanceAnalysis.swapAnalysis?.successfulSwaps || []).filter(s => s.outcome === 'executed'), [balanceAnalysis.swapAnalysis]);
+  const [isSimPlaying, setIsSimPlaying] = useState(false);
+  const [simIndex, setSimIndex] = useState(0);
+  const [swapIndex, setSwapIndex] = useState(0);
+  const [simPhase, setSimPhase] = useState<'assign' | 'swaps' | 'done'>('assign');
+  const [simTeams, setSimTeams] = useState<{ id?: string; name: string; key: string; }[][]>(
+    Array.from({ length: 4 }, () => [])
+  );
+
+  const parseTeamIndex = (step: BalanceStep): number | null => {
+    if (typeof step.assignedTeam === 'number') return step.assignedTeam;
+    if (typeof step.assignedTo === 'string') {
+      const m = step.assignedTo.match(/(\d+)/);
+      if (m) return Math.max(0, parseInt(m[1]) - 1);
+    }
+    return null;
+  };
+
+  const applyAssignmentStep = (step: BalanceStep) => {
+    const teamIdx = parseTeamIndex(step);
+    const playerId = step.player.id || step.player.discord_username || step.player.name || `anon-${Math.random()}`;
+    const playerName = step.player.discord_username || step.player.name || 'Unknown';
+    setSimTeams(prev => {
+      const next = prev.map(col => col.filter(p => p.id !== playerId)); // remove duplicates
+      if (teamIdx !== null && teamIdx >= 0 && teamIdx < 4) {
+        next[teamIdx] = [...next[teamIdx], { id: playerId, name: playerName, key: `${playerId}-${simIndex}` }];
+      }
+      return next;
+    });
+  };
+
+  const performSwap = (swap: SwapSuggestion) => {
+    const p1Name = swap.player1.name;
+    const p2Name = swap.player2?.name;
+    setSimTeams(prev => {
+      const next = prev.map(col => [...col]);
+      const findIdx = (name: string) => {
+        for (let t = 0; t < 4; t++) {
+          const idx = next[t].findIndex(p => p.name === name);
+          if (idx !== -1) return { t, idx } as const;
+        }
+        return null;
+      };
+      if (p2Name) {
+        const a = findIdx(p1Name);
+        const b = findIdx(p2Name);
+        if (a && b) {
+          const temp = next[a.t][a.idx];
+          next[a.t][a.idx] = next[b.t][b.idx];
+          next[b.t][b.idx] = temp;
+        } else if (a && swap.player2?.currentTeam !== undefined) {
+          const target = Math.min(3, swap.player2.currentTeam);
+          const obj = next[a.t].splice(a.idx, 1)[0];
+          next[target].push({ ...obj, key: `${obj.id}-swap-${swapIndex}` });
+        }
+      } else if (swap.targetTeam !== undefined) {
+        const a = findIdx(p1Name);
+        const target = Math.min(3, swap.targetTeam);
+        if (a) {
+          const obj = next[a.t].splice(a.idx, 1)[0];
+          next[target].push({ ...obj, key: `${obj.id}-swap-${swapIndex}` });
+        }
+      }
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    if (!isSimPlaying) return;
+    const timer = setTimeout(() => {
+      if (simPhase === 'assign') {
+        if (simIndex < balanceSteps.length) {
+          applyAssignmentStep(balanceSteps[simIndex]);
+          setSimIndex(i => i + 1);
+        } else {
+          if (executedSwaps.length > 0) {
+            setSimPhase('swaps');
+          } else {
+            setSimPhase('done');
+            setIsSimPlaying(false);
+          }
+        }
+      } else if (simPhase === 'swaps') {
+        if (swapIndex < executedSwaps.length) {
+          performSwap(executedSwaps[swapIndex]);
+          setSwapIndex(i => i + 1);
+        } else {
+          setSimPhase('done');
+          setIsSimPlaying(false);
+        }
+      }
+    }, 700);
+    return () => clearTimeout(timer);
+  }, [isSimPlaying, simPhase, simIndex, swapIndex, balanceSteps, executedSwaps]);
+
+  const resetSimulator = () => {
+    setSimTeams(Array.from({ length: 4 }, () => []));
+    setSimIndex(0);
+    setSwapIndex(0);
+    setSimPhase('assign');
+    setIsSimPlaying(false);
+  };
+
   const getQualityColor = (score: number) => {
     if (score >= 85) return "text-emerald-600 bg-emerald-50 border-emerald-200";
     if (score >= 70) return "text-yellow-600 bg-yellow-50 border-yellow-200";
@@ -872,6 +976,50 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
             </div>
           </div>
         )}
+
+        {/* Assignment Simulator */}
+        <div className="mb-6">
+          <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+            <Target className="h-4 w-4" />
+            Assignment Simulator
+          </h3>
+
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-2">
+              <Button size="sm" onClick={() => setIsSimPlaying(true)} disabled={isSimPlaying} className="hover-scale">
+                <Play className="h-4 w-4 mr-2" /> Play
+              </Button>
+              <Button size="sm" variant="secondary" onClick={() => setIsSimPlaying(false)} disabled={!isSimPlaying} className="hover-scale">
+                <Pause className="h-4 w-4 mr-2" /> Pause
+              </Button>
+              <Button size="sm" variant="outline" onClick={resetSimulator} className="hover-scale">
+                <RotateCcw className="h-4 w-4 mr-2" /> Reset
+              </Button>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Step {Math.min(simIndex + swapIndex, balanceSteps.length + executedSwaps.length)}/{balanceSteps.length + executedSwaps.length}
+              {simPhase === 'swaps' && <span className="ml-2">(applying swaps)</span>}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[0,1,2,3].map((i) => (
+              <div key={i} className="p-3 rounded-lg bg-secondary/5 border border-secondary/10 min-h-[140px]">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-semibold text-foreground">{teams[i]?.name || `Team ${i + 1}`}</span>
+                  <Badge variant="outline" className="text-xs">{simTeams[i]?.length || 0} players</Badge>
+                </div>
+                <div className="space-y-1">
+                  {(simTeams[i] || []).map(p => (
+                    <div key={p.key} className="px-2 py-1 rounded-md bg-card/50 border border-border/20 text-sm text-foreground animate-fade-in">
+                      {p.name}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
 
         {/* Swap Suggestions */}
         {balanceAnalysis.swapAnalysis && (
