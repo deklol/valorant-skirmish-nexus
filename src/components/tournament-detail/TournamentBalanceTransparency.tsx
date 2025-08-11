@@ -803,34 +803,6 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
                               )}
                             </div>
                             
-                            {/* ✅ CHANGED: Detailed Bonus Breakdown now uses real data */}
-                            {tournamentBonus > 0 && (
-                                <div className="space-y-2 text-sm bg-amber-50/50 p-3 rounded-lg mt-3">
-                                    {/* Display Adaptive Win Bonus */}
-
-                                    {/* Calculate and display other bonus components if they exist */}
-                                    {(() => {
-                                        const otherBonus = tournamentBonus - (tournamentWins * perWinBonus);
-                                        if (otherBonus > 0) {
-                                            return (
-                                                <div className="flex justify-between text-orange-600">
-                                                    <span>Underranked / Other Bonus:</span>
-                                                    <span className="font-medium">+{otherBonus}pts</span>
-                                                </div>
-                                            );
-                                        }
-                                        return null;
-                                    })()}
-
-                                    {/* Show the total line only if there was another bonus to sum up */}
-                                    {tournamentBonus > (tournamentWins * perWinBonus) && (
-                                        <div className="flex justify-between font-bold text-amber-800 border-t border-amber-400/30 pt-2">
-                                            <span>Total Bonus:</span>
-                                            <span>+{tournamentBonus}pts</span>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
                           </div>
                         )}
                         
