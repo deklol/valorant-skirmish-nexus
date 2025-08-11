@@ -70,7 +70,7 @@ const DEFAULT_EVIDENCE_CONFIG: EvidenceBasedConfig = {
   },
   tournamentWinBonusAdaptive: {
     enabled: true,
-    lowPoint: 150,
+    lowPoint: 25,
     highPoint: 400,
     lowRankBonus: 25,
     highRankBonus: 8,
