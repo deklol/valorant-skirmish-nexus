@@ -53,7 +53,7 @@ const rules = [
 
 export default function RulesTab() {
   return (
-    <section aria-labelledby="rules-heading" className="space-y-8">
+    <section aria-labelledby="rules-heading" className="space-y-12">
       <header className="text-center">
         <StandardHeading id="rules-heading" as="h2" level="h2">
           TLR Valorant Skirmish Rules
@@ -63,34 +63,51 @@ export default function RulesTab() {
         </StandardText>
       </header>
 
-      <div className="space-y-6">
-        {rules.map(({ icon: Icon, title, color, items }, i) => (
-          <div
-            key={i}
-            className={cn(
-              "relative overflow-hidden rounded-xl border border-neutral-800 shadow-lg",
-              "bg-gradient-to-r",
-              color
-            )}
-          >
-            {/* Icon watermark */}
-            <Icon className="absolute right-4 top-4 h-16 w-16 opacity-10" />
-
-            {/* Header */}
-            <div className="p-6 pb-3 border-b border-white/10">
-              <h3 className="text-xl font-bold tracking-wide text-white">{title}</h3>
+      <div className="relative flex gap-8">
+        {/* Progress sidebar */}
+        <div className="hidden lg:flex flex-col items-end sticky top-20 w-48 space-y-4">
+          {rules.map((rule, i) => (
+            <div
+              key={i}
+              className="flex items-center gap-2 text-sm text-white/70 hover:text-white transition"
+            >
+              <rule.icon className="h-4 w-4" />
+              <span>{rule.title}</span>
             </div>
+          ))}
+        </div>
 
-            {/* Body */}
-            <div className="p-6 pt-3">
-              <ul className="list-disc pl-6 space-y-2 text-white/90">
-                {items.map((item, idx) => (
-                  <li key={idx}>{item}</li>
-                ))}
-              </ul>
+        {/* Scrollable rules */}
+        <div className="flex-1 space-y-16">
+          {rules.map(({ icon: Icon, title, color, items }, i) => (
+            <div
+              id={`rule-${i}`}
+              key={i}
+              className={cn(
+                "relative overflow-hidden rounded-xl border border-neutral-800 shadow-lg",
+                "bg-gradient-to-r",
+                color
+              )}
+            >
+              {/* Icon watermark */}
+              <Icon className="absolute right-4 top-4 h-20 w-20 opacity-10" />
+
+              {/* Header */}
+              <div className="p-6 pb-3 border-b border-white/10">
+                <h3 className="text-xl font-bold tracking-wide text-white">{title}</h3>
+              </div>
+
+              {/* Body */}
+              <div className="p-6 pt-3">
+                <ul className="list-disc pl-6 space-y-2 text-white/90">
+                  {items.map((item, idx) => (
+                    <li key={idx}>{item}</li>
+                  ))}
+                </ul>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </section>
   );
