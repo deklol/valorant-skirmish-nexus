@@ -295,9 +295,9 @@ export function AppSidebar() {
                     ref={searchRef}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Quick search… (Ctrl+K)"
+                    placeholder="Search"
                     className="pl-9 h-9 bg-background/80"
-                    aria-label="Quick search"
+                    aria-label="Search"
                   />
                 </div>
                 {!isCollapsed && (playerResults.length > 0 || isSearching) && (
