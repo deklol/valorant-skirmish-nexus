@@ -81,7 +81,6 @@ export function AppSidebar() {
     { title: "Home", url: "/", icon: Home },
     { title: "Tournaments", url: "/tournaments", icon: Calendar },
     { title: "VODs", url: "/vods", icon: PlayCircle },
-    { title: "Teams", url: "/teams-directory", icon: Users },
     { title: "Leaderboard", url: "/leaderboard", icon: Trophy },
     { title: "Players", url: "/players", icon: User },
     { title: "Achievements", url: "/statistics", icon: Trophy },
