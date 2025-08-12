@@ -247,7 +247,7 @@ export function AppSidebar() {
   const handlePlayerClick = (id: string) => {
     setSearchTerm("");
     setPlayerResults([]);
-    navigate(`/public-profile/${id}`);
+    navigate(`/profile/${id}`);
   };
 
   return (
