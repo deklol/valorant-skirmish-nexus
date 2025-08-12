@@ -191,10 +191,10 @@ const Index = () => {
       <section className="container mx-auto px-4 py-16">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold text-white mb-4">
-            Everything You Need for Tournament Success
+            Everything we need for skirmish success!
           </h2>
           <p className="text-xl text-slate-400 max-w-3xl mx-auto">
-            From bracket generation to live tracking, our platform handles every aspect of competitive gaming tournaments
+            From bracket generation to our bespoke balancing algorithms, our platform handles every aspect of VALORANT skirmish events
           </p>
         </div>
         
@@ -208,8 +208,8 @@ const Index = () => {
             </CardHeader>
             <CardContent>
               <p className="text-slate-400">
-                Generate professional tournament brackets automatically with seeding, 
-                eliminations, and real-time updates.
+                Generate events brackets automatically with fair balancing, 
+                elimination progression, and real-time notification updates.
               </p>
             </CardContent>
           </Card>
@@ -249,12 +249,12 @@ const Index = () => {
               <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center mb-4 group-hover:bg-purple-500/30 transition-colors">
                 <Zap className="h-6 w-6 text-purple-400" />
               </div>
-              <CardTitle className="text-white">Live Tracking</CardTitle>
+              <CardTitle className="text-white">History Tracking</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-slate-400">
-                Monitor matches in real-time with live scores, status updates, 
-                and instant notifications for all participants.
+                Track your skirmish history with our tracking features, 
+                view recent ranked history of any player on their public profiles.
               </p>
             </CardContent>
           </Card>
