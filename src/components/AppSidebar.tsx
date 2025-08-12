@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Calendar, Trophy, Users, Shield, User, LogOut, Home, Archive, ChevronRight, PlayCircle, ArrowLeft, Crown, Medal, Target, UsersRound, TrendingUp, HelpCircle, ShoppingBag } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Calendar, Trophy, Users, Shield, User, LogOut, Home, Archive, ChevronRight, PlayCircle, ArrowLeft, Crown, Medal, Target, UsersRound, TrendingUp, HelpCircle, ShoppingBag, Search } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,6 +19,8 @@ import {
   SidebarHeader,
   SidebarFooter,
   SidebarTrigger,
+  SidebarInput,
+  SidebarMenuBadge,
   useSidebar,
 } from "@/components/ui/sidebar";
 
@@ -98,7 +100,17 @@ export function AppSidebar() {
     { title: "My Team", url: "/teams", icon: UsersRound },
   ] : [];
 
-  useEffect(() => {
+const [searchTerm, setSearchTerm] = useState("");
+const searchRef = useRef<HTMLInputElement | null>(null);
+
+const filterItems = <T extends { title: string }>(items: T[]) =>
+  items.filter((i) => i.title.toLowerCase().includes(searchTerm.toLowerCase()));
+
+const filteredMainNavItems = filterItems(mainNavItems);
+const filteredAdminNavItems = filterItems(adminNavItems);
+const filteredUserNavItems = filterItems(userNavItems);
+
+useEffect(() => {
     const fetchData = async () => {
       try {
         // Get latest tournament - prioritize open/live, fallback to completed
@@ -174,6 +186,17 @@ export function AppSidebar() {
     fetchData();
   }, [user]);
 
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-GB", {
       day: "2-digit",
@@ -193,13 +216,13 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar className="border-r border-sidebar-border bg-sidebar data-[state=collapsed]:w-24" collapsible="icon">
+    <Sidebar className="border-r border-sidebar-border data-[state=collapsed]:w-24 [&_[data-sidebar=sidebar]]:bg-background/60 [&_[data-sidebar=sidebar]]:backdrop-blur-md [&_[data-sidebar=sidebar]]:supports-[backdrop-filter]:bg-background/50 [&_[data-sidebar=sidebar]]:border [&_[data-sidebar=sidebar]]:border-sidebar-border [&_[data-sidebar=sidebar]]:shadow-lg [&_[data-sidebar=sidebar]]:rounded-xl" collapsible="icon">
       <SidebarHeader className="p-4 border-b border-sidebar-border">
         <div className="flex items-center justify-between">
           {!isCollapsed ? (
             <>
               <div className="flex items-center space-x-2">
-                <Trophy className="h-6 w-6 text-red-500" />
+                <Trophy className="h-6 w-6 text-primary" />
                 <span className="font-bold text-sidebar-foreground">TLR Hub</span>
               </div>
               <div className="flex items-center space-x-2">
@@ -219,7 +242,7 @@ export function AppSidebar() {
             </>
           ) : (
             <div className="flex flex-col items-center justify-center w-full space-y-3">
-              <Trophy className="h-6 w-6 text-red-500" />
+              <Trophy className="h-6 w-6 text-primary" />
               <SidebarTrigger className="text-sidebar-foreground hover:text-red-400" />
             </div>
           )}
@@ -227,19 +250,41 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="p-2">
+        {!isCollapsed && (
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <div className="px-2 pb-2">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <SidebarInput
+                    ref={searchRef}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Quick search… (Ctrl+K)"
+                    className="pl-9 h-9 bg-background/80"
+                    aria-label="Quick search"
+                  />
+                </div>
+              </div>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
         {/* Main Navigation */}
         <SidebarGroup>
           <SidebarGroupLabel className="text-sidebar-foreground/70 font-medium">Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {mainNavItems.map((item) => (
+              {filteredMainNavItems.map((item) => (
                    <SidebarMenuItem key={item.title}>
-                     <SidebarMenuButton asChild size={isCollapsed ? "sm" : "lg"} className={isCollapsed ? "justify-center" : ""}>
+                     <SidebarMenuButton asChild size={isCollapsed ? "sm" : "lg"} className={isCollapsed ? "justify-center" : ""} tooltip={item.title}>
                        <NavLink to={item.url} className={`${isCollapsed ? 'py-3 flex items-center justify-center w-full' : 'py-3 px-4'} ${getNavClasses(item.url)}`}>
                          <item.icon className={`${isCollapsed ? 'h-6 w-6' : 'h-5 w-5 mr-3'}`} />
                          {!isCollapsed && <span className="text-base">{item.title}</span>}
                        </NavLink>
                      </SidebarMenuButton>
+                     {item.title === "Tournaments" && latestTournament?.status === 'live' && !isCollapsed && (
+                       <SidebarMenuBadge className="bg-green-500/20 text-green-400">Live</SidebarMenuBadge>
+                     )}
                    </SidebarMenuItem>
               ))}
             </SidebarMenu>
@@ -252,9 +297,9 @@ export function AppSidebar() {
             <SidebarGroupLabel className="text-sidebar-foreground/70 font-medium">Admin</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {adminNavItems.map((item) => (
+                {filteredAdminNavItems.map((item) => (
                    <SidebarMenuItem key={item.title}>
-                     <SidebarMenuButton asChild size={isCollapsed ? "sm" : "lg"} className={isCollapsed ? "justify-center" : ""}>
+                     <SidebarMenuButton asChild size={isCollapsed ? "sm" : "lg"} className={isCollapsed ? "justify-center" : ""} tooltip={item.title}>
                        <NavLink to={item.url} className={`${isCollapsed ? 'py-3 flex items-center justify-center w-full' : 'py-3 px-4'} ${getNavClasses(item.url)}`}>
                          <item.icon className={`${isCollapsed ? 'h-6 w-6' : 'h-5 w-5 mr-3'}`} />
                          {!isCollapsed && <span className="text-base">{item.title}</span>}
@@ -273,16 +318,16 @@ export function AppSidebar() {
                <SidebarGroupLabel className="text-sidebar-foreground/70 font-medium">Account</SidebarGroupLabel>
                <SidebarGroupContent>
                  <SidebarMenu>
-                   {userNavItems.map((item) => (
-                     <SidebarMenuItem key={item.title}>
-                       <SidebarMenuButton asChild size={isCollapsed ? "sm" : "lg"} className={isCollapsed ? "justify-center" : ""}>
-                         <NavLink to={item.url} className={`${isCollapsed ? 'py-3 flex items-center justify-center w-full' : 'py-3 px-4'} ${getNavClasses(item.url)}`}>
-                           <item.icon className={`${isCollapsed ? 'h-6 w-6' : 'h-5 w-5 mr-3'}`} />
-                           {!isCollapsed && <span className="text-base">{item.title}</span>}
-                         </NavLink>
-                       </SidebarMenuButton>
-                     </SidebarMenuItem>
-                   ))}
+                    {filteredUserNavItems.map((item) => (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton asChild size={isCollapsed ? "sm" : "lg"} className={isCollapsed ? "justify-center" : ""} tooltip={item.title}>
+                          <NavLink to={item.url} className={`${isCollapsed ? 'py-3 flex items-center justify-center w-full' : 'py-3 px-4'} ${getNavClasses(item.url)}`}>
+                            <item.icon className={`${isCollapsed ? 'h-6 w-6' : 'h-5 w-5 mr-3'}`} />
+                            {!isCollapsed && <span className="text-base">{item.title}</span>}
+                          </NavLink>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
                  </SidebarMenu>
                </SidebarGroupContent>
              </SidebarGroup>
