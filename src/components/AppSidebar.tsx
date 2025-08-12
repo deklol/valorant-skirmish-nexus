@@ -495,43 +495,6 @@ export function AppSidebar() {
             </SidebarGroup>
         )}
 
-        {/* User Profile Info - Redesigned */}
-        {!isCollapsed && user && userProfile && (
-            <SidebarGroup>
-              <SidebarGroupLabel className="text-sidebar-foreground/70 font-medium">Your Stats</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <div className="p-3 m-2 bg-sidebar-accent/50 border border-sidebar-border rounded-lg">
-                  <div className="flex items-center justify-between mb-3">
-                      <Username 
-                        userId={userProfile.id} 
-                        username={userProfile.discord_username || user.email || "Unknown"} 
-                        size="sm"
-                      />
-                      {userProfile.current_rank && (
-                          <Badge variant="outline" className="border-blue-500/30 text-blue-400 text-xs">
-                              {userProfile.current_rank}
-                          </Badge>
-                      )}
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                      <div>
-                        <div className="font-bold text-green-400">{userProfile.wins}</div>
-                        <div className="text-sidebar-foreground/50">Wins</div>
-                      </div>
-                      <div>
-                        <div className="font-bold text-red-400">{userProfile.losses}</div>
-                        <div className="text-sidebar-foreground/50">Losses</div>
-                      </div>
-                      <div>
-                        <div className="font-bold text-yellow-400">{userProfile.tournaments_won}</div>
-                        <div className="text-sidebar-foreground/50">Won</div>
-                      </div>
-                  </div>
-                </div>
-              </SidebarGroupContent>
-            </SidebarGroup>
-        )}
-
         {/* Discord Link - Redesigned */}
         {!isCollapsed && (
             <SidebarGroup>
