@@ -102,6 +102,8 @@ export function AppSidebar() {
 
 const [searchTerm, setSearchTerm] = useState("");
 const searchRef = useRef<HTMLInputElement | null>(null);
+const [playerResults, setPlayerResults] = useState<{ id: string; discord_username: string }[]>([]);
+const [isSearching, setIsSearching] = useState(false);
 
 const filterItems = <T extends { title: string }>(items: T[]) =>
   items.filter((i) => i.title.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -197,6 +199,34 @@ useEffect(() => {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
+  useEffect(() => {
+    let active = true;
+    const term = searchTerm.trim();
+    if (!term || term.length < 2) {
+      setPlayerResults([]);
+      return;
+    }
+    setIsSearching(true);
+    const t = setTimeout(async () => {
+      try {
+        const { data } = await supabase
+          .from('users')
+          .select('id, discord_username')
+          .ilike('discord_username', `%${term}%`)
+          .limit(5);
+        if (active) setPlayerResults(data || []);
+      } catch {
+        if (active) setPlayerResults([]);
+      } finally {
+        if (active) setIsSearching(false);
+      }
+    }, 300);
+    return () => {
+      active = false;
+      clearTimeout(t);
+    };
+  }, [searchTerm]);
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-GB", {
       day: "2-digit",
@@ -215,8 +245,14 @@ useEffect(() => {
     navigate(-1);
   };
 
+  const handlePlayerClick = (id: string) => {
+    setSearchTerm("");
+    setPlayerResults([]);
+    navigate(`/public-profile/${id}`);
+  };
+
   return (
-    <Sidebar className="border-r border-sidebar-border data-[state=collapsed]:w-24 [&_[data-sidebar=sidebar]]:bg-background/60 [&_[data-sidebar=sidebar]]:backdrop-blur-md [&_[data-sidebar=sidebar]]:supports-[backdrop-filter]:bg-background/50 [&_[data-sidebar=sidebar]]:border [&_[data-sidebar=sidebar]]:border-sidebar-border [&_[data-sidebar=sidebar]]:shadow-lg [&_[data-sidebar=sidebar]]:rounded-xl" collapsible="icon">
+    <Sidebar className="border-r border-sidebar-border data-[state=collapsed]:w-24 [&_[data-sidebar=sidebar]]:bg-background/60 [&_[data-sidebar=sidebar]]:backdrop-blur-md [&_[data-sidebar=sidebar]]:supports-[backdrop-filter]:bg-background/50 [&_[data-sidebar=sidebar]]:border [&_[data-sidebar=sidebar]]:border-sidebar-border [&_[data-sidebar=sidebar]]:shadow-lg" collapsible="icon">
       <SidebarHeader className="p-4 border-b border-sidebar-border">
         <div className="flex items-center justify-between">
           {!isCollapsed ? (
@@ -265,6 +301,23 @@ useEffect(() => {
                     aria-label="Quick search"
                   />
                 </div>
+                {!isCollapsed && (playerResults.length > 0 || isSearching) && (
+                  <div className="mt-2 border border-sidebar-border bg-background/90">
+                    {isSearching && (
+                      <div className="px-3 py-2 text-xs text-muted-foreground">Searching…</div>
+                    )}
+                    {playerResults.map((p) => (
+                      <button
+                        key={p.id}
+                        onClick={() => handlePlayerClick(p.id)}
+                        className="w-full px-3 py-2 text-left text-sm hover:bg-sidebar-accent flex items-center gap-2"
+                      >
+                        <User className="h-4 w-4 opacity-70" />
+                        <span className="truncate">{p.discord_username || 'Unknown'}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -341,7 +394,7 @@ useEffect(() => {
               {loading ? (
                 <div className="p-4 text-center text-sidebar-foreground/50">Loading...</div>
               ) : latestTournament ? (
-                <Card className="bg-sidebar-accent border-sidebar-border">
+                <Card className="bg-sidebar-accent border-sidebar-border rounded-none">
                   <CardHeader className="p-3">
                     <CardTitle className="text-sm text-sidebar-foreground flex items-center gap-2">
                       <PlayCircle className="w-4 h-4 text-red-500" />
@@ -358,7 +411,7 @@ useEffect(() => {
                         <Users className="w-3 h-3" />
                         {latestTournament.tournament_signups?.[0]?.count || 0}/{latestTournament.max_players}
                       </div>
-                      <Badge variant="secondary" className="bg-green-500/20 text-green-400 text-xs">
+                      <Badge variant="secondary" className="bg-green-500/20 text-green-400 text-[10px] px-2 py-0.5 inline-flex items-center h-5">
                         {latestTournament.status}
                       </Badge>
                     </div>
@@ -387,7 +440,7 @@ useEffect(() => {
             <SidebarGroupContent>
                 <div className="space-y-2">
                 {latestResults.slice(0, 2).map((result, index) => (
-                  <Card key={index} className="bg-sidebar-accent border-sidebar-border">
+                  <Card key={index} className="bg-sidebar-accent border-sidebar-border rounded-none">
                     <CardContent className="p-3">
                       <div className="space-y-2">
                         <div className="flex items-center gap-2 text-xs text-sidebar-foreground/70">
