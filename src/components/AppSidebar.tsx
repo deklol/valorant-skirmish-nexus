@@ -1,11 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { Calendar, Trophy, Users, Shield, User, LogOut, Home, Archive, ChevronRight, PlayCircle, ArrowLeft, Crown, Medal, Target, UsersRound, TrendingUp, HelpCircle, ShoppingBag, Search } from "lucide-react";
+import { Calendar, Trophy, Users, Shield, User, LogOut, Home, PlayCircle, ArrowLeft, Medal, UsersRound, TrendingUp, HelpCircle, ShoppingBag, Search, ChevronRight } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Username } from "@/components/Username";
 import {
   Sidebar,
@@ -100,19 +99,19 @@ export function AppSidebar() {
     { title: "My Team", url: "/teams", icon: UsersRound },
   ] : [];
 
-const [searchTerm, setSearchTerm] = useState("");
-const searchRef = useRef<HTMLInputElement | null>(null);
-const [playerResults, setPlayerResults] = useState<{ id: string; discord_username: string }[]>([]);
-const [isSearching, setIsSearching] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const searchRef = useRef<HTMLInputElement | null>(null);
+  const [playerResults, setPlayerResults] = useState<{ id: string; discord_username: string }[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
-const filterItems = <T extends { title: string }>(items: T[]) =>
-  items.filter((i) => i.title.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filterItems = <T extends { title: string }>(items: T[]) =>
+    items.filter((i) => i.title.toLowerCase().includes(searchTerm.toLowerCase()));
 
-const filteredMainNavItems = filterItems(mainNavItems);
-const filteredAdminNavItems = filterItems(adminNavItems);
-const filteredUserNavItems = filterItems(userNavItems);
+  const filteredMainNavItems = filterItems(mainNavItems);
+  const filteredAdminNavItems = filterItems(adminNavItems);
+  const filteredUserNavItems = filterItems(userNavItems);
 
-useEffect(() => {
+  useEffect(() => {
     const fetchData = async () => {
       try {
         // Get latest tournament - prioritize open/live, fallback to completed
@@ -386,43 +385,39 @@ useEffect(() => {
              </SidebarGroup>
            )}
 
-        {/* Latest Tournament - Only show when expanded */}
+        {/* Latest Tournament - Redesigned */}
         {!isCollapsed && (
           <SidebarGroup>
             <SidebarGroupLabel className="text-sidebar-foreground/70 font-medium">Latest Tournament</SidebarGroupLabel>
             <SidebarGroupContent>
               {loading ? (
-                <div className="p-4 text-center text-sidebar-foreground/50">Loading...</div>
+                <div className="p-4 text-center text-xs text-sidebar-foreground/50">Loading...</div>
               ) : latestTournament ? (
-                <Card className="bg-sidebar-accent border-sidebar-border rounded-none">
-                  <CardHeader className="p-3">
-                    <CardTitle className="text-sm text-sidebar-foreground flex items-center gap-2">
-                      <PlayCircle className="w-4 h-4 text-red-500" />
-                      {latestTournament.name}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-3 pt-0 space-y-3">
-                    <div className="space-y-2 text-xs text-sidebar-foreground/70">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-3 h-3" />
-                        {formatDate(latestTournament.start_time)}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Users className="w-3 h-3" />
-                        {latestTournament.tournament_signups?.[0]?.count || 0}/{latestTournament.max_players}
-                      </div>
-                      <Badge variant="secondary" className="bg-green-500/20 text-green-400 text-[10px] px-2 py-0.5 inline-flex items-center h-5">
-                        {latestTournament.status}
-                      </Badge>
+                <div className="p-3 space-y-3 bg-sidebar-accent/50 border border-sidebar-border rounded-lg m-2">
+                  <div className="font-semibold text-sm text-sidebar-foreground flex items-center gap-2">
+                     <PlayCircle className="w-4 h-4 text-red-500" />
+                     <span className="truncate">{latestTournament.name}</span>
+                  </div>
+                  <div className="space-y-1.5 text-xs text-sidebar-foreground/70">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-3 h-3" />
+                      <span>{formatDate(latestTournament.start_time)}</span>
                     </div>
-                    <NavLink to={`/tournament/${latestTournament.id}`}>
-                      <Button size="sm" className="w-full bg-red-500 hover:bg-red-600 text-white text-xs">
-                        {latestTournament.status === 'completed' ? 'View Tournament' : 'Join Tournament'}
-                        <ChevronRight className="w-3 h-3 ml-1" />
-                      </Button>
+                    <div className="flex items-center gap-2">
+                      <Users className="w-3 h-3" />
+                      <span>{latestTournament.tournament_signups?.[0]?.count || 0} / {latestTournament.max_players} players</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Badge variant="secondary" className="capitalize bg-green-500/20 text-green-400 text-[10px] px-2 py-0.5 inline-flex items-center h-5">
+                      {latestTournament.status}
+                    </Badge>
+                    <NavLink to={`/tournament/${latestTournament.id}`} className="text-xs text-red-400 hover:text-red-300 font-medium flex items-center">
+                      {latestTournament.status === 'completed' ? 'View' : 'Join'}
+                      <ChevronRight className="w-3 h-3 ml-1" />
                     </NavLink>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               ) : (
                 <div className="p-4 text-center">
                   <Trophy className="w-8 h-8 text-sidebar-foreground/30 mx-auto mb-2" />
@@ -433,136 +428,80 @@ useEffect(() => {
           </SidebarGroup>
         )}
 
-        {/* Latest Results - Only show when expanded */}
+        {/* Latest Results - Redesigned */}
         {!isCollapsed && latestResults.length > 0 && (
-          <SidebarGroup>
-            <SidebarGroupLabel className="text-sidebar-foreground/70 font-medium">Latest Results</SidebarGroupLabel>
-            <SidebarGroupContent>
-                <div className="space-y-2">
-                {latestResults.slice(0, 2).map((result, index) => (
-                  <Card key={index} className="bg-sidebar-accent border-sidebar-border rounded-none">
-                    <CardContent className="p-3">
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-xs text-sidebar-foreground/70">
-                          <Crown className="w-3 h-3 text-yellow-500" />
-                          <span className="truncate">{result.tournament_name}</span>
-                        </div>
-                        <div className="text-xs text-sidebar-foreground font-medium">
-                          <div className="flex items-center justify-between">
-                            <span className={result.winner_name === result.team1_name ? "text-green-400" : "text-sidebar-foreground/70"}>
-                              {result.team1_name}
-                            </span>
-                            <span className="text-sidebar-foreground">{result.score_team1} - {result.score_team2}</span>
-                            <span className={result.winner_name === result.team2_name ? "text-green-400" : "text-sidebar-foreground/70"}>
-                              {result.team2_name}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="text-xs text-sidebar-foreground/50">
-                          {formatDate(result.completed_at)}
+            <SidebarGroup>
+              <SidebarGroupLabel className="text-sidebar-foreground/70 font-medium">Latest Results</SidebarGroupLabel>
+              <SidebarGroupContent>
+                  <div className="space-y-1 p-2">
+                  {latestResults.slice(0, 2).map((result, index) => (
+                    <div key={index} className="p-2 rounded-md hover:bg-sidebar-accent">
+                      <div className="flex items-center gap-2 text-xs text-sidebar-foreground/50 mb-1.5">
+                        <Trophy className="w-3 h-3" />
+                        <span className="truncate font-medium">{result.tournament_name}</span>
+                      </div>
+                      <div className="text-xs text-sidebar-foreground">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className={result.winner_name === result.team1_name ? "text-green-400 font-bold truncate" : "text-sidebar-foreground/70 truncate"}>
+                            {result.team1_name}
+                          </span>
+                          <span className="font-mono text-sidebar-foreground/90 font-semibold">{result.score_team1}-{result.score_team2}</span>
+                          <span className={result.winner_name === result.team2_name ? "text-green-400 font-bold truncate text-right" : "text-sidebar-foreground/70 truncate text-right"}>
+                            {result.team2_name}
+                          </span>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </SidebarGroupContent>
-          </SidebarGroup>
+                    </div>
+                  ))}
+                </div>
+              </SidebarGroupContent>
+            </SidebarGroup>
         )}
 
-        {/* User Profile Info - Only show when expanded and logged in */}
+        {/* User Profile Info - Redesigned */}
         {!isCollapsed && user && userProfile && (
-          <SidebarGroup>
-            <SidebarGroupLabel className="text-sidebar-foreground/70 font-medium">Your Stats</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <Card className="bg-sidebar-accent border-sidebar-border">
-                <CardContent className="p-3 space-y-3">
-                  <div className="text-sm text-sidebar-foreground font-medium truncate">
-                    <Username 
-                      userId={userProfile.id} 
-                      username={userProfile.discord_username || user.email || "Unknown"} 
-                      size="sm"
-                    />
+            <SidebarGroup>
+              <SidebarGroupLabel className="text-sidebar-foreground/70 font-medium">Your Stats</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <div className="p-3 m-2 bg-sidebar-accent/50 border border-sidebar-border rounded-lg">
+                  <div className="flex items-center justify-between mb-3">
+                      <Username 
+                        userId={userProfile.id} 
+                        username={userProfile.discord_username || user.email || "Unknown"} 
+                        size="sm"
+                      />
+                      {userProfile.current_rank && (
+                          <Badge variant="outline" className="border-blue-500/30 text-blue-400 text-xs">
+                              {userProfile.current_rank}
+                          </Badge>
+                      )}
                   </div>
-                  {userProfile.current_rank && (
-                    <div className="flex items-center gap-2 text-xs text-sidebar-foreground/70">
-                      <Medal className="w-3 h-3 text-blue-400" />
-                      {userProfile.current_rank}
-                    </div>
-                  )}
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="text-center">
-                      <div className="text-green-400 font-medium">{userProfile.wins}</div>
-                      <div className="text-sidebar-foreground/50">Wins</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-red-400 font-medium">{userProfile.losses}</div>
-                      <div className="text-sidebar-foreground/50">Losses</div>
-                    </div>
+                  <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                      <div>
+                        <div className="font-bold text-green-400">{userProfile.wins}</div>
+                        <div className="text-sidebar-foreground/50">Wins</div>
+                      </div>
+                      <div>
+                        <div className="font-bold text-red-400">{userProfile.losses}</div>
+                        <div className="text-sidebar-foreground/50">Losses</div>
+                      </div>
+                      <div>
+                        <div className="font-bold text-yellow-400">{userProfile.tournaments_won}</div>
+                        <div className="text-sidebar-foreground/50">Won</div>
+                      </div>
                   </div>
-                  {userProfile.tournaments_won > 0 && (
-                    <div className="flex items-center justify-center gap-2 text-xs text-yellow-400">
-                      <Trophy className="w-3 h-3" />
-                      {userProfile.tournaments_won} Tournament{userProfile.tournaments_won !== 1 ? 's' : ''}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </SidebarGroupContent>
-          </SidebarGroup>
+                </div>
+              </SidebarGroupContent>
+            </SidebarGroup>
         )}
 
-        {/* Discord Link - Only show when expanded */}
+        {/* Discord Link - Redesigned */}
         {!isCollapsed && (
-          <SidebarGroup>
-            <SidebarGroupLabel className="text-sidebar-foreground/70 font-medium">Community</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <div className="p-1">
-                <a
-                  href="https://discord.gg/TLR"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block"
-                >
-                  <Button variant="outline" size="sm" className="w-full border-blue-500/30 text-blue-400 hover:bg-blue-500/20">
-                    Join Discord
-                    <ChevronRight className="w-3 h-3 ml-1" />
-                  </Button>
-                </a>
-              </div>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
-      </SidebarContent>
-
-      {/* Footer with sign out */}
-      {user && (
-        <SidebarFooter className="p-4 border-t border-sidebar-border">
-          {!isCollapsed ? (
-            <Button
-              onClick={handleSignOut}
-              variant="ghost"
-              size="sm"
-              className="w-full justify-start text-sidebar-foreground hover:text-red-400 hover:bg-sidebar-accent"
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              Sign Out
-            </Button>
-           ) : (
-             <div className="flex justify-center">
-               <Button
-                 onClick={handleSignOut}
-                 variant="ghost"
-                 size="sm"
-                 className="p-2"
-                 title="Sign Out"
-               >
-                 <LogOut className="w-6 h-6" />
-               </Button>
-             </div>
-           )}
-        </SidebarFooter>
-      )}
-    </Sidebar>
-  );
-}
+            <SidebarGroup>
+              <SidebarGroupLabel className="text-sidebar-foreground/70 font-medium">Community</SidebarGroupLabel>
+              <SidebarGroupContent>
+                  <a
+                    href="https://discord.gg/TLR"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between p-3 m-2 bg-sidebar-accent/50 border border-sidebar-border rounded-lg text-sm text
