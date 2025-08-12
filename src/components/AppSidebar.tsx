@@ -84,7 +84,7 @@ export function AppSidebar() {
     { title: "Teams", url: "/teams-directory", icon: Users },
     { title: "Leaderboard", url: "/leaderboard", icon: Trophy },
     { title: "Players", url: "/players", icon: User },
-    { title: "Statistics", url: "/statistics", icon: TrendingUp },
+    { title: "Achievements", url: "/statistics", icon: Trophy },
     { title: "Shop", url: "/shop", icon: ShoppingBag },
   ];
 
@@ -97,6 +97,7 @@ export function AppSidebar() {
   const userNavItems = user ? [
     { title: "Profile", url: "/profile", icon: User },
     { title: "My Team", url: "/teams", icon: UsersRound },
+    { title: "Team Directory", url: "/teams-directory", icon: Users },
   ] : [];
 
   const [searchTerm, setSearchTerm] = useState("");
