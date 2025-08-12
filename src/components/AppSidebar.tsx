@@ -413,7 +413,7 @@ export function AppSidebar() {
                       {latestTournament.status}
                     </Badge>
                     <NavLink to={`/tournament/${latestTournament.id}`} className="text-xs text-red-400 hover:text-red-300 font-medium flex items-center">
-                      {latestTournament.status === 'completed' ? 'View' : 'Join'}
+                      {latestTournament.status === 'completed' ? 'View' : 'View'}
                       <ChevronRight className="w-3 h-3 ml-1" />
                     </NavLink>
                   </div>
