@@ -329,7 +329,7 @@ export function AppSidebar() {
               {filteredMainNavItems.map((item) => (
                    <SidebarMenuItem key={item.title}>
                      <SidebarMenuButton asChild size={isCollapsed ? "sm" : "lg"} className={isCollapsed ? "justify-center" : ""} tooltip={item.title}>
-                       <NavLink to={item.url} className={`${isCollapsed ? 'py-3 flex items-center justify-center w-full' : 'py-3 px-4'} ${getNavClasses(item.url)}`}>
+                       <NavLink to={item.url} className={`flex items-center w-full ${isCollapsed ? 'justify-center py-3' : 'px-4 py-3'} ${getNavClasses(item.url)}`}>
                          <item.icon className={`${isCollapsed ? 'h-6 w-6' : 'h-5 w-5 mr-3'}`} />
                          {!isCollapsed && <span className="text-base">{item.title}</span>}
                        </NavLink>
@@ -352,7 +352,7 @@ export function AppSidebar() {
                 {filteredAdminNavItems.map((item) => (
                    <SidebarMenuItem key={item.title}>
                      <SidebarMenuButton asChild size={isCollapsed ? "sm" : "lg"} className={isCollapsed ? "justify-center" : ""} tooltip={item.title}>
-                       <NavLink to={item.url} className={`${isCollapsed ? 'py-3 flex items-center justify-center w-full' : 'py-3 px-4'} ${getNavClasses(item.url)}`}>
+                       <NavLink to={item.url} className={`flex items-center w-full ${isCollapsed ? 'justify-center py-3' : 'px-4 py-3'} ${getNavClasses(item.url)}`}>
                          <item.icon className={`${isCollapsed ? 'h-6 w-6' : 'h-5 w-5 mr-3'}`} />
                          {!isCollapsed && <span className="text-base">{item.title}</span>}
                        </NavLink>
@@ -373,7 +373,7 @@ export function AppSidebar() {
                     {filteredUserNavItems.map((item) => (
                       <SidebarMenuItem key={item.title}>
                         <SidebarMenuButton asChild size={isCollapsed ? "sm" : "lg"} className={isCollapsed ? "justify-center" : ""} tooltip={item.title}>
-                          <NavLink to={item.url} className={`${isCollapsed ? 'py-3 flex items-center justify-center w-full' : 'py-3 px-4'} ${getNavClasses(item.url)}`}>
+                          <NavLink to={item.url} className={`flex items-center w-full ${isCollapsed ? 'justify-center py-3' : 'px-4 py-3'} ${getNavClasses(item.url)}`}>
                             <item.icon className={`${isCollapsed ? 'h-6 w-6' : 'h-5 w-5 mr-3'}`} />
                             {!isCollapsed && <span className="text-base">{item.title}</span>}
                           </NavLink>
@@ -504,4 +504,44 @@ export function AppSidebar() {
                     href="https://discord.gg/TLR"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-between p-3 m-2 bg-sidebar-accent/50 border border-sidebar-border rounded-lg text-sm text
+                    className="flex items-center justify-between p-3 m-2 bg-sidebar-accent/50 border border-sidebar-border rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent"
+                  >
+                      <span>Join our Discord</span>
+                      <ChevronRight className="w-4 h-4 text-sidebar-foreground/70" />
+                  </a>
+              </SidebarGroupContent>
+            </SidebarGroup>
+        )}
+      </SidebarContent>
+
+      {/* Footer with sign out */}
+      {user && (
+        <SidebarFooter className="p-4 border-t border-sidebar-border">
+          {!isCollapsed ? (
+            <Button
+              onClick={handleSignOut}
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start text-sidebar-foreground hover:text-red-400 hover:bg-sidebar-accent"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Sign Out
+            </Button>
+           ) : (
+             <div className="flex justify-center">
+               <Button
+                 onClick={handleSignOut}
+                 variant="ghost"
+                 size="sm"
+                 className="p-2"
+                 title="Sign Out"
+               >
+                 <LogOut className="w-6 h-6" />
+               </Button>
+             </div>
+           )}
+        </SidebarFooter>
+      )}
+    </Sidebar>
+  );
+}
