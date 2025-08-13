@@ -2,7 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, BarChart3, TrendingUp, Users, Trophy, Target, Brain, Play, Pause, RotateCcw, ArrowRight, CheckCircle2, Crown, ArrowUp, ArrowDown } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { ChevronDown, ChevronUp, BarChart3, TrendingUp, Users, Trophy, Target, Brain, Play, Pause, RotateCcw, ArrowRight, CheckCircle2, Crown, ArrowUp, ArrowDown, ShieldQuestion } from "lucide-react";
 import { useEffect, useMemo, useState, useRef } from "react";
 import { Team } from "@/types/tournamentDetail";
 import SwapSuggestionsSection from "./SwapSuggestionsSection";
@@ -226,6 +227,7 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
   const [isSwapExpanded, setIsSwapExpanded] = useState(false);
   const [expandedPlayerFactors, setExpandedPlayerFactors] = useState<Set<string>>(new Set());
   const [isStepsExpanded, setIsStepsExpanded] = useState(false);
+  const [isRankDistributionExpanded, setIsRankDistributionExpanded] = useState(false); // Collapsed by default
   
   const togglePlayerFactors = (playerId: string) => {
     const newExpanded = new Set(expandedPlayerFactors);
@@ -280,7 +282,7 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
         name: team.name,
         totalPoints: team.total_points,
         playerCount: team.members.length,
-        avgPoints: team.total_points / team.members.length
+        avgPoints: team.total_points / (team.members.length || 1)
       }));
     }
     return [];
@@ -507,6 +509,36 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
   const getMaxTeamDifference = () => {
     return getMaxPointDifference();
   };
+
+  // Process data for the rank distribution chart
+  const rankDistributionData = useMemo(() => {
+    const teamsData = balanceAnalysis.teams_created || [];
+    if (!teamsData.length) return [];
+
+    return teamsData.map(team => {
+      const rankCounts: { [key: string]: number } = {
+        'Elite Skilled': 0,
+        'High Skilled': 0,
+        'Medium Skilled': 0,
+        'Low Skilled': 0,
+        'Unknown': 0,
+      };
+
+      team.members.forEach(member => {
+        const skillLevel = getSkillLevel(member.rank);
+        if (skillLevel in rankCounts) {
+          rankCounts[skillLevel]++;
+        }
+      });
+
+      return {
+        name: team.name,
+        playerCount: team.members.length,
+        rankCounts: rankCounts,
+      };
+    });
+  }, [balanceAnalysis.teams_created]);
+
 
   // Enhanced reasoning generation for unified ATLAS display
   const generateEnhancedReasoning = (calc: UnifiedATLASCalculation): string => {
@@ -755,7 +787,7 @@ const resetSimulator = () => {
           <div className="p-4 rounded-lg bg-secondary/10 border border-secondary/20">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Max Difference</p>
+                <p className="text-sm text-muted-foreground">Max Point Difference</p>
                 <p className="text-lg font-semibold text-foreground">{maxPointDifference} pts</p>
               </div>
               <div className="p-2 rounded-lg bg-orange-500/10">
@@ -767,7 +799,7 @@ const resetSimulator = () => {
           <div className="p-4 rounded-lg bg-secondary/10 border border-secondary/20">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Avg Difference</p>
+                <p className="text-sm text-muted-foreground">Avg Point Difference</p>
                 <p className="text-lg font-semibold text-foreground">{Math.round(avgPointDifference)} pts</p>
               </div>
               <div className="p-2 rounded-lg bg-green-500/10">
@@ -777,34 +809,86 @@ const resetSimulator = () => {
           </div>
         </div>
 
-        {/* Team Point Distribution */}
-        {finalTeamStats.length > 0 && (
+        {/* Rank Fairness Distribution Chart */}
+        {rankDistributionData.length > 0 && (
           <div className="mb-6">
-            <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Team Point Distribution
-            </h3>
-            <div className="space-y-2">
-              {finalTeamStats.map((team, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-secondary/5 rounded-lg border border-secondary/10">
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 rounded-full bg-primary" style={{ backgroundColor: `hsl(${index * 120}, 60%, 50%)` }} />
-                    <span className="font-medium text-foreground">{team.name}</span>
-                    <Badge variant="outline" className="text-xs">
-                      {team.playerCount} players
-                    </Badge>
+            <div
+              className="flex items-center justify-between p-4 bg-secondary/5 rounded-xl cursor-pointer hover:bg-secondary/10 transition-colors duration-300 border border-secondary/20"
+              onClick={() => setIsRankDistributionExpanded(!isRankDistributionExpanded)}
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-indigo-500/10">
+                  <ShieldQuestion className="h-4 w-4 text-indigo-500" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground">Rank Fairness Distribution</h3>
+                  <p className="text-sm text-muted-foreground">Visual breakdown of skill tiers across teams</p>
+                </div>
+              </div>
+              {isRankDistributionExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </div>
+
+            {isRankDistributionExpanded && (
+              <TooltipProvider>
+                <div className="mt-4 p-4 bg-secondary/10 rounded-lg border border-secondary/20 animate-in fade-in duration-500">
+                  <div className="flex justify-around items-end w-full h-48 border-b border-dashed border-border/50 pb-2">
+                    {rankDistributionData.map((team, teamIdx) => (
+                      <div key={teamIdx} className="h-full w-16 flex flex-col justify-end items-center group">
+                        <div className="relative w-10 h-full flex flex-col justify-end rounded-t-md overflow-hidden bg-secondary/50">
+                          {SKILL_TIER_ORDER.map(tier => {
+                            const count = team.rankCounts[tier];
+                            if (count === 0) return null;
+                            const height = (count / (team.playerCount || 1)) * 100;
+                            const tierInfo = SKILL_TIER_CONFIG[tier as keyof typeof SKILL_TIER_CONFIG];
+                            return (
+                              <Tooltip key={tier} delayDuration={100}>
+                                <TooltipTrigger asChild>
+                                  <div
+                                    className="w-full transition-all duration-300 hover:brightness-125"
+                                    style={{
+                                      height: `${height}%`,
+                                      backgroundColor: tierInfo.color,
+                                    }}
+                                  />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>{tierInfo.label}: {count} player{count > 1 ? 's' : ''}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm text-muted-foreground">
-                      {Math.round(team.avgPoints)} avg
-                    </span>
-                    <span className="font-semibold text-foreground">
-                      {team.totalPoints} pts
-                    </span>
+                   <div className="flex justify-around items-center w-full mt-2">
+                      {rankDistributionData.map((team, teamIdx) => (
+                         <div key={teamIdx} className="w-16 text-center">
+                            <p className="text-xs font-medium text-foreground truncate">{team.name}</p>
+                            <p className="text-xs text-muted-foreground">{team.playerCount} players</p>
+                         </div>
+                      ))}
+                   </div>
+
+                  {/* Legend */}
+                  <div className="mt-4 flex flex-wrap justify-center items-center gap-x-4 gap-y-1">
+                    {SKILL_TIER_ORDER.map(tier => {
+                      const tierInfo = SKILL_TIER_CONFIG[tier as keyof typeof SKILL_TIER_CONFIG];
+                      if(!rankDistributionData.some(team => team.rankCounts[tier] > 0)) return null;
+                      return (
+                        <div key={tier} className="flex items-center gap-2">
+                          <div
+                            className="w-3 h-3 rounded-sm"
+                            style={{ backgroundColor: tierInfo.color }}
+                          />
+                          <span className="text-xs text-muted-foreground">{tierInfo.label}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-              ))}
-            </div>
+              </TooltipProvider>
+            )}
           </div>
         )}
 
@@ -1036,15 +1120,7 @@ const resetSimulator = () => {
                             Calculation Breakdown
                           </div>
                           <div className="text-sm text-muted-foreground leading-relaxed">
-                            {calc.calculation.calculationReasoning ? (
-                              <div className="space-y-1.5">
-                                {calc.calculation.calculationReasoning.split('\n').map((line: string, idx: number) => (
-                                  <div key={idx} className="leading-relaxed">{line}</div>
-                                ))}
-                              </div>
-                            ) : (
-                              `${playerRank} ranking (${finalPoints} total points)`
-                            )}
+                            {generateEnhancedReasoning(calc)}
                           </div>
                         </div>
                       </div>
