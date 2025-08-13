@@ -284,7 +284,7 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="p-2">
+      <SidebarContent className="p-[0.2rem]">
         {!isCollapsed && (
           <SidebarGroup>
             <SidebarGroupContent>
