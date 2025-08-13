@@ -41,6 +41,8 @@ const RANK_CONFIG = {
   'Unranked': { emoji: '❓', primary: '#9CA3AF', accent: '#D1D5DB', skill: 'Unknown' }
 };
 
+
+
 // Helper functions for rank styling
 const getRankInfo = (rank: string) => {
   return RANK_CONFIG[rank] || RANK_CONFIG['Unranked'];
@@ -206,6 +208,8 @@ interface TournamentBalanceTransparencyProps {
 }
 
 const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBalanceTransparencyProps) => {
+    // Determine number of teams dynamically
+  const teamCount = teams.length || 4;
   const [isExpanded, setIsExpanded] = useState(true); // Start expanded
   const [isATLASExpanded, setIsATLASExpanded] = useState(false);
   const [hasInteractedWithATLAS, setHasInteractedWithATLAS] = useState(false);
@@ -819,7 +823,7 @@ const resetSimulator = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className={`grid gap-3 ${teams.length <= 2 ? 'grid-cols-1 sm:grid-cols-2' : teams.length <= 4 ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6'}`}>
             {[0,1,2,3].map((i) => (
               <div key={i} className="p-3 rounded-lg bg-secondary/5 border border-secondary/10 min-h-[140px]">
                 <div className="flex items-center justify-between mb-2">
