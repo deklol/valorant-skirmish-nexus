@@ -823,11 +823,7 @@ const resetSimulator = () => {
             </div>
           </div>
 
-          <div className={`grid gap-3 ${
-            teamCount <= 2 ? 'grid-cols-1 sm:grid-cols-2' :
-            teamCount <= 4 ? 'grid-cols-2 md:grid-cols-4' :
-                             'grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8'
-          }`}>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {safeTeams.map((team, i) => (
               <div key={team.id || i} className="p-3 rounded-lg bg-secondary/5 border border-secondary/10 min-h-[140px] flex flex-col">
                 <div className="flex items-center justify-between mb-2">
