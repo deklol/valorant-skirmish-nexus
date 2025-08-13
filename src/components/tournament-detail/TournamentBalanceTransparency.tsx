@@ -41,8 +41,6 @@ const RANK_CONFIG = {
   'Unranked': { emoji: '❓', primary: '#9CA3AF', accent: '#D1D5DB', skill: 'Unknown' }
 };
 
-
-
 // Helper functions for rank styling
 const getRankInfo = (rank: string) => {
   return RANK_CONFIG[rank] || RANK_CONFIG['Unranked'];
@@ -208,8 +206,6 @@ interface TournamentBalanceTransparencyProps {
 }
 
 const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBalanceTransparencyProps) => {
-    // Determine number of teams dynamically
-  const teamCount = teams.length || 4;
   const [isExpanded, setIsExpanded] = useState(true); // Start expanded
   const [isATLASExpanded, setIsATLASExpanded] = useState(false);
   const [hasInteractedWithATLAS, setHasInteractedWithATLAS] = useState(false);
@@ -823,19 +819,37 @@ const resetSimulator = () => {
             </div>
           </div>
 
-          <div className={`grid gap-3 ${teams.length <= 2 ? 'grid-cols-1 sm:grid-cols-2' : teams.length <= 4 ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6'}`}>
-            {[0,1,2,3].map((i) => (
-              <div key={i} className="p-3 rounded-lg bg-secondary/5 border border-secondary/10 min-h-[140px]">
+          <div
+            className={`grid gap-3 ${
+              teams.length <= 2
+                ? 'grid-cols-1 sm:grid-cols-2'
+                : teams.length <= 4
+                ? 'grid-cols-2 md:grid-cols-4'
+                : 'grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8'
+            }`}
+          >
+            {teams.map((team, i) => (
+              <div
+                key={i}
+                className="p-3 rounded-lg bg-secondary/5 border border-secondary/10 min-h-[140px]"
+              >
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-foreground">{teams[i]?.name || `Team ${i + 1}`}</span>
+                    <span className="font-semibold text-foreground">
+                      {team?.name || `Team ${i + 1}`}
+                    </span>
                     {simPhase === 'done' && (
-                      <Badge variant="outline" className="text-xs flex items-center gap-1 bg-emerald-500/15 text-emerald-600 border-emerald-500/30">
+                      <Badge
+                        variant="outline"
+                        className="text-xs flex items-center gap-1 bg-emerald-500/15 text-emerald-600 border-emerald-500/30"
+                      >
                         <CheckCircle2 className="h-3 w-3" /> Completed
                       </Badge>
                     )}
                   </div>
-                  <Badge variant="outline" className="text-xs">{simTeams[i]?.length || 0} players</Badge>
+                  <Badge variant="outline" className="text-xs">
+                    {simTeams[i]?.length || 0} players
+                  </Badge>
                 </div>
 
                 {/* Dynamic total points with delta */}
