@@ -912,7 +912,7 @@ const resetSimulator = () => {
                 <div>
                   <h3 className="font-semibold text-foreground">ATLAS Adaptive Weight Analysis</h3>
                   <p className="text-sm text-muted-foreground">
-                    Click me for Enhanced ranking calculations for {atlasCalculations.length} players • {atlasStats.balanceQuality} balance quality • {atlasStats.maxDifference}pts max difference
+                    Click for Enhanced ranking calculations for {atlasCalculations.length} players
                   </p>
                 </div>
               </div>
@@ -1062,7 +1062,7 @@ const resetSimulator = () => {
                 </div>
                 <div>
                   <h3 className="font-semibold text-foreground">Rank Fairness Distribution</h3>
-                  <p className="text-sm text-muted-foreground">Visual breakdown of skill tiers across teams</p>
+                  <p className="text-sm text-muted-foreground">Click for a visual breakdown of skill tiers across all teams</p>
                 </div>
               </div>
               {isRankDistributionExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -1147,6 +1147,7 @@ const resetSimulator = () => {
           <h3 className="font-semibold text-foreground">
             Balance Assignment Steps ({balanceSteps.length} players)
           </h3>
+          <p className="text-sm text-muted-foreground">Click for step by step breakdown of each team, including subs</p>
         </div>
       </div>
       {isStepsExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
