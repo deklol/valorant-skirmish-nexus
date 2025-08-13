@@ -206,6 +206,10 @@ interface TournamentBalanceTransparencyProps {
 }
 
 const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBalanceTransparencyProps) => {
+  const safeTeams = teams || [];
+  const safeBalanceAnalysis = balanceAnalysis || {};
+
+  const teamCount = safeTeams.length > 0 ? safeTeams.length : 4;
   const [isExpanded, setIsExpanded] = useState(true); // Start expanded
   const [isATLASExpanded, setIsATLASExpanded] = useState(false);
   const [hasInteractedWithATLAS, setHasInteractedWithATLAS] = useState(false);
@@ -549,7 +553,7 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
   const [swapIndex, setSwapIndex] = useState(0);
   const [simPhase, setSimPhase] = useState<'assign' | 'swaps' | 'done'>('assign');
 const [simTeams, setSimTeams] = useState<{ id?: string; name: string; key: string; points?: number; assignedOrder?: number; originTeam?: number; movedFromTeam?: number; swapped?: boolean; isSub?: boolean; }[][]>(
-    Array.from({ length: teamCount }, () => [])
+    Array.from({ length: 4 }, () => [])
   );
 
   // Simulator: computed totals and deltas per team
@@ -577,7 +581,7 @@ const applyAssignmentStep = (step: BalanceStep) => {
     const points = (step.player as any).evidenceWeight ?? step.player.points ?? 0;
     setSimTeams(prev => {
       const next = prev.map(col => col.filter(p => p.id !== playerId)); // remove duplicates
-      if (teamIdx !== null && teamIdx >= 0 && teamIdx < teamCount) {
+      if (teamIdx !== null && teamIdx >= 0 && teamIdx < 4) {
         next[teamIdx] = [
           ...next[teamIdx],
           { id: playerId, name: playerName, key: `${playerId}-${simIndex}`, assignedOrder: order, originTeam: teamIdx, points }
@@ -654,13 +658,13 @@ if (p2Name) {
   }, [isSimPlaying, simPhase, simIndex, swapIndex, balanceSteps, executedSwaps]);
 
 const resetSimulator = () => {
-  setSimTeams(Array.from({ length: teamCount }, () => []));
-  setSimIndex(0);
-  setSwapIndex(0);
-  setSimPhase('assign');
-  setIsSimPlaying(false);
-  prevTotalsRef.current = Array(teamCount).fill(0);
-};
+    setSimTeams(Array.from({ length: 4 }, () => []));
+    setSimIndex(0);
+    setSwapIndex(0);
+    setSimPhase('assign');
+    setIsSimPlaying(false);
+    prevTotalsRef.current = [0, 0, 0, 0];
+  };
 
   const getQualityColor = (score: number) => {
     if (score >= 85) return "text-emerald-600 bg-emerald-50 border-emerald-200";
