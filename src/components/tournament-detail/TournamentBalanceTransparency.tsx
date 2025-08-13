@@ -654,15 +654,12 @@ if (p2Name) {
   }, [isSimPlaying, simPhase, simIndex, swapIndex, balanceSteps, executedSwaps]);
 
 const resetSimulator = () => {
-  const numTeams = teams.length; // or pass this in, or store it somewhere
-
-  setSimTeams(Array.from({ length: numTeams }, () => []));
+  setSimTeams(Array.from({ length: teamCount }, () => []));
   setSimIndex(0);
   setSwapIndex(0);
   setSimPhase('assign');
   setIsSimPlaying(false);
-
-  prevTotalsRef.current = new Array(numTeams).fill(0);
+  prevTotalsRef.current = Array(teamCount).fill(0);
 };
 
   const getQualityColor = (score: number) => {
