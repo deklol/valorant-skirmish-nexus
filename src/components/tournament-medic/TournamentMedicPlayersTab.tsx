@@ -6,9 +6,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useDebouncedValue } from "./useDebouncedValue";
 import ForceCheckInManager from "@/components/ForceCheckInManager";
 import { Badge } from "@/components/ui/badge";
-import { CheckSquare } from "lucide-react";
-import { Copy } from "lucide-react";
+import { CheckSquare, Copy, Users, ChevronDown } from "lucide-react";
 import { Tournament } from "@/types/tournament";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
 
 // Central types
 type Player = {
@@ -165,11 +171,13 @@ export default function TournamentMedicPlayersTab({
   onRefresh: () => void;
 }) {
   const { players, fetchPlayers, loading } = useTournamentPlayers(tournament.id);
-  const [forceUser, setForceUser] = useState(null);
+  const [forceUser, setForceUser] = useState<Player | null>(null);
   const [adding, setAdding] = useState(false);
-
-  // Only one state declaration for forceReadyLoading! (fixed duplicate bug)
   const [forceReadyLoading, setForceReadyLoading] = useState(false);
+  
+  // State for the new random player feature
+  const [randomAddCount, setRandomAddCount] = useState<number>(10);
+  const [addingRandom, setAddingRandom] = useState(false);
 
   // Remove player modularized:
   async function forceRemovePlayer(playerId: string) {
@@ -220,6 +228,67 @@ export default function TournamentMedicPlayersTab({
     }
   }
 
+  // --- NEW FUNCTION: Force add random players ---
+  async function handleForceAddRandomPlayers() {
+    setAddingRandom(true);
+    try {
+      // 1. Get IDs of players already in the tournament to exclude them
+      const existingPlayerIds = players.map(p => p.id);
+
+      // 2. Fetch all users who are NOT in the tournament
+      const { data: availableUsers, error: usersError } = await supabase
+        .from("users")
+        .select("id")
+        .not("id", "in", `(${existingPlayerIds.join(",")})`);
+
+      if (usersError) throw usersError;
+      if (!availableUsers || availableUsers.length === 0) {
+        toast({ title: "No available players", description: "All registered users are already in this tournament.", variant: "destructive" });
+        return;
+      }
+
+      // 3. Shuffle the available users and pick the amount requested
+      const shuffled = availableUsers.sort(() => 0.5 - Math.random());
+      const playersToAdd = shuffled.slice(0, randomAddCount);
+
+      if (playersToAdd.length === 0) {
+        toast({ title: "No players to add", description: `Could not find ${randomAddCount} available players to add.` });
+        return;
+      }
+
+      // 4. Prepare the new signup records
+      const newSignups = playersToAdd.map(user => ({
+        tournament_id: tournament.id,
+        user_id: user.id,
+      }));
+
+      // 5. Insert the new signups into the database
+      const { error: insertError } = await supabase
+        .from("tournament_signups")
+        .insert(newSignups);
+
+      if (insertError) throw insertError;
+
+      toast({
+        title: "Players Added",
+        description: `Successfully added ${playersToAdd.length} random players to the tournament.`,
+      });
+      
+      // 6. Refresh the player list
+      await fetchPlayers();
+      onRefresh();
+
+    } catch (error: any) {
+      toast({
+        title: "Error Adding Random Players",
+        description: error.message || "An unknown error occurred.",
+        variant: "destructive",
+      });
+    } finally {
+      setAddingRandom(false);
+    }
+  }
+
   // Force Ready Up (set to "live" and update Supabase)
   async function handleForceReadyUp() {
     setForceReadyLoading(true);
@@ -253,8 +322,6 @@ export default function TournamentMedicPlayersTab({
   // Track if check-in is required (from tournament)
   const checkInRequired = tournament.check_in_required;
 
-  // Remove search field for already signed-up players
-  // Only show a simple filter by username or riot for the list
   const [search, setSearch] = useState("");
   const filteredPlayers = useMemo(
     () =>
@@ -291,7 +358,7 @@ export default function TournamentMedicPlayersTab({
       <div>
         <CopyDiscordUsernamesButton players={players} />
       </div>
-      {/* NEW: Force Ready Up Section */}
+      {/* Force Ready Up Section */}
       <div className="rounded-lg border border-yellow-700 bg-slate-900 p-4 flex flex-col gap-2 mb-3">
         <div className="flex items-center gap-3">
           <CheckSquare className="text-yellow-400 w-5 h-5" />
@@ -352,26 +419,56 @@ export default function TournamentMedicPlayersTab({
           ))
         )}
       </div>
-      <div className="font-semibold text-xs mt-3">Force Add Player:</div>
-      <UserSearchBox
-        onSelect={setForceUser}
-        excludeIds={players.map(p => p.id)}
-      />
-      {forceUser && (
-        <div className="flex gap-2 items-center mt-1">
-          <div className="text-xs">
-            Add <span className="font-mono">{forceUser.discord_username || forceUser.riot_id || forceUser.id}</span> to tournament?
-          </div>
-          <Button size="sm" onClick={handleForceAddPlayer} disabled={adding}>
-            Force Add
-          </Button>
-          <Button size="sm" variant="ghost" onClick={() => setForceUser(null)}>
-            Cancel
-          </Button>
+
+      {/* --- NEW SECTION: ADD RANDOM PLAYERS --- */}
+      <div className="border-t border-slate-700 pt-4 mt-4">
+        <div className="font-semibold text-xs mb-2">Add Random Players:</div>
+        <div className="flex items-center gap-2">
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="w-[150px] justify-between">
+                        <span>Add {randomAddCount} players</span>
+                        <ChevronDown className="w-4 h-4 opacity-50" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                    {[10, 20, 30, 40].map(num => (
+                        <DropdownMenuItem key={num} onSelect={() => setRandomAddCount(num)}>
+                            Add {num} players
+                        </DropdownMenuItem>
+                    ))}
+                </DropdownMenuContent>
+            </DropdownMenu>
+            <Button onClick={handleForceAddRandomPlayers} disabled={addingRandom}>
+                <Users className="w-4 h-4 mr-2" />
+                {addingRandom ? `Adding ${randomAddCount}...` : `Add Random Players`}
+            </Button>
         </div>
-      )}
+         <p className="text-xs text-slate-400 mt-2">
+            Select a number and click to add random registered users who are not already in this tournament.
+         </p>
+      </div>
+
+      <div className="border-t border-slate-700 pt-4 mt-4">
+        <div className="font-semibold text-xs">Force Add Specific Player:</div>
+        <UserSearchBox
+          onSelect={setForceUser}
+          excludeIds={players.map(p => p.id)}
+        />
+        {forceUser && (
+          <div className="flex gap-2 items-center mt-1">
+            <div className="text-xs">
+              Add <span className="font-mono">{forceUser.discord_username || forceUser.riot_id || forceUser.id}</span> to tournament?
+            </div>
+            <Button size="sm" onClick={handleForceAddPlayer} disabled={adding}>
+              Force Add
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setForceUser(null)}>
+              Cancel
+            </Button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
-
-// Note: This file is now nearly 350 lines - please consider refactoring for maintainability.
