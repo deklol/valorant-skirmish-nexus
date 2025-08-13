@@ -821,11 +821,7 @@ const resetSimulator = () => {
 
           <div
             className={`grid gap-3 ${
-              teams.length <= 2
-                ? 'grid-cols-1 sm:grid-cols-2'
-                : teams.length <= 4
-                ? 'grid-cols-2 md:grid-cols-4'
-                : 'grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8'
+              teams.length < 4 ? `grid-cols-${teams.length}` : 'grid-cols-4'
             }`}
           >
             {teams.map((team, i) => (
