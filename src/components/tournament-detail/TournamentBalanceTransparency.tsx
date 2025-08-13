@@ -2,8 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"; // Import Tooltip components
-import { ChevronDown, ChevronUp, BarChart3, TrendingUp, Users, Trophy, Target, Brain, Play, Pause, RotateCcw, ArrowRight, CheckCircle2, Crown, ArrowUp, ArrowDown, ShieldQuestion } from "lucide-react";
+import { ChevronDown, ChevronUp, BarChart3, TrendingUp, Users, Trophy, Target, Brain, Play, Pause, RotateCcw, ArrowRight, CheckCircle2, Crown, ArrowUp, ArrowDown } from "lucide-react";
 import { useEffect, useMemo, useState, useRef } from "react";
 import { Team } from "@/types/tournamentDetail";
 import SwapSuggestionsSection from "./SwapSuggestionsSection";
@@ -41,6 +40,16 @@ const RANK_CONFIG = {
   'Unrated': { emoji: '❓', primary: '#9CA3AF', accent: '#D1D5DB', skill: 'Unknown' },
   'Unranked': { emoji: '❓', primary: '#9CA3AF', accent: '#D1D5DB', skill: 'Unknown' }
 };
+
+// Configuration for the skill tiers in the fairness graph
+const SKILL_TIER_CONFIG = {
+  'Elite Skilled': { color: '#ef4444', label: 'Elite' }, // Red-500
+  'High Skilled': { color: '#8b5cf6', label: 'High' }, // Violet-500
+  'Medium Skilled': { color: '#3b82f6', label: 'Medium' }, // Blue-500
+  'Low Skilled': { color: '#22c55e', label: 'Low' }, // Green-500
+  'Unknown': { color: '#a1a1aa', label: 'Unknown' } // Zinc-400
+};
+const SKILL_TIER_ORDER = ['Elite Skilled', 'High Skilled', 'Medium Skilled', 'Low Skilled', 'Unknown'];
 
 // Helper functions for rank styling
 const getRankInfo = (rank: string) => {
@@ -768,85 +777,34 @@ const resetSimulator = () => {
           </div>
         </div>
 
-        {/* Rank Fairness Distribution Chart */}
-        {rankDistributionData.length > 0 && (
+        {/* Team Point Distribution */}
+        {finalTeamStats.length > 0 && (
           <div className="mb-6">
-            <div
-              className="flex items-center justify-between p-4 bg-secondary/5 rounded-xl cursor-pointer hover:bg-secondary/10 transition-colors duration-300 border border-secondary/20"
-              onClick={() => setIsRankDistributionExpanded(!isRankDistributionExpanded)}
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-indigo-500/10">
-                  <ShieldQuestion className="h-4 w-4 text-indigo-500" />
+            <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Team Point Distribution
+            </h3>
+            <div className="space-y-2">
+              {finalTeamStats.map((team, index) => (
+                <div key={index} className="flex items-center justify-between p-3 bg-secondary/5 rounded-lg border border-secondary/10">
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 rounded-full bg-primary" style={{ backgroundColor: `hsl(${index * 120}, 60%, 50%)` }} />
+                    <span className="font-medium text-foreground">{team.name}</span>
+                    <Badge variant="outline" className="text-xs">
+                      {team.playerCount} players
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-muted-foreground">
+                      {Math.round(team.avgPoints)} avg
+                    </span>
+                    <span className="font-semibold text-foreground">
+                      {team.totalPoints} pts
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">Rank Fairness Distribution</h3>
-                  <p className="text-sm text-muted-foreground">Visual breakdown of skill tiers across teams</p>
-                </div>
-              </div>
-              {isRankDistributionExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              ))}
             </div>
-
-            {isRankDistributionExpanded && (
-              <TooltipProvider>
-                <div className="mt-4 p-4 bg-secondary/10 rounded-lg border border-secondary/20 animate-in fade-in duration-500">
-                  <div className="flex justify-around items-end w-full h-48 border-b border-dashed border-border/50 pb-2">
-                    {rankDistributionData.map((team, teamIdx) => (
-                      <div key={teamIdx} className="h-full w-16 flex flex-col justify-end items-center group">
-                        <div className="relative w-10 h-full flex flex-col justify-end rounded-t-md overflow-hidden bg-secondary/50">
-                          {SKILL_TIER_ORDER.map(tier => {
-                            const count = team.rankCounts[tier];
-                            if (count === 0) return null;
-                            const height = (count / team.playerCount) * 100;
-                            const tierInfo = SKILL_TIER_CONFIG[tier];
-                            return (
-                              <Tooltip key={tier} delayDuration={100}>
-                                <TooltipTrigger asChild>
-                                  <div
-                                    className="w-full transition-all duration-300 hover:brightness-125"
-                                    style={{
-                                      height: `${height}%`,
-                                      backgroundColor: tierInfo.color,
-                                    }}
-                                  />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>{tierInfo.label}: {count} player{count > 1 ? 's' : ''}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                   <div className="flex justify-around items-center w-full mt-2">
-                      {rankDistributionData.map((team, teamIdx) => (
-                         <div key={teamIdx} className="w-16 text-center">
-                            <p className="text-xs font-medium text-foreground truncate">{team.name}</p>
-                            <p className="text-xs text-muted-foreground">{team.playerCount} players</p>
-                         </div>
-                      ))}
-                   </div>
-
-                  {/* Legend */}
-                  <div className="mt-4 flex flex-wrap justify-center items-center gap-x-4 gap-y-1">
-                    {SKILL_TIER_ORDER.map(tier => {
-                      const tierInfo = SKILL_TIER_CONFIG[tier];
-                      return (
-                        <div key={tier} className="flex items-center gap-2">
-                          <div
-                            className="w-3 h-3 rounded-sm"
-                            style={{ backgroundColor: tierInfo.color }}
-                          />
-                          <span className="text-xs text-muted-foreground">{tierInfo.label}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </TooltipProvider>
-            )}
           </div>
         )}
 
