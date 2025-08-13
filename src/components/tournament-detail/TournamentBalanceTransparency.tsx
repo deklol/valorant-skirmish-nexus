@@ -558,7 +558,7 @@ const [simTeams, setSimTeams] = useState<{ id?: string; name: string; key: strin
 
   // Simulator: computed totals and deltas per team
   const teamTotals = useMemo(() => simTeams.map(col => col.reduce((sum, p) => sum + (p.points || 0), 0)), [simTeams]);
-  const prevTotalsRef = useRef<number[]>([0, 0, 0, 0]);
+  const prevTotalsRef = useRef<number[]>(Array(teamCount).fill(0));
   const teamDeltas = teamTotals.map((val, idx) => val - (prevTotalsRef.current[idx] ?? 0));
   useEffect(() => {
     prevTotalsRef.current = [...teamTotals];
@@ -597,7 +597,7 @@ const performSwap = (swap: SwapSuggestion) => {
     setSimTeams(prev => {
       const next = prev.map(col => [...col]);
       const findIdx = (name: string) => {
-        for (let t = 0; t < 4; t++) {
+        for (let t = 0; t < teamCount; t++) {
           const idx = next[t].findIndex(p => p.name === name);
           if (idx !== -1) return { t, idx } as const;
         }
@@ -823,12 +823,16 @@ const resetSimulator = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {[0,1,2,3].map((i) => (
-              <div key={i} className="p-3 rounded-lg bg-secondary/5 border border-secondary/10 min-h-[140px]">
+          <div className={`grid gap-3 ${
+            teamCount <= 2 ? 'grid-cols-1 sm:grid-cols-2' :
+            teamCount <= 4 ? 'grid-cols-2 md:grid-cols-4' :
+                             'grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8'
+          }`}>
+            {safeTeams.map((team, i) => (
+              <div key={team.id || i} className="p-3 rounded-lg bg-secondary/5 border border-secondary/10 min-h-[140px] flex flex-col">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-foreground">{teams[i]?.name || `Team ${i + 1}`}</span>
+                    <span className="font-semibold text-foreground">{team.name || `Team ${i + 1}`}</span>
                     {simPhase === 'done' && (
                       <Badge variant="outline" className="text-xs flex items-center gap-1 bg-emerald-500/15 text-emerald-600 border-emerald-500/30">
                         <CheckCircle2 className="h-3 w-3" /> Completed
