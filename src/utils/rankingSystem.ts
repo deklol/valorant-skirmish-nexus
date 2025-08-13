@@ -1,44 +1,39 @@
 // TGH Skirmish Rank-to-Point System with Peak Rank Fallback
 export const RANK_POINT_MAPPING: Record<string, number> = {
   // Iron
-  'Iron 1': 10,
-  'Iron 2': 15,
-  'Iron 3': 20,
+  'Iron 1': 25,
+  'Iron 2': 30,
+  'Iron 3': 35,
   
   // Bronze
-  'Bronze 1': 25,
-  'Bronze 2': 30,
-  'Bronze 3': 35,
+  'Bronze 1': 40,
+  'Bronze 2': 45,
+  'Bronze 3': 50,
   
   // Silver
-  'Silver 1': 40,
-  'Silver 2': 50,
-  'Silver 3': 60,
+  'Silver 1': 55,
+  'Silver 2': 60,
+  'Silver 3': 65,
   
   // Gold
   'Gold 1': 70,
-  'Gold 2': 80,
-  'Gold 3': 90,
+  'Gold 2': 75,
+  'Gold 3': 80,
   
   // Platinum
-  'Platinum 1': 100,
-  'Platinum 2': 115,
-  'Platinum 3': 130,
-  
-  // Diamond
-  'Diamond 1': 150,
-  'Diamond 2': 170,
-  'Diamond 3': 190,
+  'Platinum 1': 85,
+  'Platinum 2': 90,
+  'Platinum 3': 95,
   
   // Ascendant
-  'Ascendant 1': 215,
-  'Ascendant 2': 240,
-  'Ascendant 3': 265,
+  'Ascendant 1': 120,
+  'Ascendant 2': 150,
+  'Ascendant 3': 180,
   
   // Immortal
-  'Immortal 1': 300,
-  'Immortal 2': 350,
-  'Immortal 3': 400,
+  'Immortal 1': 210,
+  'Immortal 2': 270,
+  'Immortal 3': 330,
   
   // Radiant
   'Radiant': 500,

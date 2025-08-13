@@ -206,10 +206,6 @@ interface TournamentBalanceTransparencyProps {
 }
 
 const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBalanceTransparencyProps) => {
-  const safeTeams = teams || [];
-  const safeBalanceAnalysis = balanceAnalysis || {};
-
-  const teamCount = safeTeams.length > 0 ? safeTeams.length : 4;
   const [isExpanded, setIsExpanded] = useState(true); // Start expanded
   const [isATLASExpanded, setIsATLASExpanded] = useState(false);
   const [hasInteractedWithATLAS, setHasInteractedWithATLAS] = useState(false);
