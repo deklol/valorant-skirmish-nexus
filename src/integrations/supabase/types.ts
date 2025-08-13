@@ -113,6 +113,7 @@ export type Database = {
           app_name: string
           id: string
           last_updated_at: string | null
+          notification_test_mode: boolean
           twitch_channel: string | null
           twitch_embed_enabled: boolean
         }
@@ -121,6 +122,7 @@ export type Database = {
           app_name?: string
           id?: string
           last_updated_at?: string | null
+          notification_test_mode?: boolean
           twitch_channel?: string | null
           twitch_embed_enabled?: boolean
         }
@@ -129,6 +131,7 @@ export type Database = {
           app_name?: string
           id?: string
           last_updated_at?: string | null
+          notification_test_mode?: boolean
           twitch_channel?: string | null
           twitch_embed_enabled?: boolean
         }

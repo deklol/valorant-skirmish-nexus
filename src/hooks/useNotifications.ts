@@ -28,12 +28,32 @@ export const useNotifications = () => {
     userIds = []
   }: NotificationTrigger) => {
     try {
-      // If specific user IDs provided, send to those users
-      if (userIds.length > 0) {
-        for (const userId of userIds) {
+      // Check if Notification Test Mode is enabled
+      let targetUserIds = userIds;
+      try {
+        const { data: settings } = await supabase
+          .from('app_settings')
+          .select('notification_test_mode')
+          .limit(1)
+          .maybeSingle();
+
+        if (settings?.notification_test_mode) {
+          const { data: admins } = await supabase
+            .from('users')
+            .select('id')
+            .eq('role', 'admin');
+          targetUserIds = admins?.map((a: { id: string }) => a.id) || [];
+        }
+      } catch (modeErr) {
+        console.error('Error checking notification test mode:', modeErr);
+      }
+
+      // If specific user IDs provided (or overridden by test mode), send to those users
+      if (targetUserIds.length > 0) {
+        for (const uid of targetUserIds) {
           // Use enhanced notification function with push and email support
           await supabase.rpc('create_enhanced_notification', {
-            p_user_id: userId,
+            p_user_id: uid,
             p_type: type,
             p_title: title,
             p_message: message,
@@ -51,7 +71,7 @@ export const useNotifications = () => {
         try {
           await supabase.functions.invoke('send-push-notification', {
             body: {
-              userIds,
+              userIds: targetUserIds,
               payload: {
                 title,
                 body: message,

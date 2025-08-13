@@ -22,6 +22,7 @@ const AppSettingsManager: React.FC = () => {
   const [twitchEnabled, setTwitchEnabled] = useState(false);
   const [twitchChannel, setTwitchChannel] = useState("");
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [notificationTestMode, setNotificationTestMode] = useState(false);
 
   // Fetch settings on mount
   useEffect(() => {
@@ -41,12 +42,14 @@ const AppSettingsManager: React.FC = () => {
             twitch_embed_enabled: false,
             twitch_channel: "",
             announcement_id: null,
+            notification_test_mode: false,
           },
         ]);
         setAppName("Tournament App");
         setTwitchEnabled(false);
         setTwitchChannel("");
         setAnnouncementId("none");
+        setNotificationTestMode(false);
       } else {
         toast({ title: "Error loading settings", description: error.message, variant: "destructive" });
       }
@@ -55,6 +58,7 @@ const AppSettingsManager: React.FC = () => {
       setTwitchEnabled(data.twitch_embed_enabled);
       setTwitchChannel(data.twitch_channel || "");
       setAnnouncementId(data.announcement_id ? data.announcement_id : "none");
+      setNotificationTestMode(Boolean((data as any).notification_test_mode));
     }
     setLoading(false);
   };
@@ -79,6 +83,7 @@ const AppSettingsManager: React.FC = () => {
         twitch_embed_enabled: twitchEnabled,
         twitch_channel: twitchEnabled ? twitchChannel : "",
         announcement_id: announcementId === "none" ? null : announcementId,
+        notification_test_mode: notificationTestMode,
         last_updated_at: new Date().toISOString(),
       })
       .eq("id", data.id);
@@ -96,7 +101,6 @@ const AppSettingsManager: React.FC = () => {
         <CardTitle className="text-white">App Settings (God Hub)</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-
         {/* Rename App */}
         <div>
           <Label htmlFor="app-name" className="text-slate-300">App Name</Label>
@@ -154,6 +158,21 @@ const AppSettingsManager: React.FC = () => {
           </span>
         </div>
 
+        {/* Notification Test Mode */}
+        <div>
+          <div className="flex items-center space-x-2 mb-1">
+            <Switch
+              id="notification-test-toggle"
+              checked={notificationTestMode}
+              onCheckedChange={setNotificationTestMode}
+            />
+            <Label htmlFor="notification-test-toggle" className="text-slate-300">
+              Notification Test Mode (Admins only)
+            </Label>
+          </div>
+          <span className="text-xs text-slate-400">When enabled, notifications will only be sent to admins for testing.</span>
+        </div>
+
         <Button
           disabled={loading || saving}
           className="bg-blue-700 hover:bg-blue-800 w-full"
@@ -161,7 +180,6 @@ const AppSettingsManager: React.FC = () => {
         >
           {saving ? "Saving..." : "Save Settings"}
         </Button>
-
       </CardContent>
     </Card>
   );

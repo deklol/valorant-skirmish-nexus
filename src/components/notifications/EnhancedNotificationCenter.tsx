@@ -196,6 +196,27 @@ const EnhancedNotificationCenter = () => {
     }
   };
 
+  const clearAll = async () => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      setNotifications([]);
+      setUnreadCount(0);
+
+      toast({ title: 'Success', description: 'All notifications cleared' });
+    } catch (error) {
+      console.error('Error clearing all notifications:', error);
+      toast({ title: 'Error', description: 'Failed to clear all notifications', variant: 'destructive' });
+    }
+  };
+
   const groupNotifications = () => {
     const groups = {
       tournaments: notifications.filter(n => 
@@ -270,6 +291,18 @@ const EnhancedNotificationCenter = () => {
             </div>
             
             <div className="flex gap-2">
+              {notifications.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearAll}
+                  className="h-6 px-2 text-xs text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                >
+                  <Trash2 className="w-3 h-3 mr-1" />
+                  Clear all
+                </Button>
+              )}
+
               {unreadCount > 0 && (
                 <Button
                   variant="ghost"
