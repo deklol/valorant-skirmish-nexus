@@ -34,7 +34,7 @@ const RANK_CONFIG = {
   'Ascendant 1': { emoji: '🟩', primary: '#84FF6F', accent: '#B6FFA8', skill: 'Medium Skilled' },
   'Ascendant 2': { emoji: '🟩', primary: '#84FF6F', accent: '#B6FFA8', skill: 'Medium Skilled' },
   'Ascendant 3': { emoji: '🟩', primary: '#84FF6F', accent: '#B6FFA8', skill: 'Medium Skilled' },
-  'Immortal 1': { emoji: '🟥', primary: '#A52834', accent: '#D24357', skill: 'Medium Skilled' },
+  'Immortal 1': { emoji: '🟥', primary: '#A52834', accent: '#D24357', skill: 'High Skilled' },
   'Immortal 2': { emoji: '🟥', primary: '#A52834', accent: '#D24357', skill: 'High Skilled' },
   'Immortal 3': { emoji: '🟥', primary: '#A52834', accent: '#D24357', skill: 'High Skilled' },
   'Radiant': { emoji: '✨', primary: '#FFF176', accent: '#FFFFFF', skill: 'Elite Skilled' },
