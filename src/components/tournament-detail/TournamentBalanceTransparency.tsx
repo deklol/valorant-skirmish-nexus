@@ -545,6 +545,11 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
   const balanceSteps = getBalanceSteps();
   const atlasCalculations = getUnifiedATLASCalculations();
   const atlasStats = getATLASStats();
+
+  const maxTotalPoints = useMemo(() => {
+    if (finalTeamStats.length === 0) return 1;
+    return Math.max(...finalTeamStats.map(team => team.totalPoints));
+  }, [finalTeamStats]);
   
   // Assignment Simulator state and helpers
   const executedSwaps = useMemo(() => (balanceAnalysis.swapAnalysis?.successfulSwaps || []).filter(s => s.outcome === 'executed'), [balanceAnalysis.swapAnalysis]);
@@ -770,31 +775,49 @@ const resetSimulator = () => {
         {/* Team Point Distribution */}
         {finalTeamStats.length > 0 && (
           <div className="mb-6">
-            <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
               <Users className="h-4 w-4" />
               Team Point Distribution
             </h3>
-            <div className="space-y-2">
-              {finalTeamStats.map((team, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-secondary/5 rounded-lg border border-secondary/10">
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 rounded-full bg-primary" style={{ backgroundColor: `hsl(${index * 120}, 60%, 50%)` }} />
-                    <span className="font-medium text-foreground">{team.name}</span>
-                    <Badge variant="outline" className="text-xs">
-                      {team.playerCount} players
-                    </Badge>
+            <div className="space-y-4">
+              {finalTeamStats.map((team, index) => {
+                const barWidth = maxTotalPoints > 0 ? (team.totalPoints / maxTotalPoints) * 100 : 0;
+                return (
+                  <div key={index} className="group animate-in fade-in slide-in-from-left-4 duration-500">
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-3">
+                        <span className="font-medium text-foreground text-sm">{team.name}</span>
+                        <Badge variant="outline" className="text-xs">
+                          {team.playerCount} players
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-3">
+                         <span className="text-xs text-muted-foreground">
+                          {Math.round(team.avgPoints)} avg
+                        </span>
+                        <span className="font-semibold text-foreground text-sm">
+                          {team.totalPoints} pts
+                        </span>
+                      </div>
+                    </div>
+                    <div className="w-full bg-secondary/30 rounded-full h-3 group-hover:bg-secondary/50 transition-colors">
+                      <div
+                        className="h-3 rounded-full transition-all duration-700 ease-out"
+                        style={{
+                          width: `${barWidth}%`,
+                          backgroundColor: `hsl(${index * 120}, 70%, 55%)`
+                        }}
+                      />
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm text-muted-foreground">
-                      {Math.round(team.avgPoints)} avg
-                    </span>
-                    <span className="font-semibold text-foreground">
-                      {team.totalPoints} pts
-                    </span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
+             <div className="w-full flex justify-between text-xs text-muted-foreground mt-2 px-1">
+                <span>0</span>
+                <span>{Math.round(maxTotalPoints / 2)} pts</span>
+                <span>{maxTotalPoints} pts</span>
+              </div>
           </div>
         )}
 
