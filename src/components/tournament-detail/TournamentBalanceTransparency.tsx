@@ -549,7 +549,7 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
   const [swapIndex, setSwapIndex] = useState(0);
   const [simPhase, setSimPhase] = useState<'assign' | 'swaps' | 'done'>('assign');
 const [simTeams, setSimTeams] = useState<{ id?: string; name: string; key: string; points?: number; assignedOrder?: number; originTeam?: number; movedFromTeam?: number; swapped?: boolean; isSub?: boolean; }[][]>(
-    Array.from({ length: 4 }, () => [])
+    Array.from({ length: 8 }, () => [])
   );
 
   // Simulator: computed totals and deltas per team
@@ -577,7 +577,7 @@ const applyAssignmentStep = (step: BalanceStep) => {
     const points = (step.player as any).evidenceWeight ?? step.player.points ?? 0;
     setSimTeams(prev => {
       const next = prev.map(col => col.filter(p => p.id !== playerId)); // remove duplicates
-      if (teamIdx !== null && teamIdx >= 0 && teamIdx < 4) {
+      if (teamIdx !== null && teamIdx >= 0 && teamIdx < 8) {
         next[teamIdx] = [
           ...next[teamIdx],
           { id: playerId, name: playerName, key: `${playerId}-${simIndex}`, assignedOrder: order, originTeam: teamIdx, points }
@@ -654,7 +654,7 @@ if (p2Name) {
   }, [isSimPlaying, simPhase, simIndex, swapIndex, balanceSteps, executedSwaps]);
 
 const resetSimulator = () => {
-    setSimTeams(Array.from({ length: 4 }, () => []));
+    setSimTeams(Array.from({ length: 8 }, () => []));
     setSimIndex(0);
     setSwapIndex(0);
     setSimPhase('assign');
@@ -819,33 +819,19 @@ const resetSimulator = () => {
             </div>
           </div>
 
-          <div
-            className={`grid gap-3 ${
-              teams.length < 4 ? `grid-cols-${teams.length}` : 'grid-cols-4'
-            }`}
-          >
-            {teams.map((team, i) => (
-              <div
-                key={i}
-                className="p-3 rounded-lg bg-secondary/5 border border-secondary/10 min-h-[140px]"
-              >
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[0,1,2,3].map((i) => (
+              <div key={i} className="p-3 rounded-lg bg-secondary/5 border border-secondary/10 min-h-[140px]">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-foreground">
-                      {team?.name || `Team ${i + 1}`}
-                    </span>
+                    <span className="font-semibold text-foreground">{teams[i]?.name || `Team ${i + 1}`}</span>
                     {simPhase === 'done' && (
-                      <Badge
-                        variant="outline"
-                        className="text-xs flex items-center gap-1 bg-emerald-500/15 text-emerald-600 border-emerald-500/30"
-                      >
+                      <Badge variant="outline" className="text-xs flex items-center gap-1 bg-emerald-500/15 text-emerald-600 border-emerald-500/30">
                         <CheckCircle2 className="h-3 w-3" /> Completed
                       </Badge>
                     )}
                   </div>
-                  <Badge variant="outline" className="text-xs">
-                    {simTeams[i]?.length || 0} players
-                  </Badge>
+                  <Badge variant="outline" className="text-xs">{simTeams[i]?.length || 0} players</Badge>
                 </div>
 
                 {/* Dynamic total points with delta */}
