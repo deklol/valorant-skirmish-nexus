@@ -943,7 +943,7 @@ const resetSimulator = () => {
                     // Get skill tier based on points
                     const getSkillTier = (points: number) => {
                       if (points >= 410) return { label: 'Elite', color: 'bg-red-500/10 text-red-600 border-red-500/20' };
-                      if (points >= 365) return { label: 'High Skilled', color: 'bg-purple-500/10 text-purple-600 border-purple-500/20' };
+                      if (points >= 380) return { label: 'High Skilled', color: 'bg-purple-500/10 text-purple-600 border-purple-500/20' };
                       if (points >= 285) return { label: 'Intermediate', color: 'bg-blue-500/10 text-blue-600 border-blue-500/20' };
                       if (points >= 100) return { label: 'Beginner', color: 'bg-green-500/10 text-green-600 border-green-500/20' };
                       return { label: 'Developing', color: 'bg-gray-500/10 text-gray-600 border-gray-500/20' };
