@@ -103,15 +103,13 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
       )}
 
       <CardContent
-        className={`space-y-4 p-4 pt-3 sm:p-5 ${
+        className={`p-4 pt-3 sm:p-5 flex flex-col ${
           // For cards without an image, make the content area grow and distribute its content vertically
-          !tournament.banner_image_url
-            ? "flex flex-col flex-grow justify-between"
-            : ""
+          !tournament.banner_image_url ? "flex-grow" : "h-auto"
         }`}
       >
         {/* This grid contains the player, format, prize, and time info */}
-        <div className="grid grid-cols-2 gap-3 text-sm">
+        <div className="grid grid-cols-2 gap-3 text-sm mb-4 flex-grow">
           <div className="flex items-center gap-2 text-muted-foreground">
             <Users className="w-4 h-4" />
             <StandardText size="sm" color="muted">
@@ -138,8 +136,8 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
           </div>
         </div>
 
-        {/* This div contains the action buttons */}
-        <div className="flex gap-3 pt-1">
+        {/* This div contains the action buttons - always at bottom */}
+        <div className="flex gap-3 mt-auto">
           <Button
             variant="default"
             size="sm"

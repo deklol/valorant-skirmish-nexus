@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { CheckSquare } from "lucide-react";
 import { Copy } from "lucide-react";
 import { Tournament } from "@/types/tournament";
+import { RandomPlayerRegistration } from "@/components/admin/RandomPlayerRegistration";
 
 // Central types
 type Player = {
@@ -370,6 +371,14 @@ export default function TournamentMedicPlayersTab({
           </Button>
         </div>
       )}
+
+      {/* Random Player Registration */}
+      <div className="mt-6">
+        <RandomPlayerRegistration 
+          tournamentId={tournament.id} 
+          onPlayersAdded={onRefresh}
+        />
+      </div>
     </div>
   );
 }

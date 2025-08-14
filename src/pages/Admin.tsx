@@ -30,6 +30,7 @@ import StatisticsMedicManager from "@/components/medic-enhanced/StatisticsMedicM
 import { ShopMedicManager } from "@/components/admin/ShopMedicManager";
 import SponsorManager from "@/components/admin/SponsorManager";
 import { VODManager } from "@/components/admin/VODManager";
+import { RankWeightSyncManager } from "@/components/admin/RankWeightSyncManager";
 
 const Admin = () => {
   const { isAdmin } = useAuth();
@@ -228,6 +229,7 @@ const Admin = () => {
                 <SendNotificationTestButton />
                 <SchemaExportButton />
                 <StatisticsManager />
+                <RankWeightSyncManager />
                 
                 <Card className="bg-slate-800 border-slate-700">
                   <CardHeader>
