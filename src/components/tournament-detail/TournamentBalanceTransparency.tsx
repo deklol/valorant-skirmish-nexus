@@ -49,9 +49,10 @@ const SKILL_TIER_CONFIG = {
   'Intermediate': { color: '#3b82f6', label: 'Intermediate' }, // Blue-500
   'Beginner': { color: '#22c55e', label: 'Beginner' },    // Green-500
   'Developing': { color: '#9ca3af', label: 'Developing' } // Zinc-400
+  'Unknown': { color: '#a1a1aa', label: 'Unknown' }      // Zinc-400
 };
 
-const SKILL_TIER_ORDER = ['Elite', 'High Skilled', 'Intermediate', 'Beginner', 'Developing'];
+const SKILL_TIER_ORDER = ['Elite', 'High Skilled', 'Intermediate', 'Beginner', 'Developing', 'Unknown'];
 
 // Helper functions for rank styling
 const getRankInfo = (rank: string) => {
