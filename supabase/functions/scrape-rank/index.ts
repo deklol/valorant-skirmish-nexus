@@ -68,7 +68,7 @@ serve(async (req) => {
     // Extract rank and RR from the response string
     const rankMatch = rankData.match(/(Iron|Bronze|Silver|Gold|Platinum|Diamond|Ascendant|Immortal|Radiant)(?:\s+(\d+))/)
     const rrMatch = rankData.match(/RR:\s*(\d+)/)
-    const unratedMatch = rankData.match(/Unrated/)
+    const unratedMatch = rankData.match(/\b(?:Unrated|Unranked)\b/i)
 
     if (unratedMatch) {
       currentRank = 'Unrated'
