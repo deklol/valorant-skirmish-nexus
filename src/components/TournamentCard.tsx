@@ -137,7 +137,7 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
         </div>
 
         {/* This div contains the action buttons - always at bottom */}
-        <div className="flex gap-3 mt-auto">
+        <div className="flex gap-2 mt-auto">
           <Button
             variant="default"
             size="sm"
@@ -151,7 +151,6 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
             size="sm"
             className="flex-1"
             onClick={handleBracketClick}
-            disabled
           >
             View Bracket
           </Button>

@@ -155,14 +155,14 @@ export default function StatisticsMedicManager() {
 
   const getRankPoints = (rank: string): number => {
     const rankMap: Record<string, number> = {
-      'Iron 1': 10, 'Iron 2': 15, 'Iron 3': 20,
-      'Bronze 1': 25, 'Bronze 2': 30, 'Bronze 3': 35,
-      'Silver 1': 40, 'Silver 2': 50, 'Silver 3': 60,
-      'Gold 1': 70, 'Gold 2': 80, 'Gold 3': 90,
-      'Platinum 1': 100, 'Platinum 2': 115, 'Platinum 3': 130,
-      'Diamond 1': 150, 'Diamond 2': 170, 'Diamond 3': 190,
-      'Ascendant 1': 215, 'Ascendant 2': 240, 'Ascendant 3': 265,
-      'Immortal 1': 300, 'Immortal 2': 350, 'Immortal 3': 400,
+      'Iron 1': 25, 'Iron 2': 40, 'Iron 3': 55,
+      'Bronze 1': 75, 'Bronze 2': 90, 'Bronze 3': 105,
+      'Silver 1': 125, 'Silver 2': 140, 'Silver 3': 155,
+      'Gold 1': 180, 'Gold 2': 195, 'Gold 3': 210,
+      'Platinum 1': 230, 'Platinum 2': 245, 'Platinum 3': 260,
+      'Diamond 1': 285, 'Diamond 2': 300, 'Diamond 3': 315,
+      'Ascendant 1': 335, 'Ascendant 2': 350, 'Ascendant 3': 365,
+      'Immortal 1': 395, 'Immortal 2': 410, 'Immortal 3': 440,
       'Radiant': 500
     };
     return rankMap[rank] || 150;

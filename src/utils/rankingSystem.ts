@@ -2,38 +2,43 @@
 export const RANK_POINT_MAPPING: Record<string, number> = {
   // Iron
   'Iron 1': 25,
-  'Iron 2': 30,
-  'Iron 3': 35,
+  'Iron 2': 40,
+  'Iron 3': 55,
   
   // Bronze
-  'Bronze 1': 40,
-  'Bronze 2': 45,
-  'Bronze 3': 50,
+  'Bronze 1': 75,
+  'Bronze 2': 90,
+  'Bronze 3': 105,
   
   // Silver
-  'Silver 1': 55,
-  'Silver 2': 60,
-  'Silver 3': 65,
+  'Silver 1': 125,
+  'Silver 2': 140,
+  'Silver 3': 155,
   
   // Gold
-  'Gold 1': 70,
-  'Gold 2': 75,
-  'Gold 3': 80,
+  'Gold 1': 180,
+  'Gold 2': 195,
+  'Gold 3': 210,
   
   // Platinum
-  'Platinum 1': 85,
-  'Platinum 2': 90,
-  'Platinum 3': 95,
+  'Platinum 1': 230,
+  'Platinum 2': 245,
+  'Platinum 3': 260,
+  
+  // Diamond
+  'Diamond 1': 285,
+  'Diamond 2': 300,
+  'Diamond 3': 315,
   
   // Ascendant
-  'Ascendant 1': 120,
-  'Ascendant 2': 150,
-  'Ascendant 3': 180,
+  'Ascendant 1': 335,
+  'Ascendant 2': 350,
+  'Ascendant 3': 365,
   
   // Immortal
-  'Immortal 1': 210,
-  'Immortal 2': 270,
-  'Immortal 3': 330,
+  'Immortal 1': 395,
+  'Immortal 2': 410,
+  'Immortal 3': 440,
   
   // Radiant
   'Radiant': 500,
