@@ -38,7 +38,7 @@ export default function TwitchEmbed() {
         supabase
           .from("tournaments")
           .select("status")
-          .eq("status", "Live")
+          .eq("status", "live")
           .limit(1), // We only need to know if at least one live tournament exists
       ]);
 
