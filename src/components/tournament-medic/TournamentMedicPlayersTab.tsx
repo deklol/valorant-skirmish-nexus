@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { CheckSquare } from "lucide-react";
 import { Copy } from "lucide-react";
 import { Tournament } from "@/types/tournament";
-import { RandomPlayerRegistration } from "@/components/admin/RandomPlayerRegistration";
 
 // Central types
 type Player = {
@@ -158,6 +157,29 @@ function CopyDiscordUsernamesButton({ players }: { players: { discord_username: 
   );
 }
 
+// NEW: Function to fetch available players not already in the tournament
+async function fetchAvailablePlayers(tournamentId: string): Promise<Player[]> {
+  // Get all signed up user IDs first
+  const { data: signedUp, error: signError } = await supabase
+    .from('tournament_signups')
+    .select('user_id')
+    .eq('tournament_id', tournamentId);
+  if (signError) throw signError;
+
+  const signedUpIds = signedUp?.map(row => row.user_id) || [];
+
+  // Get all users excluding those already signed up
+  const { data: users, error: usersError } = await supabase
+    .from('users')
+    .select('id, discord_username, riot_id')
+    .not('id', 'in', `(${signedUpIds.join(',')})`);
+
+  if (usersError) throw usersError;
+
+  return users || [];
+}
+
+
 export default function TournamentMedicPlayersTab({
   tournament,
   onRefresh,
@@ -166,11 +188,13 @@ export default function TournamentMedicPlayersTab({
   onRefresh: () => void;
 }) {
   const { players, fetchPlayers, loading } = useTournamentPlayers(tournament.id);
-  const [forceUser, setForceUser] = useState(null);
+  const [forceUser, setForceUser] = useState<Player | null>(null);
   const [adding, setAdding] = useState(false);
-
-  // Only one state declaration for forceReadyLoading! (fixed duplicate bug)
   const [forceReadyLoading, setForceReadyLoading] = useState(false);
+
+  // NEW: State for managing random player addition
+  const [addCount, setAddCount] = useState(10);
+  const [addingMultiple, setAddingMultiple] = useState(false);
 
   // Remove player modularized:
   async function forceRemovePlayer(playerId: string) {
@@ -250,6 +274,54 @@ export default function TournamentMedicPlayersTab({
       setForceReadyLoading(false);
     }
   }
+  
+  // NEW: Function to handle adding random players
+  async function handleAddRandomPlayers() {
+    setAddingMultiple(true);
+    try {
+      const availablePlayers = await fetchAvailablePlayers(tournament.id);
+      if (availablePlayers.length < addCount) {
+        toast({
+          title: "Not Enough Players",
+          description: `Only ${availablePlayers.length} players are available to add.`,
+          variant: "destructive",
+        });
+        setAddingMultiple(false);
+        return;
+      }
+  
+      // Randomly pick X unique players
+      const shuffled = availablePlayers.sort(() => 0.5 - Math.random());
+      const selected = shuffled.slice(0, addCount);
+  
+      // Prepare batch insert payload
+      const inserts = selected.map(p => ({
+        tournament_id: tournament.id,
+        user_id: p.id,
+      }));
+  
+      const { error } = await supabase
+        .from('tournament_signups')
+        .insert(inserts);
+  
+      if (error) {
+        toast({ title: "Add Error", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: `Added ${inserts.length} players` });
+        await fetchPlayers(); // Refresh the local player list
+        onRefresh(); // Trigger parent component refresh
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Something went wrong",
+        variant: "destructive",
+      });
+    } finally {
+      setAddingMultiple(false);
+    }
+  }
+
 
   // Track if check-in is required (from tournament)
   const checkInRequired = tournament.check_in_required;
@@ -372,15 +444,27 @@ export default function TournamentMedicPlayersTab({
         </div>
       )}
 
-      {/* Random Player Registration */}
-      <div className="mt-6">
-        <RandomPlayerRegistration 
-          tournamentId={tournament.id} 
-          onPlayersAdded={onRefresh}
-        />
+      {/* REPLACED: Random Player Registration */}
+      <div className="mt-6 border-t border-slate-700 pt-4">
+        <div className="flex items-center gap-2">
+          <label htmlFor="addCount" className="text-sm font-semibold text-slate-300">
+            Add Random Registered Players:
+          </label>
+          <select
+            id="addCount"
+            value={addCount}
+            onChange={e => setAddCount(Number(e.target.value))}
+            className="text-sm p-1 rounded bg-slate-800 border border-slate-600 focus:ring-2 focus:ring-blue-500"
+          >
+            {[10, 20, 30, 40].map(n => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </select>
+          <Button size="sm" onClick={handleAddRandomPlayers} disabled={addingMultiple}>
+            {addingMultiple ? "Adding..." : `Add ${addCount} Players`}
+          </Button>
+        </div>
       </div>
     </div>
   );
 }
-
-// Note: This file is now nearly 350 lines - please consider refactoring for maintainability.
