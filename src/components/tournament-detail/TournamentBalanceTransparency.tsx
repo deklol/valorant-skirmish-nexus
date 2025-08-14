@@ -12,6 +12,7 @@ import { RANK_POINT_MAPPING } from "@/utils/rankingSystem";
 import { EVIDENCE_CONFIG } from "@/utils/evidenceBasedWeightSystem";
 
 // Rank configuration with emojis and colors
+// Rank configuration with emojis and colors
 const RANK_CONFIG = {
   'Iron 1': { emoji: '⬛', primary: '#4A4A4A', accent: '#7E7E7E', skill: 'Developing' },
   'Iron 2': { emoji: '⬛', primary: '#4A4A4A', accent: '#7E7E7E', skill: 'Developing' },
@@ -39,7 +40,7 @@ const RANK_CONFIG = {
   'Immortal 3': { emoji: '🟥', primary: '#A52834', accent: '#D24357', skill: 'Elite' },
   'Radiant': { emoji: '✨', primary: '#FFF176', accent: '#FFFFFF', skill: 'Elite' },
   'Unrated': { emoji: '❓', primary: '#9CA3AF', accent: '#D1D5DB', skill: 'Unknown' },
-  'Unranked': { emoji: '❓', primary: '#9CA3AF', accent: '#D1D5DB', skill: 'Unknown' },
+  'Unranked': { emoji: '❓', primary: '#9CA3AF', accent: '#D1D5DB', skill: 'Unknown' }
 };
 
 // Skill tier configuration for fairness graph
@@ -48,11 +49,12 @@ const SKILL_TIER_CONFIG = {
   'High Skilled': { color: '#8b5cf6', label: 'High' },    // Violet-500
   'Intermediate': { color: '#3b82f6', label: 'Intermediate' }, // Blue-500
   'Beginner': { color: '#22c55e', label: 'Beginner' },    // Green-500
-  'Developing': { color: '#9ca3af', label: 'Developing' } // Zinc-400
-  'Unknown': { color: '#a1a1aa', label: 'Unknown' }      // Zinc-400
+  'Developing': { color: '#9ca3af', label: 'Developing' }, // Zinc-400
+  'Unknown': { color: '#d1d5db', label: 'Unknown' }       // Light gray
 };
 
 const SKILL_TIER_ORDER = ['Elite', 'High Skilled', 'Intermediate', 'Beginner', 'Developing', 'Unknown'];
+
 
 // Helper functions for rank styling
 const getRankInfo = (rank: string) => {
