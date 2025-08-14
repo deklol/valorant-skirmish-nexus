@@ -279,7 +279,7 @@ export function calculateEvidenceBasedWeight(
 
   // Apply underranked bonus for any player below their peak skill level
   let underrankedBonus = 0;
-  if (peakRank && RANK_POINT_MAPPING[peakRank]) {
+if (peakRank && RANK_POINT_MAPPING[peakRank] && weightSource === 'current_rank') {
     const peakPoints = RANK_POINT_MAPPING[peakRank];
     let currentPoints = basePoints;
     
