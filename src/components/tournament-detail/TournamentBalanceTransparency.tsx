@@ -517,12 +517,13 @@ const TournamentBalanceTransparency = ({ balanceAnalysis, teams }: TournamentBal
     if (!teamsData.length) return [];
 
     return teamsData.map(team => {
-      const rankCounts: { [key: string]: number } = {
-        'Elite': 0,
-        'High Skilled': 0,
-        'Intermediate': 0,
-        'Beginner': 0,
-        'Developing': 0,
+    const rankCounts: { [key: string]: number } = {
+      'Elite': 0,
+      'High Skilled': 0,
+      'Intermediate': 0,
+      'Beginner': 0,
+      'Developing': 0,
+      'Unknown': 0,
       };
 
       team.members.forEach(member => {
