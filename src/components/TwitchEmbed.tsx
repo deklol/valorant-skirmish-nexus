@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,30 +20,57 @@ function getChatEmbed(channel: string) {
 export default function TwitchEmbed() {
   const [enabled, setEnabled] = useState(false);
   const [channel, setChannel] = useState("");
-  const [showChat, setShowChat] = useState(true); // Always true for now, can be configurable
+  const [isTournamentLive, setIsTournamentLive] = useState(false); // State to track live status
+  const [showChat, setShowChat] = useState(true);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchTwitch() {
+    async function fetchTwitchAndTournamentStatus() {
       setLoading(true);
-      const { data } = await supabase
-        .from("app_settings")
-        .select("twitch_embed_enabled, twitch_channel")
-        .limit(1)
-        .maybeSingle();
 
-      if (data?.twitch_embed_enabled && data.twitch_channel) {
+      // Fetch app settings and check for live tournaments concurrently
+      const [settingsResult, liveTournamentResult] = await Promise.all([
+        supabase
+          .from("app_settings")
+          .select("twitch_embed_enabled, twitch_channel")
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from("tournaments")
+          .select("status")
+          .eq("status", "Live")
+          .limit(1), // We only need to know if at least one live tournament exists
+      ]);
+
+      const settingsData = settingsResult.data;
+      const hasLiveTournament = liveTournamentResult.data && liveTournamentResult.data.length > 0;
+
+      // Set state based on fetched data
+      if (settingsData?.twitch_embed_enabled && settingsData.twitch_channel) {
         setEnabled(true);
-        setChannel(data.twitch_channel);
+        setChannel(settingsData.twitch_channel);
       }
+      
+      if (hasLiveTournament) {
+        setIsTournamentLive(true);
+      }
+
       setLoading(false);
     }
-    fetchTwitch();
+    fetchTwitchAndTournamentStatus();
   }, []);
 
-  if (loading) return <div className="w-full flex justify-center items-center py-16"><span className="text-white">Loading Twitch stream...</span></div>;
-  if (!enabled || !channel) {
-    return null; // Show nothing if not enabled (full-width section will collapse)
+  if (loading) {
+    return (
+      <div className="w-full flex justify-center items-center py-16">
+        <span className="text-white">Loading Twitch stream...</span>
+      </div>
+    );
+  }
+
+  // Do not render the component if embed is disabled, no channel is set, OR no tournament is live
+  if (!enabled || !channel || !isTournamentLive) {
+    return null;
   }
 
   return (
