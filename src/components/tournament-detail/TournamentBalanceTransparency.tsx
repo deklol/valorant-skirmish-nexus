@@ -13,44 +13,45 @@ import { EVIDENCE_CONFIG } from "@/utils/evidenceBasedWeightSystem";
 
 // Rank configuration with emojis and colors
 const RANK_CONFIG = {
-  'Iron 1': { emoji: '⬛', primary: '#4A4A4A', accent: '#7E7E7E', skill: 'Low Skilled' },
-  'Iron 2': { emoji: '⬛', primary: '#4A4A4A', accent: '#7E7E7E', skill: 'Low Skilled' },
-  'Iron 3': { emoji: '⬛', primary: '#4A4A4A', accent: '#7E7E7E', skill: 'Low Skilled' },
-  'Bronze 1': { emoji: '🟫', primary: '#A97142', accent: '#C28E5C', skill: 'Low Skilled' },
-  'Bronze 2': { emoji: '🟫', primary: '#A97142', accent: '#C28E5C', skill: 'Low Skilled' },
-  'Bronze 3': { emoji: '🟫', primary: '#A97142', accent: '#C28E5C', skill: 'Low Skilled' },
-  'Silver 1': { emoji: '⬜', primary: '#C0C0C0', accent: '#D8D8D8', skill: 'Low Skilled' },
-  'Silver 2': { emoji: '⬜', primary: '#C0C0C0', accent: '#D8D8D8', skill: 'Low Skilled' },
-  'Silver 3': { emoji: '⬜', primary: '#C0C0C0', accent: '#D8D8D8', skill: 'Low Skilled' },
-  'Gold 1': { emoji: '🟨', primary: '#FFD700', accent: '#FFEA8A', skill: 'Low Skilled' },
-  'Gold 2': { emoji: '🟨', primary: '#FFD700', accent: '#FFEA8A', skill: 'Low Skilled' },
-  'Gold 3': { emoji: '🟨', primary: '#FFD700', accent: '#FFEA8A', skill: 'Low Skilled' },
-  'Platinum 1': { emoji: '🟦', primary: '#5CA3E4', accent: '#B3DAFF', skill: 'Low Skilled' },
-  'Platinum 2': { emoji: '🟦', primary: '#5CA3E4', accent: '#B3DAFF', skill: 'Low Skilled' },
-  'Platinum 3': { emoji: '🟦', primary: '#5CA3E4', accent: '#B3DAFF', skill: 'Low Skilled' },
-  'Diamond 1': { emoji: '🟪', primary: '#8d64e2', accent: '#B3DAFF', skill: 'Low Skilled' },
-  'Diamond 2': { emoji: '🟪', primary: '#8d64e2', accent: '#B3DAFF', skill: 'Low Skilled' },
-  'Diamond 3': { emoji: '🟪', primary: '#8d64e2', accent: '#B3DAFF', skill: 'Low Skilled' },
-  'Ascendant 1': { emoji: '🟩', primary: '#84FF6F', accent: '#B6FFA8', skill: 'Medium Skilled' },
-  'Ascendant 2': { emoji: '🟩', primary: '#84FF6F', accent: '#B6FFA8', skill: 'Medium Skilled' },
-  'Ascendant 3': { emoji: '🟩', primary: '#84FF6F', accent: '#B6FFA8', skill: 'Medium Skilled' },
+  'Iron 1': { emoji: '⬛', primary: '#4A4A4A', accent: '#7E7E7E', skill: 'Developing' },
+  'Iron 2': { emoji: '⬛', primary: '#4A4A4A', accent: '#7E7E7E', skill: 'Developing' },
+  'Iron 3': { emoji: '⬛', primary: '#4A4A4A', accent: '#7E7E7E', skill: 'Developing' },
+  'Bronze 1': { emoji: '🟫', primary: '#A97142', accent: '#C28E5C', skill: 'Beginner' },
+  'Bronze 2': { emoji: '🟫', primary: '#A97142', accent: '#C28E5C', skill: 'Beginner' },
+  'Bronze 3': { emoji: '🟫', primary: '#A97142', accent: '#C28E5C', skill: 'Beginner' },
+  'Silver 1': { emoji: '⬜', primary: '#C0C0C0', accent: '#D8D8D8', skill: 'Beginner' },
+  'Silver 2': { emoji: '⬜', primary: '#C0C0C0', accent: '#D8D8D8', skill: 'Beginner' },
+  'Silver 3': { emoji: '⬜', primary: '#C0C0C0', accent: '#D8D8D8', skill: 'Beginner' },
+  'Gold 1': { emoji: '🟨', primary: '#FFD700', accent: '#FFEA8A', skill: 'Beginner' },
+  'Gold 2': { emoji: '🟨', primary: '#FFD700', accent: '#FFEA8A', skill: 'Beginner' },
+  'Gold 3': { emoji: '🟨', primary: '#FFD700', accent: '#FFEA8A', skill: 'Beginner' },
+  'Platinum 1': { emoji: '🟦', primary: '#5CA3E4', accent: '#B3DAFF', skill: 'Intermediate' },
+  'Platinum 2': { emoji: '🟦', primary: '#5CA3E4', accent: '#B3DAFF', skill: 'Intermediate' },
+  'Platinum 3': { emoji: '🟦', primary: '#5CA3E4', accent: '#B3DAFF', skill: 'Intermediate' },
+  'Diamond 1': { emoji: '🟪', primary: '#8d64e2', accent: '#B3DAFF', skill: 'Intermediate' },
+  'Diamond 2': { emoji: '🟪', primary: '#8d64e2', accent: '#B3DAFF', skill: 'Intermediate' },
+  'Diamond 3': { emoji: '🟪', primary: '#8d64e2', accent: '#B3DAFF', skill: 'Intermediate' },
+  'Ascendant 1': { emoji: '🟩', primary: '#84FF6F', accent: '#B6FFA8', skill: 'Intermediate' },
+  'Ascendant 2': { emoji: '🟩', primary: '#84FF6F', accent: '#B6FFA8', skill: 'Intermediate' },
+  'Ascendant 3': { emoji: '🟩', primary: '#84FF6F', accent: '#B6FFA8', skill: 'Intermediate' },
   'Immortal 1': { emoji: '🟥', primary: '#A52834', accent: '#D24357', skill: 'High Skilled' },
   'Immortal 2': { emoji: '🟥', primary: '#A52834', accent: '#D24357', skill: 'High Skilled' },
-  'Immortal 3': { emoji: '🟥', primary: '#A52834', accent: '#D24357', skill: 'Elite Skilled' },
-  'Radiant': { emoji: '✨', primary: '#FFF176', accent: '#FFFFFF', skill: 'Elite Skilled' },
+  'Immortal 3': { emoji: '🟥', primary: '#A52834', accent: '#D24357', skill: 'Elite' },
+  'Radiant': { emoji: '✨', primary: '#FFF176', accent: '#FFFFFF', skill: 'Elite' },
   'Unrated': { emoji: '❓', primary: '#9CA3AF', accent: '#D1D5DB', skill: 'Unknown' },
   'Unranked': { emoji: '❓', primary: '#9CA3AF', accent: '#D1D5DB', skill: 'Unknown' }
 };
 
-// Configuration for the skill tiers in the fairness graph
+// Skill tier configuration for fairness graph
 const SKILL_TIER_CONFIG = {
-  'Elite Skilled': { color: '#ef4444', label: 'Elite' }, // Red-500
-  'High Skilled': { color: '#8b5cf6', label: 'High' }, // Violet-500
-  'Medium Skilled': { color: '#3b82f6', label: 'Medium' }, // Blue-500
-  'Low Skilled': { color: '#22c55e', label: 'Low' }, // Green-500
-  'Unknown': { color: '#a1a1aa', label: 'Unknown' } // Zinc-400
+  'Elite': { color: '#ef4444', label: 'Elite' },          // Red-500
+  'High Skilled': { color: '#8b5cf6', label: 'High' },    // Violet-500
+  'Intermediate': { color: '#3b82f6', label: 'Intermediate' }, // Blue-500
+  'Beginner': { color: '#22c55e', label: 'Beginner' },    // Green-500
+  'Developing': { color: '#9ca3af', label: 'Developing' } // Zinc-400
 };
-const SKILL_TIER_ORDER = ['Elite Skilled', 'High Skilled', 'Medium Skilled', 'Low Skilled', 'Unknown'];
+
+const SKILL_TIER_ORDER = ['Elite', 'High Skilled', 'Intermediate', 'Beginner', 'Developing'];
 
 // Helper functions for rank styling
 const getRankInfo = (rank: string) => {
