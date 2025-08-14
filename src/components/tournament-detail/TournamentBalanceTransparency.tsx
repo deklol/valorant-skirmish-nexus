@@ -39,7 +39,7 @@ const RANK_CONFIG = {
   'Immortal 3': { emoji: '🟥', primary: '#A52834', accent: '#D24357', skill: 'Elite' },
   'Radiant': { emoji: '✨', primary: '#FFF176', accent: '#FFFFFF', skill: 'Elite' },
   'Unrated': { emoji: '❓', primary: '#9CA3AF', accent: '#D1D5DB', skill: 'Unknown' },
-  'Unranked': { emoji: '❓', primary: '#9CA3AF', accent: '#D1D5DB', skill: 'Unknown' }
+  'Unranked': { emoji: '❓', primary: '#9CA3AF', accent: '#D1D5DB', skill: 'Unknown' },
 };
 
 // Skill tier configuration for fairness graph
