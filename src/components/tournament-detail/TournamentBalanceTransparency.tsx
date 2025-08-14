@@ -12,7 +12,6 @@ import { RANK_POINT_MAPPING } from "@/utils/rankingSystem";
 import { EVIDENCE_CONFIG } from "@/utils/evidenceBasedWeightSystem";
 
 // Rank configuration with emojis and colors
-// Rank configuration with emojis and colors
 const RANK_CONFIG = {
   'Iron 1': { emoji: '⬛', primary: '#4A4A4A', accent: '#7E7E7E', skill: 'Developing' },
   'Iron 2': { emoji: '⬛', primary: '#4A4A4A', accent: '#7E7E7E', skill: 'Developing' },
@@ -727,6 +726,7 @@ const resetSimulator = () => {
 
   // Determine if a player is the captain of a given team
   const isCaptain = (teamIdx: number, playerName?: string) => {
+    if (teamIdx < 0 || teamIdx >= teams.length) return false; // Safety check
     const team = teams[teamIdx];
     if (!team?.team_members) return false;
     return team.team_members.some(m => m.is_captain && m.users?.discord_username === playerName);
@@ -840,59 +840,72 @@ const resetSimulator = () => {
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {safeTeams.map((team, i) => (
-              <div key={team.id || i} className="p-3 rounded-lg bg-secondary/5 border border-secondary/10 min-h-[140px] flex flex-col">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-foreground">{team.name || `Team ${i + 1}`}</span>
-                    {simPhase === 'done' && (
-                      <Badge variant="outline" className="text-xs flex items-center gap-1 bg-emerald-500/15 text-emerald-600 border-emerald-500/30">
-                        <CheckCircle2 className="h-3 w-3" /> Completed
-                      </Badge>
-                    )}
-                  </div>
-                  <Badge variant="outline" className="text-xs">{simTeams[i]?.length || 0} players</Badge>
-                </div>
+            {safeTeams.map((team, i) => {
+              // ✅ FIX: Find the correct index from the simulation data source by matching team name
+              const correctIndex = (balanceAnalysis.teams_created || []).findIndex(createdTeam => createdTeam.name === team.name);
 
-                {/* Dynamic total points with delta */}
-                <div className="mb-2 flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Total points</span>
-                  <div className="flex items-center gap-1">
-                    <span className="font-semibold text-foreground">{teamTotals[i]} pts</span>
-                    {teamDeltas[i] !== 0 && (
-                      <span className={`flex items-center gap-1 ${teamDeltas[i] > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                        {teamDeltas[i] > 0 ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
-                        {teamDeltas[i] > 0 ? `+${teamDeltas[i]}` : teamDeltas[i]}
-                      </span>
-                    )}
-                  </div>
-                </div>
+              // ✅ FIX: Handle cases where the team might not be in the simulation data
+              if (correctIndex === -1) return null;
 
-                <div className="space-y-1">
-                  {(simTeams[i] || []).map(p => (
-                    <div key={p.key} className="px-2 py-1 rounded-md bg-card/50 border border-border/20 text-sm text-foreground animate-fade-in flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        {p.assignedOrder && (
-                          <div className="w-5 h-5 rounded-full bg-primary/20 text-primary text-xs font-semibold flex items-center justify-center">
-                            {p.assignedOrder}
-                          </div>
-                        )}
-                        {isCaptain(i, p.name) && (
-                          <Crown className="h-3 w-3 text-amber-500" />
-                        )}
-                        <span className="truncate">{p.name}</span>
-                      </div>
-                      {typeof p.movedFromTeam === 'number' && p.movedFromTeam !== i && (
-                        <div className={`flex items-center gap-1 ${p.isSub ? 'text-red-600' : 'text-emerald-600'}`}>
-                          <ArrowRight className="h-3 w-3" />
-                          <span className="text-xs">T{(p.movedFromTeam + 1)}</span>
-                        </div>
+              return (
+                <div key={team.id || i} className="p-3 rounded-lg bg-secondary/5 border border-secondary/10 min-h-[140px] flex flex-col">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-foreground">{team.name || `Team ${i + 1}`}</span>
+                      {simPhase === 'done' && (
+                        <Badge variant="outline" className="text-xs flex items-center gap-1 bg-emerald-500/15 text-emerald-600 border-emerald-500/30">
+                          <CheckCircle2 className="h-3 w-3" /> Completed
+                        </Badge>
                       )}
                     </div>
-                  ))}
+                    {/* ✅ FIX: Use correctIndex to get player count */}
+                    <Badge variant="outline" className="text-xs">{simTeams[correctIndex]?.length || 0} players</Badge>
+                  </div>
+
+                  {/* Dynamic total points with delta */}
+                  <div className="mb-2 flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Total points</span>
+                    <div className="flex items-center gap-1">
+                      {/* ✅ FIX: Use correctIndex for team totals and deltas */}
+                      <span className="font-semibold text-foreground">{teamTotals[correctIndex]} pts</span>
+                      {teamDeltas[correctIndex] !== 0 && (
+                        <span className={`flex items-center gap-1 ${teamDeltas[correctIndex] > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                          {teamDeltas[correctIndex] > 0 ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                          {teamDeltas[correctIndex] > 0 ? `+${teamDeltas[correctIndex]}` : teamDeltas[correctIndex]}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    {/* ✅ FIX: Use correctIndex to get the list of players */}
+                    {(simTeams[correctIndex] || []).map(p => (
+                      <div key={p.key} className="px-2 py-1 rounded-md bg-card/50 border border-border/20 text-sm text-foreground animate-fade-in flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {p.assignedOrder && (
+                            <div className="w-5 h-5 rounded-full bg-primary/20 text-primary text-xs font-semibold flex items-center justify-center">
+                              {p.assignedOrder}
+                            </div>
+                          )}
+                          {/* Note: `isCaptain` uses the visual loop index 'i' which is correct for its logic */}
+                          {isCaptain(i, p.name) && (
+                            <Crown className="h-3 w-3 text-amber-500" />
+                          )}
+                          <span className="truncate">{p.name}</span>
+                        </div>
+                        {/* ✅ FIX: Use correctIndex for the comparison */}
+                        {typeof p.movedFromTeam === 'number' && p.movedFromTeam !== correctIndex && (
+                          <div className={`flex items-center gap-1 ${p.isSub ? 'text-red-600' : 'text-emerald-600'}`}>
+                            <ArrowRight className="h-3 w-3" />
+                            <span className="text-xs">T{(p.movedFromTeam + 1)}</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
