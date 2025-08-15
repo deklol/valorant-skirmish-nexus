@@ -66,7 +66,7 @@ serve(async (req) => {
     let rr = 0
 
     // Extract rank and RR from the response string
-    const rankMatch = rankData.match(/(Iron|Bronze|Silver|Gold|Platinum|Diamond|Ascendant|Immortal|Radiant)(?:\s+(\d+))/)
+    const rankMatch = rankData.match(/(Iron|Bronze|Silver|Gold|Platinum|Diamond|Ascendant|Immortal|Radiant)(?:\s*(\d+))?/)
     const rrMatch = rankData.match(/RR:\s*(\d+)/)
     const unratedMatch = rankData.match(/\b(?:Unrated|Unranked)\b/i)
 
@@ -75,17 +75,8 @@ serve(async (req) => {
       rr = 0
     } else if (rankMatch) {
       const [_, rankTier, rankLevel] = rankMatch
-      if (rankTier === 'Radiant') {
-        currentRank = 'Radiant'
-      } else if (rankLevel) {
-        currentRank = `${rankTier} ${rankLevel}`
-      } else {
-        currentRank = rankTier
-      }
-      
-      if (rrMatch) {
-        rr = parseInt(rrMatch[1])
-      }
+      currentRank = rankLevel ? `${rankTier} ${rankLevel}` : rankTier
+      if (rrMatch) rr = parseInt(rrMatch[1])
     }
 
     console.log(`Parsed rank: ${currentRank}, RR: ${rr}`)
