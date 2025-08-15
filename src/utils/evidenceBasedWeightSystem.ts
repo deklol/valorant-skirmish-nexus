@@ -62,7 +62,7 @@ export interface EvidenceWithMiniAi {
 const DEFAULT_EVIDENCE_CONFIG: EvidenceBasedConfig = {
   enableEvidenceBasedWeights: true,
   tournamentWinBonus: 15, // +15 points per tournament win
-  underrankedBonusThreshold: 1.5, // Start applying bonus at 1.5 tier drop (75 points)
+  underrankedBonusThreshold: 1.0, // Start applying bonus at 1.0 tier drop (50 points)
   maxUnderrankedBonus: 0.35, // Max 35% underranked bonus
   skillTierCaps: {
     enabled: true,
@@ -284,16 +284,17 @@ export function calculateEvidenceBasedWeight(
     const currentPoints = basePoints; // Using current rank as base
     const pointDifference = peakPoints - currentPoints;
     
-    // Apply generous bonus for any meaningful rank drop (1.5+ tiers = 75+ points)
+    // Apply generous bonus for any meaningful rank drop (1.0+ tiers = 50+ points)
     const thresholdPoints = config.underrankedBonusThreshold * 50; // Convert tiers to points
     if (pointDifference >= thresholdPoints) {
       const tierDrops = pointDifference / 50; // Exact tier drops (can be decimal)
       
       // Progressive bonus system: more generous for larger drops
-      // 10% for first tier, then increasing increments
+      // 8% for first tier, then increasing increments  
       let bonusPercent = 0;
-      if (tierDrops >= 1.5) bonusPercent += 0.10; // First 1.5 tiers: +10%
-      if (tierDrops >= 2.5) bonusPercent += 0.05; // Next tier: +5% more (15% total)
+      if (tierDrops >= 1.0) bonusPercent += 0.08; // First 1.0 tier: +8%
+      if (tierDrops >= 1.5) bonusPercent += 0.04; // Next 0.5 tier: +4% more (12% total)
+      if (tierDrops >= 2.5) bonusPercent += 0.05; // Next tier: +5% more (17% total)
       if (tierDrops >= 3.5) bonusPercent += 0.02; // Next tier: +2% more (17% total)
       if (tierDrops >= 4.5) bonusPercent += 0.03; // Optional: soft bump (20% total)
       if (tierDrops >= 5.5) bonusPercent += 0.02; // Additional: (22% total)
