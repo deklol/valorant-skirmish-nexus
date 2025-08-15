@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import ClickableUsername from "./ClickableUsername";
 import ManualRankOverrideSection from "./admin/ManualRankOverrideSection";
+import BatchRankRefreshButton from "./BatchRankRefreshButton";
 
 interface UserData {
   id: string;
@@ -343,6 +344,12 @@ const UserManagement = () => {
             User Management
           </CardTitle>
           <div className="flex items-center gap-2">
+            <BatchRankRefreshButton 
+              onRefreshComplete={fetchUsers}
+              variant="outline" 
+              size="sm"
+              className="border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-white"
+            />
             <div className="relative">
               <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
               <Input
