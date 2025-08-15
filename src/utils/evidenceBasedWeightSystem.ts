@@ -289,15 +289,14 @@ export function calculateEvidenceBasedWeight(
     if (pointDifference >= thresholdPoints) {
       const tierDrops = pointDifference / 50; // Exact tier drops (can be decimal)
       
-      // Progressive bonus system: more generous for larger drops
-      // 8% for first tier, then increasing increments  
-      let bonusPercent = 0;
-      if (tierDrops >= 1.0) bonusPercent += 0.08; // First 1.0 tier: +8%
-      if (tierDrops >= 1.5) bonusPercent += 0.04; // Next 0.5 tier: +4% more (12% total)
-      if (tierDrops >= 2.5) bonusPercent += 0.05; // Next tier: +5% more (17% total)
-      if (tierDrops >= 3.5) bonusPercent += 0.02; // Next tier: +2% more (17% total)
-      if (tierDrops >= 4.5) bonusPercent += 0.03; // Optional: soft bump (20% total)
-      if (tierDrops >= 5.5) bonusPercent += 0.02; // Additional: (22% total)
+    // Progressive bonus system
+    let bonusPercent = 0;
+    if (tierDrops >= 1.0) bonusPercent += 0.08; // First 1.0 tier: +8%
+    if (tierDrops >= 1.5) bonusPercent += 0.04; // Next 0.5 tier: +4% more (12% total)
+    if (tierDrops >= 2.0) bonusPercent += 0.06; // Next 0.5 tier: +6% more (18% total) <-- CHANGED
+    if (tierDrops >= 3.0) bonusPercent += 0.04; // Next tier: +4% more (22% total) <-- CHANGED
+    if (tierDrops >= 4.5) bonusPercent += 0.03; // Optional: soft bump (25% total)
+    if (tierDrops >= 5.5) bonusPercent += 0.02; // Additional: (27% total)
       
       // Cap at max bonus
       bonusPercent = Math.min(bonusPercent, config.maxUnderrankedBonus);
