@@ -279,7 +279,7 @@ export function calculateEvidenceBasedWeight(
 
   // Apply underranked bonus for any player below their peak skill level
   let underrankedBonus = 0;
-if (peakRank && RANK_POINT_MAPPING[peakRank] && weightSource === 'current_rank') {
+  if (peakRank && RANK_POINT_MAPPING[peakRank] && currentRank && currentRank !== peakRank) {
     const peakPoints = RANK_POINT_MAPPING[peakRank];
     let currentPoints = basePoints;
     
@@ -308,7 +308,7 @@ if (peakRank && RANK_POINT_MAPPING[peakRank] && weightSource === 'current_rank')
       bonusPercent = Math.min(bonusPercent, config.maxUnderrankedBonus);
       underrankedBonus = Math.floor(basePoints * bonusPercent);
       
-      const rankStatus = weightSource === 'peak_rank' ? 'Unrated' : currentRank || 'Unknown';
+      const rankStatus = weightSource === 'peak_rank' ? 'Unrated' : (currentRank || 'Unknown');
       evidenceFactors.push(`Underranked Bonus: ${rankStatus} vs ${peakRank} peak = ${tierDrops.toFixed(1)} tier drop = +${Math.round(bonusPercent * 100)}% (+${underrankedBonus})`);
     }
   }
