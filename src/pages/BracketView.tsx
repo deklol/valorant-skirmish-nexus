@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -156,9 +156,9 @@ export default function BracketView() {
       if (data) {
         setBracketData(data);
       }
-    } catch (error: any) {
-      console.error('Failed to refresh bracket data:', error);
-    }
+      } catch (error: any) {
+        console.error('BracketView: Failed to refresh bracket data:', error);
+      }
   };
 
   if (loading) {

@@ -73,7 +73,7 @@ const BracketGenerator = ({ tournamentId, teams, onBracketGenerated }: BracketGe
       
       // Add logging for map pool capture
       const mapCount = Array.isArray(capturedMapPoolData) ? capturedMapPoolData.length : (capturedMapPoolData ? 1 : 0);
-      console.log(`[BracketGenerator] Captured ${mapCount} maps for tournament ${tournamentId}`);
+      // Map pool captured successfully
 
     } catch (error: any) {
       console.error('Error generating bracket:', error);
@@ -90,11 +90,11 @@ const BracketGenerator = ({ tournamentId, teams, onBracketGenerated }: BracketGe
   // FIXED: Corrected bracket generation logic using proper bracket structure calculations
   const generateSingleEliminationBracket = async (tournamentId: string, teams: { id: string; name: string }[]) => {
     const teamCount = teams.length;
-    console.log(`🏗️ Generating bracket for ${teamCount} teams`);
+    // Generating bracket for teams
     
     // Use the same bracket structure calculation as the progression logic
     const bracketStructure = calculateBracketStructure(teamCount);
-    console.log('🏗️ Bracket structure:', bracketStructure);
+    // Calculated bracket structure
     
     // Shuffle teams for random seeding
     const shuffledTeams = [...teams].sort(() => Math.random() - 0.5);
@@ -105,7 +105,7 @@ const BracketGenerator = ({ tournamentId, teams, onBracketGenerated }: BracketGe
     // Generate matches for each round with proper sequential numbering
     for (let round = 1; round <= bracketStructure.totalRounds; round++) {
       const matchesInRound = bracketStructure.matchesPerRound[round - 1];
-      console.log(`🏗️ Round ${round}: Creating ${matchesInRound} matches`);
+      // Creating matches for this round
       
       for (let matchInRound = 1; matchInRound <= matchesInRound; matchInRound++) {
         const matchData: any = {
@@ -130,9 +130,9 @@ const BracketGenerator = ({ tournamentId, teams, onBracketGenerated }: BracketGe
             matchData.team2_id = shuffledTeams[team2Index].id;
           }
           
-          console.log(`🏗️ R${round}M${matchInRound}: ${shuffledTeams[team1Index]?.name || 'TBD'} vs ${shuffledTeams[team2Index]?.name || 'TBD'}`);
+          // Teams assigned to match
         } else {
-          console.log(`🏗️ R${round}M${matchInRound}: Awaiting winners from previous round`);
+          // Awaiting winners from previous round
         }
 
         allMatches.push(matchData);
@@ -140,7 +140,7 @@ const BracketGenerator = ({ tournamentId, teams, onBracketGenerated }: BracketGe
     }
     
     // Insert all matches in a single transaction
-    console.log(`🏗️ Inserting ${allMatches.length} matches into database`);
+    // Inserting matches into database
     const { error } = await supabase
       .from('matches')
       .insert(allMatches);
@@ -150,7 +150,7 @@ const BracketGenerator = ({ tournamentId, teams, onBracketGenerated }: BracketGe
     }
     
     // Validate the created bracket structure
-    console.log('🔍 Validating created bracket...');
+    // Validating created bracket
     const { data: createdMatches, error: fetchError } = await supabase
       .from('matches')
       .select('round_number, match_number')
@@ -161,7 +161,7 @@ const BracketGenerator = ({ tournamentId, teams, onBracketGenerated }: BracketGe
     if (fetchError) {
       console.error('Failed to validate bracket:', fetchError);
     } else {
-      console.log('✅ Created matches:', createdMatches?.map(m => `R${m.round_number}M${m.match_number}`));
+      // Matches created successfully
       
       // Verify bracket structure matches expectations
       const expectedStructure = bracketStructure.matchesPerRound.map((count, index) => 
@@ -170,8 +170,7 @@ const BracketGenerator = ({ tournamentId, teams, onBracketGenerated }: BracketGe
       
       const actualStructure = createdMatches?.map(m => `R${m.round_number}M${m.match_number}`) || [];
       
-      console.log('🔍 Expected structure:', expectedStructure);
-      console.log('🔍 Actual structure:', actualStructure);
+      // Bracket structure validation check
       
       const missingMatches = expectedStructure.filter(expected => !actualStructure.includes(expected));
       const extraMatches = actualStructure.filter(actual => !expectedStructure.includes(actual));
@@ -186,7 +185,7 @@ const BracketGenerator = ({ tournamentId, teams, onBracketGenerated }: BracketGe
         throw new Error(`Bracket validation failed: Extra matches ${extraMatches.join(', ')}`);
       }
       
-      console.log('✅ Bracket structure validation passed');
+      // Bracket validation successful
     }
   };
 

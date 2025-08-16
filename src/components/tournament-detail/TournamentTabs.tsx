@@ -28,39 +28,46 @@ export default function TournamentTabs({
 }) {
   return (
     <StandardTabs defaultValue="overview" className="space-y-6">
-      <StandardTabsList className="flex flex-wrap w-full gap-x-2 gap-y-2">
-        <StandardTabsTrigger value="overview">
-          <Settings className="w-4 h-4 mr-2" />
-          Overview
+      <StandardTabsList className="flex flex-wrap w-full gap-x-1 gap-y-1 md:gap-x-2 md:gap-y-2 overflow-x-auto">
+        <StandardTabsTrigger value="overview" className="flex items-center gap-1 md:gap-2 whitespace-nowrap px-2 md:px-4">
+          <Settings className="w-4 h-4" />
+          <span className="hidden md:inline">Overview</span>
+          <span className="md:hidden">Info</span>
         </StandardTabsTrigger>
-        <StandardTabsTrigger value="rules">
-          <ScrollText className="w-4 h-4 mr-2" />
-          Rules
+        <StandardTabsTrigger value="rules" className="flex items-center gap-1 md:gap-2 whitespace-nowrap px-2 md:px-4">
+          <ScrollText className="w-4 h-4" />
+          <span className="hidden md:inline">Rules</span>
+          <span className="md:hidden">Rule</span>
         </StandardTabsTrigger>
         {matches.length > 0 && (
-          <StandardTabsTrigger value="bracket">
-            <Trophy className="w-4 h-4 mr-2" />
-            Bracket
+          <StandardTabsTrigger value="bracket" className="flex items-center gap-1 md:gap-2 whitespace-nowrap px-2 md:px-4">
+            <Trophy className="w-4 h-4" />
+            <span className="hidden md:inline">Bracket</span>
+            <span className="md:hidden">Brkt</span>
           </StandardTabsTrigger>
         )}
-        <StandardTabsTrigger value="participants">
-          <Users className="w-4 h-4 mr-2" />
-          Participants
+        <StandardTabsTrigger value="participants" className="flex items-center gap-1 md:gap-2 whitespace-nowrap px-2 md:px-4">
+          <Users className="w-4 h-4" />
+          <span className="hidden md:inline">Participants</span>
+          <span className="md:hidden">Play</span>
         </StandardTabsTrigger>
         {/* The 'Balance Analysis' tab trigger has been removed as it's now on the main page. */}
         {isAdmin && (
           <>
-            <StandardTabsTrigger value="admin">
-              <Settings className="w-4 h-4 mr-2" />
-              Admin
+            <StandardTabsTrigger value="admin" className="flex items-center gap-1 md:gap-2 whitespace-nowrap px-2 md:px-4">
+              <Settings className="w-4 h-4" />
+              <span className="hidden md:inline">Admin</span>
+              <span className="md:hidden">Adm</span>
             </StandardTabsTrigger>
-            <StandardTabsTrigger value="players">
-              <UserCheck className="w-4 h-4 mr-2" />
-              Players
+            <StandardTabsTrigger value="players" className="flex items-center gap-1 md:gap-2 whitespace-nowrap px-2 md:px-4">
+              <UserCheck className="w-4 h-4" />
+              <span className="hidden md:inline">Players</span>
+              <span className="md:hidden">Plys</span>
             </StandardTabsTrigger>
-            <StandardTabsTrigger value="balancing">
-              <Scale className="w-4 h-4 mr-2" />
-              Balance
+            <StandardTabsTrigger value="balancing" className="flex items-center gap-1 md:gap-2 whitespace-nowrap px-2 md:px-4">
+              <Scale className="w-4 h-4" />
+              <span className="hidden md:inline">Balance</span>
+              <span className="md:hidden">Bal</span>
             </StandardTabsTrigger>
           </>
         )}

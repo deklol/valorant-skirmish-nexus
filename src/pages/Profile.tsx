@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,8 @@ import { useUserTeam } from "@/hooks/useUserTeam";
 import ClickableTeamName from "@/components/ClickableTeamName";
 import { Username } from "@/components/Username";
 import { Users } from "lucide-react";
+import { ProfileHeaderSkeleton } from "@/components/ui/loading-skeleton";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 interface UserProfile {
   id: string;
@@ -212,11 +214,7 @@ const Profile = () => {
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <div className="animate-pulse">
-          <div className="h-8 bg-slate-700 rounded w-1/3 mb-4"></div>
-          <div className="h-32 bg-slate-700 rounded mb-4"></div>
-          <div className="h-96 bg-slate-700 rounded"></div>
-        </div>
+        <ProfileHeaderSkeleton />
       </div>
     );
   }
@@ -236,7 +234,8 @@ const Profile = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <ErrorBoundary componentName="Profile">
+      <div className="container mx-auto px-4 py-8">
       {/* Profile Header */}
       <Card className="bg-slate-800 border-slate-700 mb-6">
         <CardHeader>
@@ -417,30 +416,37 @@ const Profile = () => {
       <Card className="bg-slate-800 border-slate-700">
         <CardContent className="p-6">
           <Tabs defaultValue="settings" className="w-full">
-            <TabsList className="grid w-full grid-cols-7 bg-slate-800/90 border border-slate-700">
-              <TabsTrigger value="settings" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
-                <Settings className="w-4 h-4 mr-2" />
-                Settings
+            <TabsList className="grid w-full grid-cols-7 bg-slate-800/90 border border-slate-700 overflow-x-auto gap-1 md:gap-0">
+              <TabsTrigger value="settings" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white whitespace-nowrap px-2 md:px-4">
+                <Settings className="w-4 h-4 mr-1 md:mr-2" />
+                <span className="hidden md:inline">Settings</span>
+                <span className="md:hidden">Set</span>
               </TabsTrigger>
-              <TabsTrigger value="awards" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
-                Achievements
+              <TabsTrigger value="awards" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white whitespace-nowrap px-2 md:px-4">
+                <span className="hidden md:inline">Achievements</span>
+                <span className="md:hidden">Awards</span>
               </TabsTrigger>
-              <TabsTrigger value="matches" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
-                Match History
+              <TabsTrigger value="matches" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white whitespace-nowrap px-2 md:px-4">
+                <span className="hidden md:inline">Match History</span>
+                <span className="md:hidden">Matches</span>
               </TabsTrigger>
-              <TabsTrigger value="tournaments" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
-                Tournaments
+              <TabsTrigger value="tournaments" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white whitespace-nowrap px-2 md:px-4">
+                <span className="hidden md:inline">Tournaments</span>
+                <span className="md:hidden">Tourns</span>
               </TabsTrigger>
-              <TabsTrigger value="rank-history" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
-                <TrendingUp className="w-4 h-4 mr-2" />
-                Rank History
+              <TabsTrigger value="rank-history" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white whitespace-nowrap px-2 md:px-4">
+                <TrendingUp className="w-4 h-4 mr-1 md:mr-2" />
+                <span className="hidden md:inline">Rank History</span>
+                <span className="md:hidden">Rank</span>
               </TabsTrigger>
-              <TabsTrigger value="ranked-matches" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
-                Ranked Matches
+              <TabsTrigger value="ranked-matches" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white whitespace-nowrap px-2 md:px-4">
+                <span className="hidden md:inline">Ranked Matches</span>
+                <span className="md:hidden">Ranked</span>
               </TabsTrigger>
-              <TabsTrigger value="notifications" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
-                <Bell className="w-4 h-4 mr-2" />
-                Notifications
+              <TabsTrigger value="notifications" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white whitespace-nowrap px-2 md:px-4">
+                <Bell className="w-4 h-4 mr-1 md:mr-2" />
+                <span className="hidden md:inline">Notifications</span>
+                <span className="md:hidden">Notif</span>
               </TabsTrigger>
             </TabsList>
 
@@ -607,7 +613,8 @@ const Profile = () => {
         onOpenChange={setShowRiotDialog}
         onComplete={handleRiotIdComplete}
       />
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 };
 

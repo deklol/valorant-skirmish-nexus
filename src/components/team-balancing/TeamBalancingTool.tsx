@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Shuffle } from "lucide-react";
@@ -14,7 +14,7 @@ interface TeamBalancingToolProps {
   onTeamsBalanced: () => void;
 }
 
-const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBalancingToolProps) => {
+const TeamBalancingTool = React.memo(({ tournamentId, maxTeams, onTeamsBalanced }: TeamBalancingToolProps) => {
   const [loading, setLoading] = useState(false);
   const [balancingStatus, setBalancingStatus] = useState<'idle' | 'balancing' | 'complete'>('idle');
   const { toast } = useToast();
@@ -35,7 +35,7 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
       });
       
     } catch (error: any) {
-      console.error('Error balancing teams:', error);
+      console.error('TeamBalancingTool: Error balancing teams:', error);
       setBalancingStatus('idle');
       toast({
         title: "Error",
@@ -79,6 +79,8 @@ const TeamBalancingTool = ({ tournamentId, maxTeams, onTeamsBalanced }: TeamBala
       </CardContent>
     </Card>
   );
-};
+});
+
+TeamBalancingTool.displayName = "TeamBalancingTool";
 
 export default TeamBalancingTool;

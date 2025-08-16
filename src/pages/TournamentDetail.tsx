@@ -1,4 +1,5 @@
 
+import React from "react";
 import { useAuth } from "@/hooks/useAuth";
 import TournamentWinnerDisplay from "@/components/TournamentWinnerDisplay";
 import TournamentRegistration from "@/components/TournamentRegistration";
@@ -9,6 +10,8 @@ import TeamsSection from "@/components/tournament-detail/TeamsSection";
 import TournamentTabs from "@/components/tournament-detail/TournamentTabs";
 import { TournamentLoading, TournamentNotFound } from "@/components/tournament-detail/LoadingStates";
 import SponsorDisplay from "@/components/SponsorDisplay";
+import { TournamentPageSkeleton } from "@/components/ui/loading-skeleton";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 import { useTournamentPageTracking } from "@/hooks/useAnalytics";
 
@@ -27,11 +30,12 @@ const TournamentDetail = () => {
   // Track tournament page views
   useTournamentPageTracking(tournament?.id);
 
-  if (loading) return <TournamentLoading />;
+  if (loading) return <TournamentPageSkeleton />;
   if (!tournament) return <TournamentNotFound />;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
+    <ErrorBoundary componentName="TournamentDetail">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
       <div className="container mx-auto px-4 py-6">
         {/* Compact Header */}
         <TournamentHero tournament={tournament} stats={{ players: signups?.length || 0, teams: teams?.length || 0, matches: matches?.length || 0 }} />
@@ -76,7 +80,8 @@ const TournamentDetail = () => {
           />
         </div>
       </div>
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 };
 

@@ -1,3 +1,4 @@
+import React from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StandardBadge, StandardHeading, StandardText } from "@/components/ui";
@@ -16,7 +17,7 @@ interface TournamentCardProps {
   };
 }
 
-const TournamentCard = ({ tournament }: TournamentCardProps) => {
+const TournamentCard = React.memo(({ tournament }: TournamentCardProps) => {
   const navigate = useNavigate();
 
   type BadgeStatus = "success" | "warning" | "error" | "info" | "neutral";
@@ -141,7 +142,7 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
           <Button
             variant="default"
             size="sm"
-            className="flex-1"
+            className="flex-1 min-h-[36px] touch-manipulation"
             onClick={handleCardClick}
           >
             View Details
@@ -149,7 +150,7 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
           <Button
             variant="outline"
             size="sm"
-            className="flex-1"
+            className="flex-1 min-h-[36px] touch-manipulation"
             onClick={handleBracketClick}
           >
             View Bracket
@@ -158,6 +159,8 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
       </CardContent>
     </Card>
   );
-};
+});
+
+TournamentCard.displayName = "TournamentCard";
 
 export default TournamentCard;

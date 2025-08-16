@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,8 @@ import RecentWinners from "@/components/RecentWinners";
 import MemberHighlights from "@/components/MemberHighlights";
 import SponsorDisplay from "@/components/SponsorDisplay";
 import HomeHero from "@/components/home/HomeHero";
+import { HomePageSkeleton } from "@/components/ui/loading-skeleton";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 const Index = () => {
   const { user } = useAuth();
@@ -97,7 +99,7 @@ const Index = () => {
           completedMatches: completedMatchCount || 0
         });
       } catch (error) {
-        console.error('Error fetching stats:', error);
+        console.error('Index: Error fetching homepage stats:', error);
       } finally {
         setLoading(false);
       }
@@ -115,8 +117,13 @@ const Index = () => {
     });
   };
 
+  if (loading) {
+    return <HomePageSkeleton />;
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
+    <ErrorBoundary componentName="Homepage">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
       {/* Hero/Main Headline */}
       <section className="container mx-auto px-4 pt-8 pb-6">
         <HomeHero />
@@ -291,7 +298,8 @@ const Index = () => {
         </div>
       </section>
 
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 };
 
