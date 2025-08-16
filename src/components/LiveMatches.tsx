@@ -89,12 +89,18 @@ const LiveMatches = () => {
       const res = await fetch('https://vlr.orlandomm.net/api/v1/matches');
       const json = await res.json();
       if (json?.data) {
-        const finished = json.data
-          .filter((m: ValorantMatch) =>
-            m.status.toLowerCase().includes('finished')
-          )
+        const finishedOrScored = json.data
+          .filter((m: ValorantMatch) => {
+            // keep matches that are live OR have a score for both teams
+            const hasScores =
+              m.teams &&
+              m.teams.length === 2 &&
+              m.teams.every(t => t.score !== null && t.score !== '');
+            return m.status.toLowerCase() === 'live' || hasScores;
+          })
           .slice(0, 3);
-        setRecentResults(finished);
+  
+        setRecentResults(finishedOrScored);
       }
     } catch (error) {
       console.error('Error fetching Valorant results:', error);
@@ -102,6 +108,7 @@ const LiveMatches = () => {
       setLoadingResults(false);
     }
   };
+
 
   const formatTime = (dateString?: string) => {
     if (!dateString) return null;
