@@ -17,6 +17,8 @@ import ClickableTeamName from "@/components/ClickableTeamName";
 import { Username } from "@/components/Username";
 import { PageLayout } from "@/components/ui/page-layout";
 import ProfileValorantRankedMatches from '@/components/profile/ProfileValorantRankedMatches';
+import { FollowButton } from "@/components/FollowButton";
+import { useFollows } from "@/hooks/useFollows";
 
 const PublicProfile = () => {
   const { userId } = useParams<{ userId: string }>();
@@ -37,6 +39,23 @@ const PublicProfile = () => {
   });
 
   const { userTeam, loading: teamLoading } = useUserTeam(userId);
+  const { followerCount, followingCount } = useFollows(userId || '');
+
+  // Helper function to get agent icon URL
+  const getAgentIconUrl = (agentName: string) => {
+    return `https://static.wikia.nocookie.net/valorant/images/4/49/${agentName}_icon.png`;
+  };
+
+  // Helper function to get role color
+  const getRoleColor = (role: string) => {
+    switch (role) {
+      case 'Duelist': return 'text-red-400 bg-red-500/20 border-red-500/30';
+      case 'Controller': return 'text-blue-400 bg-blue-500/20 border-blue-500/30';
+      case 'Initiator': return 'text-yellow-400 bg-yellow-500/20 border-yellow-500/30';
+      case 'Sentinel': return 'text-green-400 bg-green-500/20 border-green-500/30';
+      default: return 'text-slate-400 bg-slate-500/20 border-slate-500/30';
+    }
+  };
 
   if (isLoading) {
     return (
@@ -89,8 +108,20 @@ const PublicProfile = () => {
                       Admin
                     </Badge>
                   )}
+                  {(profile as any).looking_for_team && (
+                    <Badge className="bg-gradient-to-r from-green-600 to-green-700 text-white border-green-500">
+                      <Users className="w-3 h-3 mr-1" />
+                      LFT
+                    </Badge>
+                  )}
                   {isPrivate && <Lock className="w-5 h-5 text-slate-400" />}
                 </CardTitle>
+                
+                {/* Status Message */}
+                {!isPrivate && (profile as any).status_message && (
+                  <p className="text-slate-300 text-sm mt-1 italic">"{(profile as any).status_message}"</p>
+                )}
+                
                 <div className="flex items-center gap-2 mt-2">
                   {profile.current_rank && (
                     <Badge className="bg-blue-600 text-white">
@@ -102,45 +133,70 @@ const PublicProfile = () => {
                       Peak: {profile.peak_rank}
                     </Badge>
                   )}
+                  
+                  {/* Valorant Role */}
+                  {!isPrivate && (profile as any).valorant_role && (
+                    <Badge variant="outline" className={`border ${getRoleColor((profile as any).valorant_role)}`}>
+                      {(profile as any).valorant_role}
+                    </Badge>
+                  )}
                 </div>
+                
+                {/* Agent Selection */}
+                {!isPrivate && (profile as any).valorant_agent && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <img 
+                      src={getAgentIconUrl((profile as any).valorant_agent)} 
+                      alt={(profile as any).valorant_agent}
+                      className="w-6 h-6 rounded"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                    <span className="text-slate-400 text-sm">Mains {(profile as any).valorant_agent}</span>
+                  </div>
+                )}
               </div>
             </div>
-            {/* Profile Links List: Twitter, Twitch, Tracker.gg */}
-            {!isPrivate && (profile.twitter_handle || profile.twitch_handle || profile.riot_id) && (
-              <div className="flex flex-col items-end gap-0.5 text-sm">
-                <span className="text-slate-400 font-semibold mb-1">Links</span>
-                {profile.twitter_handle && (
-                  <a
-                    href={`https://twitter.com/${profile.twitter_handle.replace(/^@/, '')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:underline text-blue-400"
-                  >
-                    Twitter
-                  </a>
-                )}
-                {profile.twitch_handle && (
-                  <a
-                    href={`https://twitch.tv/${profile.twitch_handle}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:underline text-purple-400"
-                  >
-                    Twitch
-                  </a>
-                )}
-                {profile.riot_id && (
-                  <a
-                    href={getTrackerGGUrl(profile.riot_id) || "#"}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:underline text-red-400"
-                  >
-                    Tracker.gg
-                  </a>
-                )}
-              </div>
-            )}
+            
+            <div className="flex flex-col items-end gap-2">
+              {/* Profile Links List: Twitter, Twitch, Tracker.gg */}
+              {!isPrivate && (profile.twitter_handle || profile.twitch_handle || profile.riot_id) && (
+                <div className="flex flex-col items-end gap-0.5 text-sm">
+                  <span className="text-slate-400 font-semibold mb-1">Links</span>
+                  {profile.twitter_handle && (
+                    <a
+                      href={`https://twitter.com/${profile.twitter_handle.replace(/^@/, '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:underline text-blue-400"
+                    >
+                      Twitter
+                    </a>
+                  )}
+                  {profile.twitch_handle && (
+                    <a
+                      href={`https://twitch.tv/${profile.twitch_handle}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:underline text-purple-400"
+                    >
+                      Twitch
+                    </a>
+                  )}
+                  {profile.riot_id && (
+                    <a
+                      href={getTrackerGGUrl(profile.riot_id) || "#"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:underline text-red-400"
+                    >
+                      Tracker.gg
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </CardHeader>
         
