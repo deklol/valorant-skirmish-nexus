@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -2023,25 +2023,25 @@ export type Database = {
     }
     Functions: {
       activate_name_effect: {
-        Args: { p_user_id: string; p_purchase_id: string }
+        Args: { p_purchase_id: string; p_user_id: string }
         Returns: Json
       }
       advance_match_winner_secure: {
         Args: {
-          p_match_id: string
-          p_winner_id: string
           p_loser_id: string
-          p_tournament_id: string
+          p_match_id: string
           p_score_team1?: number
           p_score_team2?: number
+          p_tournament_id: string
+          p_winner_id: string
         }
         Returns: Json
       }
       can_user_perform_veto: {
         Args: {
-          p_veto_session_id: string
-          p_user_id: string
           p_team_id: string
+          p_user_id: string
+          p_veto_session_id: string
         }
         Returns: string
       }
@@ -2052,27 +2052,27 @@ export type Database = {
       check_and_award_achievements: {
         Args: { p_user_id: string }
         Returns: {
-          newly_earned_achievement_id: string
           achievement_name: string
+          newly_earned_achievement_id: string
         }[]
       }
       choose_veto_side: {
-        Args: { p_match_id: string; p_user_id: string; p_side_choice: string }
+        Args: { p_match_id: string; p_side_choice: string; p_user_id: string }
         Returns: Json
       }
       create_enhanced_notification: {
         Args: {
-          p_user_id: string
-          p_type: string
-          p_title: string
-          p_message: string
           p_data?: Json
-          p_tournament_id?: string
-          p_match_id?: string
-          p_team_id?: string
-          p_send_push?: boolean
-          p_send_email?: boolean
           p_email_subject?: string
+          p_match_id?: string
+          p_message: string
+          p_send_email?: boolean
+          p_send_push?: boolean
+          p_team_id?: string
+          p_title: string
+          p_tournament_id?: string
+          p_type: string
+          p_user_id: string
         }
         Returns: string
       }
@@ -2082,15 +2082,15 @@ export type Database = {
       }
       create_notification: {
         Args: {
-          p_user_id: string
-          p_type: string
-          p_title: string
-          p_message: string
           p_data?: Json
-          p_tournament_id?: string
-          p_match_id?: string
-          p_team_id?: string
           p_expires_at?: string
+          p_match_id?: string
+          p_message: string
+          p_team_id?: string
+          p_title: string
+          p_tournament_id?: string
+          p_type: string
+          p_user_id: string
         }
         Returns: string
       }
@@ -2103,11 +2103,11 @@ export type Database = {
         Returns: Json
       }
       disqualify_team: {
-        Args: { p_team_id: string; p_reason?: string }
+        Args: { p_reason?: string; p_team_id: string }
         Returns: Json
       }
       extract_video_embed_id: {
-        Args: { video_url: string; platform: string }
+        Args: { platform: string; video_url: string }
         Returns: string
       }
       fix_all_bracket_progression: {
@@ -2117,9 +2117,9 @@ export type Database = {
       fix_missing_match_statistics: {
         Args: Record<PropertyKey, never>
         Returns: {
+          losses_added: number
           matches_processed: number
           wins_added: number
-          losses_added: number
         }[]
       }
       fix_missing_tournament_wins: {
@@ -2127,7 +2127,7 @@ export type Database = {
         Returns: number
       }
       force_advance_team: {
-        Args: { p_team_id: string; p_target_round: number; p_reason?: string }
+        Args: { p_reason?: string; p_target_round: number; p_team_id: string }
         Returns: Json
       }
       generate_team_invite_code: {
@@ -2137,43 +2137,43 @@ export type Database = {
       get_achievement_leaders: {
         Args: Record<PropertyKey, never>
         Returns: {
-          top_points_user_id: string
-          top_points_username: string
-          top_points_total: number
+          most_achievements_count: number
           most_achievements_user_id: string
           most_achievements_username: string
-          most_achievements_count: number
+          top_points_total: number
+          top_points_user_id: string
+          top_points_username: string
         }[]
       }
       get_next_substitute: {
         Args: { p_tournament_id: string }
         Returns: {
-          user_id: string
-          discord_username: string
           current_rank: string
-          riot_id: string
-          rank_points: number
+          discord_username: string
           priority: number
+          rank_points: number
+          riot_id: string
+          user_id: string
         }[]
       }
       get_tournament_map_pool: {
         Args: { p_tournament_id: string }
         Returns: {
-          id: string
-          name: string
           display_name: string
-          thumbnail_url: string
+          id: string
           is_active: boolean
+          name: string
+          thumbnail_url: string
         }[]
       }
       get_user_achievement_summary: {
         Args: { p_user_id: string }
         Returns: {
+          achievement_rank: number
+          latest_achievement_date: string
+          latest_achievement_name: string
           total_achievements: number
           total_points: number
-          latest_achievement_name: string
-          latest_achievement_date: string
-          achievement_rank: number
         }[]
       }
       get_user_info_for_audit: {
@@ -2181,40 +2181,40 @@ export type Database = {
         Returns: Json
       }
       get_user_match_history: {
-        Args: { profile_user_id: string; match_limit?: number }
+        Args: { match_limit?: number; profile_user_id: string }
         Returns: {
-          match_id: string
-          tournament_name: string
-          match_date: string
-          team_name: string
-          opponent_team_name: string
-          user_team_score: number
-          opponent_team_score: number
           is_winner: boolean
+          match_date: string
+          match_id: string
+          opponent_team_name: string
+          opponent_team_score: number
+          team_name: string
+          tournament_name: string
+          user_team_score: number
         }[]
       }
       get_user_profile: {
         Args: { profile_user_id: string }
         Returns: {
-          id: string
-          discord_username: string
-          riot_id: string
+          bio: string
+          created_at: string
           current_rank: string
-          rank_points: number
-          wins: number
+          discord_avatar_url: string
+          discord_username: string
+          id: string
+          last_seen: string
           losses: number
+          mvp_awards: number
+          peak_rank: string
+          profile_visibility: string
+          rank_points: number
+          riot_id: string
+          role: string
           tournaments_played: number
           tournaments_won: number
-          mvp_awards: number
-          bio: string
-          twitter_handle: string
           twitch_handle: string
-          discord_avatar_url: string
-          profile_visibility: string
-          last_seen: string
-          created_at: string
-          peak_rank: string
-          role: string
+          twitter_handle: string
+          wins: number
         }[]
       }
       get_user_role: {
@@ -2224,12 +2224,12 @@ export type Database = {
       get_user_tournament_history: {
         Args: { profile_user_id: string }
         Returns: {
-          tournament_id: string
-          tournament_name: string
-          tournament_date: string
+          placement: string
           team_name: string
           team_status: string
-          placement: string
+          tournament_date: string
+          tournament_id: string
+          tournament_name: string
         }[]
       }
       increment_team_losses: {
@@ -2265,82 +2265,82 @@ export type Database = {
         Returns: undefined
       }
       is_team_captain: {
-        Args: { user_uuid: string; team_uuid: string }
+        Args: { team_uuid: string; user_uuid: string }
         Returns: boolean
       }
       is_user_on_team: {
-        Args: { p_user_id: string; p_team_id: string }
+        Args: { p_team_id: string; p_user_id: string }
         Returns: boolean
       }
       log_application_error: {
         Args: {
           p_component: string
-          p_error_message: string
           p_error_code?: string
-          p_user_id?: string
+          p_error_message: string
           p_metadata?: Json
+          p_user_id?: string
         }
         Returns: undefined
       }
       log_audit_event: {
         Args: {
-          p_table_name: string
           p_action: string
-          p_record_id: string
-          p_old_values?: Json
-          p_new_values?: Json
           p_description?: string
           p_metadata?: Json
+          p_new_values?: Json
+          p_old_values?: Json
+          p_record_id: string
+          p_table_name: string
         }
         Returns: undefined
       }
       manually_advance_team: {
         Args: {
-          p_team_id: string
-          p_to_round: number
-          p_to_match_number: number
           p_reason?: string
+          p_team_id: string
+          p_to_match_number: number
+          p_to_round: number
         }
         Returns: Json
       }
       perform_veto_action: {
         Args: {
-          p_veto_session_id: string
-          p_user_id: string
-          p_team_id: string
           p_map_id: string
+          p_team_id: string
+          p_user_id: string
+          p_veto_session_id: string
         }
         Returns: string
       }
       perform_veto_ban: {
-        Args: { p_match_id: string; p_user_id: string; p_map_id: string }
+        Args: { p_map_id: string; p_match_id: string; p_user_id: string }
         Returns: Json
       }
       process_shop_purchase: {
-        Args: { p_user_id: string; p_shop_item_id: string }
+        Args: { p_shop_item_id: string; p_user_id: string }
         Returns: Json
       }
       promote_substitute_to_player: {
-        Args: { p_tournament_id: string; p_substitute_user_id: string }
+        Args: { p_substitute_user_id: string; p_tournament_id: string }
         Returns: Json
       }
       queue_email_notification: {
         Args: {
-          p_user_id: string
-          p_notification_type: string
-          p_subject: string
           p_content: string
-          p_template_data?: Json
+          p_notification_type: string
           p_scheduled_for?: string
+          p_subject: string
+          p_template_data?: Json
+          p_user_id: string
         }
         Returns: string
       }
       record_tournament_metric: {
         Args: {
-          p_tournament_id: string
+          p_metadata?: Json
           p_metric_type: string
           p_metric_value?: number
-          p_metadata?: Json
+          p_tournament_id: string
         }
         Returns: string
       }
@@ -2349,18 +2349,18 @@ export type Database = {
         Returns: Json
       }
       reverse_team_progression: {
-        Args: { p_team_id: string; p_target_round: number; p_reason?: string }
+        Args: { p_reason?: string; p_target_round: number; p_team_id: string }
         Returns: Json
       }
       roll_veto_dice: {
-        Args: { p_match_id: string; p_initiator_user_id: string }
+        Args: { p_initiator_user_id: string; p_match_id: string }
         Returns: Json
       }
       rollback_tournament_to_round: {
         Args: {
-          p_tournament_id: string
-          p_target_round: number
           p_reason?: string
+          p_target_round: number
+          p_tournament_id: string
         }
         Returns: Json
       }
@@ -2370,40 +2370,40 @@ export type Database = {
       }
       send_push_notification: {
         Args: {
-          p_user_id: string
-          p_title: string
           p_body: string
           p_data?: Json
           p_icon?: string
+          p_title: string
+          p_user_id: string
         }
         Returns: undefined
       }
       set_manual_winner: {
         Args: {
           p_match_id: string
-          p_winner_team_id: string
+          p_reason?: string
           p_score_team1?: number
           p_score_team2?: number
-          p_reason?: string
+          p_winner_team_id: string
         }
         Returns: Json
       }
       set_side_choice: {
-        Args: { p_match_id: string; p_user_id: string; p_side_choice: string }
+        Args: { p_match_id: string; p_side_choice: string; p_user_id: string }
         Returns: string
       }
       track_tournament_page_view: {
         Args: {
-          p_tournament_id: string
-          p_user_id?: string
           p_ip_address?: unknown
-          p_user_agent?: string
           p_referrer?: string
+          p_tournament_id: string
+          p_user_agent?: string
+          p_user_id?: string
         }
         Returns: string
       }
       update_onboarding_progress: {
-        Args: { p_user_id: string; p_step_id: string; p_metadata?: Json }
+        Args: { p_metadata?: Json; p_step_id: string; p_user_id: string }
         Returns: undefined
       }
       update_team_avg_rank_points: {
@@ -2411,7 +2411,7 @@ export type Database = {
         Returns: undefined
       }
       user_has_notification_enabled: {
-        Args: { p_user_id: string; p_notification_type: string }
+        Args: { p_notification_type: string; p_user_id: string }
         Returns: boolean
       }
       validate_and_repair_bracket: {
@@ -2423,7 +2423,7 @@ export type Database = {
         Returns: Json
       }
       withdraw_team: {
-        Args: { p_team_id: string; p_reason?: string }
+        Args: { p_reason?: string; p_team_id: string }
         Returns: Json
       }
     }
