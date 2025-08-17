@@ -29,7 +29,7 @@ const HomeHero = () => {
             Competitive Valorant Tournaments, Balanced by ATLAS
           </h1>
           <p className="text-slate-300 max-w-xl">
-            ATLAS is our bespoke balancing algorithm that aims to weight players fairly using evidence based performance and ranked data.
+            Join TLR Skirmish Hub for competitive Valorant tournaments in 2025. Sign up solo, compete in balanced teams, track live brackets, and connect with our Valorant tournament Discord for scrims and prizes.
           </p>
           <div className="flex flex-wrap gap-3 pt-1">
             <Link to="/tournaments">
