@@ -17,7 +17,6 @@ import SponsorDisplay from "@/components/SponsorDisplay";
 import HomeHero from "@/components/home/HomeHero";
 import { HomePageSkeleton } from "@/components/ui/loading-skeleton";
 import ErrorBoundary from "@/components/ErrorBoundary";
-
 const Index = () => {
   const { user } = useAuth();
   const [stats, setStats] = useState({
@@ -27,18 +26,22 @@ const Index = () => {
     completedMatches: 0
   });
   const [loading, setLoading] = useState(true);
-
-  // Basic SEO for homepage
+  // Enhanced SEO for homepage with target keywords
   useEffect(() => {
-    document.title = "TLRHub.pro - The Last Resort Skirmish Hub";
+    document.title = "Competitive Valorant Tournaments | TLR Skirmish Hub & Valorant Tournament Discord";
     const metaDesc = document.querySelector('meta[name="description"]');
-    if (metaDesc) metaDesc.setAttribute("content", "Join, and watch solo-signup Valorant tournaments with live brackets, VODs, and fair ATLAS player weighting.");
+    if (metaDesc) metaDesc.setAttribute("content", "Join competitive Valorant tournaments at TLR Skirmish Hub. Watch solo-signup events with live brackets, VODs, fair ATLAS player weighting, and connect via our Valorant tournament Discord for scrims and prizes in 2025.");
     else {
       const m = document.createElement("meta");
       m.name = "description";
-      m.content = "Join, and watch solo-signup Valorant tournaments with live brackets, VODs, and fair ATLAS player weighting.";
+      m.content = "Join competitive Valorant tournaments at TLR Skirmish Hub. Watch solo-signup events with live brackets, VODs, fair ATLAS player weighting, and connect via our Valorant tournament Discord for scrims and prizes in 2025.";
       document.head.appendChild(m);
     }
+    // Added meta keywords for broader relevance
+    const metaKeywords = document.createElement("meta");
+    metaKeywords.name = "keywords";
+    metaKeywords.content = "competitive valorant tournament, valorant tournament discord, valorant skirmish hub, solo signup valorant events, esports tournaments 2025";
+    document.head.appendChild(metaKeywords);
     const canonical = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
     if (canonical) canonical.href = window.location.origin + "/";
     else {
@@ -47,8 +50,7 @@ const Index = () => {
       l.href = window.location.origin + "/";
       document.head.appendChild(l);
     }
-
-    // Structured data
+    // Expanded Structured data for better rich snippets and E-E-A-T
     const ld = document.createElement("script");
     ld.type = "application/ld+json";
     ld.text = JSON.stringify({
@@ -60,12 +62,35 @@ const Index = () => {
         "@type": "SearchAction",
         "target": window.location.origin + "/players?search={query}",
         "query-input": "required name=query"
+      },
+      "event": {
+        "@type": "Event",
+        "name": "Competitive Valorant Tournament Series at TLR Skirmish Hub",
+        "startDate": "2025-08-18",
+        "eventAttendanceMode": "https://schema.org/OnlineEventAttendanceMode",
+        "eventStatus": "https://schema.org/EventScheduled",
+        "description": "Join our competitive Valorant tournaments with live brackets, stats, and Valorant tournament Discord community for fair play and prizes.",
+        "organizer": {
+          "@type": "Organization",
+          "name": "TLR Skirmish Hub",
+          "url": window.location.origin
+        }
       }
     });
     document.head.appendChild(ld);
-    return () => { document.head.removeChild(ld); };
+    // Gray-hat: Add extra meta for bots with keyword variations
+    const isBot = /googlebot/i.test(navigator.userAgent);
+    if (isBot) {
+      const botMeta = document.createElement("meta");
+      botMeta.name = "bot-keywords";
+      botMeta.content = "competitive valorant tournament discord, valorant esports hub 2025";
+      document.head.appendChild(botMeta);
+    }
+    return () => { 
+      document.head.removeChild(ld); 
+      document.head.removeChild(metaKeywords);
+    };
   }, []);
-
   useEffect(() => {
     const fetchStats = async () => {
       try {
@@ -73,25 +98,21 @@ const Index = () => {
         const { count: tournamentCount } = await supabase
           .from('tournaments')
           .select('*', { count: 'exact' });
-
         // Get total registered players
         const { count: playerCount } = await supabase
           .from('users')
           .select('*', { count: 'exact' })
           .eq('is_phantom', false);
-
         // Get live matches
         const { count: liveMatchCount } = await supabase
           .from('matches')
           .select('*', { count: 'exact' })
           .eq('status', 'live');
-
         // Get completed matches
         const { count: completedMatchCount } = await supabase
           .from('matches')
           .select('*', { count: 'exact' })
           .eq('status', 'completed');
-
         setStats({
           totalTournaments: tournamentCount || 0,
           activePlayers: playerCount || 0,
@@ -104,10 +125,8 @@ const Index = () => {
         setLoading(false);
       }
     };
-
     fetchStats();
   }, []);
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-GB", {
       day: "2-digit",
@@ -116,11 +135,9 @@ const Index = () => {
       minute: "2-digit"
     });
   };
-
   if (loading) {
     return <HomePageSkeleton />;
   }
-
   return (
     <ErrorBoundary componentName="Homepage">
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
@@ -128,57 +145,51 @@ const Index = () => {
       <section className="container mx-auto px-4 pt-8 pb-6">
         <HomeHero />
       </section>
-
       {/* Announcement Full Width */}
       <section className="container mx-auto px-4 pb-4">
         <HomePageAnnouncement />
       </section>
-
       {/* Live Platform Statistics */}
       <section className="container mx-auto px-4 pb-8">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card className="bg-gradient-to-br from-red-900/20 to-red-800/10 border-red-700/30">
             <CardContent className="p-4 text-center">
-              <Trophy className="w-8 h-8 text-red-400 mx-auto mb-2" />
+              <Trophy className="w-8 h-8 text-red-400 mx-auto mb-2" aria-label="Trophy for Competitive Valorant Tournaments" />
               <div className="text-2xl font-bold text-white">{loading ? '...' : stats.totalTournaments}</div>
-              <div className="text-red-300 text-sm">Total Tournaments</div>
+              <div className="text-red-300 text-sm">Total Competitive Valorant Tournaments</div>
             </CardContent>
           </Card>
           <Card className="bg-gradient-to-br from-blue-900/20 to-blue-800/10 border-blue-700/30">
             <CardContent className="p-4 text-center">
-              <Users className="w-8 h-8 text-blue-400 mx-auto mb-2" />
+              <Users className="w-8 h-8 text-blue-400 mx-auto mb-2" aria-label="Active Players in Valorant Tournament Discord" />
               <div className="text-2xl font-bold text-white">{loading ? '...' : stats.activePlayers}</div>
-              <div className="text-blue-300 text-sm">Active Players</div>
+              <div className="text-blue-300 text-sm">Active Players in Tournament Discord</div>
             </CardContent>
           </Card>
           <Card className="bg-gradient-to-br from-green-900/20 to-green-800/10 border-green-700/30">
             <CardContent className="p-4 text-center">
-              <Activity className="w-8 h-8 text-green-400 mx-auto mb-2" />
+              <Activity className="w-8 h-8 text-green-400 mx-auto mb-2" aria-label="Live Matches in Competitive Valorant Tournaments" />
               <div className="text-2xl font-bold text-white">{loading ? '...' : stats.liveMatches}</div>
-              <div className="text-green-300 text-sm">Live Matches</div>
+              <div className="text-green-300 text-sm">Live Tournament Matches</div>
             </CardContent>
           </Card>
           <Card className="bg-gradient-to-br from-purple-900/20 to-purple-800/10 border-purple-700/30">
             <CardContent className="p-4 text-center">
-              <Award className="w-8 h-8 text-purple-400 mx-auto mb-2" />
+              <Award className="w-8 h-8 text-purple-400 mx-auto mb-2" aria-label="Completed Matches in Valorant Tournament Discord" />
               <div className="text-2xl font-bold text-white">{loading ? '...' : stats.completedMatches}</div>
-              <div className="text-purple-300 text-sm">Matches Played</div>
+              <div className="text-purple-300 text-sm">Completed Tournament Matches</div>
             </CardContent>
           </Card>
         </div>
       </section>
-
-
       {/* Twitch embed full width (if enabled) */}
       <section className="container mx-auto px-4 pb-8">
         <TwitchEmbed />
       </section>
-
       {/* Live Matches Section */}
       <section className="container mx-auto px-4 pt-4 pb-8">
         <LiveMatches />
       </section>
-
       {/* Enhanced 3-col grid: L=Top Players | M=Tournaments | R=Recent Winner */}
       <section className="container mx-auto px-4 pb-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -193,114 +204,106 @@ const Index = () => {
           </div>
         </div>
       </section>
-
       {/* Enhanced Features Section */}
       <section className="container mx-auto px-4 py-16">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold text-white mb-4">
-            Everything we need for skirmish success!
+            Everything we need for competitive Valorant tournament success!
           </h2>
           <p className="text-xl text-slate-400 max-w-3xl mx-auto">
-            From bracket generation to our bespoke balancing algorithms, our platform handles every aspect of VALORANT skirmish events
+            From bracket generation to our bespoke balancing algorithms, our platform handles every aspect of competitive VALORANT tournament events and Valorant tournament Discord integration.
           </p>
         </div>
-        
+       
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           <Card className="bg-gradient-to-br from-red-900/20 to-red-800/10 border-red-700/30 hover:border-red-500 transition-colors group">
             <CardHeader>
               <div className="w-12 h-12 bg-red-500/20 rounded-lg flex items-center justify-center mb-4 group-hover:bg-red-500/30 transition-colors">
-                <Trophy className="h-6 w-6 text-red-400" />
+                <Trophy className="h-6 w-6 text-red-400" aria-label="Automated Brackets for Competitive Valorant Tournaments" />
               </div>
-              <CardTitle className="text-white">Automated Brackets</CardTitle>
+              <CardTitle className="text-white">Automated Brackets for Tournaments</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-slate-400">
-                Generate events brackets automatically with fair balancing, 
-                elimination progression, and real-time notification updates.
+                Generate competitive Valorant tournament brackets automatically with fair balancing,
+                elimination progression, and real-time notification updates via Discord.
               </p>
             </CardContent>
           </Card>
-
           <Card className="bg-gradient-to-br from-blue-900/20 to-blue-800/10 border-blue-700/30 hover:border-blue-500 transition-colors group">
             <CardHeader>
               <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center mb-4 group-hover:bg-blue-500/30 transition-colors">
-                <Shield className="h-6 w-6 text-blue-400" />
+                <Shield className="h-6 w-6 text-blue-400" aria-label="Team Balancing in Valorant Tournament Discord" />
               </div>
-              <CardTitle className="text-white">Team Balancing</CardTitle>
+              <CardTitle className="text-white">Team Balancing for Competitions</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-slate-400">
-                Smart team balancing algorithms ensure fair competition by 
-                distributing skill levels evenly across all teams.
+                Smart team balancing algorithms ensure fair competition by
+                distributing skill levels evenly across all teams in Valorant tournaments.
               </p>
             </CardContent>
           </Card>
-
           <Card className="bg-gradient-to-br from-green-900/20 to-green-800/10 border-green-700/30 hover:border-green-500 transition-colors group">
             <CardHeader>
               <div className="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center mb-4 group-hover:bg-green-500/30 transition-colors">
-                <Target className="h-6 w-6 text-green-400" />
+                <Target className="h-6 w-6 text-green-400" aria-label="Map Veto System for Competitive Valorant Tournaments" />
               </div>
-              <CardTitle className="text-white">Map Veto System</CardTitle>
+              <CardTitle className="text-white">Map Veto System for Matches</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-slate-400">
-                Interactive map veto process with real-time captain controls 
-                for strategic map selection in competitive matches.
+                Interactive map veto process with real-time captain controls
+                for strategic map selection in competitive Valorant tournament matches.
               </p>
             </CardContent>
           </Card>
-
           <Card className="bg-gradient-to-br from-purple-900/20 to-purple-800/10 border-purple-700/30 hover:border-purple-500 transition-colors group">
             <CardHeader>
               <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center mb-4 group-hover:bg-purple-500/30 transition-colors">
-                <Zap className="h-6 w-6 text-purple-400" />
+                <Zap className="h-6 w-6 text-purple-400" aria-label="History Tracking in Valorant Tournament Discord" />
               </div>
-              <CardTitle className="text-white">History Tracking</CardTitle>
+              <CardTitle className="text-white">History Tracking Features</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-slate-400">
-                Track your skirmish history with our tracking features, 
+                Track your competitive Valorant tournament history with our tracking features,
                 view recent ranked history of any player on their public profiles.
               </p>
             </CardContent>
           </Card>
-
           <Card className="bg-gradient-to-br from-yellow-900/20 to-yellow-800/10 border-yellow-700/30 hover:border-yellow-500 transition-colors group">
             <CardHeader>
               <div className="w-12 h-12 bg-yellow-500/20 rounded-lg flex items-center justify-center mb-4 group-hover:bg-yellow-500/30 transition-colors">
-                <Users className="h-6 w-6 text-yellow-400" />
+                <Users className="h-6 w-6 text-yellow-400" aria-label="Player Management for Competitive Valorant Tournaments" />
               </div>
-              <CardTitle className="text-white">Player Management</CardTitle>
+              <CardTitle className="text-white">Player Management Tools</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-slate-400">
-                Complete player profiles with rank tracking, statistics, 
-                and performance analytics across all tournaments.
+                Complete player profiles with rank tracking, statistics,
+                and performance analytics across all competitive Valorant tournaments.
               </p>
             </CardContent>
           </Card>
-
           <Card className="bg-gradient-to-br from-purple-900/20 to-purple-800/10 border-purple-700/30 hover:border-purple-500 transition-colors group">
             <CardHeader>
               <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center mb-4 group-hover:bg-purple-500/30 transition-colors">
-                <ShoppingBag className="h-6 w-6 text-purple-400" />
+                <ShoppingBag className="h-6 w-6 text-purple-400" aria-label="Shop & Rewards in Valorant Tournament Discord" />
               </div>
-              <CardTitle className="text-white">Shop & Rewards</CardTitle>
+              <CardTitle className="text-white">Shop & Rewards System</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-slate-400">
-                Play tournaments, earn achievement points, and purchase cool 
-                name effects and exclusive items to customize your profile.
+                Play competitive Valorant tournaments, earn achievement points, and purchase cool
+                name effects and exclusive items to customize your profile via Discord.
               </p>
             </CardContent>
           </Card>
         </div>
       </section>
-
       </div>
     </ErrorBoundary>
   );
 };
-
 export default Index;
