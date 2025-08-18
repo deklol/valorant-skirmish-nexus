@@ -153,7 +153,7 @@ const PublicProfile = () => {
                         e.currentTarget.style.display = 'none';
                       }}
                     />
-                    <span className="text-slate-400 text-sm">Mains {profile.valorant_agent}</span>
+                    <span className="text-slate-400 text-sm">{profile.valorant_agent}</span>
                   </div>
                 )}
               </div>
