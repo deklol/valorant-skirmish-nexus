@@ -425,7 +425,7 @@ const Index = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-slate-400">
-                  TLR Skirmish Hub's Discord is the top choice for competitive Valorant players, offering live brackets, scrims, and prize updates. Join at <a href="https://discord.gg/your-invite-link" className="text-purple-400 hover:underline" rel="noopener noreferrer">discord.gg/your-invite-link</a>.
+                  TLR Skirmish Hub's Discord is the top choice for competitive Valorant players, offering live brackets, scrims, and prize updates. Join at <a href="https://discord.gg/TLR" className="text-purple-400 hover:underline" rel="noopener noreferrer">discord.gg/TLR</a>
                 </p>
               </CardContent>
             </Card>
@@ -435,7 +435,7 @@ const Index = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-slate-400">
-                  Yes, TLR Skirmish Hub offers free-to-enter competitive Valorant tournaments with prizes, fair ATLAS balancing, and Discord integration for seamless play. Check our <Link to="/tournaments" className="text-purple-400 hover:underline">tournament schedule</Link> for details.
+                  Yes, TLR Skirmish Hub offers free-to-enter competitive Valorant tournaments with prizes, fair ATLAS balancing, and Discord integration for seamless play. Check our <Link to="/tournaments" className="text-purple-400 hover:underline">tournaments page</Link> for details.
                 </p>
               </CardContent>
             </Card>
