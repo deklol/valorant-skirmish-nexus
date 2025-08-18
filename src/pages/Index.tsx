@@ -415,7 +415,7 @@ const Index = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-slate-400">
-                  Sign up at <Link to="/tournaments" className="text-purple-400 hover:underline">TLR Skirmish Hub</Link> for solo or team-based competitive Valorant tournaments. Register via our platform and join our <a href="https://discord.gg/your-invite-link" className="text-purple-400 hover:underline" rel="noopener noreferrer">Valorant tournament Discord</a> for schedules and scrims.
+                  Sign up at <Link to="/tournaments" className="text-purple-400 hover:underline">TLR Skirmish Hub</Link> for solo or team-based competitive Valorant tournaments. Register via our platform and join our <a href="https://discord.gg/TLR" className="text-purple-400 hover:underline" rel="noopener noreferrer">Valorant tournament Discord</a> for schedules and scrims.
                 </p>
               </CardContent>
             </Card>
