@@ -7,7 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { User, Trophy, Target, Calendar, Settings, Bell, RefreshCw, TrendingUp, Twitter, Twitch, Clock, Award, Swords, Save, Shield } from "lucide-react";
+import { User, Trophy, Target, Calendar, Settings, Bell, RefreshCw, TrendingUp, Twitter, Twitch, Clock, Award, Swords, Save, Shield, CheckSquare } from "lucide-react";
+import { AgentSelector } from "@/components/AgentSelector";
+import { RoleSelector } from "@/components/RoleSelector";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -46,6 +49,10 @@ interface UserProfile {
   last_seen: string;
   created_at: string;
   role: string;
+  valorant_agent?: string;
+  valorant_role?: string;
+  status_message?: string;
+  looking_for_team?: boolean;
 }
 
 const Profile = () => {
@@ -58,7 +65,11 @@ const Profile = () => {
     bio: '',
     twitter_handle: '',
     twitch_handle: '',
-    profile_visibility: 'public'
+    profile_visibility: 'public',
+    valorant_agent: '',
+    valorant_role: '',
+    status_message: '',
+    looking_for_team: false
   });
   const { user } = useAuth();
   const { toast } = useToast();
@@ -86,7 +97,11 @@ const Profile = () => {
         bio: data.bio || '',
         twitter_handle: data.twitter_handle || '',
         twitch_handle: data.twitch_handle || '',
-        profile_visibility: data.profile_visibility || 'public'
+        profile_visibility: data.profile_visibility || 'public',
+        valorant_agent: (data as any).valorant_agent || '',
+        valorant_role: (data as any).valorant_role || '',
+        status_message: (data as any).status_message || '',
+        looking_for_team: (data as any).looking_for_team || false
       });
     } catch (error: any) {
       console.error('Error fetching profile:', error);
@@ -141,7 +156,11 @@ const Profile = () => {
           bio: editingProfile.bio,
           twitter_handle: editingProfile.twitter_handle,
           twitch_handle: editingProfile.twitch_handle,
-          profile_visibility: editingProfile.profile_visibility
+          profile_visibility: editingProfile.profile_visibility,
+          valorant_agent: editingProfile.valorant_agent,
+          valorant_role: editingProfile.valorant_role,
+          status_message: editingProfile.status_message,
+          looking_for_team: editingProfile.looking_for_team
         })
         .eq('id', user.id);
 
@@ -152,7 +171,11 @@ const Profile = () => {
         bio: editingProfile.bio,
         twitter_handle: editingProfile.twitter_handle,
         twitch_handle: editingProfile.twitch_handle,
-        profile_visibility: editingProfile.profile_visibility
+        profile_visibility: editingProfile.profile_visibility,
+        valorant_agent: editingProfile.valorant_agent,
+        valorant_role: editingProfile.valorant_role,
+        status_message: editingProfile.status_message,
+        looking_for_team: editingProfile.looking_for_team
       } : null);
       
       toast({
@@ -211,6 +234,22 @@ const Profile = () => {
     await fetchProfile();
   };
 
+  // Helper function to get agent icon URL
+  const getAgentIconUrl = (agentName: string) => {
+    return `https://static.wikia.nocookie.net/valorant/images/4/49/${agentName}_icon.png`;
+  };
+
+  // Helper function to get role color
+  const getRoleColor = (role: string) => {
+    switch (role) {
+      case 'Duelist': return 'text-red-400 bg-red-500/20 border-red-500/30';
+      case 'Controller': return 'text-blue-400 bg-blue-500/20 border-blue-500/30';
+      case 'Initiator': return 'text-yellow-400 bg-yellow-500/20 border-yellow-500/30';
+      case 'Sentinel': return 'text-green-400 bg-green-500/20 border-green-500/30';
+      default: return 'text-slate-400 bg-slate-500/20 border-slate-500/30';
+    }
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -261,59 +300,95 @@ const Profile = () => {
                       Admin
                     </Badge>
                   )}
-                </CardTitle>
-                <div className="flex items-center gap-2 mt-2">
-                  {profile.current_rank && (
-                    <Badge className="bg-blue-600 text-white">
-                      {profile.current_rank}
-                    </Badge>
-                  )}
-                  {profile.peak_rank && profile.peak_rank !== profile.current_rank && (
-                    <Badge variant="outline" className="border-yellow-600 text-yellow-400">
-                      Peak: {profile.peak_rank}
-                    </Badge>
-                  )}
-                </div>
+                 </CardTitle>
+                 
+                 {/* Status Message */}
+                 {(profile as any).status_message && (
+                   <p className="text-slate-300 text-sm mt-1 italic">"{(profile as any).status_message}"</p>
+                 )}
+                 
+                 <div className="flex items-center gap-2 mt-2">
+                   {profile.current_rank && (
+                     <Badge className="bg-blue-600 text-white">
+                       {profile.current_rank}
+                     </Badge>
+                   )}
+                   {profile.peak_rank && profile.peak_rank !== profile.current_rank && (
+                     <Badge variant="outline" className="border-yellow-600 text-yellow-400">
+                       Peak: {profile.peak_rank}
+                     </Badge>
+                   )}
+                   
+                   {/* Valorant Role */}
+                   {(profile as any).valorant_role && (
+                     <Badge variant="outline" className={`border ${getRoleColor((profile as any).valorant_role)}`}>
+                       {(profile as any).valorant_role}
+                     </Badge>
+                   )}
+                   
+                   {(profile as any).looking_for_team && (
+                     <Badge className="bg-gradient-to-r from-green-600 to-green-700 text-white border-green-500">
+                       <CheckSquare className="w-3 h-3 mr-1" />
+                       LFT
+                     </Badge>
+                   )}
+                 </div>
+                 
+                 {/* Agent Selection */}
+                 {(profile as any).valorant_agent && (
+                   <div className="flex items-center gap-2 mt-2">
+                     <img 
+                       src={getAgentIconUrl((profile as any).valorant_agent)} 
+                       alt={(profile as any).valorant_agent}
+                       className="w-6 h-6 rounded"
+                       onError={(e) => {
+                         e.currentTarget.style.display = 'none';
+                       }}
+                     />
+                     <span className="text-slate-400 text-sm">Mains {(profile as any).valorant_agent}</span>
+                   </div>
+                 )}
               </div>
-            </div>
-            {/* Profile Links List: Twitter, Twitch, Tracker.gg */}
-            <div>
-              {(profile.twitter_handle || profile.twitch_handle || profile.riot_id) && (
-                <div className="flex flex-col items-end gap-0.5 text-sm">
-                  <span className="text-slate-400 font-semibold mb-1">Links</span>
-                  {profile.twitter_handle && (
-                    <a
-                      href={`https://twitter.com/${profile.twitter_handle.replace(/^@/, '')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:underline text-blue-400"
-                    >
-                      Twitter
-                    </a>
-                  )}
-                  {profile.twitch_handle && (
-                    <a
-                      href={`https://twitch.tv/${profile.twitch_handle}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:underline text-purple-400"
-                    >
-                      Twitch
-                    </a>
-                  )}
-                  {profile.riot_id && (
-                    <a
-                      href={getTrackerGGUrl(profile.riot_id) || "#"}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:underline text-red-400"
-                    >
-                      Tracker.gg
-                    </a>
-                  )}
-                </div>
-              )}
-            </div>
+             </div>
+             
+              <div className="flex flex-col items-end gap-2">
+                {/* Profile Links List: Twitter, Twitch, Tracker.gg */}
+                {(profile.twitter_handle || profile.twitch_handle || profile.riot_id) && (
+                  <div className="flex flex-col items-end gap-0.5 text-sm">
+                    <span className="text-slate-400 font-semibold mb-1">Links</span>
+                    {profile.twitter_handle && (
+                      <a
+                        href={`https://twitter.com/${profile.twitter_handle.replace(/^@/, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:underline text-blue-400"
+                      >
+                        Twitter
+                      </a>
+                    )}
+                    {profile.twitch_handle && (
+                      <a
+                        href={`https://twitch.tv/${profile.twitch_handle}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:underline text-purple-400"
+                      >
+                        Twitch
+                      </a>
+                    )}
+                    {profile.riot_id && (
+                      <a
+                        href={getTrackerGGUrl(profile.riot_id) || "#"}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:underline text-red-400"
+                      >
+                        Tracker.gg
+                      </a>
+                     )}
+                   </div>
+                 )}
+               </div>
           </div>
         </CardHeader>
         
@@ -579,6 +654,66 @@ const Profile = () => {
                   </Button>
                 </CardContent>
               </Card>
+
+              <Card className="bg-slate-700 border-slate-600">
+                <CardHeader>
+                  <CardTitle className="text-white">Gaming Profile</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="status" className="text-slate-300">Status Message</Label>
+                    <Input
+                      id="status"
+                      value={editingProfile.status_message}
+                      onChange={(e) => setEditingProfile(prev => ({ ...prev, status_message: e.target.value }))}
+                      className="bg-slate-600 border-slate-500 text-white"
+                      placeholder="What's on your mind?"
+                      maxLength={100}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="valorant-role" className="text-slate-300">Valorant Role</Label>
+                      <RoleSelector
+                        value={editingProfile.valorant_role}
+                        onValueChange={(value) => setEditingProfile(prev => ({ ...prev, valorant_role: value }))}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="valorant-agent" className="text-slate-300">Main Agent</Label>
+                      <AgentSelector
+                        value={editingProfile.valorant_agent}
+                        onValueChange={(value) => setEditingProfile(prev => ({ ...prev, valorant_agent: value }))}
+                      />
+                    </div>
+                  </div>
+
+                   <div className="flex items-center space-x-2">
+                     <Checkbox
+                       id="lft"
+                       checked={editingProfile.looking_for_team}
+                       onCheckedChange={(checked) => setEditingProfile(prev => ({ 
+                         ...prev, 
+                         looking_for_team: checked === true 
+                       }))}
+                     />
+                     <Label htmlFor="lft" className="text-slate-300 cursor-pointer">
+                       Looking for Team (LFT)
+                     </Label>
+                   </div>
+
+                   <Button 
+                     onClick={saveProfileChanges} 
+                     disabled={updating}
+                     className="bg-green-600 hover:bg-green-700"
+                   >
+                     <Save className="w-4 h-4 mr-2" />
+                     {updating ? 'Saving...' : 'Save Gaming Profile'}
+                   </Button>
+                 </CardContent>
+               </Card>
             </TabsContent>
 
             <TabsContent value="awards" className="mt-6">
