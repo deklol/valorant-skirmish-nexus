@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { RefreshCw, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { RefreshCw, CheckCircle, XCircle, AlertCircle, Pause, Play, StopCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -35,6 +35,8 @@ const BatchRankRefreshButton = ({
 }: BatchRankRefreshButtonProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [isCancelled, setIsCancelled] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentUser, setCurrentUser] = useState('');
   const [results, setResults] = useState<BatchResult[]>([]);
@@ -46,12 +48,12 @@ const BatchRankRefreshButton = ({
 
   // Update time remaining estimate
   useEffect(() => {
-    if (isProcessing && totalUsers > 0) {
+    if (isProcessing && !isPaused && totalUsers > 0) {
       const remainingUsers = totalUsers - results.length;
       const estimatedSeconds = remainingUsers * 3; // 3 seconds per user
       setTimeRemaining(estimatedSeconds);
     }
-  }, [results.length, totalUsers, isProcessing]);
+  }, [results.length, totalUsers, isProcessing, isPaused]);
 
   // Format time remaining
   const formatTimeRemaining = (seconds: number) => {
@@ -63,11 +65,37 @@ const BatchRankRefreshButton = ({
       : `${remainingSeconds}s`;
   };
 
+  const revertRanks = async (resultsToRevert: BatchResult[]) => {
+    const successfulUpdates = resultsToRevert.filter(r => r.status === 'success' && (r.oldRank !== r.newRank || r.oldWeight !== r.newWeight));
+    
+    for (const result of successfulUpdates) {
+      try {
+        await supabase
+          .from('users')
+          .update({
+            current_rank: result.oldRank,
+            weight_rating: result.oldWeight
+          })
+          .eq('id', result.user_id);
+      } catch (error: any) {
+        console.error(`Failed to revert rank for user ${result.user_id}:`, error);
+        toast({
+          title: "Revert Failed",
+          description: `Failed to revert rank for ${result.username}`,
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
   const refreshAllRanks = async () => {
     setIsProcessing(true);
+    setIsPaused(false);
+    setIsCancelled(false);
     setProgress(0);
     setResults([]);
     setIsOpen(true);
+    
     try {
       // Fetch all users with riot_id
       const { data: users, error: fetchError } = await supabase
@@ -94,6 +122,31 @@ const BatchRankRefreshButton = ({
       const newResults: BatchResult[] = [];
 
       for (let i = 0; i < users.length; i++) {
+        // Check for cancellation
+        if (isCancelled) {
+          await revertRanks(newResults);
+          toast({
+            title: "Batch Refresh Cancelled",
+            description: "Changes have been reverted.",
+          });
+          break;
+        }
+
+        // Wait if paused
+        while (isPaused && !isCancelled) {
+          await sleep(1000);
+        }
+
+        // Double-check cancellation after pause
+        if (isCancelled) {
+          await revertRanks(newResults);
+          toast({
+            title: "Batch Refresh Cancelled",
+            description: "Changes have been reverted.",
+          });
+          break;
+        }
+
         const user = users[i];
         setCurrentUser(user.discord_username || user.riot_id);
         setProgress(((i + 1) / users.length) * 100);
@@ -154,18 +207,20 @@ const BatchRankRefreshButton = ({
         setResults([...newResults]);
        
         // Add 3-second delay between requests to avoid rate limiting
-        if (i < users.length - 1) {
+        if (i < users.length - 1 && !isCancelled) {
           await sleep(3000);
         }
       }
 
-      toast({
-        title: "Batch Refresh Complete",
-        description: `Processed ${users.length} users. ${newResults.filter(r => r.status === 'success').length} successful, ${newResults.filter(r => r.status === 'error').length} failed, ${newResults.filter(r => r.status === 'skipped').length} skipped.`,
-      });
+      if (!isCancelled) {
+        toast({
+          title: "Batch Refresh Complete",
+          description: `Processed ${users.length} users. ${newResults.filter(r => r.status === 'success').length} successful, ${newResults.filter(r => r.status === 'error').length} failed, ${newResults.filter(r => r.status === 'skipped').length} skipped.`,
+        });
 
-      if (onRefreshComplete) {
-        onRefreshComplete();
+        if (onRefreshComplete) {
+          onRefreshComplete();
+        }
       }
     } catch (error: any) {
       console.error('Error in batch refresh:', error);
@@ -177,7 +232,23 @@ const BatchRankRefreshButton = ({
     } finally {
       setIsProcessing(false);
       setCurrentUser('');
+      setIsPaused(false);
+      setIsCancelled(false);
     }
+  };
+
+  const handlePausePlay = () => {
+    setIsPaused(!isPaused);
+    toast({
+      title: isPaused ? "Batch Refresh Resumed" : "Batch Refresh Paused",
+      description: isPaused ? "Processing has been resumed." : "Processing has been paused.",
+    });
+  };
+
+  const handleCancel = async () => {
+    setIsCancelled(true);
+    setIsPaused(false);
+    // Reversion is handled in the main loop
   };
 
   const getStatusIcon = (status: 'success' | 'error' | 'skipped') => {
@@ -217,7 +288,10 @@ const BatchRankRefreshButton = ({
         <RefreshCw className={`h-4 w-4 mr-2 ${isProcessing ? 'animate-spin' : ''}`} />
         Batch Refresh All Ranks
       </Button>
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <Dialog open={isOpen} onOpenChange={isOpen => { 
+        if (!isProcessing) setIsOpen(isOpen);
+        if (!isOpen && isCancelled) setResults([]);
+      }}>
         <DialogContent className="max-w-2xl max-h-[80vh]">
           <DialogHeader>
             <DialogTitle>Batch Rank Refresh Progress</DialogTitle>
@@ -237,6 +311,37 @@ const BatchRankRefreshButton = ({
                 </div>
               )}
             </div>
+            {isProcessing && (
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePausePlay}
+                  disabled={isCancelled}
+                >
+                  {isPaused ? (
+                    <>
+                      <Play className="h-4 w-4 mr-2" />
+                      Resume
+                    </>
+                  ) : (
+                    <>
+                      <Pause className="h-4 w-4 mr-2" />
+                      Pause
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleCancel}
+                  disabled={isCancelled}
+                >
+                  <StopCircle className="h-4 w-4 mr-2" />
+                  Cancel
+                </Button>
+              </div>
+            )}
             {results.length > 0 && (
               <div className="space-y-2">
                 <div className="flex gap-4 text-sm">
