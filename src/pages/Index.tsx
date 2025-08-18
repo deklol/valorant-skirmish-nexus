@@ -28,18 +28,18 @@ const Index = () => {
   });
   const [loading, setLoading] = useState(true);
 
-  // Enhanced SEO for homepage with 2025 best practices
+  // Enhanced SEO for homepage with 2025 best practices  
   useEffect(() => {
-    // Set optimized title and meta description
-    document.title = "Competitive Valorant Tournaments at TLR Skirmish Hub | Join Our Valorant Discord Community";
+    // Set optimized title and meta description for competitive Valorant tournaments
+    document.title = "Competitive Valorant Tournaments 2025 | TLR Skirmish Hub - Valorant Tournaments Discord";
     const setMetaDescription = () => {
       const metaDesc = document.querySelector('meta[name="description"]');
       if (metaDesc) {
-        metaDesc.setAttribute("content", "Play competitive Valorant tournaments at TLR Skirmish Hub. Join our Valorant Discord for scrims, live brackets, and fair competition in 2025.");
+        metaDesc.setAttribute("content", "Join competitive Valorant tournaments at TLR Skirmish Hub. Our Valorant tournaments Discord offers live brackets, fair balancing, and exciting prizes. Play competitive Valorant tournaments with top players in 2025.");
       } else {
         const m = document.createElement("meta");
         m.name = "description";
-        m.content = "Play competitive Valorant tournaments at TLR Skirmish Hub. Join our Valorant Discord for scrims, live brackets, and fair competition in 2025.";
+        m.content = "Join competitive Valorant tournaments at TLR Skirmish Hub. Our Valorant tournaments Discord offers live brackets, fair balancing, and exciting prizes. Play competitive Valorant tournaments with top players in 2025.";
         document.head.appendChild(m);
       }
     };
@@ -53,7 +53,7 @@ const Index = () => {
     document.head.appendChild(ogTitle);
     const ogDesc = document.createElement("meta");
     ogDesc.setAttribute("property", "og:description");
-    ogDesc.content = "Play competitive Valorant tournaments with live stats and join our Valorant Discord for scrims and prizes at TLR Skirmish Hub.";
+    ogDesc.content = "Join competitive Valorant tournaments at TLR Skirmish Hub. Our Valorant tournaments Discord community offers live brackets, fair balancing, and exciting prizes for competitive Valorant tournaments in 2025.";
     document.head.appendChild(ogDesc);
     const ogImage = document.createElement("meta");
     ogImage.setAttribute("property", "og:image");
@@ -114,7 +114,7 @@ const Index = () => {
           "url": window.location.origin
         },
         "image": "https://lovable.dev/opengraph-image-p98pqg.png",
-        "description": "Join competitive Valorant tournaments with live brackets, stats tracking, fair ATLAS balancing, and our Valorant tournament Discord for scrims, prizes, and community in 2025.",
+        "description": "Join competitive Valorant tournaments at TLR Skirmish Hub with live brackets, stats tracking, fair ATLAS balancing, and our Valorant tournaments Discord for scrims, prizes, and community. Play competitive Valorant tournaments in 2025.",
         "offers": {
           "@type": "Offer",
           "price": "0",
@@ -144,20 +144,20 @@ const Index = () => {
               "text": "Sign up at TLR Skirmish Hub for solo or team-based competitive Valorant tournaments. Register via our platform and join our Valorant tournament Discord for schedules and scrims."
             }
           },
-          {
-            "@type": "Question",
-            "name": "What is the best Valorant tournament Discord?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "TLR Skirmish Hub's Discord is the top choice for competitive Valorant players, offering live brackets, scrims, and prize updates. Join at discord.gg/your-invite-link."
-            }
-          },
+            {
+              "@type": "Question",
+              "name": "What is the best Valorant tournaments Discord?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "TLR Skirmish Hub's Valorant tournaments Discord is the top choice for competitive Valorant tournaments, offering live brackets, scrims, and prize updates. Join our Valorant tournaments Discord community for competitive Valorant tournaments in 2025."
+              }
+            },
           {
             "@type": "Question",
             "name": "Does TLR Skirmish Hub offer free Valorant tournaments?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Yes, TLR Skirmish Hub offers free-to-enter competitive Valorant tournaments with prizes, fair ATLAS balancing, and Discord integration for seamless play."
+              "text": "Yes, TLR Skirmish Hub offers free-to-enter competitive Valorant tournaments with prizes, fair ATLAS balancing, and Valorant tournaments Discord integration for seamless competitive Valorant tournaments experience."
             }
           }
         ]
@@ -170,7 +170,7 @@ const Index = () => {
     if (isBot) {
       const botMeta = document.createElement("meta");
       botMeta.name = "bot-keywords";
-      botMeta.content = "valorant scrim hub, community esports events, play valorant online tournaments 2025";
+      botMeta.content = "competitive valorant tournaments, valorant tournaments discord, valorant scrim hub, community esports events, play valorant online tournaments 2025";
       document.head.appendChild(botMeta);
     }
 
@@ -247,7 +247,7 @@ const Index = () => {
           <HomePageAnnouncement />
         </section>
         {/* Live Platform Statistics */}
-        <section className="container mx-auto px-4 pb-8" aria-label="Competitive Valorant Tournament Stats 2025">
+        <section className="container mx-auto px-4 pb-8" aria-label="Competitive Valorant Tournaments and Valorant Tournaments Discord Stats 2025">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Card className="bg-gradient-to-br from-red-900/20 to-red-800/10 border-red-700/30">
               <CardContent className="p-4 text-center">
@@ -260,7 +260,7 @@ const Index = () => {
               <CardContent className="p-4 text-center">
                 <Users className="w-8 h-8 text-blue-400 mx-auto mb-2" aria-label="Active Players in Valorant Tournament Discord 2025" />
                 <div className="text-2xl font-bold text-white">{loading ? '...' : stats.activePlayers}</div>
-                <div className="text-blue-300 text-sm">Active Players in Valorant Scrim Hub</div>
+                <div className="text-blue-300 text-sm">Active Players in Valorant Tournaments Discord</div>
               </CardContent>
             </Card>
             <Card className="bg-gradient-to-br from-green-900/20 to-green-800/10 border-green-700/30">
@@ -302,13 +302,13 @@ const Index = () => {
           </div>
         </section>
         {/* Enhanced Features Section */}
-        <section className="container mx-auto px-4 py-16" aria-label="Features for Competitive Valorant Tournaments and Discord 2025">
+        <section className="container mx-auto px-4 py-16" aria-label="Features for Competitive Valorant Tournaments and Valorant Tournaments Discord 2025">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-white mb-4">
               Everything for Competitive Valorant Tournament Success in 2025!
             </h2>
             <p className="text-xl text-slate-400 max-w-3xl mx-auto">
-              From bracket generation to our bespoke ATLAS balancing algorithms, our platform handles every aspect of competitive VALORANT tournaments and Valorant scrim hub integration.
+              From bracket generation to our bespoke ATLAS balancing algorithms, our platform handles every aspect of competitive Valorant tournaments and Valorant tournaments Discord integration.
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -322,7 +322,7 @@ const Index = () => {
               <CardContent>
                 <p className="text-slate-400">
                   Generate competitive Valorant tournament brackets automatically with fair balancing,
-                  elimination progression, and real-time notification updates via our Valorant scrim hub.
+                  elimination progression, and real-time notification updates via our Valorant tournaments Discord.
                 </p>
               </CardContent>
             </Card>
@@ -364,7 +364,7 @@ const Index = () => {
               <CardContent>
                 <p className="text-slate-400">
                   Track your competitive Valorant tournament history with our tracking features,
-                  view recent ranked history of any player on their public profiles via our Valorant scrim hub.
+                  view recent ranked history of any player on their public profiles via our Valorant tournaments Discord.
                 </p>
               </CardContent>
             </Card>

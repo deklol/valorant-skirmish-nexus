@@ -158,7 +158,7 @@ const Profile = () => {
           twitch_handle: editingProfile.twitch_handle,
           profile_visibility: editingProfile.profile_visibility,
           valorant_agent: editingProfile.valorant_agent,
-          valorant_role: editingProfile.valorant_role,
+          valorant_role: editingProfile.valorant_role as any,
           status_message: editingProfile.status_message,
           looking_for_team: editingProfile.looking_for_team
         })

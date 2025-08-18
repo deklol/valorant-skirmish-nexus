@@ -108,7 +108,7 @@ const PublicProfile = () => {
                       Admin
                     </Badge>
                   )}
-                  {(profile as any).looking_for_team && (
+                  {profile.looking_for_team && (
                     <Badge className="bg-gradient-to-r from-green-600 to-green-700 text-white border-green-500">
                       <Users className="w-3 h-3 mr-1" />
                       LFT
@@ -118,8 +118,8 @@ const PublicProfile = () => {
                 </CardTitle>
                 
                 {/* Status Message */}
-                {!isPrivate && (profile as any).status_message && (
-                  <p className="text-slate-300 text-sm mt-1 italic">"{(profile as any).status_message}"</p>
+                {!isPrivate && profile.status_message && (
+                  <p className="text-slate-300 text-sm mt-1 italic">"{profile.status_message}"</p>
                 )}
                 
                 <div className="flex items-center gap-2 mt-2">
@@ -135,25 +135,25 @@ const PublicProfile = () => {
                   )}
                   
                   {/* Valorant Role */}
-                  {!isPrivate && (profile as any).valorant_role && (
-                    <Badge variant="outline" className={`border ${getRoleColor((profile as any).valorant_role)}`}>
-                      {(profile as any).valorant_role}
+                  {!isPrivate && profile.valorant_role && (
+                    <Badge variant="outline" className={`border ${getRoleColor(profile.valorant_role)}`}>
+                      {profile.valorant_role}
                     </Badge>
                   )}
                 </div>
                 
                 {/* Agent Selection */}
-                {!isPrivate && (profile as any).valorant_agent && (
+                {!isPrivate && profile.valorant_agent && (
                   <div className="flex items-center gap-2 mt-2">
                     <img 
-                      src={getAgentIconUrl((profile as any).valorant_agent)} 
-                      alt={(profile as any).valorant_agent}
+                      src={getAgentIconUrl(profile.valorant_agent)} 
+                      alt={profile.valorant_agent}
                       className="w-6 h-6 rounded"
                       onError={(e) => {
                         e.currentTarget.style.display = 'none';
                       }}
                     />
-                    <span className="text-slate-400 text-sm">Mains {(profile as any).valorant_agent}</span>
+                    <span className="text-slate-400 text-sm">Mains {profile.valorant_agent}</span>
                   </div>
                 )}
               </div>

@@ -1680,6 +1680,42 @@ export type Database = {
           },
         ]
       }
+      user_follows: {
+        Row: {
+          followed_at: string | null
+          follower_id: string | null
+          following_id: string | null
+          id: string
+        }
+        Insert: {
+          followed_at?: string | null
+          follower_id?: string | null
+          following_id?: string | null
+          id?: string
+        }
+        Update: {
+          followed_at?: string | null
+          follower_id?: string | null
+          following_id?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_follows_follower_id_fkey"
+            columns: ["follower_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_follows_following_id_fkey"
+            columns: ["following_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_notification_preferences: {
         Row: {
           created_at: string | null
@@ -1842,6 +1878,7 @@ export type Database = {
           is_phantom: boolean | null
           last_rank_update: string | null
           last_seen: string | null
+          looking_for_team: boolean | null
           losses: number | null
           manual_rank_override: string | null
           manual_weight_override: number | null
@@ -1856,12 +1893,15 @@ export type Database = {
           riot_id_last_updated: string | null
           role: Database["public"]["Enums"]["user_role"] | null
           spendable_points: number
+          status_message: string | null
           tournaments_played: number | null
           tournaments_won: number | null
           twitch_handle: string | null
           twitter_handle: string | null
           updated_at: string | null
           use_manual_override: boolean | null
+          valorant_agent: string | null
+          valorant_role: Database["public"]["Enums"]["valorant_role"] | null
           weight_rating: number | null
           wins: number | null
         }
@@ -1879,6 +1919,7 @@ export type Database = {
           is_phantom?: boolean | null
           last_rank_update?: string | null
           last_seen?: string | null
+          looking_for_team?: boolean | null
           losses?: number | null
           manual_rank_override?: string | null
           manual_weight_override?: number | null
@@ -1893,12 +1934,15 @@ export type Database = {
           riot_id_last_updated?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
           spendable_points?: number
+          status_message?: string | null
           tournaments_played?: number | null
           tournaments_won?: number | null
           twitch_handle?: string | null
           twitter_handle?: string | null
           updated_at?: string | null
           use_manual_override?: boolean | null
+          valorant_agent?: string | null
+          valorant_role?: Database["public"]["Enums"]["valorant_role"] | null
           weight_rating?: number | null
           wins?: number | null
         }
@@ -1916,6 +1960,7 @@ export type Database = {
           is_phantom?: boolean | null
           last_rank_update?: string | null
           last_seen?: string | null
+          looking_for_team?: boolean | null
           losses?: number | null
           manual_rank_override?: string | null
           manual_weight_override?: number | null
@@ -1930,12 +1975,15 @@ export type Database = {
           riot_id_last_updated?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
           spendable_points?: number
+          status_message?: string | null
           tournaments_played?: number | null
           tournaments_won?: number | null
           twitch_handle?: string | null
           twitter_handle?: string | null
           updated_at?: string | null
           use_manual_override?: boolean | null
+          valorant_agent?: string | null
+          valorant_role?: Database["public"]["Enums"]["valorant_role"] | null
           weight_rating?: number | null
           wins?: number | null
         }
@@ -2176,6 +2224,13 @@ export type Database = {
           total_points: number
         }[]
       }
+      get_user_follow_stats: {
+        Args: { user_id: string }
+        Returns: {
+          followers_count: number
+          following_count: number
+        }[]
+      }
       get_user_info_for_audit: {
         Args: Record<PropertyKey, never>
         Returns: Json
@@ -2203,6 +2258,7 @@ export type Database = {
           discord_username: string
           id: string
           last_seen: string
+          looking_for_team: boolean
           losses: number
           mvp_awards: number
           peak_rank: string
@@ -2210,10 +2266,13 @@ export type Database = {
           rank_points: number
           riot_id: string
           role: string
+          status_message: string
           tournaments_played: number
           tournaments_won: number
           twitch_handle: string
           twitter_handle: string
+          valorant_agent: string
+          valorant_role: Database["public"]["Enums"]["valorant_role"]
           wins: number
         }[]
       }
@@ -2458,6 +2517,7 @@ export type Database = {
         | "completed"
         | "archived"
       user_role: "admin" | "player" | "viewer"
+      valorant_role: "Duelist" | "Controller" | "Initiator" | "Sentinel"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2618,6 +2678,7 @@ export const Constants = {
         "archived",
       ],
       user_role: ["admin", "player", "viewer"],
+      valorant_role: ["Duelist", "Controller", "Initiator", "Sentinel"],
     },
   },
 } as const
