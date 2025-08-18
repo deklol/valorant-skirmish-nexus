@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
@@ -27,8 +27,8 @@ interface BatchRankRefreshButtonProps {
   className?: string;
 }
 
-const BatchRankRefreshButton = ({ 
-  onRefreshComplete, 
+const BatchRankRefreshButton = ({
+  onRefreshComplete,
   variant = 'default',
   size = 'default',
   className = ''
@@ -39,16 +39,35 @@ const BatchRankRefreshButton = ({
   const [currentUser, setCurrentUser] = useState('');
   const [results, setResults] = useState<BatchResult[]>([]);
   const [totalUsers, setTotalUsers] = useState(0);
+  const [timeRemaining, setTimeRemaining] = useState(0);
   const { toast } = useToast();
 
   const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+  // Update time remaining estimate
+  useEffect(() => {
+    if (isProcessing && totalUsers > 0) {
+      const remainingUsers = totalUsers - results.length;
+      const estimatedSeconds = remainingUsers * 3; // 3 seconds per user
+      setTimeRemaining(estimatedSeconds);
+    }
+  }, [results.length, totalUsers, isProcessing]);
+
+  // Format time remaining
+  const formatTimeRemaining = (seconds: number) => {
+    if (seconds <= 0) return '0s';
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return minutes > 0 
+      ? `${minutes}m ${remainingSeconds}s`
+      : `${remainingSeconds}s`;
+  };
 
   const refreshAllRanks = async () => {
     setIsProcessing(true);
     setProgress(0);
     setResults([]);
     setIsOpen(true);
-
     try {
       // Fetch all users with riot_id
       const { data: users, error: fetchError } = await supabase
@@ -56,7 +75,7 @@ const BatchRankRefreshButton = ({
         .select('id, discord_username, riot_id, current_rank, weight_rating')
         .not('riot_id', 'is', null)
         .neq('riot_id', '');
-
+      
       if (fetchError) {
         throw new Error(`Failed to fetch users: ${fetchError.message}`);
       }
@@ -82,7 +101,7 @@ const BatchRankRefreshButton = ({
         try {
           // Call the scrape-rank function
           const { data, error } = await supabase.functions.invoke('scrape-rank', {
-            body: { 
+            body: {
               riot_id: user.riot_id,
               user_id: user.id
             }
@@ -96,16 +115,25 @@ const BatchRankRefreshButton = ({
               status: 'error',
               message: error.message || 'Unknown error'
             });
+          } else if (data.current_rank === 'Unrated') {
+            // Skip Unrated results to prevent incorrect updates
+            newResults.push({
+              user_id: user.id,
+              username: user.discord_username || 'Unknown',
+              riot_id: user.riot_id,
+              status: 'skipped',
+              message: 'Unrated result skipped to prevent incorrect update'
+            });
           } else {
             const hadRankChange = data.current_rank !== user.current_rank;
             const hadWeightChange = data.weight_rating !== user.weight_rating;
-            
+           
             newResults.push({
               user_id: user.id,
               username: user.discord_username || 'Unknown',
               riot_id: user.riot_id,
               status: 'success',
-              message: hadRankChange || hadWeightChange 
+              message: hadRankChange || hadWeightChange
                 ? `Rank updated${data.peak_rank_updated ? ' (Peak also updated)' : ''}`
                 : 'No changes',
               oldRank: user.current_rank,
@@ -123,18 +151,17 @@ const BatchRankRefreshButton = ({
             message: error.message || 'Network error'
           });
         }
-
         setResults([...newResults]);
-        
-        // Add delay between requests to avoid rate limiting
+       
+        // Add 3-second delay between requests to avoid rate limiting
         if (i < users.length - 1) {
-          await sleep(1500);
+          await sleep(3000);
         }
       }
 
       toast({
         title: "Batch Refresh Complete",
-        description: `Processed ${users.length} users. ${newResults.filter(r => r.status === 'success').length} successful, ${newResults.filter(r => r.status === 'error').length} failed.`,
+        description: `Processed ${users.length} users. ${newResults.filter(r => r.status === 'success').length} successful, ${newResults.filter(r => r.status === 'error').length} failed, ${newResults.filter(r => r.status === 'skipped').length} skipped.`,
       });
 
       if (onRefreshComplete) {
@@ -170,7 +197,7 @@ const BatchRankRefreshButton = ({
       error: 'destructive',
       skipped: 'secondary'
     } as const;
-    
+   
     return <Badge variant={variants[status]}>{status}</Badge>;
   };
 
@@ -190,13 +217,12 @@ const BatchRankRefreshButton = ({
         <RefreshCw className={`h-4 w-4 mr-2 ${isProcessing ? 'animate-spin' : ''}`} />
         Batch Refresh All Ranks
       </Button>
-
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="max-w-2xl max-h-[80vh]">
           <DialogHeader>
             <DialogTitle>Batch Rank Refresh Progress</DialogTitle>
           </DialogHeader>
-          
+         
           <div className="space-y-4">
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
@@ -204,13 +230,13 @@ const BatchRankRefreshButton = ({
                 <span>{results.length} / {totalUsers} completed</span>
               </div>
               <Progress value={progress} className="w-full" />
-              {isProcessing && currentUser && (
-                <p className="text-sm text-muted-foreground">
-                  Currently processing: {currentUser}
-                </p>
+              {isProcessing && (
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <p>Currently processing: {currentUser}</p>
+                  <p>Est. time remaining: {formatTimeRemaining(timeRemaining)}</p>
+                </div>
               )}
             </div>
-
             {results.length > 0 && (
               <div className="space-y-2">
                 <div className="flex gap-4 text-sm">
@@ -221,15 +247,18 @@ const BatchRankRefreshButton = ({
                     ✗ Failed: {results.filter(r => r.status === 'error').length}
                   </span>
                   <span className="text-yellow-600">
-                    ⚠ Changes: {results.filter(r => hasRankChange(r) && r.status === 'success').length}
+                    ⚠ Skipped: {results.filter(r => r.status === 'skipped').length}
+                  </span>
+                  <span className="text-yellow-600">
+                    ↻ Changes: {results.filter(r => hasRankChange(r) && r.status === 'success').length}
                   </span>
                 </div>
-                
+               
                 <ScrollArea className="h-64 border rounded-md p-2">
                   <div className="space-y-2">
                     {results.map((result, index) => (
-                      <div 
-                        key={result.user_id} 
+                      <div
+                        key={result.user_id}
                         className="flex items-start gap-2 p-2 border rounded text-sm"
                       >
                         <div className="flex-shrink-0 mt-0.5">
@@ -263,7 +292,6 @@ const BatchRankRefreshButton = ({
                 </ScrollArea>
               </div>
             )}
-
             {!isProcessing && results.length > 0 && (
               <div className="flex justify-end">
                 <Button onClick={() => setIsOpen(false)}>
