@@ -234,9 +234,9 @@ const Profile = () => {
     await fetchProfile();
   };
 
-  // Helper function to get agent icon URL
+  // Helper function to get agent icon URL by looking it up in our map
   const getAgentIconUrl = (agentName: string) => {
-    return `https://static.wikia.nocookie.net/valorant/images/4/49/${agentName}_icon.png`;
+    return valorantAgentIcons[agentName] || '';
   };
 
   // Helper function to get role color
