@@ -345,7 +345,7 @@ const Profile = () => {
                          e.currentTarget.style.display = 'none';
                        }}
                      />
-                     <span className="text-slate-400 text-sm">Mains {(profile as any).valorant_agent}</span>
+                     <span className="text-slate-400 text-sm">{(profile as any).valorant_agent}</span>
                    </div>
                  )}
               </div>
