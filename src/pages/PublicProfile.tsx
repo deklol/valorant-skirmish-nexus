@@ -20,8 +20,7 @@ import ProfileValorantRankedMatches from '@/components/profile/ProfileValorantRa
 import { FollowButton } from "@/components/FollowButton";
 import { useFollows } from "@/hooks/useFollows";
 
-// A map of agent names to their correct icon URLs.
-// Placed outside the component to avoid re-creation on every render.
+// Agent names to icon URLs
 const valorantAgentIcons: { [key: string]: string } = {
   'Brimstone': 'https://static.wikia.nocookie.net/valorant/images/4/4d/Brimstone_icon.png',
   'Viper': 'https://static.wikia.nocookie.net/valorant/images/5/5f/Viper_icon.png',
@@ -72,7 +71,7 @@ const PublicProfile = () => {
 
   // Helper function to get agent icon URL by looking it up in our map
   const getAgentIconUrl = (agentName: string) => {
-    return valorantAgentIcons[agentName] || ''; // Return the correct URL or an empty string as a fallback
+    return valorantAgentIcons[agentName] || '';
   };
 
   // Helper function to get role color
