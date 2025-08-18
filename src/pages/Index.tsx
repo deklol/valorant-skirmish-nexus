@@ -253,14 +253,14 @@ const Index = () => {
               <CardContent className="p-4 text-center">
                 <Trophy className="w-8 h-8 text-red-400 mx-auto mb-2" aria-label="Trophy for Competitive Valorant Tournaments 2025" />
                 <div className="text-2xl font-bold text-white">{loading ? '...' : stats.totalTournaments}</div>
-                <div className="text-red-300 text-sm">Total Competitive Valorant Tournaments</div>
+                <div className="text-red-300 text-sm">Completed Tournaments with Prizes</div>
               </CardContent>
             </Card>
             <Card className="bg-gradient-to-br from-blue-900/20 to-blue-800/10 border-blue-700/30">
               <CardContent className="p-4 text-center">
                 <Users className="w-8 h-8 text-blue-400 mx-auto mb-2" aria-label="Active Players in Valorant Tournament Discord 2025" />
                 <div className="text-2xl font-bold text-white">{loading ? '...' : stats.activePlayers}</div>
-                <div className="text-blue-300 text-sm">Active Players in Valorant Tournaments Discord</div>
+                <div className="text-blue-300 text-sm">Active Players in our Valorant Tournaments</div>
               </CardContent>
             </Card>
             <Card className="bg-gradient-to-br from-green-900/20 to-green-800/10 border-green-700/30">
@@ -274,7 +274,7 @@ const Index = () => {
               <CardContent className="p-4 text-center">
                 <Award className="w-8 h-8 text-purple-400 mx-auto mb-2" aria-label="Completed Matches in Valorant Tournament Discord 2025" />
                 <div className="text-2xl font-bold text-white">{loading ? '...' : stats.completedMatches}</div>
-                <div className="text-purple-300 text-sm">Completed Matches with Prizes</div>
+                <div className="text-purple-300 text-sm">Completed Matches</div>
               </CardContent>
             </Card>
           </div>
