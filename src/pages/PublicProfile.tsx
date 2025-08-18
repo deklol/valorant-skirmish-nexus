@@ -20,6 +20,35 @@ import ProfileValorantRankedMatches from '@/components/profile/ProfileValorantRa
 import { FollowButton } from "@/components/FollowButton";
 import { useFollows } from "@/hooks/useFollows";
 
+// A map of agent names to their correct icon URLs.
+// Placed outside the component to avoid re-creation on every render.
+const valorantAgentIcons: { [key: string]: string } = {
+  'Brimstone': 'https://static.wikia.nocookie.net/valorant/images/4/4d/Brimstone_icon.png',
+  'Viper': 'https://static.wikia.nocookie.net/valorant/images/5/5f/Viper_icon.png',
+  'Omen': 'https://static.wikia.nocookie.net/valorant/images/b/b0/Omen_icon.png',
+  'Killjoy': 'https://static.wikia.nocookie.net/valorant/images/1/15/Killjoy_icon.png',
+  'Cypher': 'https://static.wikia.nocookie.net/valorant/images/8/88/Cypher_icon.png',
+  'Sova': 'https://static.wikia.nocookie.net/valorant/images/4/49/Sova_icon.png',
+  'Sage': 'https://static.wikia.nocookie.net/valorant/images/7/74/Sage_icon.png',
+  'Phoenix': 'https://static.wikia.nocookie.net/valorant/images/1/14/Phoenix_icon.png',
+  'Jett': 'https://static.wikia.nocookie.net/valorant/images/3/35/Jett_icon.png',
+  'Reyna': 'https://static.wikia.nocookie.net/valorant/images/b/b0/Reyna_icon.png',
+  'Raze': 'https://static.wikia.nocookie.net/valorant/images/9/9c/Raze_icon.png',
+  'Breach': 'https://static.wikia.nocookie.net/valorant/images/5/53/Breach_icon.png',
+  'Skye': 'https://static.wikia.nocookie.net/valorant/images/3/33/Skye_icon.png',
+  'Yoru': 'https://static.wikia.nocookie.net/valorant/images/d/d4/Yoru_icon.png',
+  'Astra': 'https://static.wikia.nocookie.net/valorant/images/0/08/Astra_icon.png',
+  'KAY/O': 'https://static.wikia.nocookie.net/valorant/images/f/f0/KAYO_icon.png',
+  'Chamber': 'https://static.wikia.nocookie.net/valorant/images/0/09/Chamber_icon.png',
+  'Neon': 'https://static.wikia.nocookie.net/valorant/images/d/d0/Neon_icon.png',
+  'Fade': 'https://static.wikia.nocookie.net/valorant/images/a/a6/Fade_icon.png',
+  'Harbor': 'https://static.wikia.nocookie.net/valorant/images/f/f3/Harbor_icon.png',
+  'Gekko': 'https://static.wikia.nocookie.net/valorant/images/6/66/Gekko_icon.png',
+  'Deadlock': 'https://static.wikia.nocookie.net/valorant/images/e/eb/Deadlock_icon.png',
+  'Iso': 'https://static.wikia.nocookie.net/valorant/images/b/b7/Iso_icon.png',
+  'Clove': 'https://static.wikia.nocookie.net/valorant/images/3/30/Clove_icon.png',
+};
+
 const PublicProfile = () => {
   const { userId } = useParams<{ userId: string }>();
 
@@ -41,9 +70,9 @@ const PublicProfile = () => {
   const { userTeam, loading: teamLoading } = useUserTeam(userId);
   const { followerCount, followingCount } = useFollows(userId || '');
 
-  // Helper function to get agent icon URL
+  // Helper function to get agent icon URL by looking it up in our map
   const getAgentIconUrl = (agentName: string) => {
-    return `https://static.wikia.nocookie.net/valorant/images/4/49/${agentName}_icon.png`;
+    return valorantAgentIcons[agentName] || ''; // Return the correct URL or an empty string as a fallback
   };
 
   // Helper function to get role color
