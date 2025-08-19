@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,8 +19,6 @@ interface Player {
   mvp_awards: number;
   wins: number;
   losses: number;
-  valorant_role: string | null;
-  looking_for_team: boolean;
 }
 
 const Players = () => {
@@ -31,18 +30,21 @@ const Players = () => {
   }, []);
 
   const fetchPlayers = async () => {
-    try {
-      const { data, error } = await supabase
-        .rpc('players_list'); // RPC call to function
+  try {
+    const { data, error } = await supabase
+      // TS may not recognize 'players_list', so we cast to any
+      .rpc('players_list') as any; 
 
-      if (error) throw error;
-      setPlayers((data || []) as Player[]);
-    } catch (error) {
-      console.error('Error fetching players:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    if (error) throw error;
+
+    // Convert to Player[] safely
+    setPlayers((data as unknown as Player[]) || []);
+  } catch (error) {
+    console.error('Error fetching players:', error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const getEffectiveWeight = (player: Player) => {
     if (player.use_manual_override && player.manual_weight_override !== null) {
@@ -54,16 +56,6 @@ const Players = () => {
   const calculateWinRate = (wins: number, losses: number) => {
     if (wins + losses === 0) return 0;
     return Math.round((wins / (wins + losses)) * 100);
-  };
-
-  const getRoleColor = (role: string | null) => {
-    switch (role) {
-      case 'Duelist': return 'text-red-400 bg-red-500/20 border-red-500/30';
-      case 'Controller': return 'text-blue-400 bg-blue-500/20 border-blue-500/30';
-      case 'Initiator': return 'text-yellow-400 bg-yellow-500/20 border-yellow-500/30';
-      case 'Sentinel': return 'text-green-400 bg-green-500/20 border-green-500/30';
-      default: return 'text-slate-400 bg-slate-500/20 border-slate-500/30';
-    }
   };
 
   if (loading) {
@@ -81,14 +73,11 @@ const Players = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
       <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center gap-3 mb-2">
+          <div className="flex items-center gap-3 mb-2">
           <Users className="w-8 h-8 text-blue-500" />
           <h1 className="text-3xl font-bold text-white">Players</h1>
         </div>
-        <p className="text-slate-400 mb-8">
-          Q: Balancing Weight? A: Number represents rank, used for balancing purposes. 
-          <span className="text-orange-400">*</span> indicates manual override.
-        </p>
+        <p className="text-slate-400 mb-8">Q: Balancing Weight? A: Number represents rank, used for balancing purposes. <span className="text-orange-400">*</span> indicates manual override.</p>
 
         {players.length === 0 ? (
           <Card className="bg-slate-800/90 border-slate-700">
@@ -111,10 +100,12 @@ const Players = () => {
                           alt={`${player.discord_username}'s avatar`}
                           className="w-full h-full object-cover"
                           onError={(e) => {
+                            // Fallback to letter avatar if image fails to load - XSS safe
                             const target = e.target as HTMLImageElement;
                             target.style.display = 'none';
                             const parent = target.parentElement;
                             if (parent) {
+                              // Create element safely to prevent XSS
                               const span = document.createElement('span');
                               span.className = 'text-lg font-bold text-slate-300';
                               span.textContent = player.discord_username?.charAt(0).toUpperCase() || 'U';
@@ -142,18 +133,6 @@ const Players = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {player.valorant_role && (
-                      <Badge className={`text-xs ${getRoleColor(player.valorant_role)}`}>
-                        {player.valorant_role}
-                      </Badge>
-                    )}
-                    {player.looking_for_team && (
-                      <Badge className="bg-gradient-to-r from-green-600 to-green-700 text-white border-green-500 text-xs">
-                        LFT
-                      </Badge>
-                    )}
-                  </div>
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div className="text-center p-2 bg-slate-700/50 rounded">
                       <div className="font-bold text-indigo-400">{getEffectiveWeight(player)}</div>
