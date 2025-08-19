@@ -18,6 +18,165 @@ import HomeHero from "@/components/home/HomeHero";
 import { HomePageSkeleton } from "@/components/ui/loading-skeleton";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
+/**
+ * SEO Management Component
+ * This component cleanly manages all head tags like title, meta description, canonical, and JSON-LD structured data.
+ * This is a more robust approach than direct DOM manipulation within the main component's useEffect.
+ * For larger applications, consider a library like 'react-helmet-async' for even better management.
+ */
+const HomePageSeo = () => {
+  useEffect(() => {
+    // --- 1. Title Optimization ---
+    // A more descriptive title following the format: Primary Keyword | Secondary Feature | Brand
+    document.title = "Competitive Valorant Tournaments 2025 | Live Brackets & Prizes | TLR Hub";
+
+    // --- 2. Meta Description Optimization (Targeting 140-160 characters) ---
+    const newMetaDesc = "Join TLR Hub for the ultimate competitive Valorant tournaments in 2025. Find live brackets, fair team balancing, free entry, and big prizes on our active Discord.";
+    let metaDesc = document.querySelector('meta[name="description"]');
+    if (!metaDesc) {
+      metaDesc = document.createElement('meta');
+      metaDesc.name = "description";
+      document.head.appendChild(metaDesc);
+    }
+    metaDesc.setAttribute("content", newMetaDesc);
+    
+    // --- 3. Single Canonical Link Enforcement ---
+    // First, remove any existing canonical links to prevent duplicates, then add the correct one.
+    document.querySelectorAll('link[rel="canonical"]').forEach(el => el.remove());
+    const canonical = document.createElement('link');
+    canonical.rel = 'canonical';
+    canonical.href = window.location.origin + '/';
+    document.head.appendChild(canonical);
+    
+    // --- Open Graph & Twitter Cards ---
+    // A more robust way to handle meta tags: check if they exist, update, or create them.
+    const metaTags = {
+      'og:title': 'TLR Hub | Competitive Valorant Tournaments & Community',
+      'og:description': newMetaDesc,
+      'og:image': 'https://lovable.dev/opengraph-image-p98pqg.png',
+      'og:url': window.location.origin,
+      'twitter:card': 'summary_large_image',
+      'twitter:site': '@digitalm1nd',
+    };
+
+    Object.entries(metaTags).forEach(([property, content]) => {
+      let el = document.querySelector(`meta[property="${property}"]`) || document.querySelector(`meta[name="${property}"]`);
+      if (!el) {
+        el = document.createElement('meta');
+        if (property.startsWith('og:')) {
+          el.setAttribute('property', property);
+        } else {
+          el.name = property;
+        }
+        document.head.appendChild(el);
+      }
+      el.content = content;
+    });
+
+    // --- 4. Structured Data (JSON-LD) ---
+    // Remove existing script to prevent duplicates on hot-reloads in development
+    const existingLdJson = document.getElementById('ld-json-data');
+    if (existingLdJson) {
+      existingLdJson.remove();
+    }
+    const ldJsonScript = document.createElement('script');
+    ldJsonScript.type = 'application/ld+json';
+    ldJsonScript.id = 'ld-json-data';
+    ldJsonScript.text = JSON.stringify([
+        {
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            "name": "The Last Resort - Skirmish Hub",
+            "url": window.location.origin + "/",
+            "author": {
+                "@type": "Person",
+                "name": "@digitalm1nd",
+                "description": "Esports organizer for competitive Valorant tournaments"
+            },
+            "potentialAction": {
+                "@type": "SearchAction",
+                "target": window.location.origin + "/players?search={query}",
+                "query-input": "required name=query"
+            }
+        },
+        {
+            "@context": "https://schema.org",
+            "@type": "SportsEvent",
+            "name": "TLR Skirmish Hub Valorant Tournament Series 2025",
+            "startDate": "2025-08-18",
+            "endDate": "2025-12-31",
+            "eventAttendanceMode": "https://schema.org/OnlineEventAttendanceMode",
+            "eventStatus": "https://schema.org/EventScheduled",
+            "location": {
+                "@type": "VirtualLocation",
+                "url": window.location.origin
+            },
+            "image": "https://lovable.dev/opengraph-image-p98pqg.png",
+            "description": "Join competitive Valorant tournaments at TLR Skirmish Hub with live brackets, stats tracking, fair ATLAS balancing, and our Valorant tournaments Discord for scrims, prizes, and community. Play competitive Valorant tournaments in 2025.",
+            "offers": {
+                "@type": "Offer",
+                "price": "0",
+                "priceCurrency": "USD",
+                "availability": "https://schema.org/InStock",
+                "url": window.location.origin
+            },
+            "organizer": {
+                "@type": "Organization",
+                "name": "TLR Skirmish Hub",
+                "url": window.location.origin
+            },
+            "competitor": {
+                "@type": "SportsTeam",
+                "name": "Valorant Players and Teams"
+            }
+        },
+        {
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": [
+                {
+                    "@type": "Question",
+                    "name": "How to join Valorant tournaments in 2025?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Sign up at TLR Skirmish Hub for solo or team-based competitive Valorant tournaments. Register via our platform and join our Valorant tournament Discord for schedules and scrims."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "What is the best Valorant tournaments Discord?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "TLR Skirmish Hub's Valorant tournaments Discord is the top choice for competitive Valorant tournaments, offering live brackets, scrims, and prize updates. Join our Valorant tournaments Discord community for competitive Valorant tournaments in 2025."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "Does TLR Skirmish Hub offer free Valorant tournaments?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Yes, TLR Skirmish Hub offers free-to-enter competitive Valorant tournaments with prizes, fair ATLAS balancing, and Valorant tournaments Discord integration for seamless competitive Valorant tournaments experience."
+                    }
+                }
+            ]
+        }
+    ]);
+    document.head.appendChild(ldJsonScript);
+
+    // Cleanup function to remove tags when the component unmounts
+    return () => {
+      if (document.head.contains(ldJsonScript)) {
+        document.head.removeChild(ldJsonScript);
+      }
+      if (document.head.contains(canonical)) {
+        document.head.removeChild(canonical);
+      }
+    };
+  }, []);
+
+  return null; // This component does not render anything to the DOM
+};
+
 const Index = () => {
   const { user } = useAuth();
   const [stats, setStats] = useState({
@@ -28,185 +187,14 @@ const Index = () => {
   });
   const [loading, setLoading] = useState(true);
 
-  // Enhanced SEO for homepage with 2025 best practices  
-  useEffect(() => {
-    // Set optimized title and meta description for competitive Valorant tournaments
-    document.title = "TLR Hub | Competitive Valorant Tournaments & Discord 2025";
-    const setMetaDescription = () => {
-      const metaDesc = document.querySelector('meta[name="description"]');
-      if (metaDesc) {
-        metaDesc.setAttribute("content", "Join competitive Valorant tournaments at TLR Skirmish Hub. Our Valorant tournaments Discord offers live brackets, fair balancing, and exciting prizes. Play competitive Valorant tournaments with top players in 2025.");
-      } else {
-        const m = document.createElement("meta");
-        m.name = "description";
-        m.content = "Join competitive Valorant tournaments at TLR Hub. Discord community with live brackets, fair team balancing & prizes. Free entry!";
-        document.head.appendChild(m);
-      }
-    };
-    // Ensure meta tags are set after render (client-side React fix)
-    setTimeout(setMetaDescription, 0);
-
-    // Open Graph and Twitter meta for social sharing
-    const ogTitle = document.createElement("meta");
-    ogTitle.setAttribute("property", "og:title");
-    ogTitle.content = "TLR Hub | Competitive Valorant Tournaments";
-    document.head.appendChild(ogTitle);
-    const ogDesc = document.createElement("meta");
-    ogDesc.setAttribute("property", "og:description");
-    ogDesc.content = "Join competitive Valorant tournaments at TLR Hub. Discord community with live brackets, fair team balancing & prizes. Free entry!";
-    document.head.appendChild(ogDesc);
-    const ogImage = document.createElement("meta");
-    ogImage.setAttribute("property", "og:image");
-    ogImage.content = "https://lovable.dev/opengraph-image-p98pqg.png";
-    document.head.appendChild(ogImage);
-    const ogUrl = document.createElement("meta");
-    ogUrl.setAttribute("property", "og:url");
-    ogUrl.content = window.location.origin;
-    document.head.appendChild(ogUrl);
-    const twitterCard = document.createElement("meta");
-    twitterCard.name = "twitter:card";
-    twitterCard.content = "summary_large_image";
-    document.head.appendChild(twitterCard);
-    const twitterSite = document.createElement("meta");
-    twitterSite.name = "twitter:site";
-    twitterSite.content = "@digitalm1nd";
-    document.head.appendChild(twitterSite);
-
-    const canonical = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
-    if (canonical) canonical.href = window.location.origin + "/";
-    else {
-      const l = document.createElement("link");
-      l.rel = "canonical";
-      l.href = window.location.origin + "/";
-      document.head.appendChild(l);
-    }
-
-    // Expanded Structured data with SportsEvent and FAQ for rich snippets
-    const ld = document.createElement("script");
-    ld.type = "application/ld+json";
-    ld.text = JSON.stringify([
-      {
-        "@context": "https://schema.org",
-        "@type": "WebSite",
-        "name": "The Last Resort - Skirmish Hub",
-        "url": window.location.origin + "/",
-        "author": {
-          "@type": "Person",
-          "name": "@digitalm1nd",
-          "description": "Esports organizer for competitive Valorant tournaments"
-        },
-        "potentialAction": {
-          "@type": "SearchAction",
-          "target": window.location.origin + "/players?search={query}",
-          "query-input": "required name=query"
-        }
-      },
-      {
-        "@context": "https://schema.org",
-        "@type": "SportsEvent",
-        "name": "TLR Skirmish Hub Valorant Tournament Series 2025",
-        "startDate": "2025-08-18",
-        "endDate": "2025-12-31",
-        "eventAttendanceMode": "https://schema.org/OnlineEventAttendanceMode",
-        "eventStatus": "https://schema.org/EventScheduled",
-        "location": {
-          "@type": "VirtualLocation",
-          "url": window.location.origin
-        },
-        "image": "https://lovable.dev/opengraph-image-p98pqg.png",
-        "description": "Join competitive Valorant tournaments at TLR Skirmish Hub with live brackets, stats tracking, fair ATLAS balancing, and our Valorant tournaments Discord for scrims, prizes, and community. Play competitive Valorant tournaments in 2025.",
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "USD",
-          "availability": "https://schema.org/InStock",
-          "url": window.location.origin
-        },
-        "organizer": {
-          "@type": "Organization",
-          "name": "TLR Skirmish Hub",
-          "url": window.location.origin
-        },
-        "competitor": {
-          "@type": "SportsTeam",
-          "name": "Valorant Players and Teams"
-        }
-      },
-      {
-        "@context": "https://schema.org",
-        "@type": "FAQPage",
-        "mainEntity": [
-          {
-            "@type": "Question",
-            "name": "How to join Valorant tournaments in 2025?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "Sign up at TLR Skirmish Hub for solo or team-based competitive Valorant tournaments. Register via our platform and join our Valorant tournament Discord for schedules and scrims."
-            }
-          },
-            {
-              "@type": "Question",
-              "name": "What is the best Valorant tournaments Discord?",
-              "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "TLR Skirmish Hub's Valorant tournaments Discord is the top choice for competitive Valorant tournaments, offering live brackets, scrims, and prize updates. Join our Valorant tournaments Discord community for competitive Valorant tournaments in 2025."
-              }
-            },
-          {
-            "@type": "Question",
-            "name": "Does TLR Skirmish Hub offer free Valorant tournaments?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "Yes, TLR Skirmish Hub offers free-to-enter competitive Valorant tournaments with prizes, fair ATLAS balancing, and Valorant tournaments Discord integration for seamless competitive Valorant tournaments experience."
-            }
-          }
-        ]
-      }
-    ]);
-    document.head.appendChild(ld);
-
-    // Gray-hat: Subtle bot meta for crawlers (low risk)
-    const isBot = /googlebot/i.test(navigator.userAgent);
-    if (isBot) {
-      const botMeta = document.createElement("meta");
-      botMeta.name = "bot-keywords";
-      botMeta.content = "competitive valorant tournaments, valorant tournaments discord, valorant scrim hub, community esports events, play valorant online tournaments 2025";
-      document.head.appendChild(botMeta);
-    }
-
-    return () => {
-      document.head.removeChild(ld);
-      document.head.removeChild(ogTitle);
-      document.head.removeChild(ogDesc);
-      document.head.removeChild(ogImage);
-      document.head.removeChild(ogUrl);
-      document.head.removeChild(twitterCard);
-      document.head.removeChild(twitterSite);
-    };
-  }, []);
-
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Get tournament count
-        const { count: tournamentCount } = await supabase
-          .from('tournaments')
-          .select('*', { count: 'exact' });
-        // Get total registered players
-        const { count: playerCount } = await supabase
-          .from('users')
-          .select('*', { count: 'exact' })
-          .eq('is_phantom', false);
-        // Get live matches
-        const { count: liveMatchCount } = await supabase
-          .from('matches')
-          .select('*', { count: 'exact' })
-          .eq('status', 'live');
-        // Get completed matches
-        const { count: completedMatchCount } = await supabase
-          .from('matches')
-          .select('*', { count: 'exact' })
-          .eq('status', 'completed');
+        const { count: tournamentCount } = await supabase.from('tournaments').select('*', { count: 'exact' });
+        const { count: playerCount } = await supabase.from('users').select('*', { count: 'exact' }).eq('is_phantom', false);
+        const { count: liveMatchCount } = await supabase.from('matches').select('*', { count: 'exact' }).eq('status', 'live');
+        const { count: completedMatchCount } = await supabase.from('matches').select('*', { count: 'exact' }).eq('status', 'completed');
+        
         setStats({
           totalTournaments: tournamentCount || 0,
           activePlayers: playerCount || 0,
@@ -222,7 +210,7 @@ const Index = () => {
     fetchStats();
   }, []);
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString("en-GB", {
       day: "2-digit",
       month: "short",
@@ -237,66 +225,80 @@ const Index = () => {
 
   return (
     <ErrorBoundary componentName="Homepage">
+      <HomePageSeo /> {/* All SEO logic is now handled by this component */}
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
+        
         {/* Hero/Main Headline */}
         <section className="container mx-auto px-4 pt-8 pb-6">
           <div className="text-center">
+            {/* --- H1 Heading Optimized --- */}
             <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 bg-gradient-to-r from-red-400 via-yellow-400 to-red-400 bg-clip-text text-transparent">
-              Competitive Valorant Tournaments Discord
+              TLR Hub: Premier Valorant Tournaments
             </h1>
             <p className="text-xl text-slate-300 mb-8 max-w-3xl mx-auto">
-              Join the premier valorant tournaments discord community for competitive valorant tournaments in 2025
+              Join the #1 Valorant tournaments Discord community for free-to-enter competitive events with prizes, live brackets, and fair team balancing in 2025.
             </p>
           </div>
           <HomeHero />
         </section>
+        
         {/* Announcement Full Width */}
         <section className="container mx-auto px-4 pb-4">
           <HomePageAnnouncement />
         </section>
+        
         {/* Live Platform Statistics */}
-        <section className="container mx-auto px-4 pb-8" aria-label="Competitive Valorant Tournaments and Valorant Tournaments Discord Stats 2025">
+        <section className="container mx-auto px-4 pb-8" aria-labelledby="platform-stats-heading">
+          {/* --- H2 Heading Added for Structure --- */}
+          <h2 id="platform-stats-heading" className="text-3xl font-bold text-white text-center mb-8">
+            Live Platform Statistics
+          </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Card className="bg-gradient-to-br from-red-900/20 to-red-800/10 border-red-700/30">
               <CardContent className="p-4 text-center">
-                <Trophy className="w-8 h-8 text-red-400 mx-auto mb-2" aria-label="Trophy for Competitive Valorant Tournaments 2025" />
-                <div className="text-2xl font-bold text-white">{loading ? '...' : stats.totalTournaments}</div>
-                <div className="text-red-300 text-sm">Completed Tournaments with Prizes</div>
+                <Trophy className="w-8 h-8 text-red-400 mx-auto mb-2" aria-label="Trophy for Completed Tournaments" />
+                <div className="text-2xl font-bold text-white">{stats.totalTournaments}</div>
+                <div className="text-red-300 text-sm">Completed Tournaments</div>
               </CardContent>
             </Card>
             <Card className="bg-gradient-to-br from-blue-900/20 to-blue-800/10 border-blue-700/30">
               <CardContent className="p-4 text-center">
-                <Users className="w-8 h-8 text-blue-400 mx-auto mb-2" aria-label="Active Players in Valorant Tournament Discord 2025" />
-                <div className="text-2xl font-bold text-white">{loading ? '...' : stats.activePlayers}</div>
-                <div className="text-blue-300 text-sm">Active Players in our Valorant Tournaments</div>
+                <Users className="w-8 h-8 text-blue-400 mx-auto mb-2" aria-label="Active Players" />
+                <div className="text-2xl font-bold text-white">{stats.activePlayers}</div>
+                <div className="text-blue-300 text-sm">Active Players</div>
               </CardContent>
             </Card>
             <Card className="bg-gradient-to-br from-green-900/20 to-green-800/10 border-green-700/30">
               <CardContent className="p-4 text-center">
-                <Activity className="w-8 h-8 text-green-400 mx-auto mb-2" aria-label="Live Matches in Competitive Valorant Tournaments 2025" />
-                <div className="text-2xl font-bold text-white">{loading ? '...' : stats.liveMatches}</div>
-                <div className="text-green-300 text-sm">Live Competitive Tournament Matches</div>
+                <Activity className="w-8 h-8 text-green-400 mx-auto mb-2" aria-label="Live Matches" />
+                <div className="text-2xl font-bold text-white">{stats.liveMatches}</div>
+                <div className="text-green-300 text-sm">Live Matches</div>
               </CardContent>
             </Card>
             <Card className="bg-gradient-to-br from-purple-900/20 to-purple-800/10 border-purple-700/30">
               <CardContent className="p-4 text-center">
-                <Award className="w-8 h-8 text-purple-400 mx-auto mb-2" aria-label="Completed Matches in Valorant Tournament Discord 2025" />
-                <div className="text-2xl font-bold text-white">{loading ? '...' : stats.completedMatches}</div>
+                <Award className="w-8 h-8 text-purple-400 mx-auto mb-2" aria-label="Completed Matches" />
+                <div className="text-2xl font-bold text-white">{stats.completedMatches}</div>
                 <div className="text-purple-300 text-sm">Completed Matches</div>
               </CardContent>
             </Card>
           </div>
         </section>
-        {/* Twitch embed full width (if enabled) */}
+        
+        {/* Twitch embed full width */}
         <section className="container mx-auto px-4 pb-8">
           <TwitchEmbed />
         </section>
+        
         {/* Live Matches Section */}
         <section className="container mx-auto px-4 pt-4 pb-8">
           <LiveMatches />
         </section>
-        {/* Enhanced 3-col grid: L=Top Players | M=Tournaments | R=Recent Winner */}
-        <section className="container mx-auto px-4 pb-8">
+        
+        {/* Community Spotlight Grid */}
+        <section className="container mx-auto px-4 pb-8" aria-labelledby="community-spotlight-heading">
+          {/* --- Screen-reader only H2 for structure --- */}
+          <h2 id="community-spotlight-heading" className="sr-only">Community Spotlight: Top Players, Tournaments, and Recent Winners</h2>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="space-y-6">
               <MemberHighlights />
@@ -309,278 +311,229 @@ const Index = () => {
             </div>
           </div>
         </section>
+        
         {/* Enhanced Features Section */}
-        <section className="container mx-auto px-4 py-16" aria-label="Features for Competitive Valorant Tournaments and Valorant Tournaments Discord 2025">
+        <section className="container mx-auto px-4 py-16" aria-labelledby="features-heading">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-white mb-4">
-              Premium Valorant Tournaments Discord Features
+            <h2 id="features-heading" className="text-3xl font-bold text-white mb-4">
+              Premium Features for Competitive Play
             </h2>
             <p className="text-xl text-slate-400 max-w-3xl mx-auto">
-              From bracket generation to our bespoke ATLAS balancing algorithms, our platform handles every aspect of competitive Valorant tournaments and Valorant tournaments Discord integration.
+              From automated brackets to our bespoke ATLAS balancing algorithm, our platform handles every aspect of your competitive Valorant tournament experience.
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <Card className="bg-gradient-to-br from-red-900/20 to-red-800/10 border-red-700/30 hover:border-red-500 transition-colors group">
               <CardHeader>
                 <div className="w-12 h-12 bg-red-500/20 rounded-lg flex items-center justify-center mb-4 group-hover:bg-red-500/30 transition-colors">
-                  <Trophy className="h-6 w-6 text-red-400" aria-label="Automated Brackets for Competitive Valorant Tournaments 2025" />
+                  <Trophy className="h-6 w-6 text-red-400" />
                 </div>
-                <CardTitle className="text-white">Automated Brackets for Competitive Tournaments</CardTitle>
+                <CardTitle className="text-white">Automated Brackets</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-slate-400">
-                  Generate competitive Valorant tournament brackets automatically with fair balancing,
-                  elimination progression, and real-time notification updates via our Valorant tournaments Discord.
+                  Generate tournament brackets automatically with fair seeding, elimination progression, and real-time Discord notifications.
                 </p>
               </CardContent>
             </Card>
             <Card className="bg-gradient-to-br from-blue-900/20 to-blue-800/10 border-blue-700/30 hover:border-blue-500 transition-colors group">
               <CardHeader>
                 <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center mb-4 group-hover:bg-blue-500/30 transition-colors">
-                  <Shield className="h-6 w-6 text-blue-400" aria-label="Team Balancing in Valorant Tournament Discord 2025" />
+                  <Shield className="h-6 w-6 text-blue-400" />
                 </div>
-                <CardTitle className="text-white">Team Balancing for Fair Competitions</CardTitle>
+                <CardTitle className="text-white">ATLAS Team Balancing</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-slate-400">
-                  Smart team balancing algorithms ensure fair competition by
-                  distributing skill levels evenly across all teams in our community esports events.
+                  Our smart balancing algorithm analyzes player skill to ensure fair competition by distributing talent evenly across all teams.
                 </p>
               </CardContent>
             </Card>
             <Card className="bg-gradient-to-br from-green-900/20 to-green-800/10 border-green-700/30 hover:border-green-500 transition-colors group">
               <CardHeader>
                 <div className="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center mb-4 group-hover:bg-green-500/30 transition-colors">
-                  <Target className="h-6 w-6 text-green-400" aria-label="Map Veto System for Competitive Valorant Tournaments 2025" />
+                  <Target className="h-6 w-6 text-green-400" />
                 </div>
-                <CardTitle className="text-white">Map Veto System for Strategic Matches</CardTitle>
+                <CardTitle className="text-white">Map Veto System</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-slate-400">
-                  Interactive map veto process with real-time captain controls
-                  for strategic map selection in competitive Valorant tournament matches.
+                  Utilize our interactive map veto process with real-time controls for captains, adding a strategic layer to every match.
                 </p>
               </CardContent>
             </Card>
             <Card className="bg-gradient-to-br from-purple-900/20 to-purple-800/10 border-purple-700/30 hover:border-purple-500 transition-colors group">
               <CardHeader>
                 <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center mb-4 group-hover:bg-purple-500/30 transition-colors">
-                  <Zap className="h-6 w-6 text-purple-400" aria-label="History Tracking in Valorant Tournament Discord 2025" />
+                  <Zap className="h-6 w-6 text-purple-400" />
                 </div>
-                <CardTitle className="text-white">History Tracking for Tournament Performance</CardTitle>
+                <CardTitle className="text-white">Player Stat Tracking</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-slate-400">
-                  Track your competitive Valorant tournament history with our tracking features,
-                  view recent ranked history of any player on their public profiles via our Valorant tournaments Discord.
+                  Track your tournament history and performance. View detailed stats and recent ranked history on public player profiles.
                 </p>
               </CardContent>
             </Card>
             <Card className="bg-gradient-to-br from-yellow-900/20 to-yellow-800/10 border-yellow-700/30 hover:border-yellow-500 transition-colors group">
               <CardHeader>
                 <div className="w-12 h-12 bg-yellow-500/20 rounded-lg flex items-center justify-center mb-4 group-hover:bg-yellow-500/30 transition-colors">
-                  <Users className="h-6 w-6 text-yellow-400" aria-label="Player Management for Competitive Valorant Tournaments 2025" />
+                  <Users className="h-6 w-6 text-yellow-400" />
                 </div>
-                <CardTitle className="text-white">Player Management with Analytics</CardTitle>
+                <CardTitle className="text-white">Player Profiles</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-slate-400">
-                  Complete player profiles with rank tracking, statistics,
-                  and performance analytics across all competitive Valorant tournaments.
+                  Maintain a complete player profile with rank tracking, performance analytics, and match history across all tournaments.
                 </p>
               </CardContent>
             </Card>
             <Card className="bg-gradient-to-br from-purple-900/20 to-purple-800/10 border-purple-700/30 hover:border-purple-500 transition-colors group">
               <CardHeader>
                 <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center mb-4 group-hover:bg-purple-500/30 transition-colors">
-                  <ShoppingBag className="h-6 w-6 text-purple-400" aria-label="Shop & Rewards in Valorant Tournament Discord 2025" />
+                  <ShoppingBag className="h-6 w-6 text-purple-400" />
                 </div>
-                <CardTitle className="text-white">Shop & Rewards for Tournament Wins</CardTitle>
+                <CardTitle className="text-white">Shop & Rewards</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-slate-400">
-                  Play competitive Valorant tournaments, earn achievement points, and purchase cool
-                  name effects and exclusive items to customize your profile via our Valorant scrim hub.
+                  Earn achievement points from playing, and spend them on cool name effects and exclusive profile customizations.
                 </p>
               </CardContent>
             </Card>
           </div>
         </section>
-        {/* How It Works Section - Additional Content for SEO */}
-        <section className="container mx-auto px-4 py-16" aria-label="How TLR Hub Competitive Valorant Tournaments Work">
+        
+        {/* How It Works Section */}
+        <section className="container mx-auto px-4 py-16" aria-labelledby="how-it-works-heading">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-white mb-4">
-              How Our Competitive Valorant Tournament System Works
+            <h2 id="how-it-works-heading" className="text-3xl font-bold text-white mb-4">
+              How Our Tournament System Works
             </h2>
             <p className="text-xl text-slate-400 max-w-3xl mx-auto">
-              From registration to championship matches, our streamlined process makes competing in Valorant tournaments simple and fair for all skill levels.
+              From registration to championship matches, our streamlined process makes competing simple and fair for all skill levels.
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <Card className="bg-gradient-to-br from-green-900/20 to-green-800/10 border-green-700/30">
-              <CardHeader>
-                <CardTitle className="text-white text-center">1. Register</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-slate-400 text-center">
-                  Create your account, set your Riot ID, and join our Discord community. Registration is completely free for all competitive Valorant tournaments.
-                </p>
-              </CardContent>
+              <CardHeader><CardTitle className="text-white text-center">1. Register</CardTitle></CardHeader>
+              <CardContent><p className="text-slate-400 text-center">Create your account, set your Riot ID, and join our Discord. Registration is free for all tournaments.</p></CardContent>
             </Card>
             <Card className="bg-gradient-to-br from-blue-900/20 to-blue-800/10 border-blue-700/30">
-              <CardHeader>
-                <CardTitle className="text-white text-center">2. Join Tournaments</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-slate-400 text-center">
-                  Browse active tournaments and register individually or with your team. Our ATLAS system ensures fair matchmaking across all skill levels.
-                </p>
-              </CardContent>
+              <CardHeader><CardTitle className="text-white text-center">2. Join Tournaments</CardTitle></CardHeader>
+              <CardContent><p className="text-slate-400 text-center">Browse active tournaments and register individually or with a team. Our ATLAS system ensures fair matchmaking.</p></CardContent>
             </Card>
             <Card className="bg-gradient-to-br from-purple-900/20 to-purple-800/10 border-purple-700/30">
-              <CardHeader>
-                <CardTitle className="text-white text-center">3. Compete</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-slate-400 text-center">
-                  Play matches using our integrated map veto system, submit scores, and track your progress through live brackets updated in real-time.
-                </p>
-              </CardContent>
+              <CardHeader><CardTitle className="text-white text-center">3. Compete</CardTitle></CardHeader>
+              <CardContent><p className="text-slate-400 text-center">Play matches using our integrated map veto system, submit scores, and track your progress on live brackets.</p></CardContent>
             </Card>
             <Card className="bg-gradient-to-br from-yellow-900/20 to-yellow-800/10 border-yellow-700/30">
-              <CardHeader>
-                <CardTitle className="text-white text-center">4. Win Prizes</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-slate-400 text-center">
-                  Earn achievement points, unlock exclusive name effects, and compete for tournament prizes while building your competitive Valorant legacy.
-                </p>
-              </CardContent>
+              <CardHeader><CardTitle className="text-white text-center">4. Win Prizes</CardTitle></CardHeader>
+              <CardContent><p className="text-slate-400 text-center">Earn achievement points, unlock exclusive items, and compete for prizes while building your legacy.</p></CardContent>
             </Card>
           </div>
         </section>
 
         {/* Tournament Formats Section */}
-        <section className="container mx-auto px-4 py-16" aria-label="Valorant Tournament Formats Available at TLR Hub">
+        <section className="container mx-auto px-4 py-16" aria-labelledby="formats-heading">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-white mb-4">
-              Multiple Tournament Formats for Every Playstyle
+            <h2 id="formats-heading" className="text-3xl font-bold text-white mb-4">
+              Multiple Tournament Formats
             </h2>
             <p className="text-xl text-slate-400 max-w-3xl mx-auto">
-              Whether you prefer solo queue competitions or organized team battles, TLR Hub offers diverse tournament formats to match your competitive Valorant goals.
+              Whether you prefer solo queue or organized team battles, we offer diverse formats to match your competitive goals.
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <Card className="bg-gradient-to-br from-red-900/20 to-red-800/10 border-red-700/30">
-              <CardHeader>
-                <CardTitle className="text-white">Solo Queue Tournaments</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle className="text-white">Solo Queue Tournaments</CardTitle></CardHeader>
               <CardContent>
-                <p className="text-slate-400 mb-4">
-                  Perfect for individual players looking to test their skills. Our ATLAS balancing system creates fair teams automatically based on rank and performance history.
-                </p>
-                <ul className="text-slate-400 space-y-2">
-                  <li>• Automatic team balancing</li>
-                  <li>• Fair skill distribution</li>
-                  <li>• Individual performance tracking</li>
-                  <li>• Regular weekly tournaments</li>
+                <p className="text-slate-400 mb-4">Perfect for individual players. Our ATLAS system creates fair teams automatically based on rank and performance.</p>
+                <ul className="text-slate-400 space-y-2 list-disc list-inside">
+                  <li>Automatic team balancing</li>
+                  <li>Fair skill distribution</li>
+                  <li>Individual performance tracking</li>
+                  <li>Regular weekly tournaments</li>
                 </ul>
               </CardContent>
             </Card>
             <Card className="bg-gradient-to-br from-blue-900/20 to-blue-800/10 border-blue-700/30">
-              <CardHeader>
-                <CardTitle className="text-white">Team-Based Competitions</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle className="text-white">Team-Based Competitions</CardTitle></CardHeader>
               <CardContent>
-                <p className="text-slate-400 mb-4">
-                  Bring your pre-made team or join one through our team finder. Compete against other organized squads in structured bracket formats.
-                </p>
-                <ul className="text-slate-400 space-y-2">
-                  <li>• Pre-made team registration</li>
-                  <li>• Team finder for LFT players</li>
-                  <li>• Captain-based map veto system</li>
-                  <li>• Team statistics tracking</li>
+                <p className="text-slate-400 mb-4">Bring your pre-made team or find one through our community. Compete against other organized squads in structured brackets.</p>
+                <ul className="text-slate-400 space-y-2 list-disc list-inside">
+                  <li>Pre-made team registration</li>
+                  <li>Team finder for LFT players</li>
+                  <li>Captain-based map veto system</li>
+                  <li>Team statistics tracking</li>
                 </ul>
               </CardContent>
             </Card>
           </div>
         </section>
 
-        {/* FAQ Section for Long-Tail and Voice Search */}
-        <section className="container mx-auto px-4 py-16" aria-label="FAQ for Competitive Valorant Tournaments and Discord 2025">
+        {/* FAQ Section */}
+        <section className="container mx-auto px-4 py-16" aria-labelledby="faq-heading">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-white mb-4">
-              Frequently Asked Questions About Valorant Tournaments
+            <h2 id="faq-heading" className="text-3xl font-bold text-white mb-4">
+              Frequently Asked Questions
             </h2>
             <p className="text-xl text-slate-400 max-w-3xl mx-auto">
-              Get answers to common questions about joining our competitive Valorant tournaments and Valorant tournament Discord community.
+              Get answers to common questions about joining our competitive Valorant tournaments and Discord community.
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <Card className="bg-gradient-to-br from-indigo-900/20 to-indigo-800/10 border-indigo-700/30">
-              <CardHeader>
-                <CardTitle className="text-white">How to join Valorant tournaments in 2025?</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle className="text-white">How do I join Valorant tournaments?</CardTitle></CardHeader>
               <CardContent>
                 <p className="text-slate-400">
-                  Sign up at <Link to="/tournaments" className="text-purple-400 hover:underline">TLR Hub</Link> for solo or team-based competitive Valorant tournaments. Register via our platform and join our <a href="https://discord.gg/TLR" className="text-purple-400 hover:underline" rel="noopener noreferrer">Valorant tournament Discord</a> for schedules and scrims.
+                  Sign up at <Link to="/tournaments" className="text-purple-400 hover:underline">TLR Hub</Link> and join our <a href="https://discord.gg/TLR" className="text-purple-400 hover:underline" rel="noopener noreferrer" target="_blank">Valorant tournament Discord</a> for schedules and scrims.
                 </p>
               </CardContent>
             </Card>
             <Card className="bg-gradient-to-br from-indigo-900/20 to-indigo-800/10 border-indigo-700/30">
-              <CardHeader>
-                <CardTitle className="text-white">What is the best Valorant tournament Discord?</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle className="text-white">What is the best Valorant tournament Discord?</CardTitle></CardHeader>
               <CardContent>
                 <p className="text-slate-400">
-                  TLR Hub's Discord is the top choice for competitive Valorant players, offering live brackets, scrims, and prize updates. Join at <a href="https://discord.gg/TLR" className="text-purple-400 hover:underline" rel="noopener noreferrer">discord.gg/TLR</a>
+                  TLR Hub's Discord is a top choice for competitive players, offering live brackets, scrims, and prize updates. Join at <a href="https://discord.gg/TLR" className="text-purple-400 hover:underline" rel="noopener noreferrer" target="_blank">discord.gg/TLR</a>.
                 </p>
               </CardContent>
             </Card>
             <Card className="bg-gradient-to-br from-indigo-900/20 to-indigo-800/10 border-indigo-700/30">
-              <CardHeader>
-                <CardTitle className="text-white">Are TLR Hub tournaments free to enter?</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle className="text-white">Are the tournaments free to enter?</CardTitle></CardHeader>
               <CardContent>
                 <p className="text-slate-400">
-                  Yes, TLR Hub offers free-to-enter competitive Valorant tournaments with prizes, fair ATLAS balancing, and Discord integration. Check our <Link to="/tournaments" className="text-purple-400 hover:underline">tournaments page</Link> for upcoming events.
+                  Yes, all our standard tournaments are free-to-enter and include prizes, fair ATLAS balancing, and full Discord integration. Check the <Link to="/tournaments" className="text-purple-400 hover:underline">tournaments page</Link> for events.
                 </p>
               </CardContent>
             </Card>
             <Card className="bg-gradient-to-br from-indigo-900/20 to-indigo-800/10 border-indigo-700/30">
-              <CardHeader>
-                <CardTitle className="text-white">What ranks can participate in tournaments?</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle className="text-white">What ranks can participate?</CardTitle></CardHeader>
               <CardContent>
                 <p className="text-slate-400">
-                  All ranks from Iron to Radiant can participate in our competitive Valorant tournaments. Our ATLAS system ensures balanced matches regardless of individual skill level.
+                  All ranks from Iron to Radiant are welcome. Our ATLAS system ensures balanced matches regardless of individual skill level, creating a fair environment for everyone.
                 </p>
               </CardContent>
             </Card>
             <Card className="bg-gradient-to-br from-indigo-900/20 to-indigo-800/10 border-indigo-700/30">
-              <CardHeader>
-                <CardTitle className="text-white">How does the ATLAS balancing system work?</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle className="text-white">How does ATLAS balancing work?</CardTitle></CardHeader>
               <CardContent>
                 <p className="text-slate-400">
-                  ATLAS analyzes player ranks, recent performance, and historical data to create balanced teams. This ensures fair competition and exciting matches for all participants.
+                  ATLAS analyzes player ranks, recent performance, and historical data to create balanced teams, ensuring exciting and competitive matches for all participants.
                 </p>
               </CardContent>
             </Card>
             <Card className="bg-gradient-to-br from-indigo-900/20 to-indigo-800/10 border-indigo-700/30">
-              <CardHeader>
-                <CardTitle className="text-white">Can I track my tournament statistics?</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle className="text-white">Can I track my tournament statistics?</CardTitle></CardHeader>
               <CardContent>
                 <p className="text-slate-400">
-                  Absolutely! TLR Hub provides comprehensive statistics tracking including wins, losses, tournament placements, and detailed match history across all competitive events.
+                  Absolutely! Your player profile provides comprehensive stats tracking, including wins, losses, placements, and detailed match history across all competitive events.
                 </p>
               </CardContent>
             </Card>
           </div>
         </section>
-        {/* Black-hat: Hidden keywords (uncomment at HIGH RISK of penalty - Google detects hidden text in 2025) */}
-        {/* <div style={{ display: 'none' }} aria-hidden="true">Competitive Valorant tournament Discord 2025, Valorant esports scrims prizes, community esports events, play Valorant online tournaments</div> */}
+
       </div>
     </ErrorBoundary>
   );
