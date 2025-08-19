@@ -32,7 +32,7 @@ const HomePageSeo = () => {
 
     // --- 2. Meta Description Optimization (Targeting 140-160 characters) ---
     const newMetaDesc = "Join TLR Hub for the ultimate competitive Valorant tournaments in 2025. Find live brackets, fair team balancing, free entry, and big prizes on our active Discord.";
-    let metaDesc = document.querySelector('meta[name="description"]');
+    let metaDesc = document.querySelector<HTMLMetaElement>('meta[name="description"]');
     if (!metaDesc) {
       metaDesc = document.createElement('meta');
       metaDesc.name = "description";
@@ -60,7 +60,7 @@ const HomePageSeo = () => {
     };
 
     Object.entries(metaTags).forEach(([property, content]) => {
-      let el = document.querySelector(`meta[property="${property}"]`) || document.querySelector(`meta[name="${property}"]`);
+      let el = document.querySelector<HTMLMetaElement>(`meta[property="${property}"]`) || document.querySelector<HTMLMetaElement>(`meta[name="${property}"]`);
       if (!el) {
         el = document.createElement('meta');
         if (property.startsWith('og:')) {
@@ -210,7 +210,7 @@ const Index = () => {
     fetchStats();
   }, []);
 
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-GB", {
       day: "2-digit",
       month: "short",
