@@ -128,47 +128,49 @@ const PublicProfile = () => {
                 />
               )}
               <div>
-                <CardTitle className="text-white text-2xl flex items-center gap-2">
-                  <Username username={profile.discord_username || 'Unknown Player'} userId={profile.id} size="lg" weight="bold" />
-                  {profile.role === 'admin' && (
-                    <Badge className="bg-gradient-to-r from-red-600 to-red-700 text-white border-red-500">
-                      <Shield className="w-3 h-3 mr-1" />
-                      Admin
-                    </Badge>
-                  )}
-                  {profile.looking_for_team && (
-                    <Badge className="bg-gradient-to-r from-green-600 to-green-700 text-white border-green-500">
-                      <Users className="w-3 h-3 mr-1" />
-                      LFT
-                    </Badge>
-                  )}
-                  {isPrivate && <Lock className="w-5 h-5 text-slate-400" />}
-                </CardTitle>
+                 <CardTitle className="text-white text-2xl flex items-center gap-2">
+                   <Username username={profile.discord_username || 'Unknown Player'} userId={profile.id} size="lg" weight="bold" />
+                   {profile.role === 'admin' && (
+                     <Badge className="bg-gradient-to-r from-red-600 to-red-700 text-white border-red-500">
+                       <Shield className="w-3 h-3 mr-1" />
+                       Admin
+                     </Badge>
+                   )}
+                   {isPrivate && <Lock className="w-5 h-5 text-slate-400" />}
+                 </CardTitle>
                 
                 {/* Status Message */}
                 {!isPrivate && profile.status_message && (
                   <p className="text-slate-300 text-sm mt-1 italic">"{profile.status_message}"</p>
                 )}
                 
-                <div className="flex items-center gap-2 mt-2">
-                  {profile.current_rank && (
-                    <Badge className="bg-blue-600 text-white">
-                      {profile.current_rank}
-                    </Badge>
-                  )}
-                  {profile.peak_rank && profile.peak_rank !== profile.current_rank && (
-                    <Badge variant="outline" className="border-yellow-600 text-yellow-400">
-                      Peak: {profile.peak_rank}
-                    </Badge>
-                  )}
-                  
-                  {/* Valorant Role */}
-                  {!isPrivate && profile.valorant_role && (
-                    <Badge variant="outline" className={`border ${getRoleColor(profile.valorant_role)}`}>
-                      {profile.valorant_role}
-                    </Badge>
-                  )}
-                </div>
+                 <div className="flex items-center gap-2 mt-2">
+                   {profile.current_rank && (
+                     <Badge className="bg-blue-600 text-white">
+                       {profile.current_rank}
+                     </Badge>
+                   )}
+                   {profile.peak_rank && profile.peak_rank !== profile.current_rank && (
+                     <Badge variant="outline" className="border-yellow-600 text-yellow-400">
+                       Peak: {profile.peak_rank}
+                     </Badge>
+                   )}
+                   
+                   {/* Valorant Role */}
+                   {!isPrivate && profile.valorant_role && (
+                     <Badge variant="outline" className={`border ${getRoleColor(profile.valorant_role)}`}>
+                       {profile.valorant_role}
+                     </Badge>
+                   )}
+                   
+                   {/* LFT Badge - positioned after role */}
+                   {profile.looking_for_team && (
+                     <Badge className="bg-gradient-to-r from-green-600 to-green-700 text-white border-green-500">
+                       <Users className="w-3 h-3 mr-1" />
+                       LFT
+                     </Badge>
+                   )}
+                 </div>
                 
                 {/* Agent Selection */}
                 {!isPrivate && profile.valorant_agent && (

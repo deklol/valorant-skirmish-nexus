@@ -31,7 +31,7 @@ const Index = () => {
   // Enhanced SEO for homepage with 2025 best practices  
   useEffect(() => {
     // Set optimized title and meta description for competitive Valorant tournaments
-    document.title = "Competitive Valorant Tournaments 2025 | TLR Skirmish Hub - Valorant Tournaments Discord";
+    document.title = "TLR Hub | Competitive Valorant Tournaments & Discord 2025";
     const setMetaDescription = () => {
       const metaDesc = document.querySelector('meta[name="description"]');
       if (metaDesc) {
@@ -39,7 +39,7 @@ const Index = () => {
       } else {
         const m = document.createElement("meta");
         m.name = "description";
-        m.content = "Join competitive Valorant tournaments at TLR Skirmish Hub. Our Valorant tournaments Discord offers live brackets, fair balancing, and exciting prizes. Play competitive Valorant tournaments with top players in 2025.";
+        m.content = "Join competitive Valorant tournaments at TLR Hub. Discord community with live brackets, fair team balancing & prizes. Free entry!";
         document.head.appendChild(m);
       }
     };
@@ -49,11 +49,11 @@ const Index = () => {
     // Open Graph and Twitter meta for social sharing
     const ogTitle = document.createElement("meta");
     ogTitle.setAttribute("property", "og:title");
-    ogTitle.content = "Competitive Valorant Tournaments at TLR Skirmish Hub";
+    ogTitle.content = "TLR Hub | Competitive Valorant Tournaments";
     document.head.appendChild(ogTitle);
     const ogDesc = document.createElement("meta");
     ogDesc.setAttribute("property", "og:description");
-    ogDesc.content = "Join competitive Valorant tournaments at TLR Skirmish Hub. Our Valorant tournaments Discord community offers live brackets, fair balancing, and exciting prizes for competitive Valorant tournaments in 2025.";
+    ogDesc.content = "Join competitive Valorant tournaments at TLR Hub. Discord community with live brackets, fair team balancing & prizes. Free entry!";
     document.head.appendChild(ogDesc);
     const ogImage = document.createElement("meta");
     ogImage.setAttribute("property", "og:image");
@@ -398,6 +398,106 @@ const Index = () => {
             </Card>
           </div>
         </section>
+        {/* How It Works Section - Additional Content for SEO */}
+        <section className="container mx-auto px-4 py-16" aria-label="How TLR Hub Competitive Valorant Tournaments Work">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-white mb-4">
+              How Our Competitive Valorant Tournament System Works
+            </h2>
+            <p className="text-xl text-slate-400 max-w-3xl mx-auto">
+              From registration to championship matches, our streamlined process makes competing in Valorant tournaments simple and fair for all skill levels.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <Card className="bg-gradient-to-br from-green-900/20 to-green-800/10 border-green-700/30">
+              <CardHeader>
+                <CardTitle className="text-white text-center">1. Register</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-slate-400 text-center">
+                  Create your account, set your Riot ID, and join our Discord community. Registration is completely free for all competitive Valorant tournaments.
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="bg-gradient-to-br from-blue-900/20 to-blue-800/10 border-blue-700/30">
+              <CardHeader>
+                <CardTitle className="text-white text-center">2. Join Tournaments</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-slate-400 text-center">
+                  Browse active tournaments and register individually or with your team. Our ATLAS system ensures fair matchmaking across all skill levels.
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="bg-gradient-to-br from-purple-900/20 to-purple-800/10 border-purple-700/30">
+              <CardHeader>
+                <CardTitle className="text-white text-center">3. Compete</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-slate-400 text-center">
+                  Play matches using our integrated map veto system, submit scores, and track your progress through live brackets updated in real-time.
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="bg-gradient-to-br from-yellow-900/20 to-yellow-800/10 border-yellow-700/30">
+              <CardHeader>
+                <CardTitle className="text-white text-center">4. Win Prizes</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-slate-400 text-center">
+                  Earn achievement points, unlock exclusive name effects, and compete for tournament prizes while building your competitive Valorant legacy.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+
+        {/* Tournament Formats Section */}
+        <section className="container mx-auto px-4 py-16" aria-label="Valorant Tournament Formats Available at TLR Hub">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-white mb-4">
+              Multiple Tournament Formats for Every Playstyle
+            </h2>
+            <p className="text-xl text-slate-400 max-w-3xl mx-auto">
+              Whether you prefer solo queue competitions or organized team battles, TLR Hub offers diverse tournament formats to match your competitive Valorant goals.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <Card className="bg-gradient-to-br from-red-900/20 to-red-800/10 border-red-700/30">
+              <CardHeader>
+                <CardTitle className="text-white">Solo Queue Tournaments</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-slate-400 mb-4">
+                  Perfect for individual players looking to test their skills. Our ATLAS balancing system creates fair teams automatically based on rank and performance history.
+                </p>
+                <ul className="text-slate-400 space-y-2">
+                  <li>• Automatic team balancing</li>
+                  <li>• Fair skill distribution</li>
+                  <li>• Individual performance tracking</li>
+                  <li>• Regular weekly tournaments</li>
+                </ul>
+              </CardContent>
+            </Card>
+            <Card className="bg-gradient-to-br from-blue-900/20 to-blue-800/10 border-blue-700/30">
+              <CardHeader>
+                <CardTitle className="text-white">Team-Based Competitions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-slate-400 mb-4">
+                  Bring your pre-made team or join one through our team finder. Compete against other organized squads in structured bracket formats.
+                </p>
+                <ul className="text-slate-400 space-y-2">
+                  <li>• Pre-made team registration</li>
+                  <li>• Team finder for LFT players</li>
+                  <li>• Captain-based map veto system</li>
+                  <li>• Team statistics tracking</li>
+                </ul>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+
         {/* FAQ Section for Long-Tail and Voice Search */}
         <section className="container mx-auto px-4 py-16" aria-label="FAQ for Competitive Valorant Tournaments and Discord 2025">
           <div className="text-center mb-12">
@@ -408,14 +508,14 @@ const Index = () => {
               Get answers to common questions about joining our competitive Valorant tournaments and Valorant tournament Discord community.
             </p>
           </div>
-          <div className="grid grid-cols-1 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <Card className="bg-gradient-to-br from-indigo-900/20 to-indigo-800/10 border-indigo-700/30">
               <CardHeader>
                 <CardTitle className="text-white">How to join Valorant tournaments in 2025?</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-slate-400">
-                  Sign up at <Link to="/tournaments" className="text-purple-400 hover:underline">TLR Skirmish Hub</Link> for solo or team-based competitive Valorant tournaments. Register via our platform and join our <a href="https://discord.gg/TLR" className="text-purple-400 hover:underline" rel="noopener noreferrer">Valorant tournament Discord</a> for schedules and scrims.
+                  Sign up at <Link to="/tournaments" className="text-purple-400 hover:underline">TLR Hub</Link> for solo or team-based competitive Valorant tournaments. Register via our platform and join our <a href="https://discord.gg/TLR" className="text-purple-400 hover:underline" rel="noopener noreferrer">Valorant tournament Discord</a> for schedules and scrims.
                 </p>
               </CardContent>
             </Card>
@@ -425,17 +525,47 @@ const Index = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-slate-400">
-                  TLR Skirmish Hub's Discord is the top choice for competitive Valorant players, offering live brackets, scrims, and prize updates. Join at <a href="https://discord.gg/TLR" className="text-purple-400 hover:underline" rel="noopener noreferrer">discord.gg/TLR</a>
+                  TLR Hub's Discord is the top choice for competitive Valorant players, offering live brackets, scrims, and prize updates. Join at <a href="https://discord.gg/TLR" className="text-purple-400 hover:underline" rel="noopener noreferrer">discord.gg/TLR</a>
                 </p>
               </CardContent>
             </Card>
             <Card className="bg-gradient-to-br from-indigo-900/20 to-indigo-800/10 border-indigo-700/30">
               <CardHeader>
-                <CardTitle className="text-white">Does TLR Skirmish Hub offer free Valorant tournaments?</CardTitle>
+                <CardTitle className="text-white">Are TLR Hub tournaments free to enter?</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-slate-400">
-                  Yes, TLR Skirmish Hub offers free-to-enter competitive Valorant tournaments with prizes, fair ATLAS balancing, and Discord integration for seamless play. Check our <Link to="/tournaments" className="text-purple-400 hover:underline">tournaments page</Link> for details.
+                  Yes, TLR Hub offers free-to-enter competitive Valorant tournaments with prizes, fair ATLAS balancing, and Discord integration. Check our <Link to="/tournaments" className="text-purple-400 hover:underline">tournaments page</Link> for upcoming events.
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="bg-gradient-to-br from-indigo-900/20 to-indigo-800/10 border-indigo-700/30">
+              <CardHeader>
+                <CardTitle className="text-white">What ranks can participate in tournaments?</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-slate-400">
+                  All ranks from Iron to Radiant can participate in our competitive Valorant tournaments. Our ATLAS system ensures balanced matches regardless of individual skill level.
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="bg-gradient-to-br from-indigo-900/20 to-indigo-800/10 border-indigo-700/30">
+              <CardHeader>
+                <CardTitle className="text-white">How does the ATLAS balancing system work?</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-slate-400">
+                  ATLAS analyzes player ranks, recent performance, and historical data to create balanced teams. This ensures fair competition and exciting matches for all participants.
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="bg-gradient-to-br from-indigo-900/20 to-indigo-800/10 border-indigo-700/30">
+              <CardHeader>
+                <CardTitle className="text-white">Can I track my tournament statistics?</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-slate-400">
+                  Absolutely! TLR Hub provides comprehensive statistics tracking including wins, losses, tournament placements, and detailed match history across all competitive events.
                 </p>
               </CardContent>
             </Card>

@@ -335,32 +335,33 @@ const Profile = () => {
                    <p className="text-slate-300 text-sm mt-1 italic">"{(profile as any).status_message}"</p>
                  )}
                  
-                 <div className="flex items-center gap-2 mt-2">
-                   {profile.current_rank && (
-                     <Badge className="bg-blue-600 text-white">
-                       {profile.current_rank}
-                     </Badge>
-                   )}
-                   {profile.peak_rank && profile.peak_rank !== profile.current_rank && (
-                     <Badge variant="outline" className="border-yellow-600 text-yellow-400">
-                       Peak: {profile.peak_rank}
-                     </Badge>
-                   )}
-                   
-                   {/* Valorant Role */}
-                   {(profile as any).valorant_role && (
-                     <Badge variant="outline" className={`border ${getRoleColor((profile as any).valorant_role)}`}>
-                       {(profile as any).valorant_role}
-                     </Badge>
-                   )}
-                   
-                   {(profile as any).looking_for_team && (
-                     <Badge className="bg-gradient-to-r from-green-600 to-green-700 text-white border-green-500">
-                       <CheckSquare className="w-3 h-3 mr-1" />
-                       LFT
-                     </Badge>
-                   )}
-                 </div>
+                  <div className="flex items-center gap-2 mt-2">
+                    {profile.current_rank && (
+                      <Badge className="bg-blue-600 text-white">
+                        {profile.current_rank}
+                      </Badge>
+                    )}
+                    {profile.peak_rank && profile.peak_rank !== profile.current_rank && (
+                      <Badge variant="outline" className="border-yellow-600 text-yellow-400">
+                        Peak: {profile.peak_rank}
+                      </Badge>
+                    )}
+                    
+                    {/* Valorant Role */}
+                    {(profile as any).valorant_role && (
+                      <Badge variant="outline" className={`border ${getRoleColor((profile as any).valorant_role)}`}>
+                        {(profile as any).valorant_role}
+                      </Badge>
+                    )}
+                    
+                    {/* LFT Badge - positioned after role */}
+                    {(profile as any).looking_for_team && (
+                      <Badge className="bg-gradient-to-r from-green-600 to-green-700 text-white border-green-500">
+                        <CheckSquare className="w-3 h-3 mr-1" />
+                        LFT
+                      </Badge>
+                    )}
+                  </div>
                  
                  {/* Agent Selection */}
                  {(profile as any).valorant_agent && (
