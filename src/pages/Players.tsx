@@ -30,21 +30,21 @@ const Players = () => {
   }, []);
 
   const fetchPlayers = async () => {
-  try {
-    const { data, error } = await supabase
-      // TS may not recognize 'players_list', so we cast to any
-      .rpc('players_list') as any; 
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, discord_username, discord_avatar_url, current_rank, rank_points, weight_rating, manual_weight_override, use_manual_override, tournaments_won, mvp_awards, wins, losses')
+        .eq('is_phantom', false)
+        .order('weight_rating', { ascending: false }); // Sort by weight_rating instead
 
-    if (error) throw error;
-
-    // Convert to Player[] safely
-    setPlayers((data as unknown as Player[]) || []);
-  } catch (error) {
-    console.error('Error fetching players:', error);
-  } finally {
-    setLoading(false);
-  }
-};
+      if (error) throw error;
+      setPlayers(data || []);
+    } catch (error) {
+      console.error('Error fetching players:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getEffectiveWeight = (player: Player) => {
     if (player.use_manual_override && player.manual_weight_override !== null) {
