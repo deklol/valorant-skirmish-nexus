@@ -240,6 +240,14 @@ const Index = () => {
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
         {/* Hero/Main Headline */}
         <section className="container mx-auto px-4 pt-8 pb-6">
+          <div className="text-center">
+            <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 bg-gradient-to-r from-red-400 via-yellow-400 to-red-400 bg-clip-text text-transparent">
+              Competitive Valorant Tournaments Discord
+            </h1>
+            <p className="text-xl text-slate-300 mb-8 max-w-3xl mx-auto">
+              Join the premier valorant tournaments discord community for competitive valorant tournaments in 2025
+            </p>
+          </div>
           <HomeHero />
         </section>
         {/* Announcement Full Width */}
@@ -305,7 +313,7 @@ const Index = () => {
         <section className="container mx-auto px-4 py-16" aria-label="Features for Competitive Valorant Tournaments and Valorant Tournaments Discord 2025">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-white mb-4">
-              Everything for Competitive Valorant Tournament Success in 2025!
+              Premium Valorant Tournaments Discord Features
             </h2>
             <p className="text-xl text-slate-400 max-w-3xl mx-auto">
               From bracket generation to our bespoke ATLAS balancing algorithms, our platform handles every aspect of competitive Valorant tournaments and Valorant tournaments Discord integration.

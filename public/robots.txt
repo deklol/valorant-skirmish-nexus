@@ -12,3 +12,20 @@ Allow: /
 
 User-agent: *
 Allow: /
+
+# Sitemaps
+Sitemap: https://tlrhub.pro/sitemap.xml
+
+# Important pages for competitive valorant tournaments
+Allow: /tournaments
+Allow: /players  
+Allow: /leaderboard
+Allow: /brackets
+Allow: /statistics
+
+# Block admin areas
+Disallow: /admin
+Disallow: /api
+
+# Host
+Host: https://tlrhub.pro
