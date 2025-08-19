@@ -33,12 +33,10 @@ const Players = () => {
   const fetchPlayers = async () => {
     try {
       const { data, error } = await supabase
-        .from('players_list') // updated to use your RPC
-        .select('*')
-        .order('weight_rating', { ascending: false });
+        .rpc('players_list'); // RPC call to function
 
       if (error) throw error;
-      setPlayers(data || []);
+      setPlayers((data || []) as Player[]);
     } catch (error) {
       console.error('Error fetching players:', error);
     } finally {
@@ -144,14 +142,14 @@ const Players = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <div className="flex flex-wrap gap-2 mb-3">
+                  <div className="flex flex-wrap gap-2 mb-2">
                     {player.valorant_role && (
                       <Badge className={`text-xs ${getRoleColor(player.valorant_role)}`}>
                         {player.valorant_role}
                       </Badge>
                     )}
                     {player.looking_for_team && (
-                      <Badge className="bg-green-600 text-white text-xs">
+                      <Badge className="bg-gradient-to-r from-green-600 to-green-700 text-white border-green-500 text-xs">
                         LFT
                       </Badge>
                     )}
