@@ -63,10 +63,15 @@ const Players = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
+      <div className="min-h-screen bg-gradient-to-br from-background via-background/95 to-primary/5">
         <div className="container mx-auto px-4 py-8">
-          <div className="text-center">
-            <p className="text-white">Loading players...</p>
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <div className="w-12 h-12 bg-primary/10 rounded-lg mx-auto mb-4 flex items-center justify-center">
+                <Users className="w-6 h-6 text-primary animate-pulse" />
+              </div>
+              <p className="text-muted-foreground">Loading players...</p>
+            </div>
           </div>
         </div>
       </div>
@@ -74,110 +79,174 @@ const Players = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background/95 to-primary/5">
       <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center gap-3 mb-2">
-          <Users className="w-8 h-8 text-blue-500" />
-          <h1 className="text-3xl font-bold text-white">Players</h1>
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Users className="w-8 h-8 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                Players
+              </h1>
+              <p className="text-muted-foreground mt-1">
+                Discover competitive players and their stats
+              </p>
+            </div>
+          </div>
+          <div className="bg-card/50 backdrop-blur border rounded-lg p-4">
+            <p className="text-sm text-muted-foreground">
+              <span className="font-medium text-primary">Balancing Weight:</span> Numerical rank representation used for team balancing. 
+              <span className="text-orange-400 font-medium ml-2">*</span> indicates manual override by admins.
+            </p>
+          </div>
         </div>
-        <p className="text-slate-400 mb-8">Q: Balancing Weight? A: Number represents rank, used for balancing purposes. <span className="text-orange-400">*</span> indicates manual override.</p>
 
         {players.length === 0 ? (
-          <Card className="bg-slate-800/90 border-slate-700">
-            <CardContent className="text-center py-12">
-              <Users className="w-12 h-12 text-slate-500 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-white mb-2">No Players Found</h3>
-              <p className="text-slate-400">No players have registered yet.</p>
-            </CardContent>
-          </Card>
+          <div className="flex items-center justify-center min-h-[400px]">
+            <Card className="bg-card/50 backdrop-blur border-border/50 max-w-md w-full">
+              <CardContent className="text-center py-12">
+                <div className="p-4 bg-muted/50 rounded-full w-fit mx-auto mb-4">
+                  <Users className="w-12 h-12 text-muted-foreground" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">No Players Found</h3>
+                <p className="text-muted-foreground">No players have registered yet.</p>
+              </CardContent>
+            </Card>
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {players.map((player) => (
-              <Card key={player.id} className="bg-slate-800/90 border-slate-700 hover:bg-slate-800 transition-colors">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <div className="w-12 h-12 bg-slate-600 rounded-full flex items-center justify-center overflow-hidden">
-                      {player.discord_avatar_url ? (
-                        <img 
-                          src={player.discord_avatar_url} 
-                          alt={`${player.discord_username}'s avatar`}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            // Fallback to letter avatar if image fails to load - XSS safe
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                            const parent = target.parentElement;
-                            if (parent) {
-                              // Create element safely to prevent XSS
-                              const span = document.createElement('span');
-                              span.className = 'text-lg font-bold text-slate-300';
-                              span.textContent = player.discord_username?.charAt(0).toUpperCase() || 'U';
-                              parent.appendChild(span);
-                            }
-                          }}
-                        />
-                      ) : (
-                        <span className="text-lg font-bold text-slate-300">
-                          {player.discord_username?.charAt(0).toUpperCase() || 'U'}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <Badge variant="secondary" className="bg-slate-700 text-slate-300">
-                        {player.current_rank || 'Unranked'}
-                      </Badge>
-                      <div className="flex gap-1">
-                        {player.valorant_role && (
-                          <Badge variant="outline" className="text-xs px-1 py-0 text-blue-400 border-blue-400">
-                            {player.valorant_role}
-                          </Badge>
-                        )}
+            {players.map((player, index) => (
+              <Card 
+                key={player.id} 
+                className="group bg-card/50 backdrop-blur border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-lg hover:shadow-primary/10 hover-scale animate-fade-in"
+                style={{ animationDelay: `${index * 50}ms` }}
+              >
+                <CardHeader className="pb-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="relative">
+                        <div className="w-14 h-14 bg-gradient-to-br from-primary/20 to-primary/5 rounded-xl flex items-center justify-center overflow-hidden border border-border/50">
+                          {player.discord_avatar_url ? (
+                            <img 
+                              src={player.discord_avatar_url} 
+                              alt={`${player.discord_username}'s avatar`}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                const parent = target.parentElement;
+                                if (parent) {
+                                  const span = document.createElement('span');
+                                  span.className = 'text-xl font-bold text-primary';
+                                  span.textContent = player.discord_username?.charAt(0).toUpperCase() || 'U';
+                                  parent.appendChild(span);
+                                }
+                              }}
+                            />
+                          ) : (
+                            <span className="text-xl font-bold text-primary">
+                              {player.discord_username?.charAt(0).toUpperCase() || 'U'}
+                            </span>
+                          )}
+                        </div>
                         {player.looking_for_team && (
-                          <Badge variant="outline" className="text-xs px-1 py-0 text-green-400 border-green-400">
-                            LFT
+                          <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-background animate-pulse"></div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <ClickableUsername 
+                          userId={player.id}
+                          username={player.discord_username || 'Unknown Player'}
+                          variant="ghost"
+                          className="text-foreground hover:text-primary p-0 h-auto justify-start font-medium text-base truncate w-full"
+                        />
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-secondary/80">
+                            {player.current_rank || 'Unranked'}
                           </Badge>
-                        )}
+                          {player.valorant_role && (
+                            <Badge variant="outline" className="text-xs px-2 py-0.5 text-blue-400 border-blue-400/50 bg-blue-400/10">
+                              {player.valorant_role}
+                            </Badge>
+                          )}
+                          {player.looking_for_team && (
+                            <Badge variant="outline" className="text-xs px-2 py-0.5 text-green-400 border-green-400/50 bg-green-400/10">
+                              LFT
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
-                  <CardTitle className="text-lg text-white">
-                    <ClickableUsername 
-                      userId={player.id}
-                      username={player.discord_username || 'Unknown Player'}
-                      variant="ghost"
-                      className="text-white hover:text-blue-400 p-0 h-auto justify-start"
-                    />
-                  </CardTitle>
                 </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div className="text-center p-2 bg-slate-700/50 rounded">
-                      <div className="font-bold text-indigo-400">{getEffectiveWeight(player)}</div>
-                      <div className="text-slate-400 text-xs">
-                        Balancing Weight
+                
+                <CardContent className="pt-0 space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg p-3 text-center border border-primary/20">
+                      <div className="text-lg font-bold text-primary flex items-center justify-center gap-1">
+                        {getEffectiveWeight(player)}
                         {player.use_manual_override && player.manual_weight_override !== null && (
-                          <span className="text-orange-400 ml-1">*</span>
+                          <span className="text-orange-400 text-sm">*</span>
                         )}
                       </div>
+                      <div className="text-xs text-muted-foreground font-medium">
+                        Balance Weight
+                      </div>
                     </div>
-                    <div className="text-center p-2 bg-slate-700/50 rounded">
-                      <div className="font-bold text-purple-400">{player.rank_points || 0}</div>
-                      <div className="text-slate-400 text-xs">Ranked RR</div>
-                    </div>
-                    <div className="text-center p-2 bg-slate-700/50 rounded">
-                      <div className="font-bold text-yellow-400">{player.tournaments_won || 0}</div>
-                      <div className="text-yellow-400 text-xs">Tournaments Won</div>
-                    </div>
-                    <div className="text-center p-2 bg-slate-700/50 rounded">
-                      <div className="font-bold text-blue-400">{calculateWinRate(player.wins || 0, player.losses || 0)}%</div>
-                      <div className="text-slate-400 text-xs">Win Rate</div>
+                    
+                    <div className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 rounded-lg p-3 text-center border border-purple-500/20">
+                      <div className="text-lg font-bold text-purple-400">
+                        {player.rank_points || 0}
+                      </div>
+                      <div className="text-xs text-muted-foreground font-medium">
+                        Ranked RR
+                      </div>
                     </div>
                   </div>
-                  <div className="mt-3 pt-3 border-t border-slate-700">
-                    <div className="flex justify-between text-xs text-slate-400">
-                      <span>W: {player.wins || 0}</span>
-                      <span>L: {player.losses || 0}</span>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-500/5 rounded-lg p-3 text-center border border-yellow-500/20">
+                      <div className="text-lg font-bold text-yellow-400">
+                        {player.tournaments_won || 0}
+                      </div>
+                      <div className="text-xs text-yellow-400/80 font-medium">
+                        Tournaments Won
+                      </div>
                     </div>
+                    
+                    <div className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 rounded-lg p-3 text-center border border-blue-500/20">
+                      <div className="text-lg font-bold text-blue-400">
+                        {calculateWinRate(player.wins || 0, player.losses || 0)}%
+                      </div>
+                      <div className="text-xs text-muted-foreground font-medium">
+                        Win Rate
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-gradient-to-r from-border/50 to-transparent h-px"></div>
+                  
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-3 text-sm">
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span className="text-muted-foreground">W:</span>
+                        <span className="font-medium text-green-400">{player.wins || 0}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                        <span className="text-muted-foreground">L:</span>
+                        <span className="font-medium text-red-400">{player.losses || 0}</span>
+                      </div>
+                    </div>
+                    
+                    {player.role === 'admin' && (
+                      <Badge variant="destructive" className="text-xs px-2 py-0.5">
+                        Admin
+                      </Badge>
+                    )}
                   </div>
                 </CardContent>
               </Card>
