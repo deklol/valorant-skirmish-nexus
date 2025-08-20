@@ -19,6 +19,9 @@ interface Player {
   mvp_awards: number;
   wins: number;
   losses: number;
+  role: string;
+  valorant_role: string | null;
+  looking_for_team: boolean | null;
 }
 
 const Players = () => {
@@ -33,7 +36,7 @@ const Players = () => {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('id, discord_username, discord_avatar_url, current_rank, rank_points, weight_rating, manual_weight_override, use_manual_override, tournaments_won, mvp_awards, wins, losses')
+        .select('id, discord_username, discord_avatar_url, current_rank, rank_points, weight_rating, manual_weight_override, use_manual_override, tournaments_won, mvp_awards, wins, losses, role, valorant_role, looking_for_team')
         .eq('is_phantom', false)
         .order('weight_rating', { ascending: false }); // Sort by weight_rating instead
 
@@ -119,9 +122,23 @@ const Players = () => {
                         </span>
                       )}
                     </div>
-                    <Badge variant="secondary" className="bg-slate-700 text-slate-300">
-                      {player.current_rank || 'Unranked'}
-                    </Badge>
+                    <div className="flex flex-col gap-1">
+                      <Badge variant="secondary" className="bg-slate-700 text-slate-300">
+                        {player.current_rank || 'Unranked'}
+                      </Badge>
+                      <div className="flex gap-1">
+                        {player.valorant_role && (
+                          <Badge variant="outline" className="text-xs px-1 py-0 text-blue-400 border-blue-400">
+                            {player.valorant_role}
+                          </Badge>
+                        )}
+                        {player.looking_for_team && (
+                          <Badge variant="outline" className="text-xs px-1 py-0 text-green-400 border-green-400">
+                            LFT
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
                   </div>
                   <CardTitle className="text-lg text-white">
                     <ClickableUsername 
