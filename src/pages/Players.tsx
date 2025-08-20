@@ -6,6 +6,42 @@ import { Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import ClickableUsername from '@/components/ClickableUsername';
 
+// Rank configuration with emojis and colors
+const RANK_CONFIG = {
+  'Iron 1': { emoji: '⬛', primary: '#4A4A4A', accent: '#7E7E7E', skill: 'Developing' },
+  'Iron 2': { emoji: '⬛', primary: '#4A4A4A', accent: '#7E7E7E', skill: 'Developing' },
+  'Iron 3': { emoji: '⬛', primary: '#4A4A4A', accent: '#7E7E7E', skill: 'Developing' },
+  'Bronze 1': { emoji: '🟫', primary: '#A97142', accent: '#C28E5C', skill: 'Beginner' },
+  'Bronze 2': { emoji: '🟫', primary: '#A97142', accent: '#C28E5C', skill: 'Beginner' },
+  'Bronze 3': { emoji: '🟫', primary: '#A97142', accent: '#C28E5C', skill: 'Beginner' },
+  'Silver 1': { emoji: '⬜', primary: '#C0C0C0', accent: '#D8D8D8', skill: 'Beginner' },
+  'Silver 2': { emoji: '⬜', primary: '#C0C0C0', accent: '#D8D8D8', skill: 'Beginner' },
+  'Silver 3': { emoji: '⬜', primary: '#C0C0C0', accent: '#D8D8D8', skill: 'Beginner' },
+  'Gold 1': { emoji: '🟨', primary: '#FFD700', accent: '#FFEA8A', skill: 'Beginner' },
+  'Gold 2': { emoji: '🟨', primary: '#FFD700', accent: '#FFEA8A', skill: 'Beginner' },
+  'Gold 3': { emoji: '🟨', primary: '#FFD700', accent: '#FFEA8A', skill: 'Beginner' },
+  'Platinum 1': { emoji: '🟦', primary: '#5CA3E4', accent: '#B3DAFF', skill: 'Intermediate' },
+  'Platinum 2': { emoji: '🟦', primary: '#5CA3E4', accent: '#B3DAFF', skill: 'Intermediate' },
+  'Platinum 3': { emoji: '🟦', primary: '#5CA3E4', accent: '#B3DAFF', skill: 'Intermediate' },
+  'Diamond 1': { emoji: '🟪', primary: '#8d64e2', accent: '#B3DAFF', skill: 'Intermediate' },
+  'Diamond 2': { emoji: '🟪', primary: '#8d64e2', accent: '#B3DAFF', skill: 'Intermediate' },
+  'Diamond 3': { emoji: '🟪', primary: '#8d64e2', accent: '#B3DAFF', skill: 'Intermediate' },
+  'Ascendant 1': { emoji: '🟩', primary: '#84FF6F', accent: '#B6FFA8', skill: 'Intermediate' },
+  'Ascendant 2': { emoji: '🟩', primary: '#84FF6F', accent: '#B6FFA8', skill: 'Intermediate' },
+  'Ascendant 3': { emoji: '🟩', primary: '#84FF6F', accent: '#B6FFA8', skill: 'Intermediate' },
+  'Immortal 1': { emoji: '🟥', primary: '#A52834', accent: '#D24357', skill: 'High Skilled' },
+  'Immortal 2': { emoji: '🟥', primary: '#A52834', accent: '#D24357', skill: 'Elite' },
+  'Immortal 3': { emoji: '🟥', primary: '#A52834', accent: '#D24357', skill: 'Elite' },
+  'Radiant': { emoji: '✨', primary: '#FFF176', accent: '#FFFFFF', skill: 'Elite' },
+  'Unrated': { emoji: '❓', primary: '#9CA3AF', accent: '#D1D5DB', skill: 'Unknown' },
+  'Unranked': { emoji: '❓', primary: '#9CA3AF', accent: '#D1D5DB', skill: 'Unknown' }
+};
+
+// Helper functions for rank styling
+const getRankInfo = (rank: string) => {
+  return RANK_CONFIG[rank] || RANK_CONFIG['Unranked'];
+};
+
 interface Player {
   id: string;
   discord_username: string;
@@ -163,9 +199,23 @@ const Players = () => {
                           className="text-foreground hover:text-primary p-0 h-auto justify-start font-medium text-base truncate w-full"
                         />
                         <div className="flex flex-wrap gap-1 mt-1">
-                          <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-secondary/80">
-                            {player.current_rank || 'Unranked'}
-                          </Badge>
+                          {(() => {
+                            const rankInfo = getRankInfo(player.current_rank || 'Unranked');
+                            return (
+                              <Badge 
+                                variant="secondary" 
+                                className="text-xs px-2 py-0.5 flex items-center gap-1"
+                                style={{ 
+                                  backgroundColor: `${rankInfo.primary}20`,
+                                  borderColor: `${rankInfo.primary}40`,
+                                  color: rankInfo.primary 
+                                }}
+                              >
+                                <span>{rankInfo.emoji}</span>
+                                <span>{player.current_rank || 'Unranked'}</span>
+                              </Badge>
+                            );
+                          })()}
                           {player.valorant_role && (
                             <Badge variant="outline" className="text-xs px-2 py-0.5 text-blue-400 border-blue-400/50 bg-blue-400/10">
                               {player.valorant_role}
