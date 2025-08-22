@@ -11,9 +11,9 @@ module.exports = {
         .setDescription('Filter tournaments by status')
         .setRequired(false)
         .addChoices(
-          { name: 'Open Registration', value: 'open_registration' },
-          { name: 'Check-in', value: 'check_in' },
-          { name: 'In Progress', value: 'in_progress' },
+          { name: 'Open Registration', value: 'open' },
+          { name: 'Live/Active', value: 'live' },
+          { name: 'Balancing', value: 'balancing' },
           { name: 'All Active', value: 'all' }
         )),
 

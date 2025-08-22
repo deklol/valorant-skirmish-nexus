@@ -61,7 +61,7 @@ export const db = {
     const { data, error } = await supabase
       .from('tournaments')
       .select('*')
-      .in('status', ['open_registration', 'check_in', 'in_progress'])
+      .in('status', ['open', 'live', 'balancing'])
       .order('start_time', { ascending: true });
     
     return { data, error };
@@ -133,7 +133,19 @@ export const db = {
       .from('quick_match_queue')
       .select(`
         *,
-        users!inner(discord_username, discord_id, current_rank, weight_rating)
+        users!inner(
+          id,
+          discord_username, 
+          discord_id, 
+          current_rank, 
+          peak_rank,
+          weight_rating,
+          manual_rank_override,
+          manual_weight_override,
+          use_manual_override,
+          tournaments_won,
+          last_tournament_win
+        )
       `)
       .eq('is_active', true)
       .order('joined_at', { ascending: true });
@@ -146,6 +158,26 @@ export const db = {
       .from('quick_match_queue')
       .update({ is_active: false })
       .eq('user_id', userId);
+    
+    return { data, error };
+  },
+
+  async clearQuickMatchQueue() {
+    const { data, error } = await supabase
+      .from('quick_match_queue')
+      .update({ is_active: false })
+      .eq('is_active', true);
+    
+    return { data, error };
+  },
+
+  // Map management
+  async getActiveMaps() {
+    const { data, error } = await supabase
+      .from('maps')
+      .select('*')
+      .eq('is_active', true)
+      .order('display_name');
     
     return { data, error };
   },

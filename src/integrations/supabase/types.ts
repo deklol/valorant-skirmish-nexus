@@ -980,6 +980,149 @@ export type Database = {
         }
         Relationships: []
       }
+      quick_match_queue: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean
+          joined_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean
+          joined_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean
+          joined_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quick_match_queue_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quick_match_sessions: {
+        Row: {
+          balance_analysis: Json | null
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          discord_channel_id: string
+          discord_message_id: string | null
+          id: string
+          match_id: string | null
+          selected_map_id: string | null
+          session_data: Json | null
+          started_at: string | null
+          status: string
+          team_a_data: Json | null
+          team_b_data: Json | null
+          updated_at: string
+        }
+        Insert: {
+          balance_analysis?: Json | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          discord_channel_id: string
+          discord_message_id?: string | null
+          id?: string
+          match_id?: string | null
+          selected_map_id?: string | null
+          session_data?: Json | null
+          started_at?: string | null
+          status?: string
+          team_a_data?: Json | null
+          team_b_data?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          balance_analysis?: Json | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          discord_channel_id?: string
+          discord_message_id?: string | null
+          id?: string
+          match_id?: string | null
+          selected_map_id?: string | null
+          session_data?: Json | null
+          started_at?: string | null
+          status?: string
+          team_a_data?: Json | null
+          team_b_data?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quick_match_sessions_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quick_match_sessions_selected_map_id_fkey"
+            columns: ["selected_map_id"]
+            isOneToOne: false
+            referencedRelation: "maps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quick_match_votes: {
+        Row: {
+          discord_id: string
+          id: string
+          map_id: string
+          session_id: string
+          user_id: string
+          voted_at: string
+        }
+        Insert: {
+          discord_id: string
+          id?: string
+          map_id: string
+          session_id: string
+          user_id: string
+          voted_at?: string
+        }
+        Update: {
+          discord_id?: string
+          id?: string
+          map_id?: string
+          session_id?: string
+          user_id?: string
+          voted_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quick_match_votes_map_id_fkey"
+            columns: ["map_id"]
+            isOneToOne: false
+            referencedRelation: "maps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quick_match_votes_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "quick_match_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rank_history: {
         Row: {
           created_at: string
