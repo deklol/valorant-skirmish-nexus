@@ -1,6 +1,7 @@
 import { Users, UserCheck, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import ClickableUsername from "@/components/ClickableUsername";
+import { getRankIcon, getRankColor } from "@/utils/rankUtils";
 
 interface Signup {
   id: string;
@@ -66,7 +67,13 @@ export default function TournamentSignupsDisplay({ signups, maxPlayers }: Tourna
                   )}
                 </div>
                 <div className="text-xs text-slate-400 space-y-1">
-                  <div>Rank: {signup.users.current_rank || "Unranked"}</div>
+                  <div className="flex items-center gap-1">
+                    <span>Rank:</span>
+                    {getRankIcon(signup.users.current_rank)}
+                    <span className={getRankColor(signup.users.current_rank)}>
+                      {signup.users.current_rank || "Unranked"}
+                    </span>
+                  </div>
                   <div>Weight: {signup.users.weight_rating || 150}</div>
                 </div>
               </div>
@@ -100,7 +107,13 @@ export default function TournamentSignupsDisplay({ signups, maxPlayers }: Tourna
                   </Badge>
                 </div>
                 <div className="text-xs text-slate-400 space-y-1">
-                  <div>Rank: {signup.users.current_rank || "Unranked"}</div>
+                  <div className="flex items-center gap-1">
+                    <span>Rank:</span>
+                    {getRankIcon(signup.users.current_rank)}
+                    <span className={getRankColor(signup.users.current_rank)}>
+                      {signup.users.current_rank || "Unranked"}
+                    </span>
+                  </div>
                   <div>Weight: {signup.users.weight_rating || 150}</div>
                 </div>
               </div>

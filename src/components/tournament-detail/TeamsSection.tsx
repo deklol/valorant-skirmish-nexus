@@ -6,6 +6,7 @@ import ClickableUsername from "@/components/ClickableUsername";
 import TournamentBalanceTransparency from "./TournamentBalanceTransparency";
 import TournamentSignupsDisplay from "./TournamentSignupsDisplay";
 import { supabase } from "@/integrations/supabase/client";
+import { getRankIcon, getRankColor, calculateAverageRank } from "@/utils/rankUtils";
 import type { Team } from "@/types/tournamentDetail";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -122,15 +123,34 @@ export default function TeamsSection({ teams, tournament }: TeamsSectionProps) {
                         {member.is_captain && (
                           <Crown className="w-3 h-3 text-yellow-400 flex-shrink-0" />
                         )}
-                        <span className="ml-auto text-xs text-slate-400 flex-shrink-0">
-                          {member.users?.current_rank || "Unranked"}
-                        </span>
+                        <div className="ml-auto flex items-center gap-1 flex-shrink-0">
+                          {getRankIcon(member.users?.current_rank)}
+                          <span className={`text-xs ${getRankColor(member.users?.current_rank)}`}>
+                            {member.users?.current_rank || "Unranked"}
+                          </span>
+                        </div>
                       </div>
                     ))
                   ) : (
                     <div className="text-slate-400 italic text-sm">No participants</div>
                   )}
                 </div>
+
+                {/* Average stats */}
+                {team.team_members && team.team_members.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-slate-700 space-y-1">
+                    <div className="text-xs text-slate-400">
+                      Average Rank: <span className={`${getRankColor(calculateAverageRank(team.team_members.map(m => m.users?.current_rank)))}`}>
+                        {calculateAverageRank(team.team_members.map(m => m.users?.current_rank))}
+                      </span>
+                    </div>
+                    <div className="text-xs text-slate-400">
+                      Average Weight: <span className="text-purple-300">
+                        {Math.round((team.total_rank_points ?? 0) / team.team_members.length)}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>

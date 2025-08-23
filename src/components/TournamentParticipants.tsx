@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import ClickableUsername from "./ClickableUsername";
+import { getRankIcon, getRankColor } from "@/utils/rankUtils";
 
 interface Participant {
   id: string;
@@ -152,9 +153,14 @@ const TournamentParticipants = ({ tournamentId, maxPlayers, isAdmin = false }: T
                     <div className="text-slate-400 text-sm">
                       {participant.users?.riot_id || 'No Riot ID'}
                     </div>
-                    <div className="text-slate-400 text-sm">
-                      {participant.users?.current_rank || 'Unranked'}
-                    </div>
+                        <div className="text-slate-400 text-sm">
+                          <div className="flex items-center gap-1">
+                            {getRankIcon(participant.users?.current_rank)}
+                            <span className={getRankColor(participant.users?.current_rank)}>
+                              {participant.users?.current_rank || 'Unranked'}
+                            </span>
+                          </div>
+                        </div>
                   </div>
                   {isAdmin && (
                     <Button
@@ -208,9 +214,14 @@ const TournamentParticipants = ({ tournamentId, maxPlayers, isAdmin = false }: T
                       <div className="text-slate-400 text-sm">
                         {substitute.users?.riot_id || 'No Riot ID'}
                       </div>
-                      <div className="text-slate-400 text-sm">
-                        {substitute.users?.current_rank || 'Unranked'}
-                      </div>
+                        <div className="text-slate-400 text-sm">
+                          <div className="flex items-center gap-1">
+                            {getRankIcon(substitute.users?.current_rank)}
+                            <span className={getRankColor(substitute.users?.current_rank)}>
+                              {substitute.users?.current_rank || 'Unranked'}
+                            </span>
+                          </div>
+                        </div>
                     </div>
                     {isAdmin && (
                       <div className="flex gap-1">
