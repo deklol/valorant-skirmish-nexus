@@ -1,5 +1,35 @@
 import React from "react";
-import { ShieldIcon, Target, Award, Trophy, Star, Crown, Zap, Flame } from "lucide-react";
+
+// Rank configuration with emojis and colors
+const RANK_CONFIG = {
+  'Iron 1': { emoji: '⬛', primary: '#4A4A4A', accent: '#7E7E7E' },
+  'Iron 2': { emoji: '⬛', primary: '#4A4A4A', accent: '#7E7E7E' },
+  'Iron 3': { emoji: '⬛', primary: '#4A4A4A', accent: '#7E7E7E' },
+  'Bronze 1': { emoji: '🟫', primary: '#A97142', accent: '#C28E5C' },
+  'Bronze 2': { emoji: '🟫', primary: '#A97142', accent: '#C28E5C' },
+  'Bronze 3': { emoji: '🟫', primary: '#A97142', accent: '#C28E5C' },
+  'Silver 1': { emoji: '⬜', primary: '#C0C0C0', accent: '#D8D8D8' },
+  'Silver 2': { emoji: '⬜', primary: '#C0C0C0', accent: '#D8D8D8' },
+  'Silver 3': { emoji: '⬜', primary: '#C0C0C0', accent: '#D8D8D8' },
+  'Gold 1': { emoji: '🟨', primary: '#FFD700', accent: '#FFEA8A' },
+  'Gold 2': { emoji: '🟨', primary: '#FFD700', accent: '#FFEA8A' },
+  'Gold 3': { emoji: '🟨', primary: '#FFD700', accent: '#FFEA8A' },
+  'Platinum 1': { emoji: '🟦', primary: '#5CA3E4', accent: '#B3DAFF' },
+  'Platinum 2': { emoji: '🟦', primary: '#5CA3E4', accent: '#B3DAFF' },
+  'Platinum 3': { emoji: '🟦', primary: '#5CA3E4', accent: '#B3DAFF' },
+  'Diamond 1': { emoji: '🟪', primary: '#8d64e2', accent: '#B3DAFF' },
+  'Diamond 2': { emoji: '🟪', primary: '#8d64e2', accent: '#B3DAFF' },
+  'Diamond 3': { emoji: '🟪', primary: '#8d64e2', accent: '#B3DAFF' },
+  'Ascendant 1': { emoji: '🟩', primary: '#84FF6F', accent: '#B6FFA8' },
+  'Ascendant 2': { emoji: '🟩', primary: '#84FF6F', accent: '#B6FFA8' },
+  'Ascendant 3': { emoji: '🟩', primary: '#84FF6F', accent: '#B6FFA8' },
+  'Immortal 1': { emoji: '🟥', primary: '#A52834', accent: '#D24357' },
+  'Immortal 2': { emoji: '🟥', primary: '#A52834', accent: '#D24357' },
+  'Immortal 3': { emoji: '🟥', primary: '#A52834', accent: '#D24357' },
+  'Radiant': { emoji: '✨', primary: '#FFF176', accent: '#FFFFFF' },
+  'Unrated': { emoji: '❓', primary: '#9CA3AF', accent: '#D1D5DB' },
+  'Unranked': { emoji: '❓', primary: '#9CA3AF', accent: '#D1D5DB' }
+};
 
 export const VALORANT_RANKS = [
   'Iron 1', 'Iron 2', 'Iron 3',
@@ -25,60 +55,18 @@ export const RANK_POINT_MAPPING: Record<string, number> = {
   'Radiant': 500
 };
 
-export function getRankIcon(rank?: string | null): React.ReactElement {
-  if (!rank) return React.createElement(ShieldIcon, { className: "w-4 h-4 text-slate-400" });
+export function getRankIcon(rank?: string | null): string {
+  if (!rank) return RANK_CONFIG['Unranked']?.emoji || '❓';
   
-  const rankLower = rank.toLowerCase();
-  
-  if (rankLower.includes('iron')) {
-    return React.createElement(ShieldIcon, { className: "w-4 h-4 text-amber-800" });
-  } else if (rankLower.includes('bronze')) {
-    return React.createElement(ShieldIcon, { className: "w-4 h-4 text-amber-600" });
-  } else if (rankLower.includes('silver')) {
-    return React.createElement(Target, { className: "w-4 h-4 text-slate-400" });
-  } else if (rankLower.includes('gold')) {
-    return React.createElement(Award, { className: "w-4 h-4 text-yellow-500" });
-  } else if (rankLower.includes('platinum')) {
-    return React.createElement(Star, { className: "w-4 h-4 text-slate-300" });
-  } else if (rankLower.includes('diamond')) {
-    return React.createElement(Trophy, { className: "w-4 h-4 text-blue-400" });
-  } else if (rankLower.includes('ascendant')) {
-    return React.createElement(Crown, { className: "w-4 h-4 text-emerald-400" });
-  } else if (rankLower.includes('immortal')) {
-    return React.createElement(Zap, { className: "w-4 h-4 text-purple-400" });
-  } else if (rankLower.includes('radiant')) {
-    return React.createElement(Flame, { className: "w-4 h-4 text-red-400" });
-  }
-  
-  return React.createElement(ShieldIcon, { className: "w-4 h-4 text-slate-400" });
+  const config = RANK_CONFIG[rank as keyof typeof RANK_CONFIG];
+  return config?.emoji || RANK_CONFIG['Unranked']?.emoji || '❓';
 }
 
-export function getRankColor(rank?: string | null) {
-  if (!rank) return "text-slate-400";
+export function getRankColor(rank?: string | null): string {
+  if (!rank) return RANK_CONFIG['Unranked']?.primary || '#9CA3AF';
   
-  const rankLower = rank.toLowerCase();
-  
-  if (rankLower.includes('iron')) {
-    return "text-amber-800";
-  } else if (rankLower.includes('bronze')) {
-    return "text-amber-600";
-  } else if (rankLower.includes('silver')) {
-    return "text-slate-400";
-  } else if (rankLower.includes('gold')) {
-    return "text-yellow-500";
-  } else if (rankLower.includes('platinum')) {
-    return "text-slate-300";
-  } else if (rankLower.includes('diamond')) {
-    return "text-blue-400";
-  } else if (rankLower.includes('ascendant')) {
-    return "text-emerald-400";
-  } else if (rankLower.includes('immortal')) {
-    return "text-purple-400";
-  } else if (rankLower.includes('radiant')) {
-    return "text-red-400";
-  }
-  
-  return "text-slate-400";
+  const config = RANK_CONFIG[rank as keyof typeof RANK_CONFIG];
+  return config?.primary || RANK_CONFIG['Unranked']?.primary || '#9CA3AF';
 }
 
 export function calculateAverageRank(ranks: Array<string | null | undefined>): string {
