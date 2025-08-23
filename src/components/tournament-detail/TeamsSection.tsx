@@ -1,7 +1,10 @@
 
-import { Crown, Users } from "lucide-react";
+import { Crown, Users, Download } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import ClickableUsername from "@/components/ClickableUsername";
 import TournamentBalanceTransparency from "./TournamentBalanceTransparency";
 import TournamentSignupsDisplay from "./TournamentSignupsDisplay";
@@ -61,12 +64,68 @@ export default function TeamsSection({ teams, tournament }: TeamsSectionProps) {
       setLoading(false);
     }
   };
+
+  const generateDiscordExport = () => {
+    const tournamentName = tournament?.name || "Tournament";
+    let exportText = `**${tournamentName} - Teams Export**\n\n`;
+    
+    sortedTeams.forEach((team, index) => {
+      exportText += `**${index + 1}. ${team.name}** (Total Weight: ${team.total_rank_points ?? 0})\n`;
+      
+      if (team.team_members && team.team_members.length > 0) {
+        team.team_members.forEach(member => {
+          const rank = member.users?.current_rank || "Unranked";
+          const weight = member.users?.weight_rating || member.users?.rank_points || 0;
+          const captain = member.is_captain ? " 👑" : "";
+          const rankEmoji = getRankIcon(rank);
+          
+          exportText += `  • ${member.users?.discord_username || "Unknown"}${captain} - ${rankEmoji} ${rank} (${weight})\n`;
+        });
+        
+        const avgRank = calculateAverageRank(team.team_members.map(m => m.users?.current_rank));
+        const avgWeight = Math.round((team.total_rank_points ?? 0) / team.team_members.length);
+        exportText += `  📊 **Averages:** ${getRankIcon(avgRank)} ${avgRank} | Weight: ${avgWeight}\n\n`;
+      } else {
+        exportText += "  No players\n\n";
+      }
+    });
+    
+    return exportText;
+  };
   return (
     <div className="bg-slate-800/90 border border-slate-700 rounded-xl">
       <div className="p-6">
-        <div className="text-xl font-bold text-white flex gap-2 items-center mb-6">
-          <Users className="w-5 h-5" />
-          Teams &amp; Participants
+        <div className="text-xl font-bold text-white flex gap-2 items-center justify-between mb-6">
+          <div className="flex gap-2 items-center">
+            <Users className="w-5 h-5" />
+            Teams & Participants
+          </div>
+          {sortedTeams.length > 0 && (
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="flex items-center gap-2">
+                  <Download className="w-4 h-4" />
+                  Export Teams
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[80vh]">
+                <DialogHeader>
+                  <DialogTitle>Export Teams for Discord</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Copy the formatted text below and paste it directly into Discord:
+                  </p>
+                  <Textarea
+                    value={generateDiscordExport()}
+                    readOnly
+                    className="min-h-[400px] font-mono text-sm"
+                    onClick={(e) => e.currentTarget.select()}
+                  />
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
         {sortedTeams.length === 0 ? (
           loading ? (
