@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Sparkles, PlayCircle, Trophy } from "lucide-react";
 
 const HomeHero = () => {
-  const heroBackgroundImage = "https://i.imgur.com/QP509ww.png";
+  const heroBackgroundImage = "https://i.imgur.com/8NnaEWn.png";
 
   return (
     <header 
@@ -13,7 +13,6 @@ const HomeHero = () => {
         backgroundPosition: 'center calc(50% + 15px)' 
       }}
     >
-      {/* This div creates the angled gradient overlay */}
       <div 
         className="absolute inset-0"
         style={{ background: 'linear-gradient(60deg, rgba(15, 23, 42, 1) 40%, rgba(15, 23, 42, 0) 100%)' }}
@@ -46,7 +45,6 @@ const HomeHero = () => {
         </div>
 
         <div className="relative hidden md:block">
-          {/* This content is now visually balanced by the gradient and can be simpler */}
         </div>
       </div>
     </header>
