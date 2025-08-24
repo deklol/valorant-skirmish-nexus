@@ -151,7 +151,9 @@ const TournamentSpotlight = () => {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString(undefined, {
+    const date = new Date(dateString);
+    return date.toLocaleString("en-GB", {
+      timeZone: "UTC",
       day: "2-digit",
       month: "short",
       hour: "2-digit",

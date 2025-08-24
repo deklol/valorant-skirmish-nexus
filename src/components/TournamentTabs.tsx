@@ -76,9 +76,16 @@ export default function TournamentTabs() {
               </span>
             </CardHeader>
             <CardContent className="px-4 pb-4 flex gap-3 text-sm text-slate-300">
-              <span className="flex items-center gap-1">
-                <Calendar className="w-4 h-4" />{new Date(t.start_time).toLocaleDateString()}
-              </span>
+               <span className="flex items-center gap-1">
+                 <Calendar className="w-4 h-4" />
+                 {new Date(t.start_time).toLocaleString("en-GB", { 
+                   timeZone: "UTC",
+                   day: "2-digit", 
+                   month: "short",
+                   hour: "2-digit",
+                   minute: "2-digit"
+                 })}
+               </span>
               {t.prize_pool && (
                 <span className="flex items-center gap-1">
                   <Trophy className="w-4 h-4" />{t.prize_pool}
