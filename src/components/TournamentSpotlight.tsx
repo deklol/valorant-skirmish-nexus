@@ -76,16 +76,22 @@ const TournamentSpotlight = () => {
     if (!tournament || !user) return;
 
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("tournament_signups")
-        .select("id")
+        .select("id, is_substitute")
         .eq("tournament_id", tournament.id)
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error("Error checking signup status:", error);
+        setIsSignedUp(false);
+        return;
+      }
 
       setIsSignedUp(!!data);
     } catch (error) {
-      // Not signed up
+      console.error("Error checking signup status:", error);
       setIsSignedUp(false);
     }
   };
@@ -109,7 +115,7 @@ const TournamentSpotlight = () => {
         if (error) throw error;
         
         setIsSignedUp(false);
-        toast.success("Successfully withdrew from tournament");
+        toast.success("Successfully unregistered from tournament");
       } else {
         // Sign up
         const { error } = await supabase
@@ -124,7 +130,7 @@ const TournamentSpotlight = () => {
         
         setIsSignedUp(true);
         const isSubstitute = (tournament.currentSignups || 0) >= tournament.max_players;
-        toast.success(isSubstitute ? "Signed up as substitute!" : "Successfully signed up!");
+        toast.success(isSubstitute ? "Registered as substitute!" : "Successfully registered!");
       }
 
       // Refresh tournament data
@@ -255,7 +261,7 @@ const TournamentSpotlight = () => {
                   ) : (
                     <UserPlus className="w-4 h-4" />
                   )}
-                  {isSignedUp ? "Withdraw" : isFull ? "Join as Sub" : "Sign Up"}
+                  {isSignedUp ? "Unregister" : isFull ? "Register as Sub" : "Register"}
                 </Button>
               )}
             </div>
