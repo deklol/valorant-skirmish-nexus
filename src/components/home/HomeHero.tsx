@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Sparkles, PlayCircle, Trophy } from "lucide-react";
 
 const HomeHero = () => {
-  const heroBackgroundImage = "https://cmsassets.rgpub.io/sanity/images/dsfx7636/news/0c67438c8b3a418b5ca28f9f234506745493ae42-854x484.png";
+  const heroBackgroundImage = "https://i.imgur.com/QP509ww.png";
 
   return (
     <header 
