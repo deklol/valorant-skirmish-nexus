@@ -40,7 +40,7 @@ const TournamentCard = React.memo(({ tournament }: TournamentCardProps) => {
   };
 
   const formatDate = (date: Date) => {
-    return date.toLocaleDateString("en-GB", {
+    return date.toLocaleString("en-GB", {
       day: "2-digit",
       month: "short",
       hour: "2-digit",
