@@ -686,7 +686,7 @@ const Profile = () => {
 
               <Card className="bg-slate-700 border-slate-600">
                 <CardHeader>
-                  <CardTitle className="text-white">Gaming Profile</CardTitle>
+                  <CardTitle className="text-white">Roles, Preferences & LFT</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
