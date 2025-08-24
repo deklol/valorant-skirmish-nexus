@@ -739,7 +739,7 @@ const Profile = () => {
                      className="bg-green-600 hover:bg-green-700"
                    >
                      <Save className="w-4 h-4 mr-2" />
-                     {updating ? 'Saving...' : 'Save Gaming Profile'}
+                     {updating ? 'Saving...' : 'Save Changes'}
                    </Button>
                  </CardContent>
                </Card>
