@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { Calendar, Trophy, Clock } from "lucide-react";
+import TournamentSpotlight from "@/components/TournamentSpotlight";
 
 interface Tournament {
   id: string;
@@ -60,9 +61,10 @@ export default function TournamentTabs() {
   }, []);
 
   // Show at most 5 tournaments per list for brevity
-  function List({ tournaments }: { tournaments: Tournament[] }) {
-    if (tournaments.length === 0)
-      return <div className="text-slate-400 text-sm text-center py-4">No results</div>;
+  function List({ tournaments, showSpotlight = false }: { tournaments: Tournament[], showSpotlight?: boolean }) {
+    if (tournaments.length === 0) {
+      return showSpotlight ? <TournamentSpotlight /> : <div className="text-slate-400 text-sm text-center py-4">No results</div>;
+    }
     return (
       <div className="flex flex-col gap-2">
         {tournaments.slice(0, 5).map(t => (
@@ -100,10 +102,10 @@ export default function TournamentTabs() {
             <TabsTrigger value="past" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">Past</TabsTrigger>
           </TabsList>
           <TabsContent value="live" className="pt-4">
-            {loading ? <div className="text-slate-400 text-sm text-center">Loading...</div> : <List tournaments={live} />}
+            {loading ? <div className="text-slate-400 text-sm text-center">Loading...</div> : <List tournaments={live} showSpotlight={true} />}
           </TabsContent>
           <TabsContent value="upcoming" className="pt-4">
-            {loading ? <div className="text-slate-400 text-sm text-center">Loading...</div> : <List tournaments={upcoming} />}
+            {loading ? <div className="text-slate-400 text-sm text-center">Loading...</div> : <List tournaments={upcoming} showSpotlight={true} />}
           </TabsContent>
           <TabsContent value="past" className="pt-4">
             {loading ? <div className="text-slate-400 text-sm text-center">Loading...</div> : <List tournaments={past} />}
