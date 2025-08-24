@@ -151,7 +151,7 @@ const TournamentSpotlight = () => {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString("en-GB", {
+    return new Date(dateString).toLocaleString(undefined, {
       day: "2-digit",
       month: "short",
       hour: "2-digit",
