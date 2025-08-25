@@ -1594,6 +1594,84 @@ export type Database = {
           },
         ]
       }
+      tournament_talent: {
+        Row: {
+          caster_1_id: string | null
+          caster_1_manual_name: string | null
+          caster_1_social_link: string | null
+          caster_2_id: string | null
+          caster_2_manual_name: string | null
+          caster_2_social_link: string | null
+          created_at: string
+          id: string
+          lead_tournament_admin_id: string | null
+          observer_id: string | null
+          observer_manual_name: string | null
+          observer_social_link: string | null
+          production_assistant_id: string | null
+          production_assistant_manual_name: string | null
+          production_assistant_social_link: string | null
+          production_lead_id: string | null
+          production_lead_manual_name: string | null
+          replay_op_id: string | null
+          replay_op_manual_name: string | null
+          replay_op_social_link: string | null
+          tournament_admin_ids: string[] | null
+          tournament_id: string
+          updated_at: string
+        }
+        Insert: {
+          caster_1_id?: string | null
+          caster_1_manual_name?: string | null
+          caster_1_social_link?: string | null
+          caster_2_id?: string | null
+          caster_2_manual_name?: string | null
+          caster_2_social_link?: string | null
+          created_at?: string
+          id?: string
+          lead_tournament_admin_id?: string | null
+          observer_id?: string | null
+          observer_manual_name?: string | null
+          observer_social_link?: string | null
+          production_assistant_id?: string | null
+          production_assistant_manual_name?: string | null
+          production_assistant_social_link?: string | null
+          production_lead_id?: string | null
+          production_lead_manual_name?: string | null
+          replay_op_id?: string | null
+          replay_op_manual_name?: string | null
+          replay_op_social_link?: string | null
+          tournament_admin_ids?: string[] | null
+          tournament_id: string
+          updated_at?: string
+        }
+        Update: {
+          caster_1_id?: string | null
+          caster_1_manual_name?: string | null
+          caster_1_social_link?: string | null
+          caster_2_id?: string | null
+          caster_2_manual_name?: string | null
+          caster_2_social_link?: string | null
+          created_at?: string
+          id?: string
+          lead_tournament_admin_id?: string | null
+          observer_id?: string | null
+          observer_manual_name?: string | null
+          observer_social_link?: string | null
+          production_assistant_id?: string | null
+          production_assistant_manual_name?: string | null
+          production_assistant_social_link?: string | null
+          production_lead_id?: string | null
+          production_lead_manual_name?: string | null
+          replay_op_id?: string | null
+          replay_op_manual_name?: string | null
+          replay_op_social_link?: string | null
+          tournament_admin_ids?: string[] | null
+          tournament_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tournaments: {
         Row: {
           balance_analysis: Json | null

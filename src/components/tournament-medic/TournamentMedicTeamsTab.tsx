@@ -160,9 +160,9 @@ export default function TournamentMedicTeamsTab({
         const rank = captainMember.users?.current_rank ?? "—";
         const weight =
           typeof captainMember.users?.weight_rating === "number"
-            ? ` [${captainMember.users.weight_rating}]`
-            : "";
-        lines.push(`${uname} (c) — ${rank}${weight}`);
+            ? ` (${captainMember.users.weight_rating})`
+            : " (0)";
+        lines.push(`@${uname} (c) — ${rank}${weight}`);
       }
 
       // All other members
@@ -173,9 +173,9 @@ export default function TournamentMedicTeamsTab({
           const rank = m.users?.current_rank ?? "—";
           const weight =
             typeof m.users?.weight_rating === "number"
-              ? ` [${m.users?.weight_rating}]`
-              : "";
-          lines.push(`${uname} — ${rank}${weight}`);
+              ? ` (${m.users?.weight_rating})`
+              : " (0)";
+          lines.push(`@${uname} — ${rank}${weight}`);
         });
 
       return lines.length ? lines.join("\n") : "*No members*";

@@ -9,6 +9,7 @@ import TournamentMedicPlayersTab from "./tournament-medic/TournamentMedicPlayers
 import TournamentMedicTeamsTab from "./tournament-medic/TournamentMedicTeamsTab";
 import TournamentMedicBracketTab from "./tournament-medic/TournamentMedicBracketTab";
 import TournamentMedicToolsTab from "./tournament-medic/TournamentMedicToolsTab";
+import TournamentMedicTalentTab from "./tournament-medic/TournamentMedicTalentTab";
 import { Tournament } from "@/types/tournament";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -151,6 +152,7 @@ export default function TournamentMedicEditModal({
             <TabsTrigger value="players" className="flex-1 data-[state=active]:bg-slate-700 data-[state=active]:text-white">Players</TabsTrigger>
             <TabsTrigger value="teams" className="flex-1 data-[state=active]:bg-slate-700 data-[state=active]:text-white">Teams</TabsTrigger>
             <TabsTrigger value="bracket" className="flex-1 data-[state=active]:bg-slate-700 data-[state=active]:text-white">Bracket</TabsTrigger>
+            <TabsTrigger value="talent" className="flex-1 data-[state=active]:bg-slate-700 data-[state=active]:text-white">Talent</TabsTrigger>
             <TabsTrigger value="tools" className="flex-1 data-[state=active]:bg-slate-700 data-[state=active]:text-white">Tools</TabsTrigger>
           </TabsList>
           <TabsContent value="status">
@@ -174,6 +176,9 @@ export default function TournamentMedicEditModal({
           </TabsContent>
           <TabsContent value="bracket">
             <TournamentMedicBracketTab tournament={tournament} onRefresh={handleRefresh} />
+          </TabsContent>
+          <TabsContent value="talent">
+            <TournamentMedicTalentTab tournament={tournament} onRefresh={handleRefresh} />
           </TabsContent>
           <TabsContent value="tools">
             <TournamentMedicToolsTab tournament={tournament} onRefresh={handleRefresh} />
