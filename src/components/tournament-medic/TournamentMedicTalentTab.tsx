@@ -178,14 +178,14 @@ export default function TournamentMedicTalentTab({
           <div className="space-y-2">
             <Label className="text-white">Lead Tournament Admin</Label>
             <Select 
-              value={talentData.lead_tournament_admin_id || ""} 
-              onValueChange={(value) => setTalentData(prev => ({ ...prev, lead_tournament_admin_id: value || null }))}
+              value={talentData.lead_tournament_admin_id || "none"} 
+              onValueChange={(value) => setTalentData(prev => ({ ...prev, lead_tournament_admin_id: value === "none" ? null : value }))}
             >
               <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                 <SelectValue placeholder="Select lead admin..." />
               </SelectTrigger>
               <SelectContent className="bg-slate-800 border-slate-700">
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value="none">None</SelectItem>
                 {adminUsers.map(user => (
                   <SelectItem key={user.id} value={user.id} className="text-white">
                     {user.discord_username}
@@ -213,13 +213,14 @@ export default function TournamentMedicTalentTab({
             {talentData.tournament_admin_ids?.map((adminId, index) => (
               <div key={index} className="flex gap-2">
                 <Select 
-                  value={adminId} 
-                  onValueChange={(value) => updateTournamentAdmin(index, value)}
+                  value={adminId || "none"} 
+                  onValueChange={(value) => updateTournamentAdmin(index, value === "none" ? "" : value)}
                 >
                   <SelectTrigger className="bg-slate-700 border-slate-600 text-white flex-1">
                     <SelectValue placeholder="Select admin..." />
                   </SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-700">
+                    <SelectItem value="none">None</SelectItem>
                     {adminUsers.map(user => (
                       <SelectItem key={user.id} value={user.id} className="text-white">
                         {user.discord_username}
@@ -244,14 +245,14 @@ export default function TournamentMedicTalentTab({
             <Label className="text-white">Production Lead</Label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               <Select 
-                value={talentData.production_lead_id || ""} 
-                onValueChange={(value) => setTalentData(prev => ({ ...prev, production_lead_id: value || null }))}
+                value={talentData.production_lead_id || "none"} 
+                onValueChange={(value) => setTalentData(prev => ({ ...prev, production_lead_id: value === "none" ? null : value }))}
               >
                 <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                   <SelectValue placeholder="Select user..." />
                 </SelectTrigger>
                 <SelectContent className="bg-slate-800 border-slate-700">
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="none">None</SelectItem>
                   {allUsers.map(user => (
                     <SelectItem key={user.id} value={user.id} className="text-white">
                       {user.discord_username}
@@ -273,14 +274,14 @@ export default function TournamentMedicTalentTab({
             <Label className="text-white">Production Assistant</Label>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
               <Select 
-                value={talentData.production_assistant_id || ""} 
-                onValueChange={(value) => setTalentData(prev => ({ ...prev, production_assistant_id: value || null }))}
+                value={talentData.production_assistant_id || "none"} 
+                onValueChange={(value) => setTalentData(prev => ({ ...prev, production_assistant_id: value === "none" ? null : value }))}
               >
                 <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                   <SelectValue placeholder="Select user..." />
                 </SelectTrigger>
                 <SelectContent className="bg-slate-800 border-slate-700">
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="none">None</SelectItem>
                   {allUsers.map(user => (
                     <SelectItem key={user.id} value={user.id} className="text-white">
                       {user.discord_username}
@@ -308,14 +309,14 @@ export default function TournamentMedicTalentTab({
             <Label className="text-white">Caster 1</Label>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
               <Select 
-                value={talentData.caster_1_id || ""} 
-                onValueChange={(value) => setTalentData(prev => ({ ...prev, caster_1_id: value || null }))}
+                value={talentData.caster_1_id || "none"} 
+                onValueChange={(value) => setTalentData(prev => ({ ...prev, caster_1_id: value === "none" ? null : value }))}
               >
                 <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                   <SelectValue placeholder="Select user..." />
                 </SelectTrigger>
                 <SelectContent className="bg-slate-800 border-slate-700">
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="none">None</SelectItem>
                   {allUsers.map(user => (
                     <SelectItem key={user.id} value={user.id} className="text-white">
                       {user.discord_username}
@@ -343,14 +344,14 @@ export default function TournamentMedicTalentTab({
             <Label className="text-white">Caster 2</Label>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
               <Select 
-                value={talentData.caster_2_id || ""} 
-                onValueChange={(value) => setTalentData(prev => ({ ...prev, caster_2_id: value || null }))}
+                value={talentData.caster_2_id || "none"} 
+                onValueChange={(value) => setTalentData(prev => ({ ...prev, caster_2_id: value === "none" ? null : value }))}
               >
                 <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                   <SelectValue placeholder="Select user..." />
                 </SelectTrigger>
                 <SelectContent className="bg-slate-800 border-slate-700">
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="none">None</SelectItem>
                   {allUsers.map(user => (
                     <SelectItem key={user.id} value={user.id} className="text-white">
                       {user.discord_username}
@@ -378,14 +379,14 @@ export default function TournamentMedicTalentTab({
             <Label className="text-white">Observer</Label>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
               <Select 
-                value={talentData.observer_id || ""} 
-                onValueChange={(value) => setTalentData(prev => ({ ...prev, observer_id: value || null }))}
+                value={talentData.observer_id || "none"} 
+                onValueChange={(value) => setTalentData(prev => ({ ...prev, observer_id: value === "none" ? null : value }))}
               >
                 <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                   <SelectValue placeholder="Select user..." />
                 </SelectTrigger>
                 <SelectContent className="bg-slate-800 border-slate-700">
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="none">None</SelectItem>
                   {allUsers.map(user => (
                     <SelectItem key={user.id} value={user.id} className="text-white">
                       {user.discord_username}
@@ -413,14 +414,14 @@ export default function TournamentMedicTalentTab({
             <Label className="text-white">Replay Op</Label>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
               <Select 
-                value={talentData.replay_op_id || ""} 
-                onValueChange={(value) => setTalentData(prev => ({ ...prev, replay_op_id: value || null }))}
+                value={talentData.replay_op_id || "none"} 
+                onValueChange={(value) => setTalentData(prev => ({ ...prev, replay_op_id: value === "none" ? null : value }))}
               >
                 <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                   <SelectValue placeholder="Select user..." />
                 </SelectTrigger>
                 <SelectContent className="bg-slate-800 border-slate-700">
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="none">None</SelectItem>
                   {allUsers.map(user => (
                     <SelectItem key={user.id} value={user.id} className="text-white">
                       {user.discord_username}
