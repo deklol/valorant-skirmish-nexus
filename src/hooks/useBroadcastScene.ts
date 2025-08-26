@@ -60,33 +60,56 @@ export function useBroadcastScene(teams: Team[]) {
     };
   }, [config.autoPlay, config.duration, isPlaying, teams.length]);
 
+  const nextScene = useCallback(() => {
+    const enabledScenes = config.enabledScenes;
+    const currentIndex = enabledScenes.indexOf(currentScene);
+    
+    if (currentScene === 'team-showcase') {
+      // Cycle through teams in showcase
+      const nextTeamIndex = (currentTeamIndex + 1) % teams.length;
+      if (nextTeamIndex === 0) {
+        // All teams shown, move to next scene
+        const nextSceneIndex = (currentIndex + 1) % enabledScenes.length;
+        setCurrentScene(enabledScenes[nextSceneIndex]);
+        setCurrentTeamIndex(0);
+      } else {
+        setCurrentTeamIndex(nextTeamIndex);
+      }
+    } else if (currentScene === 'player-spotlight') {
+      // Cycle through players
+      const nextPlayerIndex = (currentPlayerIndex + 1) % totalPlayers;
+      if (nextPlayerIndex === 0) {
+        // All players shown, move to next scene
+        const nextSceneIndex = (currentIndex + 1) % enabledScenes.length;
+        setCurrentScene(enabledScenes[nextSceneIndex]);
+        setCurrentPlayerIndex(0);
+      } else {
+        setCurrentPlayerIndex(nextPlayerIndex);
+      }
+    } else {
+      // For comparison and bracket, just move to next scene
+      const nextSceneIndex = (currentIndex + 1) % enabledScenes.length;
+      setCurrentScene(enabledScenes[nextSceneIndex]);
+    }
+    
+    setProgress(0);
+  }, [currentScene, currentTeamIndex, currentPlayerIndex, teams.length, totalPlayers, config.enabledScenes]);
+
   const prevScene = useCallback(() => {
     const enabledScenes = config.enabledScenes;
     const currentIndex = enabledScenes.indexOf(currentScene);
-  
+    
     if (currentScene === 'team-showcase' && currentTeamIndex > 0) {
       setCurrentTeamIndex(currentTeamIndex - 1);
     } else if (currentScene === 'player-spotlight' && currentPlayerIndex > 0) {
       setCurrentPlayerIndex(currentPlayerIndex - 1);
     } else {
-      // Move to previous scene
-      const prevSceneIndex =
-        currentIndex === 0 ? enabledScenes.length - 1 : currentIndex - 1;
+      const prevSceneIndex = currentIndex === 0 ? enabledScenes.length - 1 : currentIndex - 1;
       setCurrentScene(enabledScenes[prevSceneIndex]);
-  
-      // If moving back into team-showcase, land on last team
-      if (enabledScenes[prevSceneIndex] === 'team-showcase' && teams.length > 0) {
-        setCurrentTeamIndex(teams.length - 1);
-      }
-  
-      // If moving back into player-spotlight, land on last player
-      if (enabledScenes[prevSceneIndex] === 'player-spotlight' && totalPlayers > 0) {
-        setCurrentPlayerIndex(totalPlayers - 1);
-      }
     }
-  
+    
     setProgress(0);
-  }, [currentScene, currentTeamIndex, currentPlayerIndex, teams.length, totalPlayers, config.enabledScenes]);
+  }, [currentScene, currentTeamIndex, currentPlayerIndex, config.enabledScenes]);
 
   const setScene = useCallback((scene: SceneType) => {
     setCurrentScene(scene);
