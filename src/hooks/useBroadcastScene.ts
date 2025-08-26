@@ -60,36 +60,29 @@ export function useBroadcastScene(teams: Team[]) {
     };
   }, [config.autoPlay, config.duration, isPlaying, teams.length]);
 
-  const nextScene = useCallback(() => {
+  const prevScene = useCallback(() => {
     const enabledScenes = config.enabledScenes;
     const currentIndex = enabledScenes.indexOf(currentScene);
   
-    if (currentScene === 'team-showcase') {
-      // Cycle through teams in showcase
-      if (currentTeamIndex < teams.length - 1) {
-        // Still more teams to show
-        setCurrentTeamIndex(currentTeamIndex + 1);
-      } else {
-        // Finished last team → move to next scene
-        const nextSceneIndex = (currentIndex + 1) % enabledScenes.length;
-        setCurrentScene(enabledScenes[nextSceneIndex]);
-        setCurrentTeamIndex(0);
-      }
-    } else if (currentScene === 'player-spotlight') {
-      // Cycle through players
-      if (currentPlayerIndex < totalPlayers - 1) {
-        // Still more players to show
-        setCurrentPlayerIndex(currentPlayerIndex + 1);
-      } else {
-        // Finished last player → move to next scene
-        const nextSceneIndex = (currentIndex + 1) % enabledScenes.length;
-        setCurrentScene(enabledScenes[nextSceneIndex]);
-        setCurrentPlayerIndex(0);
-      }
+    if (currentScene === 'team-showcase' && currentTeamIndex > 0) {
+      setCurrentTeamIndex(currentTeamIndex - 1);
+    } else if (currentScene === 'player-spotlight' && currentPlayerIndex > 0) {
+      setCurrentPlayerIndex(currentPlayerIndex - 1);
     } else {
-      // For comparison and bracket, just move to next scene
-      const nextSceneIndex = (currentIndex + 1) % enabledScenes.length;
-      setCurrentScene(enabledScenes[nextSceneIndex]);
+      // Move to previous scene
+      const prevSceneIndex =
+        currentIndex === 0 ? enabledScenes.length - 1 : currentIndex - 1;
+      setCurrentScene(enabledScenes[prevSceneIndex]);
+  
+      // If moving back into team-showcase, land on last team
+      if (enabledScenes[prevSceneIndex] === 'team-showcase' && teams.length > 0) {
+        setCurrentTeamIndex(teams.length - 1);
+      }
+  
+      // If moving back into player-spotlight, land on last player
+      if (enabledScenes[prevSceneIndex] === 'player-spotlight' && totalPlayers > 0) {
+        setCurrentPlayerIndex(totalPlayers - 1);
+      }
     }
   
     setProgress(0);
@@ -130,6 +123,7 @@ export function useBroadcastScene(teams: Team[]) {
     isPlaying,
     progress,
     nextScene,
+    prevScene,
     setScene,
     togglePlayPause,
     updateConfig,
