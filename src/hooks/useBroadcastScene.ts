@@ -60,40 +60,39 @@ export function useBroadcastScene(teams: Team[]) {
     };
   }, [config.autoPlay, config.duration, isPlaying, teams.length]);
 
-  const nextScene = useCallback(() => {
-    const enabledScenes = config.enabledScenes;
-    const currentIndex = enabledScenes.indexOf(currentScene);
-    
-    if (currentScene === 'team-showcase') {
-      // Cycle through teams in showcase
-      const nextTeamIndex = (currentTeamIndex + 1) % teams.length;
-      if (nextTeamIndex === 0) {
-        // All teams shown, move to next scene
-        const nextSceneIndex = (currentIndex + 1) % enabledScenes.length;
-        setCurrentScene(enabledScenes[nextSceneIndex]);
-        setCurrentTeamIndex(0);
-      } else {
-        setCurrentTeamIndex(nextTeamIndex);
-      }
-    } else if (currentScene === 'player-spotlight') {
-      // Cycle through players
-      const nextPlayerIndex = (currentPlayerIndex + 1) % totalPlayers;
-      if (nextPlayerIndex === 0) {
-        // All players shown, move to next scene
-        const nextSceneIndex = (currentIndex + 1) % enabledScenes.length;
-        setCurrentScene(enabledScenes[nextSceneIndex]);
-        setCurrentPlayerIndex(0);
-      } else {
-        setCurrentPlayerIndex(nextPlayerIndex);
-      }
+const nextScene = useCallback(() => {
+  const enabledScenes = config.enabledScenes;
+  const currentIndex = enabledScenes.indexOf(currentScene);
+
+  if (currentScene === 'team-showcase') {
+    if (currentTeamIndex < teams.length - 1) {
+      // Still more teams to show
+      setCurrentTeamIndex(currentTeamIndex + 1);
     } else {
-      // For comparison and bracket, just move to next scene
+      // Last team shown, move to next scene
       const nextSceneIndex = (currentIndex + 1) % enabledScenes.length;
       setCurrentScene(enabledScenes[nextSceneIndex]);
+      setCurrentTeamIndex(0); // reset for next cycle
     }
-    
-    setProgress(0);
-  }, [currentScene, currentTeamIndex, currentPlayerIndex, teams.length, totalPlayers, config.enabledScenes]);
+  } else if (currentScene === 'player-spotlight') {
+    // Cycle through players
+    const nextPlayerIndex = (currentPlayerIndex + 1) % totalPlayers;
+    if (nextPlayerIndex === 0) {
+      // All players shown, move to next scene
+      const nextSceneIndex = (currentIndex + 1) % enabledScenes.length;
+      setCurrentScene(enabledScenes[nextSceneIndex]);
+      setCurrentPlayerIndex(0);
+    } else {
+      setCurrentPlayerIndex(nextPlayerIndex);
+    }
+  } else {
+    // For comparison and bracket, just move to next scene
+    const nextSceneIndex = (currentIndex + 1) % enabledScenes.length;
+    setCurrentScene(enabledScenes[nextSceneIndex]);
+  }
+
+  setProgress(0);
+}, [currentScene, currentTeamIndex, currentPlayerIndex, teams.length, totalPlayers, config.enabledScenes]);
 
   const prevScene = useCallback(() => {
     const enabledScenes = config.enabledScenes;
