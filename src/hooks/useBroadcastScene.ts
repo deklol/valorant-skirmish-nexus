@@ -130,7 +130,6 @@ export function useBroadcastScene(teams: Team[]) {
     isPlaying,
     progress,
     nextScene,
-    prevScene,
     setScene,
     togglePlayPause,
     updateConfig,
