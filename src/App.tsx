@@ -32,6 +32,7 @@ import Help from "./pages/Help";
 import Shop from "./pages/Shop";
 import NotificationSettings from "./pages/NotificationSettings";
 import VODs from "./pages/VODs";
+import Broadcast from "./pages/Broadcast";
 import { AppSettingsProvider } from "./contexts/AppSettingsContext";
 
 const queryClient = new QueryClient();
@@ -54,41 +55,49 @@ const AppContent = () => {
     <BrowserRouter>
       <OnboardingSystem>
         <SidebarProvider>
-          <div className="min-h-screen flex w-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-            <AppSidebar />
-            <SidebarInset className="flex-1">
-              <div className="flex flex-col min-h-screen">
-                <Header />
-                <main className="flex-1">
-                  <Routes>
-                    <Route path="/" element={<Index />} />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/admin" element={<Admin />} />
-                    <Route path="/profile" element={<Profile />} />
-                    <Route path="/profile/:userId" element={<PublicProfile />} />
-                    <Route path="/tournaments" element={<Tournaments />} />
-                    <Route path="/tournament/:id" element={<TournamentDetail />} />
-                    <Route path="/players" element={<Players />} />
-                    <Route path="/leaderboard" element={<Leaderboard />} />
-                    <Route path="/brackets" element={<Brackets />} />
-                    <Route path="/bracket/:id" element={<BracketView />} />
-                    <Route path="/archive" element={<Archive />} />
-                    <Route path="/match/:id" element={<MatchDetails />} />
-                    <Route path="/teams" element={<TeamManagementPage />} />
-                    <Route path="/teams-directory" element={<TeamsDirectory />} />
-                    <Route path="/team/:id" element={<TeamProfile />} />
-                    <Route path="/statistics" element={<Statistics />} />
-                    <Route path="/shop" element={<Shop />} />
-                    <Route path="/help" element={<Help />} />
-                    <Route path="/vods" element={<VODs />} />
-                    <Route path="/settings/notifications" element={<NotificationSettings />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </main>
-                <Footer />
+          <Routes>
+            {/* Broadcast route without layout */}
+            <Route path="/broadcast/:id" element={<Broadcast />} />
+            
+            {/* All other routes with normal layout */}
+            <Route path="*" element={
+              <div className="min-h-screen flex w-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+                <AppSidebar />
+                <SidebarInset className="flex-1">
+                  <div className="flex flex-col min-h-screen">
+                    <Header />
+                    <main className="flex-1">
+                      <Routes>
+                        <Route path="/" element={<Index />} />
+                        <Route path="/login" element={<Login />} />
+                        <Route path="/admin" element={<Admin />} />
+                        <Route path="/profile" element={<Profile />} />
+                        <Route path="/profile/:userId" element={<PublicProfile />} />
+                        <Route path="/tournaments" element={<Tournaments />} />
+                        <Route path="/tournament/:id" element={<TournamentDetail />} />
+                        <Route path="/players" element={<Players />} />
+                        <Route path="/leaderboard" element={<Leaderboard />} />
+                        <Route path="/brackets" element={<Brackets />} />
+                        <Route path="/bracket/:id" element={<BracketView />} />
+                        <Route path="/archive" element={<Archive />} />
+                        <Route path="/match/:id" element={<MatchDetails />} />
+                        <Route path="/teams" element={<TeamManagementPage />} />
+                        <Route path="/teams-directory" element={<TeamsDirectory />} />
+                        <Route path="/team/:id" element={<TeamProfile />} />
+                        <Route path="/statistics" element={<Statistics />} />
+                        <Route path="/shop" element={<Shop />} />
+                        <Route path="/help" element={<Help />} />
+                        <Route path="/vods" element={<VODs />} />
+                        <Route path="/settings/notifications" element={<NotificationSettings />} />
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                    </main>
+                    <Footer />
+                  </div>
+                </SidebarInset>
               </div>
-            </SidebarInset>
-          </div>
+            } />
+          </Routes>
           <Toaster />
         </SidebarProvider>
       </OnboardingSystem>
