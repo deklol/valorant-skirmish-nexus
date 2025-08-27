@@ -25,6 +25,7 @@ export default function Broadcast() {
     prevScene,
     setScene,
     togglePlayPause,
+    pauseAutoPlay,
     updateConfig,
     setTeamIndex,
     setPlayerIndex
@@ -44,10 +45,10 @@ export default function Broadcast() {
         <div className="flex flex-col items-center space-y-4">
           <AlertCircle className="h-16 w-16 text-destructive" />
           <div className="text-2xl text-foreground">
-            {error || "Tournament not found or not live"}
+            {error || "Tournament not found or not available for broadcast"}
           </div>
           <div className="text-muted-foreground text-center max-w-md">
-            Make sure the tournament is in "live" status and try again
+            Make sure the tournament is in "live" or "completed" status and try again
           </div>
         </div>
       </div>
@@ -63,6 +64,14 @@ export default function Broadcast() {
             currentTeamIndex={currentTeamIndex}
             currentPlayerIndex={currentPlayerIndex}
             transition={config.transition}
+            onPlayerClick={(playerIndex) => {
+              pauseAutoPlay();
+              setPlayerIndex(playerIndex);
+            }}
+            onTeamClick={(teamIndex) => {
+              pauseAutoPlay();
+              setTeamIndex(teamIndex);
+            }}
           />
         );
       case 'team-comparison':
@@ -70,6 +79,11 @@ export default function Broadcast() {
           <TeamComparison
             teams={teams}
             transition={config.transition}
+            onTeamClick={(teamIndex) => {
+              pauseAutoPlay();
+              setTeamIndex(teamIndex);
+              setScene('team-showcase');
+            }}
           />
         );
       case 'player-spotlight':
@@ -78,6 +92,15 @@ export default function Broadcast() {
             teams={teams}
             currentPlayerIndex={currentPlayerIndex}
             transition={config.transition}
+            onPlayerClick={(playerIndex) => {
+              pauseAutoPlay();
+              setPlayerIndex(playerIndex);
+            }}
+            onTeamClick={(teamIndex) => {
+              pauseAutoPlay();
+              setTeamIndex(teamIndex);
+              setScene('team-showcase');
+            }}
           />
         );
       case 'bracket':
@@ -85,6 +108,11 @@ export default function Broadcast() {
           <BracketViewer
             tournamentId={id!}
             transition={config.transition}
+            onMatchClick={(matchId) => {
+              pauseAutoPlay();
+              // Could navigate to match details or highlight match
+              console.log('Match clicked:', matchId);
+            }}
           />
         );
       default:
@@ -95,13 +123,19 @@ export default function Broadcast() {
   return (
     <BroadcastLayout backgroundColor={config.backgroundColor}>
       <div className="relative w-full h-full">
-        {renderScene()}
+        <div onClick={pauseAutoPlay}>
+          {renderScene()}
+        </div>
         
         <ProgressIndicator
           currentScene={currentScene}
           progress={progress}
           isPlaying={isPlaying}
           config={config}
+          onSceneClick={(scene) => {
+            pauseAutoPlay();
+            setScene(scene);
+          }}
         />
         
         <SceneControls

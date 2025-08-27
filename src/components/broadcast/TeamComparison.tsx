@@ -7,9 +7,10 @@ import type { TransitionType } from "@/hooks/useBroadcastScene";
 interface TeamComparisonProps {
   teams: Team[];
   transition: TransitionType;
+  onTeamClick?: (teamIndex: number) => void;
 }
 
-export default function TeamComparison({ teams, transition }: TeamComparisonProps) {
+export default function TeamComparison({ teams, transition, onTeamClick }: TeamComparisonProps) {
   // Get top 2 teams by rank points for comparison
   const topTeams = [...teams]
     .sort((a, b) => (b.total_rank_points || 0) - (a.total_rank_points || 0))
@@ -46,7 +47,12 @@ export default function TeamComparison({ teams, transition }: TeamComparisonProp
           {/* Team 1 */}
           <Card className="bg-gradient-to-br from-blue-900/40 to-blue-800/40 backdrop-blur border-blue-400/30 p-8 h-full">
             <div className="text-center mb-6">
-              <h2 className="text-4xl font-bold text-white mb-2">{team1.name}</h2>
+              <h2 
+                className="text-4xl font-bold text-white mb-2 cursor-pointer hover:text-blue-300 transition-colors"
+                onClick={() => onTeamClick?.(teams.indexOf(team1))}
+              >
+                {team1.name}
+              </h2>
               <Badge variant="outline" className="text-xl px-4 py-1 bg-blue-600/30 border-blue-400">
                 Seed #{team1.seed || 'N/A'}
               </Badge>
@@ -121,7 +127,12 @@ export default function TeamComparison({ teams, transition }: TeamComparisonProp
           {/* Team 2 */}
           <Card className="bg-gradient-to-br from-red-900/40 to-red-800/40 backdrop-blur border-red-400/30 p-8 h-full">
             <div className="text-center mb-6">
-              <h2 className="text-4xl font-bold text-white mb-2">{team2.name}</h2>
+              <h2 
+                className="text-4xl font-bold text-white mb-2 cursor-pointer hover:text-red-300 transition-colors"
+                onClick={() => onTeamClick?.(teams.indexOf(team2))}
+              >
+                {team2.name}
+              </h2>
               <Badge variant="outline" className="text-xl px-4 py-1 bg-red-600/30 border-red-400">
                 Seed #{team2.seed || 'N/A'}
               </Badge>

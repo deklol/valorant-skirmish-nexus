@@ -29,9 +29,9 @@ export function useBroadcastData(tournamentId: string | undefined) {
 
         if (tournamentError) throw tournamentError;
 
-        // Check if tournament is live
-        if (tournamentData.status !== 'live') {
-          setError("Tournament is not currently live");
+        // Check if tournament is live or completed for broadcast
+        if (!tournamentData.status || !['live', 'completed'].includes(tournamentData.status)) {
+          setError("Tournament must be live or completed for broadcast");
           setLoading(false);
           return;
         }

@@ -69,7 +69,7 @@ const nextScene = useCallback(() => {
       // Still more teams to show
       setCurrentTeamIndex(currentTeamIndex + 1);
     } else {
-      // Last team shown, move to next scene
+      // All teams shown, move to next scene
       const nextSceneIndex = (currentIndex + 1) % enabledScenes.length;
       setCurrentScene(enabledScenes[nextSceneIndex]);
       setCurrentTeamIndex(0); // reset for next cycle
@@ -122,6 +122,11 @@ const nextScene = useCallback(() => {
     }
   }, [isPlaying]);
 
+  const pauseAutoPlay = useCallback(() => {
+    setIsPlaying(false);
+    setProgress(0);
+  }, []);
+
   const updateConfig = useCallback((newConfig: Partial<BroadcastConfig>) => {
     setConfig(prev => ({ ...prev, ...newConfig }));
     setProgress(0);
@@ -148,6 +153,7 @@ const nextScene = useCallback(() => {
     prevScene,
     setScene,
     togglePlayPause,
+    pauseAutoPlay,
     updateConfig,
     setTeamIndex,
     setPlayerIndex,

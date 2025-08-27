@@ -10,9 +10,18 @@ interface TeamShowcaseProps {
   currentTeamIndex: number;
   currentPlayerIndex: number;
   transition: TransitionType;
+  onPlayerClick?: (playerIndex: number) => void;
+  onTeamClick?: (teamIndex: number) => void;
 }
 
-export default function TeamShowcase({ teams, currentTeamIndex, currentPlayerIndex, transition }: TeamShowcaseProps) {
+export default function TeamShowcase({ 
+  teams, 
+  currentTeamIndex, 
+  currentPlayerIndex, 
+  transition,
+  onPlayerClick,
+  onTeamClick 
+}: TeamShowcaseProps) {
   const [isVisible, setIsVisible] = useState(true);
   const [currentPlayerInTeam, setCurrentPlayerInTeam] = useState(0);
 
@@ -51,7 +60,10 @@ export default function TeamShowcase({ teams, currentTeamIndex, currentPlayerInd
       <div className="max-w-6xl w-full mx-auto px-8">
         {/* Team Header */}
         <div className="text-center mb-12">
-          <h1 className="text-8xl font-bold text-white mb-4 drop-shadow-lg">
+          <h1 
+            className="text-8xl font-bold text-white mb-4 drop-shadow-lg cursor-pointer hover:scale-105 transition-transform"
+            onClick={() => onTeamClick?.(currentTeamIndex)}
+          >
             {currentTeam.name}
           </h1>
           <div className="flex items-center justify-center space-x-8">
@@ -68,13 +80,19 @@ export default function TeamShowcase({ teams, currentTeamIndex, currentPlayerInd
         <div className="grid grid-cols-3 gap-8 items-center mb-8">
           {/* Player Avatar & Info */}
           <div className="flex flex-col items-center">
-            <Avatar className="w-48 h-48 mb-6 border-4 border-white shadow-2xl">
+            <Avatar 
+              className="w-48 h-48 mb-6 border-4 border-white shadow-2xl cursor-pointer hover:scale-105 transition-transform"
+              onClick={() => onPlayerClick?.(currentPlayerInTeam)}
+            >
               <AvatarImage src={currentPlayer.users.discord_avatar_url || undefined} />
               <AvatarFallback className="text-4xl bg-gradient-to-br from-slate-700 to-slate-600">
                 {currentPlayer.users.discord_username.slice(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <h3 className="text-4xl font-bold text-white text-center">
+            <h3 
+              className="text-4xl font-bold text-white text-center cursor-pointer hover:text-blue-300 transition-colors"
+              onClick={() => onPlayerClick?.(currentPlayerInTeam)}
+            >
               {currentPlayer.users.discord_username}
             </h3>
             {currentPlayer.users.riot_id && (
@@ -116,11 +134,15 @@ export default function TeamShowcase({ teams, currentTeamIndex, currentPlayerInd
               {currentTeam.team_members.map((member, index) => (
                 <div 
                   key={member.user_id}
-                  className={`flex items-center space-x-3 p-3 rounded-lg transition-all duration-300 ${
+                  className={`flex items-center space-x-3 p-3 rounded-lg transition-all duration-300 cursor-pointer ${
                     index === currentPlayerInTeam 
                       ? 'bg-white/20 border border-white/40 scale-105' 
-                      : 'bg-black/20 hover:bg-black/30'
+                      : 'bg-black/20 hover:bg-black/30 hover:scale-102'
                   }`}
+                  onClick={() => {
+                    setCurrentPlayerInTeam(index);
+                    onPlayerClick?.(index);
+                  }}
                 >
                   <Avatar className="w-12 h-12">
                     <AvatarImage src={member.users.discord_avatar_url || undefined} />
@@ -152,9 +174,10 @@ export default function TeamShowcase({ teams, currentTeamIndex, currentPlayerInd
             {teams.map((_, index) => (
               <div
                 key={index}
-                className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                  index === currentTeamIndex ? 'bg-white scale-125' : 'bg-white/30'
+                className={`w-3 h-3 rounded-full transition-all duration-300 cursor-pointer hover:scale-110 ${
+                  index === currentTeamIndex ? 'bg-white scale-125' : 'bg-white/30 hover:bg-white/50'
                 }`}
+                onClick={() => onTeamClick?.(index)}
               />
             ))}
           </div>

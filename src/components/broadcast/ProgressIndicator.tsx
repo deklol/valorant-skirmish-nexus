@@ -5,6 +5,7 @@ interface ProgressIndicatorProps {
   progress: number;
   isPlaying: boolean;
   config: BroadcastConfig;
+  onSceneClick?: (scene: SceneType) => void;
 }
 
 export default function ProgressIndicator({

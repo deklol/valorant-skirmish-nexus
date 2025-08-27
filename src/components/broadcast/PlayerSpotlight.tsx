@@ -9,15 +9,18 @@ interface PlayerSpotlightProps {
   teams: Team[];
   currentPlayerIndex: number;
   transition: TransitionType;
+  onPlayerClick?: (playerIndex: number) => void;
+  onTeamClick?: (teamIndex: number) => void;
 }
 
-export default function PlayerSpotlight({ teams, currentPlayerIndex, transition }: PlayerSpotlightProps) {
+export default function PlayerSpotlight({ teams, currentPlayerIndex, transition, onPlayerClick, onTeamClick }: PlayerSpotlightProps) {
   // Flatten all players and sort by rank points
-  const allPlayers = teams.flatMap(team => 
+  const allPlayers = teams.flatMap((team, teamIndex) => 
     team.team_members.map(member => ({
       ...member,
       teamName: team.name,
-      teamSeed: team.seed
+      teamSeed: team.seed,
+      teamIndex
     }))
   ).sort((a, b) => (b.users.rank_points || 150) - (a.users.rank_points || 150));
 
@@ -86,7 +89,10 @@ export default function PlayerSpotlight({ teams, currentPlayerIndex, transition 
             </div>
 
             {/* Avatar */}
-            <Avatar className="w-64 h-64 mx-auto mb-8 border-8 border-white shadow-2xl">
+            <Avatar 
+              className="w-64 h-64 mx-auto mb-8 border-8 border-white shadow-2xl cursor-pointer hover:scale-105 transition-transform"
+              onClick={() => onPlayerClick?.(currentPlayerIndex)}
+            >
               <AvatarImage src={currentPlayer.users.discord_avatar_url || undefined} />
               <AvatarFallback className="text-6xl bg-gradient-to-br from-slate-700 to-slate-600">
                 {currentPlayer.users.discord_username.slice(0, 2).toUpperCase()}
@@ -94,7 +100,10 @@ export default function PlayerSpotlight({ teams, currentPlayerIndex, transition 
             </Avatar>
 
             {/* Player Name */}
-            <h2 className="text-5xl font-bold text-white mb-4">
+            <h2 
+              className="text-5xl font-bold text-white mb-4 cursor-pointer hover:text-purple-300 transition-colors"
+              onClick={() => onPlayerClick?.(currentPlayerIndex)}
+            >
               {currentPlayer.users.discord_username}
             </h2>
 
@@ -105,7 +114,11 @@ export default function PlayerSpotlight({ teams, currentPlayerIndex, transition 
 
             {/* Team Info */}
             <div className="flex items-center justify-center space-x-4 mb-6">
-              <Badge variant="secondary" className="text-xl px-4 py-2">
+              <Badge 
+                variant="secondary" 
+                className="text-xl px-4 py-2 cursor-pointer hover:scale-105 transition-transform"
+                onClick={() => onTeamClick?.(currentPlayer.teamIndex)}
+              >
                 {currentPlayer.teamName}
               </Badge>
               {currentPlayer.is_captain && (
@@ -119,7 +132,7 @@ export default function PlayerSpotlight({ teams, currentPlayerIndex, transition 
           {/* Stats Panel */}
           <div className="space-y-6">
             {/* Main Rank Card */}
-            <Card className={`bg-gradient-to-br ${getRankColor(currentPlayer.users.current_rank)} p-8`}>
+            <Card className={`bg-gradient-to-br ${getRankColor(currentPlayer.users.current_rank)} p-8 cursor-pointer hover:scale-105 transition-transform`}>
               <div className="text-center text-white">
                 <Target className="w-16 h-16 mx-auto mb-4" />
                 <h3 className="text-3xl font-bold mb-2">Current Rank</h3>
@@ -129,7 +142,7 @@ export default function PlayerSpotlight({ teams, currentPlayerIndex, transition 
 
             {/* Detailed Stats */}
             <div className="grid grid-cols-2 gap-4">
-              <Card className="bg-black/40 backdrop-blur border-white/20 p-6 text-center">
+              <Card className="bg-black/40 backdrop-blur border-white/20 p-6 text-center cursor-pointer hover:scale-105 transition-transform">
                 <TrendingUp className="w-8 h-8 mx-auto mb-2 text-green-400" />
                 <p className="text-lg text-slate-300">Rank Points</p>
                 <p className="text-3xl font-bold text-white">
@@ -137,7 +150,7 @@ export default function PlayerSpotlight({ teams, currentPlayerIndex, transition 
                 </p>
               </Card>
 
-              <Card className="bg-black/40 backdrop-blur border-white/20 p-6 text-center">
+              <Card className="bg-black/40 backdrop-blur border-white/20 p-6 text-center cursor-pointer hover:scale-105 transition-transform">
                 <Target className="w-8 h-8 mx-auto mb-2 text-blue-400" />
                 <p className="text-lg text-slate-300">Weight Rating</p>
                 <p className="text-3xl font-bold text-white">
@@ -145,7 +158,10 @@ export default function PlayerSpotlight({ teams, currentPlayerIndex, transition 
                 </p>
               </Card>
 
-              <Card className="bg-black/40 backdrop-blur border-white/20 p-6 text-center col-span-2">
+              <Card 
+                className="bg-black/40 backdrop-blur border-white/20 p-6 text-center col-span-2 cursor-pointer hover:scale-105 transition-transform"
+                onClick={() => onTeamClick?.(currentPlayer.teamIndex)}
+              >
                 <Crown className="w-8 h-8 mx-auto mb-2 text-yellow-400" />
                 <p className="text-lg text-slate-300">Team Seed</p>
                 <p className="text-3xl font-bold text-white">
@@ -155,8 +171,8 @@ export default function PlayerSpotlight({ teams, currentPlayerIndex, transition 
             </div>
 
             {/* Tournament Ranking */}
-            <Card className="bg-gradient-to-r from-purple-900/40 to-blue-900/40 backdrop-blur border-purple-400/30 p-6">
-              <div className="text-center text-white">
+            <Card className="bg-gradient-to-r from-purple-900/40 to-blue-900/40 backdrop-blur border-purple-400/30 p-6 cursor-pointer hover:scale-105 transition-transform">
+              <div className="text-center text-white" onClick={() => onTeamClick?.(currentPlayer.teamIndex)}>
                 <h4 className="text-2xl font-bold mb-2">Tournament Standing</h4>
                 <div className="flex justify-center items-center space-x-4">
                   <span className="text-4xl font-bold">#{playerRank}</span>
@@ -176,9 +192,10 @@ export default function PlayerSpotlight({ teams, currentPlayerIndex, transition 
             {allPlayers.slice(0, Math.min(10, allPlayers.length)).map((_, index) => (
               <div
                 key={index}
-                className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                  index === currentPlayerIndex ? 'bg-white scale-125' : 'bg-white/30'
+                className={`w-2 h-2 rounded-full transition-all duration-300 cursor-pointer hover:scale-110 ${
+                  index === currentPlayerIndex ? 'bg-white scale-125' : 'bg-white/30 hover:bg-white/50'
                 }`}
+                onClick={() => onPlayerClick?.(index)}
               />
             ))}
             {allPlayers.length > 10 && currentPlayerIndex >= 10 && (
