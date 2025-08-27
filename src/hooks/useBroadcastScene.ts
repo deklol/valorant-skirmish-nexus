@@ -27,18 +27,60 @@ export function useBroadcastScene(teams: Team[]) {
   const [config, setConfig] = useState<BroadcastConfig>(DEFAULT_CONFIG);
   const [isPlaying, setIsPlaying] = useState(true);
   const [progress, setProgress] = useState(0);
-  const [intervalId, setIntervalId] = useState<NodeJS.Timeout | null>(null);
 
   // Get total players for spotlight rotation
   const totalPlayers = teams.reduce((total, team) => total + team.team_members.length, 0);
 
+  // Simple scene progression function
+  const nextScene = useCallback(() => {
+    console.log('🎬 nextScene called:', {
+      currentScene,
+      currentTeamIndex,
+      teamsLength: teams.length,
+      teamsNames: teams.map(t => t.name)
+    });
+
+    if (currentScene === 'team-showcase') {
+      if (currentTeamIndex < teams.length - 1) {
+        // Still more teams to show
+        console.log('➡️ Moving to next team:', currentTeamIndex + 1);
+        setCurrentTeamIndex(prev => prev + 1);
+      } else {
+        // All teams shown, move to next scene
+        console.log('🎬 All teams shown, moving to next scene');
+        const enabledScenes = config.enabledScenes;
+        const currentIndex = enabledScenes.indexOf(currentScene);
+        const nextSceneIndex = (currentIndex + 1) % enabledScenes.length;
+        setCurrentScene(enabledScenes[nextSceneIndex]);
+        setCurrentTeamIndex(0); // reset for next cycle
+      }
+    } else if (currentScene === 'player-spotlight') {
+      // Cycle through players
+      const nextPlayerIndex = (currentPlayerIndex + 1) % totalPlayers;
+      if (nextPlayerIndex === 0) {
+        // All players shown, move to next scene
+        const enabledScenes = config.enabledScenes;
+        const currentIndex = enabledScenes.indexOf(currentScene);
+        const nextSceneIndex = (currentIndex + 1) % enabledScenes.length;
+        setCurrentScene(enabledScenes[nextSceneIndex]);
+        setCurrentPlayerIndex(0);
+      } else {
+        setCurrentPlayerIndex(nextPlayerIndex);
+      }
+    } else {
+      // For comparison and bracket, just move to next scene
+      const enabledScenes = config.enabledScenes;
+      const currentIndex = enabledScenes.indexOf(currentScene);
+      const nextSceneIndex = (currentIndex + 1) % enabledScenes.length;
+      setCurrentScene(enabledScenes[nextSceneIndex]);
+    }
+
+    setProgress(0);
+  }, [currentScene, currentTeamIndex, currentPlayerIndex, teams.length, totalPlayers, config.enabledScenes]);
+
   // Auto-progression logic
   useEffect(() => {
     if (!config.autoPlay || !isPlaying || teams.length === 0) {
-      if (intervalId) {
-        clearInterval(intervalId);
-        setIntervalId(null);
-      }
       return;
     }
 
@@ -53,46 +95,8 @@ export function useBroadcastScene(teams: Team[]) {
       });
     }, 100);
 
-    setIntervalId(interval);
-
-    return () => {
-      clearInterval(interval);
-    };
-  }, [config.autoPlay, config.duration, isPlaying, teams.length]);
-
-const nextScene = useCallback(() => {
-  const enabledScenes = config.enabledScenes;
-  const currentIndex = enabledScenes.indexOf(currentScene);
-
-  if (currentScene === 'team-showcase') {
-    if (currentTeamIndex < teams.length - 1) {
-      // Still more teams to show
-      setCurrentTeamIndex(currentTeamIndex + 1);
-    } else {
-      // All teams shown, move to next scene
-      const nextSceneIndex = (currentIndex + 1) % enabledScenes.length;
-      setCurrentScene(enabledScenes[nextSceneIndex]);
-      setCurrentTeamIndex(0); // reset for next cycle
-    }
-  } else if (currentScene === 'player-spotlight') {
-    // Cycle through players
-    const nextPlayerIndex = (currentPlayerIndex + 1) % totalPlayers;
-    if (nextPlayerIndex === 0) {
-      // All players shown, move to next scene
-      const nextSceneIndex = (currentIndex + 1) % enabledScenes.length;
-      setCurrentScene(enabledScenes[nextSceneIndex]);
-      setCurrentPlayerIndex(0);
-    } else {
-      setCurrentPlayerIndex(nextPlayerIndex);
-    }
-  } else {
-    // For comparison and bracket, just move to next scene
-    const nextSceneIndex = (currentIndex + 1) % enabledScenes.length;
-    setCurrentScene(enabledScenes[nextSceneIndex]);
-  }
-
-  setProgress(0);
-}, [currentScene, currentTeamIndex, currentPlayerIndex, teams.length, totalPlayers, config.enabledScenes]);
+    return () => clearInterval(interval);
+  }, [config.autoPlay, config.duration, isPlaying, teams.length, nextScene]);
 
   const prevScene = useCallback(() => {
     const enabledScenes = config.enabledScenes;
