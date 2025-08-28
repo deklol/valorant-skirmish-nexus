@@ -10,9 +10,6 @@ import SceneControls from "@/components/broadcast/SceneControls";
 import ProgressIndicator from "@/components/broadcast/ProgressIndicator";
 import BroadcastConfig from "@/components/broadcast/BroadcastConfig";
 import KeyboardControlsModal from "@/components/broadcast/KeyboardControlsModal";
-import TournamentOverlay from "@/components/broadcast/TournamentOverlay";
-import MatchPredictions from "@/components/broadcast/MatchPredictions";
-import LiveStats from "@/components/broadcast/LiveStats";
 import { useBroadcastScene, type SceneType } from "@/hooks/useBroadcastScene";
 import { AlertCircle, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -211,25 +208,6 @@ export default function Broadcast() {
           {renderScene()}
         </div>
         
-        {/* Tournament Info Overlay */}
-        {tournament && (
-          <TournamentOverlay tournament={tournament} />
-        )}
-
-        {/* Live Stats */}
-        {controlsVisible && teams.length > 0 && (
-          <LiveStats teams={teams} className="absolute top-4 left-1/2 transform -translate-x-1/2" />
-        )}
-
-        {/* Match Predictions for Team Comparison */}
-        {currentScene === 'team-comparison' && teams.length >= 2 && controlsVisible && (
-          <MatchPredictions 
-            team1={teams[0]} 
-            team2={teams[1]} 
-            className="absolute bottom-4 right-4 max-w-sm"
-          />
-        )}
-
         {controlsVisible && (
           <>
             <ProgressIndicator
