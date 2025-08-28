@@ -14,7 +14,7 @@ interface PlayerSpotlightProps {
 }
 
 export default function PlayerSpotlight({ teams, currentPlayerIndex, transition, onPlayerClick, onTeamClick }: PlayerSpotlightProps) {
-  // Flatten all players and sort by rank points
+  // Flatten all players and sort by adaptive weight (if available) or rank points
   const allPlayers = teams.flatMap((team, teamIndex) => 
     team.team_members.map(member => ({
       ...member,
@@ -22,7 +22,11 @@ export default function PlayerSpotlight({ teams, currentPlayerIndex, transition,
       teamSeed: team.seed,
       teamIndex
     }))
-  ).sort((a, b) => (b.users.rank_points || 150) - (a.users.rank_points || 150));
+  ).sort((a, b) => {
+    const aWeight = (a.users as any).adaptive_weight || a.users.weight_rating || a.users.rank_points || 150;
+    const bWeight = (b.users as any).adaptive_weight || b.users.weight_rating || b.users.rank_points || 150;
+    return bWeight - aWeight;
+  });
 
   const currentPlayer = allPlayers[currentPlayerIndex];
   
@@ -152,10 +156,17 @@ export default function PlayerSpotlight({ teams, currentPlayerIndex, transition,
 
               <Card className="bg-black/40 backdrop-blur border-white/20 p-6 text-center cursor-pointer hover:scale-105 transition-transform">
                 <Target className="w-8 h-8 mx-auto mb-2 text-blue-400" />
-                <p className="text-lg text-slate-300">Weight Rating</p>
-                <p className="text-3xl font-bold text-white">
-                  {currentPlayer.users.weight_rating || 'N/A'}
+                <p className="text-lg text-slate-300">
+                  {(currentPlayer.users as any).adaptive_weight ? 'Adaptive Weight' : 'Weight Rating'}
                 </p>
+                <p className="text-3xl font-bold text-white">
+                  {(currentPlayer.users as any).adaptive_weight || currentPlayer.users.weight_rating || 'N/A'}
+                </p>
+                {(currentPlayer.users as any).adaptive_weight && (currentPlayer.users as any).peak_rank_points && (
+                  <p className="text-xs text-blue-300 mt-1">
+                    Peak: {(currentPlayer.users as any).peak_rank_points} pts
+                  </p>
+                )}
               </Card>
 
               <Card 

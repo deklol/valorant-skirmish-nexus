@@ -21,8 +21,17 @@ export default function TeamComparison({ teams, transition, onTeamClick }: TeamC
   if (!team1 || !team2) return null;
 
   const calculateAverageRank = (team: Team) => {
-    const totalPoints = team.team_members.reduce((sum, member) => sum + (member.users.rank_points || 150), 0);
+    const totalPoints = team.team_members.reduce((sum, member) => {
+      // Use adaptive weight if available, otherwise fall back to regular weight or rank points
+      const weight = (member.users as any).adaptive_weight || member.users.weight_rating || member.users.rank_points || 150;
+      return sum + weight;
+    }, 0);
     return Math.round(totalPoints / team.team_members.length);
+  };
+
+  const getWeightLabel = (team: Team) => {
+    const hasAdaptiveWeights = team.team_members.some(member => (member.users as any).adaptive_weight);
+    return hasAdaptiveWeights ? "Average Adaptive Weight" : "Average Weight Rating";
   };
 
   const transitionClasses = {
@@ -65,7 +74,7 @@ export default function TeamComparison({ teams, transition, onTeamClick }: TeamC
                 <p className="text-3xl font-bold text-white">{team1.total_rank_points}</p>
               </div>
               <div className="text-center">
-                <p className="text-lg text-slate-300">Average Rank Points</p>
+                <p className="text-lg text-slate-300">{getWeightLabel(team1)}</p>
                 <p className="text-2xl font-bold text-blue-300">{calculateAverageRank(team1)}</p>
               </div>
               <div className="text-center">
@@ -145,7 +154,7 @@ export default function TeamComparison({ teams, transition, onTeamClick }: TeamC
                 <p className="text-3xl font-bold text-white">{team2.total_rank_points}</p>
               </div>
               <div className="text-center">
-                <p className="text-lg text-slate-300">Average Rank Points</p>
+                <p className="text-lg text-slate-300">{getWeightLabel(team2)}</p>
                 <p className="text-2xl font-bold text-red-300">{calculateAverageRank(team2)}</p>
               </div>
               <div className="text-center">

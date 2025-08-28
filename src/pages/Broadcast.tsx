@@ -1,4 +1,5 @@
 import { useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { useBroadcastData } from "@/hooks/useBroadcastData";
 import BroadcastLayout from "@/components/broadcast/BroadcastLayout";
 import TeamShowcase from "@/components/broadcast/TeamShowcase";
@@ -8,8 +9,10 @@ import BracketViewer from "@/components/broadcast/BracketViewer";
 import SceneControls from "@/components/broadcast/SceneControls";
 import ProgressIndicator from "@/components/broadcast/ProgressIndicator";
 import BroadcastConfig from "@/components/broadcast/BroadcastConfig";
-import { useBroadcastScene } from "@/hooks/useBroadcastScene";
-import { AlertCircle } from "lucide-react";
+import KeyboardControlsModal from "@/components/broadcast/KeyboardControlsModal";
+import { useBroadcastScene, type SceneType } from "@/hooks/useBroadcastScene";
+import { AlertCircle, HelpCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function Broadcast() {
   const { id } = useParams<{ id: string }>();
@@ -30,6 +33,84 @@ export default function Broadcast() {
     setTeamIndex,
     setPlayerIndex
   } = useBroadcastScene(teams);
+
+  const [controlsVisible, setControlsVisible] = useState(true);
+  const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
+
+  // Keyboard controls
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // Prevent default browser shortcuts
+      e.preventDefault();
+      
+      switch (e.code) {
+        case 'ArrowRight':
+          nextScene();
+          pauseAutoPlay();
+          break;
+        case 'ArrowLeft':
+          prevScene();
+          pauseAutoPlay();
+          break;
+        case 'ArrowUp':
+          // Next scene type
+          const enabledScenes = config.enabledScenes;
+          const currentIndex = enabledScenes.indexOf(currentScene);
+          const nextSceneIndex = (currentIndex + 1) % enabledScenes.length;
+          setScene(enabledScenes[nextSceneIndex]);
+          pauseAutoPlay();
+          break;
+        case 'ArrowDown':
+          // Previous scene type
+          const enabledScenesDown = config.enabledScenes;
+          const currentIndexDown = enabledScenesDown.indexOf(currentScene);
+          const prevSceneIndex = currentIndexDown === 0 ? enabledScenesDown.length - 1 : currentIndexDown - 1;
+          setScene(enabledScenesDown[prevSceneIndex]);
+          pauseAutoPlay();
+          break;
+        case 'Space':
+          togglePlayPause();
+          break;
+        case 'KeyH':
+          setControlsVisible(prev => !prev);
+          break;
+        case 'Digit1':
+          setScene('team-showcase' as SceneType);
+          pauseAutoPlay();
+          break;
+        case 'Digit2':
+          setScene('team-comparison' as SceneType);
+          pauseAutoPlay();
+          break;
+        case 'Digit3':
+          setScene('player-spotlight' as SceneType);
+          pauseAutoPlay();
+          break;
+        case 'Digit4':
+          setScene('bracket' as SceneType);
+          pauseAutoPlay();
+          break;
+        case 'Escape':
+          setShowKeyboardHelp(false);
+          break;
+        case 'F1':
+          setShowKeyboardHelp(true);
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [currentScene, config.enabledScenes, nextScene, prevScene, setScene, togglePlayPause, pauseAutoPlay]);
+
+  // Show keyboard help on first load
+  useEffect(() => {
+    const hasSeenHelp = localStorage.getItem('broadcast-keyboard-help-shown');
+    if (!hasSeenHelp) {
+      setTimeout(() => setShowKeyboardHelp(true), 2000);
+      localStorage.setItem('broadcast-keyboard-help-shown', 'true');
+    }
+  }, []);
 
   if (loading) {
     return (
@@ -127,35 +208,64 @@ export default function Broadcast() {
           {renderScene()}
         </div>
         
-        <ProgressIndicator
-          currentScene={currentScene}
-          progress={progress}
-          isPlaying={isPlaying}
-          config={config}
-          onSceneClick={(scene) => {
-            pauseAutoPlay();
-            setScene(scene);
-          }}
-        />
-        
-        <SceneControls
-          currentScene={currentScene}
-          isPlaying={isPlaying}
-          onNext={nextScene}
-          onPrev={prevScene}
-          onSetScene={setScene}
-          onTogglePlay={togglePlayPause}
-          onTeamChange={setTeamIndex}
-          onPlayerChange={setPlayerIndex}
-          currentTeamIndex={currentTeamIndex}
-          currentPlayerIndex={currentPlayerIndex}
-          teams={teams}
-          config={config}
-        />
-        
-        <BroadcastConfig
-          config={config}
-          onUpdate={updateConfig}
+        {controlsVisible && (
+          <>
+            <ProgressIndicator
+              currentScene={currentScene}
+              progress={progress}
+              isPlaying={isPlaying}
+              config={config}
+              onSceneClick={(scene) => {
+                pauseAutoPlay();
+                setScene(scene);
+              }}
+            />
+            
+            <SceneControls
+              currentScene={currentScene}
+              isPlaying={isPlaying}
+              onNext={nextScene}
+              onPrev={prevScene}
+              onSetScene={setScene}
+              onTogglePlay={togglePlayPause}
+              onTeamChange={setTeamIndex}
+              onPlayerChange={setPlayerIndex}
+              currentTeamIndex={currentTeamIndex}
+              currentPlayerIndex={currentPlayerIndex}
+              teams={teams}
+              config={config}
+            />
+            
+            <BroadcastConfig
+              config={config}
+              onUpdate={updateConfig}
+            />
+          </>
+        )}
+
+        {/* Hide/Show Controls Button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="fixed top-4 right-4 bg-black/40 hover:bg-black/60 text-white border border-white/20"
+          onClick={() => setControlsVisible(!controlsVisible)}
+        >
+          <span className="text-sm">H</span>
+        </Button>
+
+        {/* Keyboard Help Button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="fixed top-4 right-16 bg-black/40 hover:bg-black/60 text-white border border-white/20"
+          onClick={() => setShowKeyboardHelp(true)}
+        >
+          <HelpCircle className="w-4 h-4" />
+        </Button>
+
+        <KeyboardControlsModal
+          open={showKeyboardHelp}
+          onOpenChange={setShowKeyboardHelp}
         />
       </div>
     </BroadcastLayout>

@@ -46,7 +46,7 @@ export default function BroadcastConfig({ config, onUpdate }: BroadcastConfigPro
         variant="ghost"
         size="icon"
         onClick={() => setIsOpen(true)}
-        className="absolute top-4 right-16 bg-black/80 backdrop-blur border border-white/20 text-white hover:bg-white/20"
+        className="absolute bottom-4 right-4 bg-black/80 backdrop-blur border border-white/20 text-white hover:bg-white/20"
       >
         <Settings className="w-4 h-4" />
       </Button>

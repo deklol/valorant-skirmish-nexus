@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Users, MapPin } from "lucide-react";
+import { Trophy, Users, MapPin, Clock } from "lucide-react";
 import type { TransitionType } from "@/hooks/useBroadcastScene";
 
 interface BracketViewerProps {
@@ -16,59 +16,15 @@ export default function BracketViewer({ tournamentId, transition, onMatchClick }
     cascade: "animate-fade-in"
   };
 
-  // Mock bracket data - in a real implementation, this would come from the tournament data
-  const mockMatches = [
-    {
-      id: '1',
-      round: 'Final',
-      team1: 'Team Alpha',
-      team2: 'Team Beta',
-      score1: 2,
-      score2: 1,
-      status: 'completed',
-      isLive: false
-    },
-    {
-      id: '2',
-      round: 'Semi-Final',
-      team1: 'Team Alpha',
-      team2: 'Team Gamma',
-      score1: 2,
-      score2: 0,
-      status: 'completed',
-      isLive: false
-    },
-    {
-      id: '3',
-      round: 'Semi-Final',
-      team1: 'Team Beta',
-      team2: 'Team Delta',
-      score1: 2,
-      score2: 1,
-      status: 'completed',
-      isLive: false
-    },
-    {
-      id: '4',
-      round: 'Quarter-Final',
-      team1: 'Team Alpha',
-      team2: 'Team Echo',
-      score1: 2,
-      score2: 0,
-      status: 'completed',
-      isLive: false
-    },
-    {
-      id: '5',
-      round: 'Quarter-Final',
-      team1: 'Team Gamma',
-      team2: 'Team Foxtrot',
-      score1: 2,
-      score2: 1,
-      status: 'live',
-      isLive: true
-    }
-  ];
+  // Get real matches from window (set by useBroadcastData)
+  const matches = (window as any).broadcastMatches || [];
+  
+  const getRoundName = (roundNumber: number, totalRounds: number) => {
+    if (roundNumber === totalRounds) return 'Final';
+    if (roundNumber === totalRounds - 1) return 'Semi-Final';
+    if (roundNumber === totalRounds - 2) return 'Quarter-Final';
+    return `Round ${roundNumber}`;
+  };
 
   const getRoundColor = (round: string) => {
     switch (round.toLowerCase()) {
@@ -83,6 +39,28 @@ export default function BracketViewer({ tournamentId, transition, onMatchClick }
     }
   };
 
+  // Group matches by round
+  const maxRound = Math.max(...matches.map((m: any) => m.round_number), 0);
+  const matchesByRound: Record<number, any[]> = {};
+  matches.forEach((match: any) => {
+    if (!matchesByRound[match.round_number]) {
+      matchesByRound[match.round_number] = [];
+    }
+    matchesByRound[match.round_number].push(match);
+  });
+
+  if (matches.length === 0) {
+    return (
+      <div className={`w-full h-full flex items-center justify-center ${transitionClasses[transition]}`}>
+        <div className="text-center">
+          <Trophy className="w-24 h-24 text-slate-500 mx-auto mb-4" />
+          <h2 className="text-4xl font-bold text-white mb-2">No Bracket Data</h2>
+          <p className="text-xl text-slate-400">Tournament bracket is not yet available</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`w-full h-full flex items-center justify-center p-8 ${transitionClasses[transition]}`}>
       <div className="max-w-7xl w-full mx-auto">
@@ -95,155 +73,128 @@ export default function BracketViewer({ tournamentId, transition, onMatchClick }
             </h1>
             <Trophy className="w-16 h-16 text-yellow-400" />
           </div>
-          <p className="text-2xl text-slate-300">Championship Overview</p>
+          <p className="text-2xl text-slate-300">Live Championship Results</p>
         </div>
 
         {/* Bracket Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Quarter Finals */}
-          <div className="space-y-6">
-            <h2 className="text-3xl font-bold text-white text-center mb-6">Quarter Finals</h2>
-            {mockMatches.filter(match => match.round === 'Quarter-Final').map((match) => (
-              <Card 
-                key={match.id}
-                className={`bg-gradient-to-r ${getRoundColor(match.round)} p-6 cursor-pointer hover:scale-105 transition-all duration-300 ${
-                  match.isLive ? 'ring-4 ring-red-500 animate-pulse' : ''
-                }`}
-                onClick={() => onMatchClick?.(match.id)}
-              >
-                <div className="text-white">
-                  {match.isLive && (
-                    <div className="flex items-center justify-center mb-3">
-                      <Badge className="bg-red-600 text-white animate-pulse">
-                        🔴 LIVE
-                      </Badge>
-                    </div>
-                  )}
-                  
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="font-bold text-lg">{match.team1}</span>
-                      <span className="text-2xl font-bold">{match.score1}</span>
-                    </div>
-                    
-                    <div className="text-center">
-                      <span className="text-sm opacity-75">VS</span>
-                    </div>
-                    
-                    <div className="flex justify-between items-center">
-                      <span className="font-bold text-lg">{match.team2}</span>
-                      <span className="text-2xl font-bold">{match.score2}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-4 text-center">
-                    <Badge variant="outline" className="text-white border-white/50">
-                      {match.status === 'completed' ? '✓ Complete' : '⏱️ In Progress'}
-                    </Badge>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-
-          {/* Semi Finals */}
-          <div className="space-y-6">
-            <h2 className="text-3xl font-bold text-white text-center mb-6">Semi Finals</h2>
-            {mockMatches.filter(match => match.round === 'Semi-Final').map((match) => (
-              <Card 
-                key={match.id}
-                className={`bg-gradient-to-r ${getRoundColor(match.round)} p-8 cursor-pointer hover:scale-105 transition-all duration-300`}
-                onClick={() => onMatchClick?.(match.id)}
-              >
-                <div className="text-white">
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="font-bold text-xl">{match.team1}</span>
-                      <span className="text-3xl font-bold">{match.score1}</span>
-                    </div>
-                    
-                    <div className="text-center">
-                      <span className="text-lg opacity-75">VS</span>
-                    </div>
-                    
-                    <div className="flex justify-between items-center">
-                      <span className="font-bold text-xl">{match.team2}</span>
-                      <span className="text-3xl font-bold">{match.score2}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-6 text-center">
-                    <Badge variant="outline" className="text-white border-white/50 text-lg px-4 py-1">
-                      ✓ Complete
-                    </Badge>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-
-          {/* Finals */}
-          <div className="space-y-6">
-            <h2 className="text-3xl font-bold text-white text-center mb-6">Championship</h2>
-            {mockMatches.filter(match => match.round === 'Final').map((match) => (
-              <Card 
-                key={match.id}
-                className={`bg-gradient-to-r ${getRoundColor(match.round)} p-10 cursor-pointer hover:scale-105 transition-all duration-300 border-4 border-yellow-400`}
-                onClick={() => onMatchClick?.(match.id)}
-              >
-                <div className="text-white text-center">
-                  <Trophy className="w-12 h-12 mx-auto mb-4 text-yellow-300" />
-                  
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <div className="text-left">
-                        <span className="font-bold text-2xl block">{match.team1}</span>
-                        {match.score1 > match.score2 && (
-                          <Badge className="mt-2 bg-yellow-600">🏆 Champion</Badge>
+        <div className={`grid gap-8 ${Object.keys(matchesByRound).length <= 3 ? 'grid-cols-1 lg:grid-cols-3' : 'grid-cols-1 lg:grid-cols-4'}`}>
+          {Object.entries(matchesByRound)
+            .sort(([a], [b]) => parseInt(a) - parseInt(b))
+            .map(([roundNum, roundMatches]) => {
+              const roundNumber = parseInt(roundNum);
+              const roundName = getRoundName(roundNumber, maxRound);
+              
+              return (
+                <div key={roundNum} className="space-y-6">
+                  <h2 className="text-3xl font-bold text-white text-center mb-6">{roundName}</h2>
+                  {roundMatches.map((match: any) => (
+                    <Card 
+                      key={match.id}
+                      className={`bg-gradient-to-r ${getRoundColor(roundName)} p-6 cursor-pointer hover:scale-105 transition-all duration-300 ${
+                        match.status === 'live' ? 'ring-4 ring-red-500 animate-pulse' : ''
+                      } ${roundName === 'Final' ? 'border-4 border-yellow-400' : ''}`}
+                      onClick={() => onMatchClick?.(match.id)}
+                    >
+                      <div className="text-white">
+                        {match.status === 'live' && (
+                          <div className="flex items-center justify-center mb-3">
+                            <Badge className="bg-red-600 text-white animate-pulse">
+                              🔴 LIVE
+                            </Badge>
+                          </div>
                         )}
-                      </div>
-                      <span className="text-4xl font-bold">{match.score1}</span>
-                    </div>
-                    
-                    <div className="text-center py-2">
-                      <span className="text-xl opacity-75">FINAL</span>
-                    </div>
-                    
-                    <div className="flex justify-between items-center">
-                      <div className="text-left">
-                        <span className="font-bold text-2xl block">{match.team2}</span>
-                        {match.score2 > match.score1 && (
-                          <Badge className="mt-2 bg-yellow-600">🏆 Champion</Badge>
+                        
+                        {roundName === 'Final' && (
+                          <div className="text-center mb-4">
+                            <Trophy className="w-8 h-8 mx-auto text-yellow-300" />
+                          </div>
                         )}
+                        
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center">
+                            <div className="flex-1">
+                              <span className="font-bold text-lg block">
+                                {match.team1?.name || 'TBD'}
+                              </span>
+                              {match.winner_id === match.team1_id && match.status === 'completed' && (
+                                <Badge className="mt-1 bg-yellow-600 text-xs">Winner</Badge>
+                              )}
+                            </div>
+                            <span className="text-2xl font-bold ml-4">
+                              {match.score_team1 || 0}
+                            </span>
+                          </div>
+                          
+                          <div className="text-center">
+                            <span className="text-sm opacity-75">VS</span>
+                          </div>
+                          
+                          <div className="flex justify-between items-center">
+                            <div className="flex-1">
+                              <span className="font-bold text-lg block">
+                                {match.team2?.name || 'TBD'}
+                              </span>
+                              {match.winner_id === match.team2_id && match.status === 'completed' && (
+                                <Badge className="mt-1 bg-yellow-600 text-xs">Winner</Badge>
+                              )}
+                            </div>
+                            <span className="text-2xl font-bold ml-4">
+                              {match.score_team2 || 0}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-4 text-center">
+                          <Badge variant="outline" className="text-white border-white/50">
+                            {match.status === 'completed' && '✓ Complete'}
+                            {match.status === 'live' && '⏱️ In Progress'}
+                            {match.status === 'pending' && '⏳ Scheduled'}
+                          </Badge>
+                          
+                          {match.scheduled_time && match.status === 'pending' && (
+                            <div className="flex items-center justify-center mt-2 text-xs text-slate-200">
+                              <Clock className="w-3 h-3 mr-1" />
+                              {new Date(match.scheduled_time).toLocaleTimeString()}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <span className="text-4xl font-bold">{match.score2}</span>
-                    </div>
-                  </div>
+                    </Card>
+                  ))}
                 </div>
-              </Card>
-            ))}
+              );
+            })}
+        </div>
 
-            {/* Tournament Stats */}
-            <div className="grid grid-cols-2 gap-4 mt-8">
-              <Card className="bg-black/40 backdrop-blur border-white/20 p-4 text-center cursor-pointer hover:scale-105 transition-transform">
-                <Users className="w-8 h-8 mx-auto mb-2 text-blue-400" />
-                <p className="text-sm text-slate-300">Total Teams</p>
-                <p className="text-2xl font-bold text-white">8</p>
-              </Card>
+        {/* Tournament Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-12 max-w-2xl mx-auto">
+          <Card className="bg-black/40 backdrop-blur border-white/20 p-4 text-center">
+            <Users className="w-6 h-6 mx-auto mb-2 text-blue-400" />
+            <p className="text-sm text-slate-300">Total Matches</p>
+            <p className="text-xl font-bold text-white">{matches.length}</p>
+          </Card>
 
-              <Card className="bg-black/40 backdrop-blur border-white/20 p-4 text-center cursor-pointer hover:scale-105 transition-transform">
-                <MapPin className="w-8 h-8 mx-auto mb-2 text-green-400" />
-                <p className="text-sm text-slate-300">Matches Played</p>
-                <p className="text-2xl font-bold text-white">7</p>
-              </Card>
-            </div>
-          </div>
+          <Card className="bg-black/40 backdrop-blur border-white/20 p-4 text-center">
+            <MapPin className="w-6 h-6 mx-auto mb-2 text-green-400" />
+            <p className="text-sm text-slate-300">Completed</p>
+            <p className="text-xl font-bold text-white">
+              {matches.filter((m: any) => m.status === 'completed').length}
+            </p>
+          </Card>
+
+          <Card className="bg-black/40 backdrop-blur border-white/20 p-4 text-center">
+            <Trophy className="w-6 h-6 mx-auto mb-2 text-yellow-400" />
+            <p className="text-sm text-slate-300">Live Matches</p>
+            <p className="text-xl font-bold text-white">
+              {matches.filter((m: any) => m.status === 'live').length}
+            </p>
+          </Card>
         </div>
 
         {/* Navigation Hint */}
-        <div className="text-center mt-12">
+        <div className="text-center mt-8">
           <p className="text-lg text-slate-400">
-            Click on any match for detailed information
+            Click on any match for detailed information • Use arrow keys to navigate
           </p>
         </div>
       </div>

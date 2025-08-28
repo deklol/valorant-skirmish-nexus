@@ -120,10 +120,22 @@ export default function TeamShowcase({
                   <p className="text-2xl font-bold text-white">{currentPlayer.users.rank_points || 'N/A'}</p>
                 </div>
                 <div>
-                  <p className="text-lg text-slate-300">Weight Rating</p>
-                  <p className="text-2xl font-bold text-white">{currentPlayer.users.weight_rating || 'N/A'}</p>
+                  <p className="text-lg text-slate-300">
+                    {(currentPlayer.users as any).adaptive_weight ? 'Adaptive Weight' : 'Weight Rating'}
+                  </p>
+                  <p className="text-2xl font-bold text-white">
+                    {(currentPlayer.users as any).adaptive_weight || currentPlayer.users.weight_rating || 'N/A'}
+                  </p>
                 </div>
               </div>
+              {(currentPlayer.users as any).peak_rank_points && (
+                <div className="text-center mt-4 p-2 bg-purple-900/30 rounded-lg">
+                  <p className="text-sm text-purple-200">Peak: {(currentPlayer.users as any).peak_rank_points} pts</p>
+                  {(currentPlayer.users as any).adaptive_factor && (
+                    <p className="text-xs text-purple-300">Factor: {((currentPlayer.users as any).adaptive_factor * 100).toFixed(1)}%</p>
+                  )}
+                </div>
+              )}
             </div>
           </Card>
 

@@ -56,7 +56,8 @@ export function useBroadcastData(tournamentId: string | undefined) {
                 current_rank,
                 riot_id,
                 rank_points,
-                weight_rating
+                weight_rating,
+                peak_rank
               )
             )
           `)
@@ -65,7 +66,45 @@ export function useBroadcastData(tournamentId: string | undefined) {
 
         if (teamsError) throw teamsError;
 
-        setTeams(teamsData || []);
+        // Fetch adaptive weights for this tournament
+        const { data: adaptiveWeights } = await supabase
+          .from('tournament_adaptive_weights')
+          .select('*')
+          .eq('tournament_id', tournamentId);
+
+        // Fetch real matches for bracket
+        const { data: matchesData } = await supabase
+          .from('matches')
+          .select(`
+            *,
+            team1:teams!matches_team1_id_fkey (name),
+            team2:teams!matches_team2_id_fkey (name),
+            winner:teams!matches_winner_id_fkey (name)
+          `)
+          .eq('tournament_id', tournamentId)
+          .order('round_number', { ascending: true });
+
+        // Merge adaptive weights with team member data
+        const teamsWithAdaptiveWeights = teamsData?.map(team => ({
+          ...team,
+          team_members: team.team_members.map(member => {
+            const adaptiveWeight = adaptiveWeights?.find(w => w.user_id === member.user_id);
+            return {
+              ...member,
+              users: {
+                ...member.users,
+                adaptive_weight: adaptiveWeight?.calculated_adaptive_weight,
+                peak_rank_points: adaptiveWeight?.peak_rank_points,
+                adaptive_factor: adaptiveWeight?.adaptive_factor
+              }
+            };
+          })
+        })) || [];
+
+        setTeams(teamsWithAdaptiveWeights);
+        
+        // Store matches for bracket view
+        (window as any).broadcastMatches = matchesData || [];
         setError(null);
       } catch (err: any) {
         console.error('Error fetching broadcast data:', err);
