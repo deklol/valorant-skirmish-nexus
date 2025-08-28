@@ -57,27 +57,35 @@ export default function TeamShowcase({
   
   return (
     <div className={`w-full h-full flex items-center justify-center transition-opacity duration-300 ${transitionClasses[transition]}`}>
-      <div className="max-w-6xl w-full mx-auto px-8">
+      <div className="max-w-7xl w-full mx-auto px-8">
         {/* Team Header */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-8">
           <h1 
-            className="text-8xl font-bold text-white mb-4 drop-shadow-lg cursor-pointer hover:scale-105 transition-transform"
+            className="text-7xl font-bold text-white mb-6 drop-shadow-2xl cursor-pointer hover:scale-105 transition-transform bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent"
             onClick={() => onTeamClick?.(currentTeamIndex)}
           >
             {currentTeam.name}
           </h1>
-          <div className="flex items-center justify-center space-x-8">
-            <Badge variant="secondary" className="text-2xl px-6 py-2">
+          <div className="flex items-center justify-center space-x-6 mb-4">
+            <Badge variant="secondary" className="text-xl px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600">
               Seed #{currentTeam.seed || 'N/A'}
             </Badge>
-            <Badge variant="outline" className="text-2xl px-6 py-2">
-              {currentTeam.total_rank_points} Points
+            <Badge variant="outline" className="text-xl px-4 py-2 border-yellow-500 text-yellow-400">
+              {currentTeam.total_rank_points} Total Points
             </Badge>
+            <Badge variant="outline" className="text-xl px-4 py-2 border-green-500 text-green-400">
+              Avg: {Math.round(currentTeam.total_rank_points / currentTeam.team_members.length)}
+            </Badge>
+          </div>
+          {/* Team Status Indicator */}
+          <div className="flex items-center justify-center space-x-2">
+            <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+            <span className="text-slate-300 text-lg">Active Team</span>
           </div>
         </div>
 
         {/* Main Player Spotlight */}
-        <div className="grid grid-cols-3 gap-8 items-center mb-8">
+        <div className="grid grid-cols-3 gap-6 items-stretch mb-6">
           {/* Player Avatar & Info */}
           <div className="flex flex-col items-center">
             <Avatar 
@@ -105,76 +113,101 @@ export default function TeamShowcase({
             )}
           </div>
 
-          {/* Player Stats */}
-          <Card className="bg-black/40 backdrop-blur border-white/20 p-8">
-            <div className="space-y-6">
+          {/* Enhanced Player Stats */}
+          <Card className="bg-black/60 backdrop-blur border-white/30 p-6 h-full">
+            <div className="space-y-4 h-full flex flex-col">
               <div className="text-center">
-                <h4 className="text-3xl font-bold text-white mb-2">Current Rank</h4>
-                <Badge variant="outline" className="text-2xl px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white border-none">
+                <h4 className="text-2xl font-bold text-white mb-3">Current Rank</h4>
+                <Badge variant="outline" className="text-xl px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white border-none">
                   {currentPlayer.users.current_rank}
                 </Badge>
               </div>
-              <div className="grid grid-cols-2 gap-4 text-center">
-                <div>
-                  <p className="text-lg text-slate-300">Rank Points</p>
-                  <p className="text-2xl font-bold text-white">{currentPlayer.users.rank_points || 'N/A'}</p>
+              
+              <div className="grid grid-cols-2 gap-3 text-center flex-1">
+                <div className="bg-slate-800/50 rounded-lg p-3">
+                  <p className="text-sm text-slate-300">Rank Points</p>
+                  <p className="text-xl font-bold text-white">{currentPlayer.users.rank_points || 'N/A'}</p>
                 </div>
-                <div>
-                  <p className="text-lg text-slate-300">
-                    {(currentPlayer.users as any).adaptive_weight ? 'Adaptive Weight' : 'Weight Rating'}
+                <div className="bg-slate-800/50 rounded-lg p-3">
+                  <p className="text-sm text-slate-300">
+                    {(currentPlayer.users as any).adaptive_weight ? 'Adaptive' : 'Weight'}
                   </p>
-                  <p className="text-2xl font-bold text-white">
+                  <p className="text-xl font-bold text-white">
                     {(currentPlayer.users as any).adaptive_weight || currentPlayer.users.weight_rating || 'N/A'}
                   </p>
                 </div>
+                {currentPlayer.users.peak_rank && (
+                  <div className="bg-slate-800/50 rounded-lg p-3">
+                    <p className="text-sm text-slate-300">Peak Rank</p>
+                    <p className="text-lg font-bold text-yellow-400">{currentPlayer.users.peak_rank}</p>
+                  </div>
+                )}
+                {(currentPlayer.users as any).peak_rank_points && (
+                  <div className="bg-slate-800/50 rounded-lg p-3">
+                    <p className="text-sm text-slate-300">Peak Points</p>
+                    <p className="text-lg font-bold text-yellow-400">{(currentPlayer.users as any).peak_rank_points}</p>
+                  </div>
+                )}
               </div>
-              {(currentPlayer.users as any).peak_rank_points && (
-                <div className="text-center mt-4 p-2 bg-purple-900/30 rounded-lg">
-                  <p className="text-sm text-purple-200">Peak: {(currentPlayer.users as any).peak_rank_points} pts</p>
-                  {(currentPlayer.users as any).adaptive_factor && (
-                    <p className="text-xs text-purple-300">Factor: {((currentPlayer.users as any).adaptive_factor * 100).toFixed(1)}%</p>
-                  )}
+              
+              {(currentPlayer.users as any).adaptive_factor && (
+                <div className="text-center mt-2 p-3 bg-purple-900/40 rounded-lg border border-purple-500/30">
+                  <p className="text-sm text-purple-200">Adaptive Factor</p>
+                  <p className="text-lg font-bold text-purple-300">{((currentPlayer.users as any).adaptive_factor * 100).toFixed(1)}%</p>
                 </div>
               )}
             </div>
           </Card>
 
-          {/* Team Roster Preview */}
-          <div className="space-y-4">
-            <h4 className="text-2xl font-bold text-white text-center mb-4">Team Roster</h4>
-            <div className="space-y-3">
+          {/* Enhanced Team Roster Preview */}
+          <Card className="bg-black/60 backdrop-blur border-white/30 p-4 h-full">
+            <h4 className="text-xl font-bold text-white text-center mb-4">Team Roster</h4>
+            <div className="space-y-2 max-h-80 overflow-y-auto">
               {currentTeam.team_members.map((member, index) => (
                 <div 
                   key={member.user_id}
-                  className={`flex items-center space-x-3 p-3 rounded-lg transition-all duration-300 cursor-pointer ${
+                  className={`flex items-center space-x-3 p-3 rounded-lg transition-all duration-300 cursor-pointer border ${
                     index === currentPlayerInTeam 
-                      ? 'bg-white/20 border border-white/40 scale-105' 
-                      : 'bg-black/20 hover:bg-black/30 hover:scale-102'
+                      ? 'bg-gradient-to-r from-blue-600/30 to-purple-600/30 border-blue-400 scale-105 shadow-lg shadow-blue-500/25' 
+                      : 'bg-slate-800/50 border-slate-600 hover:bg-slate-700/50 hover:scale-102 hover:border-slate-500'
                   }`}
                   onClick={() => {
                     setCurrentPlayerInTeam(index);
                     onPlayerClick?.(index);
                   }}
                 >
-                  <Avatar className="w-12 h-12">
+                  <Avatar className="w-10 h-10 border-2 border-white/20">
                     <AvatarImage src={member.users.discord_avatar_url || undefined} />
-                    <AvatarFallback className="text-sm">
+                    <AvatarFallback className="text-sm bg-gradient-to-br from-slate-700 to-slate-600">
                       {member.users.discord_username.slice(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <p className="text-white font-medium truncate">
+                    <p className="text-white font-medium truncate text-sm">
                       {member.users.discord_username}
                     </p>
-                    <p className="text-sm text-slate-300">{member.users.current_rank}</p>
+                    <div className="flex items-center space-x-2 mt-1">
+                      <p className="text-xs text-slate-300">{member.users.current_rank}</p>
+                      <span className="text-xs text-slate-400">•</span>
+                      <p className="text-xs text-slate-400">
+                        {(member.users as any).adaptive_weight || member.users.weight_rating || 150}pts
+                      </p>
+                    </div>
                   </div>
-                  {member.is_captain && (
-                    <Badge variant="secondary" className="text-xs">C</Badge>
-                  )}
+                  <div className="flex flex-col items-end space-y-1">
+                    {member.is_captain && (
+                      <Badge variant="secondary" className="text-xs bg-yellow-600 hover:bg-yellow-500">
+                        C
+                      </Badge>
+                    )}
+                    {index === currentPlayerInTeam && (
+                      <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
-          </div>
+          </Card>
         </div>
 
         {/* Team Progress Indicator */}
