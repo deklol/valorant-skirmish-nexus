@@ -181,7 +181,7 @@ export default function LiveStatistics({ teams, className = "" }: LiveStatistics
   const currentStatData = stats[currentStat];
 
   return (
-    <div className={`absolute top-4 right-4 z-10 ${className}`}>
+    <div className={`absolute top-4 right-4 ${className}`}>
       <Card className="bg-black/80 backdrop-blur border-white/20 p-6 min-w-80">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-white flex items-center">

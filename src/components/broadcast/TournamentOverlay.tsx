@@ -54,7 +54,7 @@ export default function TournamentOverlay({
   };
 
   return (
-    <div className={`absolute top-4 left-4 space-y-3 z-10 ${className}`}>
+    <div className={`absolute top-4 left-4 space-y-3 ${className}`}>
       {/* Tournament Header */}
       <Card className="bg-black/80 backdrop-blur border-white/20 p-4 min-w-80">
         <div className="flex items-center justify-between mb-3">
