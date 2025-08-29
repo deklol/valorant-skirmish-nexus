@@ -8,11 +8,13 @@ interface BroadcastLayoutProps {
 export default function BroadcastLayout({ children, backgroundColor = "#0f172a" }: BroadcastLayoutProps) {
   return (
     <div 
-      className="fixed inset-0 w-screen h-screen overflow-hidden flex items-center justify-center"
+      className="fixed inset-0 w-screen h-screen overflow-hidden"
       style={{ backgroundColor }}
     >
-      <div className="relative w-full h-full flex items-center justify-center">
-        {children}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="w-full h-full max-w-[1920px] max-h-[1080px] relative flex items-center justify-center">
+          {children}
+        </div>
       </div>
     </div>
   );

@@ -10,6 +10,9 @@ import SceneControls from "@/components/broadcast/SceneControls";
 import ProgressIndicator from "@/components/broadcast/ProgressIndicator";
 import BroadcastConfig from "@/components/broadcast/BroadcastConfig";
 import KeyboardControlsModal from "@/components/broadcast/KeyboardControlsModal";
+import TournamentOverlay from "@/components/broadcast/TournamentOverlay";
+import MatchPredictions from "@/components/broadcast/MatchPredictions";
+import LiveStatistics from "@/components/broadcast/LiveStatistics";
 import { useBroadcastScene, type SceneType } from "@/hooks/useBroadcastScene";
 import { AlertCircle, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -145,6 +148,7 @@ export default function Broadcast() {
             currentTeamIndex={currentTeamIndex}
             currentPlayerIndex={currentPlayerIndex}
             transition={config.transition}
+            tournamentId={id}
             onPlayerClick={(playerIndex) => {
               pauseAutoPlay();
               setPlayerIndex(playerIndex);
@@ -204,6 +208,22 @@ export default function Broadcast() {
   return (
     <BroadcastLayout backgroundColor={config.backgroundColor}>
       <div className="relative w-full h-full">
+        {/* Tournament Information Overlays */}
+        {controlsVisible && (
+          <>
+            <TournamentOverlay 
+              tournament={tournament} 
+              teams={teams}
+            />
+            <MatchPredictions 
+              teams={teams}
+            />
+            <LiveStatistics 
+              teams={teams}
+            />
+          </>
+        )}
+        
         <div onClick={pauseAutoPlay}>
           {renderScene()}
         </div>

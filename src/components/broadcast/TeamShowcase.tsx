@@ -2,14 +2,19 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Info, BarChart3 } from "lucide-react";
 import type { Team } from "@/types/tournamentDetail";
 import type { TransitionType } from "@/hooks/useBroadcastScene";
+import WeightBreakdownModal from "./WeightBreakdownModal";
+import PlayerSocialsDisplay from "./PlayerSocialsDisplay";
 
 interface TeamShowcaseProps {
   teams: Team[];
   currentTeamIndex: number;
   currentPlayerIndex: number;
   transition: TransitionType;
+  tournamentId?: string;
   onPlayerClick?: (playerIndex: number) => void;
   onTeamClick?: (teamIndex: number) => void;
 }
@@ -19,11 +24,13 @@ export default function TeamShowcase({
   currentTeamIndex, 
   currentPlayerIndex, 
   transition,
+  tournamentId,
   onPlayerClick,
   onTeamClick 
 }: TeamShowcaseProps) {
   const [isVisible, setIsVisible] = useState(true);
   const [currentPlayerInTeam, setCurrentPlayerInTeam] = useState(0);
+  const [showWeightBreakdown, setShowWeightBreakdown] = useState(false);
 
   const currentTeam = teams[currentTeamIndex];
 
@@ -77,7 +84,7 @@ export default function TeamShowcase({
         </div>
 
         {/* Main Player Spotlight */}
-        <div className="grid grid-cols-3 gap-8 items-center mb-8">
+        <div className="grid grid-cols-4 gap-6 items-center mb-8">
           {/* Player Avatar & Info */}
           <div className="flex flex-col items-center">
             <Avatar 
@@ -103,41 +110,91 @@ export default function TeamShowcase({
                 Team Captain
               </Badge>
             )}
+            
+            {/* Weight Breakdown Button */}
+            {((currentPlayer.users as any).adaptive_weight || currentPlayer.users.weight_rating) && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-3 bg-purple-600/20 border-purple-400 text-purple-300 hover:bg-purple-600/40"
+                onClick={() => setShowWeightBreakdown(true)}
+              >
+                <BarChart3 className="w-4 h-4 mr-2" />
+                Weight Breakdown
+              </Button>
+            )}
           </div>
 
           {/* Player Stats */}
-          <Card className="bg-black/40 backdrop-blur border-white/20 p-8">
-            <div className="space-y-6">
+          <Card className="bg-black/40 backdrop-blur border-white/20 p-8 h-full">
+            <div className="space-y-6 h-full flex flex-col">
               <div className="text-center">
                 <h4 className="text-3xl font-bold text-white mb-2">Current Rank</h4>
                 <Badge variant="outline" className="text-2xl px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white border-none">
                   {currentPlayer.users.current_rank}
                 </Badge>
               </div>
-              <div className="grid grid-cols-2 gap-4 text-center">
+              
+              <div className="grid grid-cols-2 gap-4 text-center flex-1">
                 <div>
                   <p className="text-lg text-slate-300">Rank Points</p>
                   <p className="text-2xl font-bold text-white">{currentPlayer.users.rank_points || 'N/A'}</p>
                 </div>
                 <div>
                   <p className="text-lg text-slate-300">
-                    {(currentPlayer.users as any).adaptive_weight ? 'Adaptive Weight' : 'Weight Rating'}
+                    {(currentPlayer.users as any).adaptive_weight ? 'Tournament Weight' : 'Weight Rating'}
                   </p>
-                  <p className="text-2xl font-bold text-white">
+                  <p className="text-2xl font-bold text-purple-300">
                     {(currentPlayer.users as any).adaptive_weight || currentPlayer.users.weight_rating || 'N/A'}
                   </p>
                 </div>
+                
+                {/* Additional player stats */}
+                {(currentPlayer.users as any).wins !== undefined && (
+                  <div>
+                    <p className="text-lg text-slate-300">Match Wins</p>
+                    <p className="text-2xl font-bold text-green-400">{(currentPlayer.users as any).wins || 0}</p>
+                  </div>
+                )}
+                
+                {(currentPlayer.users as any).tournaments_played !== undefined && (
+                  <div>
+                    <p className="text-lg text-slate-300">Tournaments</p>
+                    <p className="text-2xl font-bold text-blue-400">{(currentPlayer.users as any).tournaments_played || 0}</p>
+                  </div>
+                )}
               </div>
+              
+              {/* Peak rank info */}
               {(currentPlayer.users as any).peak_rank_points && (
-                <div className="text-center mt-4 p-2 bg-purple-900/30 rounded-lg">
-                  <p className="text-sm text-purple-200">Peak: {(currentPlayer.users as any).peak_rank_points} pts</p>
+                <div className="text-center mt-4 p-3 bg-purple-900/30 rounded-lg">
+                  <p className="text-sm text-purple-200 font-semibold">
+                    Peak: {(currentPlayer.users as any).peak_rank_points} pts
+                  </p>
                   {(currentPlayer.users as any).adaptive_factor && (
-                    <p className="text-xs text-purple-300">Factor: {((currentPlayer.users as any).adaptive_factor * 100).toFixed(1)}%</p>
+                    <p className="text-xs text-purple-300">
+                      Adaptive Factor: {((currentPlayer.users as any).adaptive_factor * 100).toFixed(1)}%
+                    </p>
                   )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mt-2 text-purple-300 hover:text-purple-100"
+                    onClick={() => setShowWeightBreakdown(true)}
+                  >
+                    <Info className="w-3 h-3 mr-1" />
+                    Details
+                  </Button>
                 </div>
               )}
             </div>
           </Card>
+
+          {/* Player Socials */}
+          <PlayerSocialsDisplay 
+            player={currentPlayer} 
+            className="h-full flex flex-col justify-center"
+          />
 
           {/* Team Roster Preview */}
           <div className="space-y-4">
@@ -195,6 +252,14 @@ export default function TeamShowcase({
           </div>
         </div>
       </div>
+
+      {/* Weight Breakdown Modal */}
+      <WeightBreakdownModal
+        open={showWeightBreakdown}
+        onOpenChange={setShowWeightBreakdown}
+        player={currentPlayer}
+        tournamentId={tournamentId}
+      />
     </div>
   );
 }
