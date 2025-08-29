@@ -12,8 +12,10 @@ export default function BroadcastLayout({ children, backgroundColor = "#0f172a" 
       style={{ backgroundColor }}
     >
       <div className="absolute inset-0 flex items-center justify-center">
-        <div className="w-full h-full max-w-[1920px] max-h-[1080px] relative flex items-center justify-center">
-          {children}
+        <div className="w-full h-full relative flex items-center justify-center p-4">
+          <div className="flex-1 flex items-center justify-center min-h-0">
+            {children}
+          </div>
         </div>
       </div>
     </div>
