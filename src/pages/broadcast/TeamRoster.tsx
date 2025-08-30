@@ -190,6 +190,12 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
                     </span>
                   )}
                   
+                  {member.users?.peak_rank && (
+                    <span className={`font-medium text-white/60 ${getRankColor(member.users.peak_rank)}`}>
+                      Peak: {member.users.peak_rank}
+                    </span>
+                  )}
+                  
                   {(member.users as any)?.adaptive_weight && (
                     <span className="text-cyan-400">
                       {(member.users as any).adaptive_weight} AWR
@@ -199,6 +205,22 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Team Stats */}
+        <div className={`mt-8 bg-black/40 backdrop-blur-sm rounded-xl p-6 border border-white/20 transition-all duration-700 ${
+          animationPhase === 'complete' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+        }`}>
+          <div className="flex justify-between items-center text-white">
+            <div className="text-center">
+              <div className="text-2xl font-bold">{currentTeam.total_rank_points || 0}</div>
+              <div className="text-sm text-white/60">Total Weight</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold">#{currentTeam.seed || 'TBD'}</div>
+              <div className="text-sm text-white/60">Seed</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
