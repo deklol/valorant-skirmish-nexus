@@ -125,7 +125,7 @@ export default function BroadcastIds() {
           <div>
             <span className="font-bold">Match Preview:</span>
             <div className="bg-muted p-2 rounded mt-1">
-              {baseUrl}/broadcast/{id}/matchup/[MATCH_ID]
+              {baseUrl}/broadcast/{id}/matchup/[TEAM_ID]/[TEAM_ID]
             </div>
           </div>
           <div>
