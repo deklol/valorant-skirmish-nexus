@@ -80,8 +80,8 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
 
       // Animation sequence
       if (animate) {
-        setTimeout(() => setAnimationPhase('roster'), 1500);
-        setTimeout(() => setAnimationPhase('complete'), 2500);
+        setTimeout(() => setAnimationPhase('roster'), 1000);
+        setTimeout(() => setAnimationPhase('complete'), 2000);
       } else {
         setAnimationPhase('complete');
       }
