@@ -33,6 +33,12 @@ import Shop from "./pages/Shop";
 import NotificationSettings from "./pages/NotificationSettings";
 import VODs from "./pages/VODs";
 import Broadcast from "./pages/Broadcast";
+import TeamRoster from "./pages/broadcast/TeamRoster";
+import MatchupPreview from "./pages/broadcast/MatchupPreview";
+import BracketOverlay from "./pages/broadcast/BracketOverlay";
+import PlayerSpotlightCard from "./pages/broadcast/PlayerSpotlightCard";
+import TournamentStats from "./pages/broadcast/TournamentStats";
+import TournamentData from "./pages/broadcast/api/TournamentData";
 import { AppSettingsProvider } from "./contexts/AppSettingsContext";
 
 const queryClient = new QueryClient();
@@ -56,8 +62,19 @@ const AppContent = () => {
       <OnboardingSystem>
         <SidebarProvider>
           <Routes>
-            {/* Broadcast route without layout */}
+            {/* Original broadcast control panel */}
             <Route path="/broadcast/:id" element={<Broadcast />} />
+            
+            {/* Individual broadcast components for OBS/streaming */}
+            <Route path="/broadcast/:id/teams" element={<TeamRoster />} />
+            <Route path="/broadcast/:id/team/:teamId" element={<TeamRoster />} />
+            <Route path="/broadcast/:id/matchup/:team1Id/:team2Id" element={<MatchupPreview />} />
+            <Route path="/broadcast/:id/bracket" element={<BracketOverlay />} />
+            <Route path="/broadcast/:id/player/:playerId" element={<PlayerSpotlightCard />} />
+            <Route path="/broadcast/:id/stats" element={<TournamentStats />} />
+            
+            {/* API endpoint for external integrations */}
+            <Route path="/broadcast/:id/api/data" element={<TournamentData />} />
             
             {/* All other routes with normal layout */}
             <Route path="*" element={
