@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Team } from "@/types/tournamentDetail";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { useBroadcastSettings } from "@/hooks/useBroadcastSettings";
 
 interface TeamRosterProps {
   animate?: boolean;
@@ -15,6 +16,7 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
   const [currentTeam, setCurrentTeam] = useState<Team | null>(null);
   const [loading, setLoading] = useState(true);
   const [animationPhase, setAnimationPhase] = useState<'intro' | 'roster' | 'complete'>('intro');
+  const { settings } = useBroadcastSettings();
 
   useEffect(() => {
     if (!id) return;
@@ -34,7 +36,8 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
               riot_id,
               rank_points,
               weight_rating,
-              peak_rank
+              peak_rank,
+              tournaments_won
             )
           )
         `)
@@ -80,15 +83,15 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
 
       // Animation sequence
       if (animate) {
-        setTimeout(() => setAnimationPhase('roster'), 1000);
-        setTimeout(() => setAnimationPhase('complete'), 2000);
+        setTimeout(() => setAnimationPhase('roster'), settings.loadingTime / 2);
+        setTimeout(() => setAnimationPhase('complete'), settings.loadingTime);
       } else {
         setAnimationPhase('complete');
       }
     };
 
     fetchTeamData();
-  }, [id, teamId, animate]);
+  }, [id, teamId, animate, settings.loadingTime]);
 
   if (loading || !currentTeam) {
     return (
@@ -113,8 +116,14 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
     return 'text-slate-400';
   };
 
+  const sceneSettings = settings.sceneSettings.teamRoster;
+
+  const containerStyle = {
+    backgroundColor: settings.backgroundColor === 'transparent' ? 'transparent' : settings.backgroundColor,
+  };
+
   return (
-    <div className="w-screen h-screen bg-transparent overflow-hidden">
+    <div className="w-screen h-screen bg-transparent overflow-hidden" style={containerStyle}>
       {/* Team Name Intro */}
       <div 
         className={`absolute inset-0 flex items-center justify-center transition-all duration-1000 ${
@@ -122,10 +131,10 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
         }`}
       >
         <div className="text-center">
-          <div className="text-6xl font-bold text-white mb-4 animate-fade-in">
+          <div className="text-6xl font-bold mb-4 animate-fade-in" style={{ color: settings.headerTextColor }}>
             {currentTeam.name}
           </div>
-          <div className="text-2xl text-white/70">
+          <div className="text-2xl" style={{ color: settings.textColor + '80' }}>
             Team Roster
           </div>
         </div>
@@ -137,7 +146,7 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
           animationPhase === 'roster' || animationPhase === 'complete' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
         }`}
       >
-        <div className="text-4xl font-bold text-white mb-8 text-center">
+        <div className="text-4xl font-bold mb-8 text-center" style={{ color: settings.headerTextColor }}>
           {currentTeam.name}
         </div>
         
@@ -167,7 +176,7 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
               
               <div className="flex-1">
                 <div className="flex items-center space-x-3 mb-2">
-                  <span className="text-2xl font-semibold text-white">
+                  <span className="text-2xl font-semibold" style={{ color: settings.textColor }}>
                     {member.users?.discord_username || 'Unknown Player'}
                   </span>
                   {member.is_captain && (
@@ -178,27 +187,33 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
                 </div>
                 
                 <div className="flex items-center space-x-4 text-sm">
-                  {member.users?.riot_id && (
-                    <span className="text-white/70">
+                  {sceneSettings.showRiotId && member.users?.riot_id && (
+                    <span style={{ color: settings.textColor + '80' }}>
                       {member.users.riot_id}
                     </span>
                   )}
                   
-                  {member.users?.current_rank && (
+                  {sceneSettings.showCurrentRank && member.users?.current_rank && (
                     <span className={`font-medium ${getRankColor(member.users.current_rank)}`}>
                       {member.users.current_rank}
                     </span>
                   )}
                   
-                  {member.users?.peak_rank && (
-                    <span className={`font-medium text-white/60 ${getRankColor(member.users.peak_rank)}`}>
+                  {sceneSettings.showPeakRank && member.users?.peak_rank && (
+                    <span className={`font-medium ${getRankColor(member.users.peak_rank)}`} style={{ opacity: 0.7 }}>
                       Peak: {member.users.peak_rank}
                     </span>
                   )}
                   
-                  {(member.users as any)?.adaptive_weight && (
+                  {sceneSettings.showAdaptiveWeight && (member.users as any)?.adaptive_weight && (
                     <span className="text-cyan-400">
                       {(member.users as any).adaptive_weight} AWR
+                    </span>
+                  )}
+                  
+                  {sceneSettings.showTournamentWins && (member.users as any)?.tournaments_won && (
+                    <span className="text-green-400">
+                      {(member.users as any).tournaments_won}W
                     </span>
                   )}
                 </div>
@@ -211,14 +226,14 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
         <div className={`mt-8 bg-black/40 backdrop-blur-sm rounded-xl p-6 border border-white/20 transition-all duration-700 ${
           animationPhase === 'complete' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
         }`}>
-          <div className="flex justify-between items-center text-white">
+          <div className="flex justify-between items-center" style={{ color: settings.textColor }}>
             <div className="text-center">
               <div className="text-2xl font-bold">{currentTeam.total_rank_points || 0}</div>
-              <div className="text-sm text-white/60">Total Weight</div>
+              <div className="text-sm" style={{ color: settings.textColor + '80' }}>Total Weight</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold">#{currentTeam.seed || 'TBD'}</div>
-              <div className="text-sm text-white/60">Seed</div>
+              <div className="text-sm" style={{ color: settings.textColor + '80' }}>Seed</div>
             </div>
           </div>
         </div>

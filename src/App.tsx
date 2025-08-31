@@ -35,6 +35,7 @@ import VODs from "./pages/VODs";
 import Broadcast from "./pages/Broadcast";
 import TeamRoster from "./pages/broadcast/TeamRoster";
 import MatchupPreview from "./pages/broadcast/MatchupPreview";
+import MatchupPreviewByMatch from "./pages/broadcast/MatchupPreviewByMatch";
 import BracketOverlay from "./pages/broadcast/BracketOverlay";
 import PlayerSpotlightCard from "./pages/broadcast/PlayerSpotlightCard";
 import TournamentStats from "./pages/broadcast/TournamentStats";
@@ -69,7 +70,8 @@ const AppContent = () => {
             {/* Individual broadcast components for OBS/streaming */}
             <Route path="/broadcast/:id/teams" element={<TeamRoster />} />
             <Route path="/broadcast/:id/team/:teamId" element={<TeamRoster />} />
-            <Route path="/broadcast/:id/matchup/:team1Id/:team2Id" element={<MatchupPreview />} />
+        <Route path="/broadcast/:id/matchup/:team1Id/:team2Id" element={<MatchupPreview />} />
+        <Route path="/broadcast/:id/matchup/:matchId" element={<MatchupPreviewByMatch />} />
             <Route path="/broadcast/:id/bracket" element={<BracketOverlay />} />
             <Route path="/broadcast/:id/player/:playerId" element={<PlayerSpotlightCard />} />
             <Route path="/broadcast/:id/stats" element={<TournamentStats />} />
