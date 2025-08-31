@@ -140,121 +140,98 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
   };
 
   return (
-    <div className="w-screen h-screen bg-transparent overflow-hidden" style={containerStyle}>
-      {/* Team Name Intro */}
-      <div 
-        className={`absolute inset-0 flex items-center justify-center transition-all duration-1000 ${
-          animationPhase === 'intro' ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
-        }`}
-      >
-        <div className="text-center">
-          <div className="text-6xl font-bold mb-4 animate-fade-in" style={{ color: settings.headerTextColor }}>
-            {currentTeam.name}
-          </div>
-          <div className="text-2xl" style={{ color: settings.textColor + '80' }}>
-            Team Roster
-          </div>
-        </div>
+    <div className="w-screen h-screen bg-transparent overflow-hidden flex flex-col items-center justify-center" style={containerStyle}>
+      {/* Team Name */}
+      <div className="text-5xl font-bold mb-8 text-center" style={{ color: settings.headerTextColor }}>
+        {currentTeam.name}
       </div>
 
-      {/* Team Roster */}
-      <div 
-        className={`absolute inset-0 flex flex-col items-center justify-center transition-all duration-1000 ${
-          animationPhase === 'roster' || animationPhase === 'complete' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
-        }`}
-      >
-        <div className="text-4xl font-bold mb-8 text-center" style={{ color: settings.headerTextColor }}>
-          {currentTeam.name}
-        </div>
-        
-        <div className="grid grid-cols-1 gap-6 max-w-2xl">
-          {currentTeam.team_members
-            .sort((a, b) => (b.is_captain ? 1 : 0) - (a.is_captain ? 1 : 0))
-            .map((member, index) => (
-            <div
-              key={member.user_id}
-              className={`flex items-center space-x-6 bg-black/40 backdrop-blur-md rounded-2xl p-5 border border-white/10 shadow-lg transition-all duration-500 ${
-                animationPhase === 'complete' ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'
-              }`}
-              style={{ transitionDelay: `${index * 200}ms` }}
-            >
-              <Avatar className="w-16 h-16 border-2 border-white/20 shadow-md">
-                <AvatarImage 
-                  src={member.users?.discord_avatar_url || undefined} 
-                  alt={member.users?.discord_username}
-                />
-                <AvatarFallback className="bg-slate-700 text-white text-lg">
-                  {member.users?.discord_username?.slice(0, 2).toUpperCase() || '??'}
-                </AvatarFallback>
-              </Avatar>
-              
-              <div className="flex-1">
-                {/* Username + Captain */}
-                <div className="flex items-center space-x-3 mb-1">
-                  <span className="text-xl font-bold tracking-wide" style={{ color: settings.textColor }}>
-                    {member.users?.discord_username || 'Unknown Player'}
-                  </span>
-                  {member.is_captain && (
-                    <Badge variant="outline" className="border-yellow-400 text-yellow-400 text-sm">
-                      CAPTAIN
-                    </Badge>
-                  )}
-                </div>
+      {/* Team Members */}
+      <div className="flex flex-col gap-4 w-full max-w-4xl">
+        {currentTeam.team_members
+          .sort((a, b) => (b.is_captain ? 1 : 0) - (a.is_captain ? 1 : 0))
+          .map((member, index) => (
+          <div
+            key={member.user_id}
+            className={`flex items-center gap-6 bg-black/40 backdrop-blur-md rounded-2xl p-6 border border-white/10 shadow-lg transition-all duration-500 ${
+              animationPhase === 'complete' ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'
+            }`}
+            style={{ transitionDelay: `${index * 150}ms`, width: "100%" }}
+          >
+            <Avatar className="w-16 h-16 border-2 border-white/20 shadow-md flex-shrink-0">
+              <AvatarImage 
+                src={member.users?.discord_avatar_url || undefined} 
+                alt={member.users?.discord_username}
+              />
+              <AvatarFallback className="bg-slate-700 text-white text-lg">
+                {member.users?.discord_username?.slice(0, 2).toUpperCase() || '??'}
+              </AvatarFallback>
+            </Avatar>
 
-                {/* Stats / Rank Info */}
-                <div className="flex flex-col gap-1 mt-2 text-sm">
-                  {/* Riot ID */}
-                  {sceneSettings.showRiotId && member.users?.riot_id && (
-                    <span className="opacity-70">{member.users.riot_id}</span>
-                  )}
+            <div className="flex-1 flex flex-col">
+              {/* Username + Captain */}
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xl font-bold tracking-wide" style={{ color: settings.textColor }}>
+                  {member.users?.discord_username || 'Unknown Player'}
+                </span>
+                {member.is_captain && (
+                  <Badge variant="outline" className="border-yellow-400 text-yellow-400 text-sm">
+                    CAPTAIN
+                  </Badge>
+                )}
+              </div>
 
-                  {/* Current Rank */}
-                  {sceneSettings.showCurrentRank && member.users?.current_rank && (
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium opacity-80">Current Rank:</span>
-                      {renderRank(member.users.current_rank)}
-                    </div>
-                  )}
+              {/* Stats / Rank Info */}
+              <div className="flex flex-col gap-1 text-sm">
+                {/* Riot ID */}
+                {sceneSettings.showRiotId && member.users?.riot_id && (
+                  <span className="opacity-70">{member.users.riot_id}</span>
+                )}
 
-                  {/* Peak Rank */}
-                  {sceneSettings.showPeakRank && member.users?.peak_rank && (
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium opacity-80">Peak Rank:</span>
-                      {renderRank(member.users.peak_rank)}
-                    </div>
-                  )}
+                {/* Current Rank */}
+                {sceneSettings.showCurrentRank && member.users?.current_rank && (
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium opacity-80">Current Rank:</span>
+                    {renderRank(member.users.current_rank)}
+                  </div>
+                )}
 
-                  {/* Adaptive Weight */}
-                  {sceneSettings.showAdaptiveWeight && (member.users as any)?.adaptive_weight && (
-                    <span className="text-cyan-400">{(member.users as any).adaptive_weight} AWR</span>
-                  )}
+                {/* Peak Rank */}
+                {sceneSettings.showPeakRank && member.users?.peak_rank && (
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium opacity-80">Peak Rank:</span>
+                    {renderRank(member.users.peak_rank)}
+                  </div>
+                )}
 
-                  {/* Tournament Wins */}
-                  {sceneSettings.showTournamentWins && (member.users as any)?.tournaments_won && (
-                    <span className="text-green-400">{(member.users as any).tournaments_won}W</span>
-                  )}
-                </div>
+                {/* Adaptive Weight */}
+                {sceneSettings.showAdaptiveWeight && (member.users as any)?.adaptive_weight && (
+                  <span className="text-cyan-400">{(member.users as any).adaptive_weight} AWR</span>
+                )}
+
+                {/* Tournament Wins */}
+                {sceneSettings.showTournamentWins && (member.users as any)?.tournaments_won && (
+                  <span className="text-green-400">{(member.users as any).tournaments_won}W</span>
+                )}
               </div>
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
+      </div>
 
-        {/* Team Stats */}
-        <div className={`mt-8 bg-black/50 backdrop-blur-md rounded-2xl px-10 py-6 border border-white/10 shadow-xl flex justify-center gap-16 transition-all duration-700 ${
-          animationPhase === 'complete' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-        }`}>
-          <div className="text-center">
-            <div className="text-3xl font-extrabold" style={{ color: settings.headerTextColor }}>
-              {currentTeam.total_rank_points || 0}
-            </div>
-            <div className="text-sm uppercase tracking-wider" style={{ color: settings.textColor + '80' }}>Total Weight</div>
+      {/* Team Stats */}
+      <div className={`mt-8 bg-black/50 backdrop-blur-md rounded-2xl px-12 py-6 border border-white/10 shadow-xl flex justify-center gap-16 transition-all duration-700`}>
+        <div className="text-center">
+          <div className="text-3xl font-extrabold" style={{ color: settings.headerTextColor }}>
+            {currentTeam.total_rank_points || 0}
           </div>
-          <div className="text-center">
-            <div className="text-3xl font-extrabold" style={{ color: settings.headerTextColor }}>
-              #{currentTeam.seed || 'TBD'}
-            </div>
-            <div className="text-sm uppercase tracking-wider" style={{ color: settings.textColor + '80' }}>Seed</div>
+          <div className="text-sm uppercase tracking-wider" style={{ color: settings.textColor + '80' }}>Total Weight</div>
+        </div>
+        <div className="text-center">
+          <div className="text-3xl font-extrabold" style={{ color: settings.headerTextColor }}>
+            #{currentTeam.seed || 'TBD'}
           </div>
+          <div className="text-sm uppercase tracking-wider" style={{ color: settings.textColor + '80' }}>Seed</div>
         </div>
       </div>
     </div>
