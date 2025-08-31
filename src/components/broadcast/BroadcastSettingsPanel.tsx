@@ -6,8 +6,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Eye, EyeOff, RotateCcw } from 'lucide-react';
+import { Eye, EyeOff, RotateCcw, Save } from 'lucide-react';
 import { useBroadcastSettings, type BroadcastDisplaySettings } from '@/hooks/useBroadcastSettings';
+import { useToast } from '@/hooks/use-toast';
 
 export default function BroadcastSettingsPanel() {
   const { 
@@ -22,6 +23,15 @@ export default function BroadcastSettingsPanel() {
   
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const { toast } = useToast();
+
+  const saveSettings = () => {
+    // Settings are auto-saved to localStorage in the hook, but we can provide feedback
+    toast({
+      title: "Settings Saved",
+      description: "Your broadcast settings have been saved and will persist across sessions.",
+    });
+  };
 
   if (!isAuthenticated) {
     return (
@@ -133,6 +143,15 @@ export default function BroadcastSettingsPanel() {
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>⚙️ Broadcast Settings</CardTitle>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={saveSettings}
+            className="flex items-center gap-1"
+          >
+            <Save className="h-4 w-4" />
+            Save
+          </Button>
           <Button
             variant="outline"
             size="sm"

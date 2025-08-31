@@ -2,6 +2,9 @@ import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import BroadcastSettingsPanel from "@/components/broadcast/BroadcastSettingsPanel";
+import { Button } from "@/components/ui/button";
+import { ExternalLink, Copy } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface Tournament {
   id: string;
@@ -40,6 +43,15 @@ export default function BroadcastIds() {
   const [teams, setTeams] = useState<BroadcastTeam[]>([]);
   const [matches, setMatches] = useState<BroadcastMatch[]>([]);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Copied to clipboard",
+      description: `ID: ${text}`,
+    });
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -173,7 +185,22 @@ export default function BroadcastIds() {
                         Seed #{team.seed} • Weight: {team.total_rank_points}
                       </p>
                     </div>
-                    <code className="bg-background p-1 rounded text-xs">{team.id}</code>
+                     <div className="flex items-center space-x-2">
+                       <code 
+                         className="bg-background p-1 rounded text-xs cursor-pointer hover:bg-muted transition-colors"
+                         onClick={() => copyToClipboard(team.id)}
+                       >
+                         {team.id}
+                       </code>
+                       <Button
+                         size="sm"
+                         variant="ghost"
+                         className="h-6 w-6 p-0"
+                         onClick={() => window.open(`${baseUrl}/broadcast/${id}/team/${team.id}`, '_blank')}
+                       >
+                         <ExternalLink className="h-3 w-3" />
+                       </Button>
+                     </div>
                   </div>
                   
                   <div className="space-y-2">
@@ -187,7 +214,22 @@ export default function BroadcastIds() {
                             <span className="ml-2 text-muted-foreground">• {member.users.riot_id}</span>
                           )}
                         </div>
-                        <code className="text-xs">{member.user_id}</code>
+                         <div className="flex items-center space-x-2">
+                           <code 
+                             className="text-xs cursor-pointer hover:bg-muted transition-colors p-1 rounded"
+                             onClick={() => copyToClipboard(member.user_id)}
+                           >
+                             {member.user_id}
+                           </code>
+                           <Button
+                             size="sm"
+                             variant="ghost"
+                             className="h-5 w-5 p-0"
+                             onClick={() => window.open(`${baseUrl}/broadcast/${id}/player/${member.user_id}`, '_blank')}
+                           >
+                             <ExternalLink className="h-2 w-2" />
+                           </Button>
+                         </div>
                       </div>
                     ))}
                   </div>
@@ -217,7 +259,22 @@ export default function BroadcastIds() {
                         Status: {match.status}
                       </div>
                     </div>
-                    <code className="text-xs bg-background p-1 rounded">{match.id}</code>
+                     <div className="flex items-center space-x-2">
+                       <code 
+                         className="text-xs bg-background p-1 rounded cursor-pointer hover:bg-muted transition-colors"
+                         onClick={() => copyToClipboard(match.id)}
+                       >
+                         {match.id}
+                       </code>
+                       <Button
+                         size="sm"
+                         variant="ghost"
+                         className="h-6 w-6 p-0"
+                         onClick={() => window.open(`${baseUrl}/broadcast/${id}/matchup/${match.id}`, '_blank')}
+                       >
+                         <ExternalLink className="h-3 w-3" />
+                       </Button>
+                     </div>
                   </div>
                 );
               })}

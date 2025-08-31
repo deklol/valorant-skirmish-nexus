@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Star, Trophy, Target } from "lucide-react";
+import { useBroadcastSettings } from "@/hooks/useBroadcastSettings";
 
 interface PlayerData {
   id: string;
@@ -25,6 +26,7 @@ export default function PlayerSpotlightCard() {
   const { id, playerId } = useParams<{ id: string; playerId: string }>();
   const [player, setPlayer] = useState<PlayerData | null>(null);
   const [loading, setLoading] = useState(true);
+  const { settings } = useBroadcastSettings();
 
   useEffect(() => {
     if (!id || !playerId) return;
@@ -129,8 +131,14 @@ export default function PlayerSpotlightCard() {
     return 'text-slate-400';
   };
 
+  const sceneSettings = settings.sceneSettings.playerSpotlight;
+
+  const containerStyle = {
+    backgroundColor: settings.backgroundColor === 'transparent' ? 'transparent' : settings.backgroundColor,
+  };
+
   return (
-    <div className="w-screen h-screen bg-transparent flex items-center justify-center p-8">
+    <div className="w-screen h-screen bg-transparent flex items-center justify-center p-8" style={containerStyle}>
       <div className="max-w-2xl w-full">
         {/* Main Card */}
         <div className="bg-black/40 backdrop-blur-sm rounded-2xl border border-white/20 overflow-hidden">
@@ -145,7 +153,7 @@ export default function PlayerSpotlightCard() {
             
             <div className="space-y-2">
               <div className="flex items-center justify-center space-x-3">
-                <h1 className="text-4xl font-bold text-white">
+                <h1 className="text-4xl font-bold" style={{ color: settings.headerTextColor }}>
                   {player.discord_username}
                 </h1>
                 {player.is_captain && (
@@ -155,8 +163,8 @@ export default function PlayerSpotlightCard() {
                 )}
               </div>
               
-              {player.riot_id && (
-                <div className="text-xl text-white/70">{player.riot_id}</div>
+              {sceneSettings.showRiotId && player.riot_id && (
+                <div className="text-xl" style={{ color: settings.textColor + '70' }}>{player.riot_id}</div>
               )}
               
               {player.team_name && (
@@ -169,64 +177,72 @@ export default function PlayerSpotlightCard() {
           <div className="p-8">
             <div className="grid grid-cols-2 gap-6">
               {/* Current Rank */}
-              <div className="bg-black/30 rounded-xl p-6 text-center">
-                <div className="flex items-center justify-center mb-3">
-                  <Target className="w-6 h-6 text-cyan-400 mr-2" />
-                  <span className="text-white/70">Current Rank</span>
-                </div>
-                <div className={`text-2xl font-bold ${getRankColor(player.current_rank)}`}>
-                  {player.current_rank || 'Unranked'}
-                </div>
-                {player.rank_points && (
-                  <div className="text-sm text-white/50 mt-1">
-                    {player.rank_points} RR
+              {sceneSettings.showCurrentRank && (
+                <div className="bg-black/30 rounded-xl p-6 text-center">
+                  <div className="flex items-center justify-center mb-3">
+                    <Target className="w-6 h-6 text-cyan-400 mr-2" />
+                    <span style={{ color: settings.textColor + '70' }}>Current Rank</span>
                   </div>
-                )}
-              </div>
+                  <div className={`text-2xl font-bold ${getRankColor(player.current_rank)}`}>
+                    {player.current_rank || 'Unranked'}
+                  </div>
+                  {player.rank_points && (
+                    <div className="text-sm mt-1" style={{ color: settings.textColor + '50' }}>
+                      {player.rank_points} RR
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Peak Rank */}
-              <div className="bg-black/30 rounded-xl p-6 text-center">
-                <div className="flex items-center justify-center mb-3">
-                  <Star className="w-6 h-6 text-yellow-400 mr-2" />
-                  <span className="text-white/70">Peak Rank</span>
+              {sceneSettings.showPeakRank && (
+                <div className="bg-black/30 rounded-xl p-6 text-center">
+                  <div className="flex items-center justify-center mb-3">
+                    <Star className="w-6 h-6 text-yellow-400 mr-2" />
+                    <span style={{ color: settings.textColor + '70' }}>Peak Rank</span>
+                  </div>
+                  <div className={`text-2xl font-bold ${getRankColor(player.peak_rank)}`}>
+                    {player.peak_rank || 'Unknown'}
+                  </div>
                 </div>
-                <div className={`text-2xl font-bold ${getRankColor(player.peak_rank)}`}>
-                  {player.peak_rank || 'Unknown'}
-                </div>
-              </div>
+              )}
 
               {/* Adaptive Weight */}
-              <div className="bg-black/30 rounded-xl p-6 text-center">
-                <div className="flex items-center justify-center mb-3">
-                  <Trophy className="w-6 h-6 text-purple-400 mr-2" />
-                  <span className="text-white/70">Tournament Weight</span>
+              {sceneSettings.showAdaptiveWeight && (
+                <div className="bg-black/30 rounded-xl p-6 text-center">
+                  <div className="flex items-center justify-center mb-3">
+                    <Trophy className="w-6 h-6 text-purple-400 mr-2" />
+                    <span style={{ color: settings.textColor + '70' }}>Tournament Weight</span>
+                  </div>
+                  <div className="text-2xl font-bold text-purple-400">
+                    {player.adaptive_weight || player.weight_rating || 150}
+                  </div>
+                  <div className="text-sm mt-1" style={{ color: settings.textColor + '50' }}>AWR</div>
                 </div>
-                <div className="text-2xl font-bold text-purple-400">
-                  {player.adaptive_weight || player.weight_rating || 150}
-                </div>
-                <div className="text-sm text-white/50 mt-1">AWR</div>
-              </div>
+              )}
 
               {/* Experience */}
-              <div className="bg-black/30 rounded-xl p-6 text-center">
-                <div className="flex items-center justify-center mb-3">
-                  <Trophy className="w-6 h-6 text-green-400 mr-2" />
-                  <span className="text-white/70">Experience</span>
+              {sceneSettings.showTournamentWins && (
+                <div className="bg-black/30 rounded-xl p-6 text-center">
+                  <div className="flex items-center justify-center mb-3">
+                    <Trophy className="w-6 h-6 text-green-400 mr-2" />
+                    <span style={{ color: settings.textColor + '70' }}>Experience</span>
+                  </div>
+                  <div className="text-2xl font-bold text-green-400">
+                    {player.total_matches}
+                  </div>
+                  <div className="text-sm mt-1" style={{ color: settings.textColor + '50' }}>
+                    Tournaments • {player.tournaments_won} Won
+                  </div>
                 </div>
-                <div className="text-2xl font-bold text-green-400">
-                  {player.total_matches}
-                </div>
-                <div className="text-sm text-white/50 mt-1">
-                  Tournaments • {player.tournaments_won} Won
-                </div>
-              </div>
+              )}
             </div>
 
             {/* Performance Indicator */}
             <div className="mt-8 text-center">
               <div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-xl p-4 border border-white/10">
-                <div className="text-white/70 text-sm mb-1">Player Rating</div>
-                <div className="text-2xl font-bold text-white">
+                <div className="text-sm mb-1" style={{ color: settings.textColor + '70' }}>Player Rating</div>
+                <div className="text-2xl font-bold" style={{ color: settings.textColor }}>
                   {player.adaptive_weight && player.adaptive_weight > 200 
                     ? 'Elite' 
                     : player.adaptive_weight && player.adaptive_weight > 175 
