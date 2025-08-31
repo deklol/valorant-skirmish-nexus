@@ -40,6 +40,19 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
     return rankStyles.unranked;
   };
 
+  const renderRank = (rank?: string) => {
+    const { emoji, color } = formatRank(rank);
+    return (
+      <span
+        className="flex items-center space-x-1 px-2 py-1 rounded-lg font-medium"
+        style={{ backgroundColor: color + "30", color }}
+      >
+        <span>{emoji}</span>
+        <span>{rank}</span>
+      </span>
+    );
+  };
+
   useEffect(() => {
     if (!id) return;
 
@@ -126,19 +139,6 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
     backgroundColor: settings.backgroundColor === 'transparent' ? 'transparent' : settings.backgroundColor,
   };
 
-  const renderRank = (rank?: string) => {
-    const { emoji, color } = formatRank(rank);
-    return (
-      <span
-        className="flex items-center space-x-1 px-2 py-1 rounded-lg font-medium"
-        style={{ backgroundColor: color + "30", color }}
-      >
-        <span>{emoji}</span>
-        <span>{rank}</span>
-      </span>
-    );
-  };
-
   return (
     <div className="w-screen h-screen bg-transparent overflow-hidden" style={containerStyle}>
       {/* Team Name Intro */}
@@ -201,18 +201,35 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
                   )}
                 </div>
 
-                {/* Game Info Row */}
-                <div className="flex flex-wrap items-center gap-3 text-sm mt-1">
+                {/* Stats / Rank Info */}
+                <div className="flex flex-col gap-1 mt-2 text-sm">
+                  {/* Riot ID */}
                   {sceneSettings.showRiotId && member.users?.riot_id && (
                     <span className="opacity-70">{member.users.riot_id}</span>
                   )}
-                  {sceneSettings.showCurrentRank && member.users?.current_rank && renderRank(member.users.current_rank)}
-                  {sceneSettings.showPeakRank && member.users?.peak_rank && (
-                    <span className="opacity-70">{renderRank(member.users.peak_rank).emoji} Peak: {member.users.peak_rank}</span>
+
+                  {/* Current Rank */}
+                  {sceneSettings.showCurrentRank && member.users?.current_rank && (
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium opacity-80">Current Rank:</span>
+                      {renderRank(member.users.current_rank)}
+                    </div>
                   )}
+
+                  {/* Peak Rank */}
+                  {sceneSettings.showPeakRank && member.users?.peak_rank && (
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium opacity-80">Peak Rank:</span>
+                      {renderRank(member.users.peak_rank)}
+                    </div>
+                  )}
+
+                  {/* Adaptive Weight */}
                   {sceneSettings.showAdaptiveWeight && (member.users as any)?.adaptive_weight && (
                     <span className="text-cyan-400">{(member.users as any).adaptive_weight} AWR</span>
                   )}
+
+                  {/* Tournament Wins */}
                   {sceneSettings.showTournamentWins && (member.users as any)?.tournaments_won && (
                     <span className="text-green-400">{(member.users as any).tournaments_won}W</span>
                   )}
