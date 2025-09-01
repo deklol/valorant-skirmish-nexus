@@ -53,11 +53,14 @@ export default function MatchupPreview() {
         ...team,
         team_members: team.team_members.map(member => {
           const adaptiveWeight = adaptiveWeights?.find(w => w.user_id === member.user_id);
+          const atlasWeight = adaptiveWeight?.calculated_adaptive_weight || member.users?.weight_rating;
           return {
             ...member,
             users: {
               ...member.users,
-              adaptive_weight: adaptiveWeight?.calculated_adaptive_weight,
+              adaptive_weight: atlasWeight,
+              atlas_weight: adaptiveWeight?.calculated_adaptive_weight,
+              weight_source: adaptiveWeight?.weight_source || 'standard'
             }
           };
         })
@@ -103,7 +106,11 @@ export default function MatchupPreview() {
   const sceneSettings = settings.sceneSettings.matchupPreview;
 
   const containerStyle = {
-    backgroundColor: settings.backgroundColor === 'transparent' ? 'transparent' : settings.backgroundColor,
+    backgroundColor: sceneSettings.backgroundColor === 'transparent' ? 'transparent' : sceneSettings.backgroundColor,
+    backgroundImage: sceneSettings.backgroundImage ? `url(${sceneSettings.backgroundImage})` : undefined,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    fontFamily: sceneSettings.fontFamily || 'inherit',
   };
 
   return (

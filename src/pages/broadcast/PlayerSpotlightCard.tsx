@@ -16,6 +16,8 @@ interface PlayerData {
   weight_rating?: number;
   peak_rank?: string;
   adaptive_weight?: number;
+  atlas_weight?: number;
+  weight_source?: string;
   team_name?: string;
   is_captain?: boolean;
   tournaments_won?: number;
@@ -65,7 +67,7 @@ export default function PlayerSpotlightCard() {
       // Get adaptive weight for this tournament
       const { data: adaptiveWeight } = await supabase
         .from('tournament_adaptive_weights')
-        .select('calculated_adaptive_weight')
+        .select('*')
         .eq('tournament_id', id)
         .eq('user_id', playerId)
         .single();
@@ -95,7 +97,9 @@ export default function PlayerSpotlightCard() {
         rank_points: teamMemberData.users?.rank_points,
         weight_rating: teamMemberData.users?.weight_rating,
         peak_rank: teamMemberData.users?.peak_rank,
-        adaptive_weight: adaptiveWeight?.calculated_adaptive_weight,
+        adaptive_weight: adaptiveWeight?.calculated_adaptive_weight || teamMemberData.users?.weight_rating,
+        atlas_weight: adaptiveWeight?.calculated_adaptive_weight,
+        weight_source: adaptiveWeight?.weight_source || 'standard',
         team_name: (teamMemberData.teams as any)?.name,
         is_captain: teamMemberData.is_captain,
         tournaments_won: tournamentsWon,
@@ -134,7 +138,11 @@ export default function PlayerSpotlightCard() {
   const sceneSettings = settings.sceneSettings.playerSpotlight;
 
   const containerStyle = {
-    backgroundColor: settings.backgroundColor === 'transparent' ? 'transparent' : settings.backgroundColor,
+    backgroundColor: sceneSettings.backgroundColor === 'transparent' ? 'transparent' : sceneSettings.backgroundColor,
+    backgroundImage: sceneSettings.backgroundImage ? `url(${sceneSettings.backgroundImage})` : undefined,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    fontFamily: sceneSettings.fontFamily || 'inherit',
   };
 
   return (

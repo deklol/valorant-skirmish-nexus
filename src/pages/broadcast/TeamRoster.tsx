@@ -80,12 +80,15 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
         ...team,
         team_members: team.team_members.map(member => {
           const adaptiveWeight = adaptiveWeights?.find(w => w.user_id === member.user_id);
+          const atlasWeight = adaptiveWeight?.calculated_adaptive_weight || member.users?.weight_rating;
           return {
             ...member,
             users: {
               ...member.users,
-              adaptive_weight: adaptiveWeight?.calculated_adaptive_weight,
+              adaptive_weight: atlasWeight,
+              atlas_weight: adaptiveWeight?.calculated_adaptive_weight,
               peak_rank_points: adaptiveWeight?.peak_rank_points,
+              weight_source: adaptiveWeight?.weight_source || 'standard'
             }
           };
         })
@@ -123,7 +126,12 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
 
   const sceneSettings = settings.sceneSettings.teamRoster;
   const containerStyle = {
-    backgroundColor: settings.backgroundColor === 'transparent' ? 'transparent' : settings.backgroundColor,
+    backgroundColor: sceneSettings.backgroundColor === 'transparent' ? 'transparent' : sceneSettings.backgroundColor,
+    backgroundImage: sceneSettings.backgroundImage ? `url(${sceneSettings.backgroundImage})` : undefined,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    fontFamily: sceneSettings.fontFamily || 'inherit',
+    fontSize: `${sceneSettings.fontSize || 16}px`,
   };
 
   const renderRank = (rank?: string) => {
@@ -148,10 +156,17 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
         }`}
       >
         <div className="text-center">
-          <div className="text-6xl font-bold mb-4 animate-fade-in" style={{ color: settings.headerTextColor }}>
+          <div className="text-6xl font-bold mb-4 animate-fade-in" style={{ 
+            color: sceneSettings.headerTextColor || settings.headerTextColor,
+            fontSize: `${(sceneSettings.headerFontSize || 48) * 1.25}px`,
+            fontFamily: sceneSettings.fontFamily || 'inherit'
+          }}>
             {currentTeam.name}
           </div>
-          <div className="text-2xl" style={{ color: settings.textColor + '80' }}>
+          <div className="text-2xl" style={{ 
+            color: (sceneSettings.textColor || settings.textColor) + '80',
+            fontFamily: sceneSettings.fontFamily || 'inherit'
+          }}>
             Team Roster
           </div>
         </div>
@@ -163,7 +178,11 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
           animationPhase === 'roster' || animationPhase === 'complete' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
         }`}
       >
-        <div className="text-4xl font-bold mb-8 text-center" style={{ color: settings.headerTextColor }}>
+        <div className="text-4xl font-bold mb-8 text-center" style={{ 
+          color: sceneSettings.headerTextColor || settings.headerTextColor,
+          fontSize: `${sceneSettings.headerFontSize || 36}px`,
+          fontFamily: sceneSettings.fontFamily || 'inherit'
+        }}>
           {currentTeam.name}
         </div>
         
@@ -173,10 +192,19 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
             .map((member, index) => (
             <div
               key={member.user_id}
-              className={`flex items-center space-x-6 bg-black/40 backdrop-blur-md rounded-2xl p-5 border border-white/10 shadow-lg transition-all duration-500 ${
+              className={`flex items-center space-x-6 bg-black/40 backdrop-blur-md rounded-2xl border border-white/10 shadow-lg transition-all duration-500 ${
                 animationPhase === 'complete' ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'
               }`}
-              style={{ transitionDelay: `${index * 200}ms` }}
+              style={{ 
+                transitionDelay: `${index * 200}ms`,
+                borderRadius: `${sceneSettings.borderRadius || 16}px`,
+                borderWidth: `${sceneSettings.borderWidth || 1}px`,
+                borderColor: sceneSettings.borderColor || '#ffffff10',
+                padding: `${sceneSettings.padding || 20}px`,
+                gap: `${sceneSettings.spacing || 24}px`,
+                fontFamily: sceneSettings.fontFamily || 'inherit',
+                boxShadow: `0 ${sceneSettings.shadowIntensity || 3}px ${(sceneSettings.shadowIntensity || 3) * 3}px rgba(0,0,0,0.3)`
+              }}
             >
               <Avatar className="w-16 h-16 border-2 border-white/20 shadow-md">
                 <AvatarImage 
@@ -191,7 +219,12 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
               <div className="flex-1">
                 {/* Username + Captain */}
                 <div className="flex items-center space-x-3 mb-1">
-                  <span className="text-xl font-bold tracking-wide" style={{ color: settings.textColor }}>
+                  <span className="text-xl font-bold tracking-wide" style={{ 
+                    color: sceneSettings.textColor || settings.textColor,
+                    fontSize: `${(sceneSettings.fontSize || 16) * 1.25}px`,
+                    fontWeight: sceneSettings.fontWeight || 'bold',
+                    fontFamily: sceneSettings.fontFamily || 'inherit'
+                  }}>
                     {member.users?.discord_username || 'Unknown Player'}
                   </span>
                   {member.is_captain && (
@@ -208,7 +241,7 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
                   )}
                   {sceneSettings.showCurrentRank && member.users?.current_rank && renderRank(member.users.current_rank)}
                   {sceneSettings.showPeakRank && member.users?.peak_rank && (
-                    <span className="opacity-70">{renderRank(member.users.peak_rank).emoji} Peak: {member.users.peak_rank}</span>
+                    <span className="opacity-70">⭐ Peak: {member.users.peak_rank}</span>
                   )}
                   {sceneSettings.showAdaptiveWeight && (member.users as any)?.adaptive_weight && (
                     <span className="text-cyan-400">{(member.users as any).adaptive_weight} AWR</span>
@@ -222,21 +255,39 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
           ))}
         </div>
 
-        {/* Team Stats */}
-        <div className={`mt-8 bg-black/50 backdrop-blur-md rounded-2xl px-10 py-6 border border-white/10 shadow-xl flex justify-center gap-16 transition-all duration-700 ${
+        <div className={`mt-8 bg-black/50 backdrop-blur-md rounded-2xl border border-white/10 shadow-xl flex justify-center gap-16 transition-all duration-700 ${
           animationPhase === 'complete' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-        }`}>
+        }`} style={{
+          borderRadius: `${sceneSettings.borderRadius || 16}px`,
+          padding: `${(sceneSettings.padding || 16) * 1.5}px ${(sceneSettings.padding || 16) * 2.5}px`,
+          gap: `${(sceneSettings.spacing || 8) * 8}px`,
+          boxShadow: `0 ${(sceneSettings.shadowIntensity || 3) * 2}px ${(sceneSettings.shadowIntensity || 3) * 6}px rgba(0,0,0,0.4)`
+        }}>
           <div className="text-center">
-            <div className="text-3xl font-extrabold" style={{ color: settings.headerTextColor }}>
+            <div className="text-3xl font-extrabold" style={{ 
+              color: sceneSettings.headerTextColor || settings.headerTextColor,
+              fontSize: `${(sceneSettings.headerFontSize || 24) * 1.25}px`,
+              fontFamily: sceneSettings.fontFamily || 'inherit'
+            }}>
               {currentTeam.total_rank_points || 0}
             </div>
-            <div className="text-sm uppercase tracking-wider" style={{ color: settings.textColor + '80' }}>Total Weight</div>
+            <div className="text-sm uppercase tracking-wider" style={{ 
+              color: (sceneSettings.textColor || settings.textColor) + '80',
+              fontFamily: sceneSettings.fontFamily || 'inherit'
+            }}>Total Weight</div>
           </div>
           <div className="text-center">
-            <div className="text-3xl font-extrabold" style={{ color: settings.headerTextColor }}>
+            <div className="text-3xl font-extrabold" style={{ 
+              color: sceneSettings.headerTextColor || settings.headerTextColor,
+              fontSize: `${(sceneSettings.headerFontSize || 24) * 1.25}px`,
+              fontFamily: sceneSettings.fontFamily || 'inherit'
+            }}>
               #{currentTeam.seed || 'TBD'}
             </div>
-            <div className="text-sm uppercase tracking-wider" style={{ color: settings.textColor + '80' }}>Seed</div>
+            <div className="text-sm uppercase tracking-wider" style={{ 
+              color: (sceneSettings.textColor || settings.textColor) + '80',
+              fontFamily: sceneSettings.fontFamily || 'inherit'
+            }}>Seed</div>
           </div>
         </div>
       </div>

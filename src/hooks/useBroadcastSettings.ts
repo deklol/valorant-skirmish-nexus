@@ -8,27 +8,87 @@ export interface BroadcastDisplaySettings {
   showRiotId: boolean;
 }
 
+export interface BroadcastSceneSettings extends BroadcastDisplaySettings {
+  // Visual customization
+  backgroundImage?: string;
+  backgroundColor?: string;
+  textColor?: string;
+  headerTextColor?: string;
+  
+  // Layout & Design
+  borderRadius?: number;
+  borderWidth?: number;
+  borderColor?: string;
+  shadowIntensity?: number;
+  
+  // Typography
+  fontFamily?: string;
+  fontSize?: number;
+  headerFontSize?: number;
+  fontWeight?: string;
+  
+  // Animations
+  animationEnabled?: boolean;
+  animationDuration?: number;
+  
+  // Layout
+  padding?: number;
+  spacing?: number;
+}
+
 export interface BroadcastSettings {
   // Timing settings
   loadingTime: number; // ms
   transitionTime: number; // ms
   transitionType: 'fade' | 'slide' | 'scale' | 'none';
   
-  // Colors
+  // Global fallback colors (used when scene doesn't override)
   headerTextColor: string;
   textColor: string;
   backgroundColor: string;
   
-  // Global display settings
-  displaySettings: BroadcastDisplaySettings;
-  
   // Per-scene settings
   sceneSettings: {
-    teamRoster: BroadcastDisplaySettings;
-    matchupPreview: BroadcastDisplaySettings;
-    playerSpotlight: BroadcastDisplaySettings;
+    teamRoster: BroadcastSceneSettings;
+    matchupPreview: BroadcastSceneSettings;
+    playerSpotlight: BroadcastSceneSettings;
   };
 }
+
+const DEFAULT_SCENE_SETTINGS: BroadcastSceneSettings = {
+  // Display options
+  showAdaptiveWeight: true,
+  showCurrentRank: true,
+  showPeakRank: false,
+  showTournamentWins: false,
+  showRiotId: true,
+  
+  // Visual customization
+  backgroundImage: undefined,
+  backgroundColor: 'transparent',
+  textColor: '#ffffff',
+  headerTextColor: '#ffffff',
+  
+  // Layout & Design
+  borderRadius: 12,
+  borderWidth: 1,
+  borderColor: '#ffffff20',
+  shadowIntensity: 3,
+  
+  // Typography
+  fontFamily: 'inherit',
+  fontSize: 16,
+  headerFontSize: 24,
+  fontWeight: 'normal',
+  
+  // Animations
+  animationEnabled: true,
+  animationDuration: 500,
+  
+  // Layout
+  padding: 16,
+  spacing: 8,
+};
 
 const DEFAULT_SETTINGS: BroadcastSettings = {
   loadingTime: 2000,
@@ -37,34 +97,21 @@ const DEFAULT_SETTINGS: BroadcastSettings = {
   headerTextColor: '#ffffff',
   textColor: '#ffffff',
   backgroundColor: 'transparent',
-  displaySettings: {
-    showAdaptiveWeight: true,
-    showCurrentRank: true,
-    showPeakRank: false,
-    showTournamentWins: false,
-    showRiotId: true,
-  },
   sceneSettings: {
     teamRoster: {
-      showAdaptiveWeight: true,
-      showCurrentRank: true,
+      ...DEFAULT_SCENE_SETTINGS,
       showPeakRank: false,
       showTournamentWins: false,
-      showRiotId: true,
     },
     matchupPreview: {
-      showAdaptiveWeight: true,
-      showCurrentRank: true,
-      showPeakRank: false,
-      showTournamentWins: false,
+      ...DEFAULT_SCENE_SETTINGS,
       showRiotId: false,
+      showPeakRank: false,
     },
     playerSpotlight: {
-      showAdaptiveWeight: true,
-      showCurrentRank: true,
+      ...DEFAULT_SCENE_SETTINGS,
       showPeakRank: true,
       showTournamentWins: true,
-      showRiotId: true,
     },
   }
 };
@@ -104,7 +151,7 @@ export function useBroadcastSettings() {
     }));
   };
 
-  const updateSceneSettings = (scene: keyof BroadcastSettings['sceneSettings'], newSettings: Partial<BroadcastDisplaySettings>) => {
+  const updateSceneSettings = (scene: keyof BroadcastSettings['sceneSettings'], newSettings: Partial<BroadcastSceneSettings>) => {
     setSettings(prev => ({
       ...prev,
       sceneSettings: {
