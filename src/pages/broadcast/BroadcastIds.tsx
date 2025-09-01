@@ -115,7 +115,7 @@ export default function BroadcastIds() {
   const baseUrl = window.location.origin;
 
   return (
-    <div className="min-h-screen bg-background p-8">
+    <div className="min-h-screen w-full bg-background p-8">
       {/* Header */}
       <div className="text-center mb-8">
         <h1 className="text-4xl font-bold mb-2">{tournament.name}</h1>
@@ -130,9 +130,9 @@ export default function BroadcastIds() {
         </div>
       </div>
 
-      {/* Split Layout 50/50 */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-        {/* LEFT SIDE - IDs, Teams, Matches, Docs */}
+      {/* Full Width Layout: Left side stacks above Settings */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* LEFT SIDE (IDs + URLs + Teams + Matches + Docs) */}
         <div className="space-y-8">
           {/* API Endpoints */}
           <div className="bg-card rounded-lg p-6">
@@ -355,15 +355,15 @@ export default function BroadcastIds() {
               <div>
                 <h4 className="font-medium mb-2">Refresh Data:</h4>
                 <p className="text-muted-foreground ml-4">
-                  Browser sources automatically refresh data. For manual refresh,
-                  press F5 in the browser source or reload the page.
+                  Browser sources automatically refresh data. For manual
+                  refresh, press F5 in the browser source or reload the page.
                 </p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* RIGHT SIDE - Settings */}
+        {/* RIGHT SIDE - Settings now spans full width below */}
         <div className="space-y-6">
           <BroadcastSettingsPanel />
         </div>
