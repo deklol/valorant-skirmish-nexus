@@ -58,13 +58,13 @@ export default function BroadcastIds() {
 
     const fetchData = async () => {
       const { data: tournamentData } = await supabase
-        .from('tournaments')
-        .select('id, name, status')
-        .eq('id', id)
+        .from("tournaments")
+        .select("id, name, status")
+        .eq("id", id)
         .single();
 
       const { data: teamsData } = await supabase
-        .from('teams')
+        .from("teams")
         .select(`
           id, name, seed, total_rank_points,
           team_members (
@@ -77,15 +77,15 @@ export default function BroadcastIds() {
             )
           )
         `)
-        .eq('tournament_id', id)
-        .order('seed', { ascending: true });
+        .eq("tournament_id", id)
+        .order("seed", { ascending: true });
 
       const { data: matchesData } = await supabase
-        .from('matches')
-        .select('id, round_number, match_number, team1_id, team2_id, status')
-        .eq('tournament_id', id)
-        .order('round_number')
-        .order('match_number');
+        .from("matches")
+        .select("id, round_number, match_number, team1_id, team2_id, status")
+        .eq("tournament_id", id)
+        .order("round_number")
+        .order("match_number");
 
       setTournament(tournamentData || null);
       setTeams(teamsData || []);
@@ -119,15 +119,20 @@ export default function BroadcastIds() {
       {/* Header */}
       <div className="text-center mb-8">
         <h1 className="text-4xl font-bold mb-2">{tournament.name}</h1>
-        <h2 className="text-2xl text-muted-foreground">Broadcast System - IDs Reference & Settings</h2>
+        <h2 className="text-2xl text-muted-foreground">
+          Broadcast System - IDs Reference & Settings
+        </h2>
         <div className="mt-4 p-4 bg-muted rounded-lg">
-          <p className="text-sm">Tournament ID: <code className="bg-background p-1 rounded">{tournament.id}</code></p>
+          <p className="text-sm">
+            Tournament ID:{" "}
+            <code className="bg-background p-1 rounded">{tournament.id}</code>
+          </p>
         </div>
       </div>
 
-      {/* Split Layout */}
+      {/* Split Layout 50/50 */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-        {/* LEFT SIDE - IDs and URLs (Red Square Area) */}
+        {/* LEFT SIDE - IDs, Teams, Matches, Docs */}
         <div className="space-y-8">
           {/* API Endpoints */}
           <div className="bg-card rounded-lg p-6">
@@ -146,7 +151,9 @@ export default function BroadcastIds() {
                 </div>
               </div>
               <div>
-                <span className="font-bold">Match Preview (by Team IDs - Legacy):</span>
+                <span className="font-bold">
+                  Match Preview (by Team IDs - Legacy):
+                </span>
                 <div className="bg-muted p-2 rounded mt-1">
                   {baseUrl}/broadcast/{id}/matchup/[TEAM_ID]/[TEAM_ID]
                 </div>
@@ -174,7 +181,9 @@ export default function BroadcastIds() {
 
           {/* Teams */}
           <div className="bg-card rounded-lg p-6">
-            <h3 className="text-xl font-semibold mb-4">🏆 Teams ({teams.length})</h3>
+            <h3 className="text-xl font-semibold mb-4">
+              🏆 Teams ({teams.length})
+            </h3>
             <div className="grid gap-4 max-h-96 overflow-y-auto">
               {teams.map((team) => (
                 <div key={team.id} className="bg-muted rounded-lg p-4">
@@ -185,51 +194,72 @@ export default function BroadcastIds() {
                         Seed #{team.seed} • Weight: {team.total_rank_points}
                       </p>
                     </div>
-                     <div className="flex items-center space-x-2">
-                       <code 
-                         className="bg-background p-1 rounded text-xs cursor-pointer hover:bg-muted transition-colors"
-                         onClick={() => copyToClipboard(team.id)}
-                       >
-                         {team.id}
-                       </code>
-                       <Button
-                         size="sm"
-                         variant="ghost"
-                         className="h-6 w-6 p-0"
-                         onClick={() => window.open(`${baseUrl}/broadcast/${id}/team/${team.id}`, '_blank')}
-                       >
-                         <ExternalLink className="h-3 w-3" />
-                       </Button>
-                     </div>
+                    <div className="flex items-center space-x-2">
+                      <code
+                        className="bg-background p-1 rounded text-xs cursor-pointer hover:bg-muted transition-colors"
+                        onClick={() => copyToClipboard(team.id)}
+                      >
+                        {team.id}
+                      </code>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 w-6 p-0"
+                        onClick={() =>
+                          window.open(
+                            `${baseUrl}/broadcast/${id}/team/${team.id}`,
+                            "_blank"
+                          )
+                        }
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <h5 className="text-sm font-medium">Players:</h5>
                     {team.team_members.map((member) => (
-                      <div key={member.user_id} className="flex justify-between items-center text-sm bg-background p-2 rounded">
+                      <div
+                        key={member.user_id}
+                        className="flex justify-between items-center text-sm bg-background p-2 rounded"
+                      >
                         <div>
-                          <span className="font-medium">{member.users.discord_username}</span>
-                          {member.is_captain && <span className="ml-2 text-yellow-600">(Captain)</span>}
+                          <span className="font-medium">
+                            {member.users.discord_username}
+                          </span>
+                          {member.is_captain && (
+                            <span className="ml-2 text-yellow-600">
+                              (Captain)
+                            </span>
+                          )}
                           {member.users.riot_id && (
-                            <span className="ml-2 text-muted-foreground">• {member.users.riot_id}</span>
+                            <span className="ml-2 text-muted-foreground">
+                              • {member.users.riot_id}
+                            </span>
                           )}
                         </div>
-                         <div className="flex items-center space-x-2">
-                           <code 
-                             className="text-xs cursor-pointer hover:bg-muted transition-colors p-1 rounded"
-                             onClick={() => copyToClipboard(member.user_id)}
-                           >
-                             {member.user_id}
-                           </code>
-                           <Button
-                             size="sm"
-                             variant="ghost"
-                             className="h-5 w-5 p-0"
-                             onClick={() => window.open(`${baseUrl}/broadcast/${id}/player/${member.user_id}`, '_blank')}
-                           >
-                             <ExternalLink className="h-2 w-2" />
-                           </Button>
-                         </div>
+                        <div className="flex items-center space-x-2">
+                          <code
+                            className="text-xs cursor-pointer hover:bg-muted transition-colors p-1 rounded"
+                            onClick={() => copyToClipboard(member.user_id)}
+                          >
+                            {member.user_id}
+                          </code>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-5 w-5 p-0"
+                            onClick={() =>
+                              window.open(
+                                `${baseUrl}/broadcast/${id}/player/${member.user_id}`,
+                                "_blank"
+                              )
+                            }
+                          >
+                            <ExternalLink className="h-2 w-2" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -240,41 +270,51 @@ export default function BroadcastIds() {
 
           {/* Matches */}
           <div className="bg-card rounded-lg p-6">
-            <h3 className="text-xl font-semibold mb-4">⚔️ Matches ({matches.length})</h3>
+            <h3 className="text-xl font-semibold mb-4">
+              ⚔️ Matches ({matches.length})
+            </h3>
             <div className="grid gap-3 max-h-96 overflow-y-auto">
               {matches.map((match) => {
-                const team1 = teams.find(t => t.id === match.team1_id);
-                const team2 = teams.find(t => t.id === match.team2_id);
-                
+                const team1 = teams.find((t) => t.id === match.team1_id);
+                const team2 = teams.find((t) => t.id === match.team2_id);
+
                 return (
-                  <div key={match.id} className="bg-muted rounded-lg p-3 flex justify-between items-center">
+                  <div
+                    key={match.id}
+                    className="bg-muted rounded-lg p-3 flex justify-between items-center"
+                  >
                     <div className="flex-1">
                       <div className="font-medium">
                         Round {match.round_number}, Match {match.match_number}
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {team1?.name || 'TBD'} vs {team2?.name || 'TBD'}
+                        {team1?.name || "TBD"} vs {team2?.name || "TBD"}
                       </div>
                       <div className="text-xs text-muted-foreground capitalize">
                         Status: {match.status}
                       </div>
                     </div>
-                     <div className="flex items-center space-x-2">
-                       <code 
-                         className="text-xs bg-background p-1 rounded cursor-pointer hover:bg-muted transition-colors"
-                         onClick={() => copyToClipboard(match.id)}
-                       >
-                         {match.id}
-                       </code>
-                       <Button
-                         size="sm"
-                         variant="ghost"
-                         className="h-6 w-6 p-0"
-                         onClick={() => window.open(`${baseUrl}/broadcast/${id}/matchup/${match.id}`, '_blank')}
-                       >
-                         <ExternalLink className="h-3 w-3" />
-                       </Button>
-                     </div>
+                    <div className="flex items-center space-x-2">
+                      <code
+                        className="text-xs bg-background p-1 rounded cursor-pointer hover:bg-muted transition-colors"
+                        onClick={() => copyToClipboard(match.id)}
+                      >
+                        {match.id}
+                      </code>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 w-6 p-0"
+                        onClick={() =>
+                          window.open(
+                            `${baseUrl}/broadcast/${id}/matchup/${match.id}`,
+                            "_blank"
+                          )
+                        }
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
                 );
               })}
@@ -290,17 +330,24 @@ export default function BroadcastIds() {
                 <ol className="list-decimal list-inside space-y-1 text-muted-foreground ml-4">
                   <li>Add a Browser Source</li>
                   <li>Copy the URL you want to use from above</li>
-                  <li>Replace [TEAM_ID], [MATCH_ID], or [USER_ID] with actual IDs from this page</li>
+                  <li>
+                    Replace [TEAM_ID], [MATCH_ID], or [USER_ID] with actual IDs
+                    from this page
+                  </li>
                   <li>Set width/height as needed (pages are responsive)</li>
                   <li>All pages have transparent backgrounds</li>
                 </ol>
               </div>
-              
+
               <div>
                 <h4 className="font-medium mb-2">Animation Controls:</h4>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-4">
-                  <li>Add <code>?animate=false</code> to disable intro animations</li>
-                  <li>Team rosters have a 4-second intro sequence by default</li>
+                  <li>
+                    Add <code>?animate=false</code> to disable intro animations
+                  </li>
+                  <li>
+                    Team rosters have a 4-second intro sequence by default
+                  </li>
                   <li>All other pages are static overlays</li>
                 </ul>
               </div>
@@ -308,14 +355,15 @@ export default function BroadcastIds() {
               <div>
                 <h4 className="font-medium mb-2">Refresh Data:</h4>
                 <p className="text-muted-foreground ml-4">
-                  Browser sources automatically refresh data. For manual refresh, press F5 in the browser source or reload the page.
+                  Browser sources automatically refresh data. For manual refresh,
+                  press F5 in the browser source or reload the page.
                 </p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* RIGHT SIDE - Settings (Green Square Area) */}
+        {/* RIGHT SIDE - Settings */}
         <div className="space-y-6">
           <BroadcastSettingsPanel />
         </div>
