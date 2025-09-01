@@ -419,57 +419,8 @@ export default function BroadcastSettingsPanel() {
 
   return (
     <div className="w-full h-full flex">
-      {/* Left Panel - Broadcast URLs */}
-      <div className="w-1/2 p-6 border-r">
-        <Card className="h-full">
-          <CardHeader>
-            <CardTitle>🎥 Broadcast URLs</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {Object.entries(broadcastUrls).map(([key, url]) => (
-              <div key={key} className="space-y-2">
-                <Label className="text-sm font-medium capitalize">{key.replace(/([A-Z])/g, ' $1')}</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    value={url}
-                    readOnly
-                    className="flex-1 font-mono text-xs"
-                  />
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => copyToClipboard(url, key)}
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => window.open(url, '_blank')}
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-
-            <div className="mt-6 p-4 bg-muted rounded-lg">
-              <p className="text-sm text-muted-foreground mb-2">
-                <strong>Usage:</strong> Replace the parameters in the URLs:
-              </p>
-              <ul className="text-xs text-muted-foreground space-y-1">
-                <li>• <code>:tournamentId</code> - Tournament ID</li>
-                <li>• <code>:teamId</code> - Team ID</li>
-                <li>• <code>:playerId</code> - Player ID</li>
-                <li>• <code>:team1Id</code>, <code>:team2Id</code> - Team IDs for matchup</li>
-              </ul>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Right Panel - Settings */}
-      <div className="w-1/2 p-6">
+      {/* Right Panel - Settings (now full width) */}
+      <div className="w-full p-6">
         <Card className="h-full">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>⚙️ Broadcast Settings</CardTitle>
