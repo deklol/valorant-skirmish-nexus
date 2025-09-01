@@ -244,7 +244,7 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
                     <span className="opacity-70">⭐ Peak: {member.users.peak_rank}</span>
                   )}
                   {sceneSettings.showAdaptiveWeight && (member.users as any)?.adaptive_weight && (
-                    <span className="text-cyan-400">{(member.users as any).adaptive_weight} AWR</span>
+                    <span className="text-cyan-400">{(member.users as any).adaptive_weight} RATING</span>
                   )}
                   {sceneSettings.showTournamentWins && (member.users as any)?.tournaments_won && (
                     <span className="text-green-400">{(member.users as any).tournaments_won}W</span>
