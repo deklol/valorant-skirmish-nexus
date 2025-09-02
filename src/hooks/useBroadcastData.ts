@@ -2,12 +2,14 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Team } from "@/types/tournamentDetail";
 import type { Tournament } from "@/types/tournament";
+import { extractATLASWeightsFromBalanceAnalysis } from "@/utils/broadcastWeightUtils";
 
 export function useBroadcastData(tournamentId: string | undefined) {
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [atlasWeights, setAtlasWeights] = useState<Map<string, number>>(new Map());
 
   useEffect(() => {
     if (!tournamentId) {
@@ -20,10 +22,10 @@ export function useBroadcastData(tournamentId: string | undefined) {
       try {
         setLoading(true);
         
-        // Fetch tournament data
+        // Fetch tournament data with balance analysis
         const { data: tournamentData, error: tournamentError } = await supabase
           .from('tournaments')
-          .select('*')
+          .select('*, balance_analysis')
           .eq('id', tournamentId)
           .single();
 
@@ -36,11 +38,28 @@ export function useBroadcastData(tournamentId: string | undefined) {
           return;
         }
 
-        setTournament({
+        const tournamentWithBalanceAnalysis = {
           ...tournamentData,
           map_pool: Array.isArray(tournamentData.map_pool) ? tournamentData.map_pool : [],
           map_veto_required_rounds: Array.isArray(tournamentData.map_veto_required_rounds) ? tournamentData.map_veto_required_rounds : []
-        } as Tournament);
+        } as Tournament;
+
+        setTournament(tournamentWithBalanceAnalysis);
+
+        // Extract ATLAS weights from stored balance analysis
+        const storedATLASWeights = extractATLASWeightsFromBalanceAnalysis(
+          tournamentData.balance_analysis as any
+        );
+        const atlasWeightMap = new Map<string, number>();
+        storedATLASWeights.forEach(weight => {
+          atlasWeightMap.set(weight.userId, weight.points);
+        });
+        setAtlasWeights(atlasWeightMap);
+
+        console.log('🏛️ BROADCAST: Extracted ATLAS weights:', {
+          total: storedATLASWeights.length,
+          weights: Object.fromEntries(atlasWeightMap)
+        });
 
         // Fetch teams with members and user data
         const { data: teamsData, error: teamsError } = await supabase
@@ -84,16 +103,20 @@ export function useBroadcastData(tournamentId: string | undefined) {
           .eq('tournament_id', tournamentId)
           .order('round_number', { ascending: true });
 
-        // Merge adaptive weights with team member data
-        const teamsWithAdaptiveWeights = teamsData?.map(team => ({
+        // Merge ATLAS weights with team member data (using stored balance analysis)
+        const teamsWithATLASWeights = teamsData?.map(team => ({
           ...team,
           team_members: team.team_members.map(member => {
             const adaptiveWeight = adaptiveWeights?.find(w => w.user_id === member.user_id);
+            const atlasWeight = atlasWeightMap.get(member.user_id) || adaptiveWeight?.calculated_adaptive_weight || 150;
+            
             return {
               ...member,
               users: {
                 ...member.users,
                 adaptive_weight: adaptiveWeight?.calculated_adaptive_weight,
+                atlas_weight: atlasWeight, // Use stored ATLAS weight
+                display_weight: atlasWeight, // Use ATLAS weight for display
                 peak_rank_points: adaptiveWeight?.peak_rank_points,
                 adaptive_factor: adaptiveWeight?.adaptive_factor
               }
@@ -101,7 +124,7 @@ export function useBroadcastData(tournamentId: string | undefined) {
           })
         })) || [];
 
-        setTeams(teamsWithAdaptiveWeights);
+        setTeams(teamsWithATLASWeights);
         
         // Store matches for bracket view
         (window as any).broadcastMatches = matchesData || [];
@@ -117,5 +140,5 @@ export function useBroadcastData(tournamentId: string | undefined) {
     fetchBroadcastData();
   }, [tournamentId]);
 
-  return { tournament, teams, loading, error };
+  return { tournament, teams, loading, error, atlasWeights };
 }

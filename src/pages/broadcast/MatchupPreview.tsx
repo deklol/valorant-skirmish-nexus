@@ -1,7 +1,6 @@
-import { getUnifiedPlayerWeight } from "@/utils/unifiedWeightSystem";
+import { useBroadcastData } from "@/hooks/useBroadcastData";
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import type { Team } from "@/types/tournamentDetail";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -12,93 +11,28 @@ export default function MatchupPreview() {
   const { id, team1Id, team2Id } = useParams<{ id: string; team1Id: string; team2Id: string }>();
   const [team1, setTeam1] = useState<Team | null>(null);
   const [team2, setTeam2] = useState<Team | null>(null);
-  const [loading, setLoading] = useState(true);
   const [shouldAnimate, setShouldAnimate] = useState(true);
   const { settings } = useBroadcastSettings();
+  
+  // Use broadcast data hook with ATLAS weights
+  const { teams, loading } = useBroadcastData(id);
 
   useEffect(() => {
-    if (!id || !team1Id || !team2Id) return;
+    if (!teams.length || !team1Id || !team2Id) return;
 
-    const fetchMatchupData = async () => {
-      const { data: teamsData, error } = await supabase
-        .from('teams')
-        .select(`
-          *,
-          team_members (
-            user_id,
-            is_captain,
-            users (
-              discord_username,
-              discord_avatar_url,
-              current_rank,
-              riot_id,
-              rank_points,
-              weight_rating,
-              peak_rank
-            )
-          )
-        `)
-        .in('id', [team1Id, team2Id]);
+    // Find teams from broadcast data
+    const foundTeam1 = teams.find(t => t.id === team1Id);
+    const foundTeam2 = teams.find(t => t.id === team2Id);
+    
+    setTeam1(foundTeam1 || null);
+    setTeam2(foundTeam2 || null);
 
-      if (error || !teamsData) {
-        setLoading(false);
-        return;
-      }
-
-      // Get adaptive weights
-      const { data: adaptiveWeights } = await supabase
-        .from('tournament_adaptive_weights')
-        .select('*')
-        .eq('tournament_id', id);
-
-      // CRITICAL FIX: Use unified weight system instead of just adaptive weights table
-      const enhancedTeams = await Promise.all(teamsData.map(async team => ({
-        ...team,
-        team_members: await Promise.all(team.team_members.map(async member => {
-          const adaptiveWeight = adaptiveWeights?.find(w => w.user_id === member.user_id);
-          
-          // Use unified weight system for accurate ATLAS calculations
-          const unifiedWeight = await getUnifiedPlayerWeight(
-            {
-              user_id: member.user_id,
-              current_rank: member.users?.current_rank,
-              peak_rank: member.users?.peak_rank,
-              weight_rating: member.users?.weight_rating,
-              manual_rank_override: (member.users as any)?.manual_rank_override,
-              manual_weight_override: (member.users as any)?.manual_weight_override,
-              use_manual_override: (member.users as any)?.use_manual_override,
-              tournaments_won: (member.users as any)?.tournaments_won,
-              discord_username: member.users?.discord_username
-            },
-            { enableATLAS: true, userId: member.user_id, username: member.users?.discord_username }
-          );
-          
-          return {
-            ...member,
-            users: {
-              ...member.users,
-              adaptive_weight: unifiedWeight.points,
-              atlas_weight: unifiedWeight.points,
-              weight_source: unifiedWeight.source,
-              display_weight: unifiedWeight.points
-            }
-          };
-        }))
-      })));
-
-      setTeam1(enhancedTeams.find(t => t.id === team1Id) || null);
-      setTeam2(enhancedTeams.find(t => t.id === team2Id) || null);
-      setLoading(false);
-
-      // FIX: Properly respect animation settings
-      const urlParams = new URLSearchParams(window.location.search);
-      const animateParam = urlParams.get('animate');
-      const animationEnabled = animateParam === 'false' ? false : settings.animationEnabled;
-      setShouldAnimate(animationEnabled);
-    };
-
-    fetchMatchupData();
-  }, [id, team1Id, team2Id, settings.animationEnabled]);
+    // Check animation settings
+    const urlParams = new URLSearchParams(window.location.search);
+    const animateParam = urlParams.get('animate');
+    const animationEnabled = animateParam === 'false' ? false : settings.animationEnabled;
+    setShouldAnimate(animationEnabled);
+  }, [teams, team1Id, team2Id, settings.animationEnabled]);
 
   if (loading || !team1 || !team2) {
     return (
@@ -109,10 +43,12 @@ export default function MatchupPreview() {
   }
 
   const getTeamAverageWeight = (team: Team) => {
-    const weights = team.team_members
-      .map(m => (m.users as any)?.display_weight || (m.users as any)?.adaptive_weight || m.users?.weight_rating || 150)
-      .filter(Boolean);
-    return weights.length > 0 ? Math.round(weights.reduce((a, b) => a + b, 0) / weights.length) : 150;
+    return Math.round(
+      team.team_members.reduce((total, member) => {
+        const weight = (member.users as any)?.display_weight || (member.users as any)?.atlas_weight || (member.users as any)?.adaptive_weight || 150;
+        return total + weight;
+      }, 0) / team.team_members.length
+    );
   };
 
   const team1Avg = getTeamAverageWeight(team1);
@@ -160,7 +96,7 @@ export default function MatchupPreview() {
 
         <div className="grid grid-cols-2 gap-16">
           {/* Team 1 */}
-            <div className="space-y-6">
+          <div className="space-y-6">
             <div className="text-center">
               <div className="text-3xl font-bold mb-2" style={{ color: settings.textColor }}>{team1.name}</div>
               {sceneSettings.showAdaptiveWeight && (
@@ -180,7 +116,7 @@ export default function MatchupPreview() {
                     </AvatarFallback>
                   </Avatar>
                   
-                   <div className="flex-1">
+                  <div className="flex-1">
                     <div className="flex items-center space-x-2">
                       <span className="font-medium" style={{ color: settings.textColor }}>
                         {member.users?.discord_username || 'Unknown'}
@@ -198,9 +134,9 @@ export default function MatchupPreview() {
                           {member.users.current_rank}
                         </span>
                       )}
-                      {sceneSettings.showAdaptiveWeight && ((member.users as any)?.display_weight || (member.users as any)?.adaptive_weight) && (
+                      {sceneSettings.showAdaptiveWeight && ((member.users as any)?.display_weight || (member.users as any)?.atlas_weight) && (
                         <span className="text-cyan-400">
-                          {(member.users as any)?.display_weight || (member.users as any)?.adaptive_weight}
+                          {(member.users as any)?.display_weight || (member.users as any)?.atlas_weight} pts
                         </span>
                       )}
                     </div>
@@ -249,9 +185,9 @@ export default function MatchupPreview() {
                           {member.users.current_rank}
                         </span>
                       )}
-                      {sceneSettings.showAdaptiveWeight && ((member.users as any)?.display_weight || (member.users as any)?.adaptive_weight) && (
+                      {sceneSettings.showAdaptiveWeight && ((member.users as any)?.display_weight || (member.users as any)?.atlas_weight) && (
                         <span className="text-cyan-400">
-                          {(member.users as any)?.display_weight || (member.users as any)?.adaptive_weight}
+                          {(member.users as any)?.display_weight || (member.users as any)?.atlas_weight} pts
                         </span>
                       )}
                     </div>

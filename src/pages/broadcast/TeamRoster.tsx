@@ -1,7 +1,6 @@
-import { getUnifiedPlayerWeight } from "@/utils/unifiedWeightSystem";
+import { useBroadcastData } from "@/hooks/useBroadcastData";
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import type { Team } from "@/types/tournamentDetail";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -13,12 +12,13 @@ interface TeamRosterProps {
 
 export default function TeamRoster({ animate = true }: TeamRosterProps) {
   const { id, teamId } = useParams<{ id: string; teamId?: string }>();
-  const [teams, setTeams] = useState<Team[]>([]);
   const [currentTeam, setCurrentTeam] = useState<Team | null>(null);
-  const [loading, setLoading] = useState(true);
   const [animationPhase, setAnimationPhase] = useState<'intro' | 'roster' | 'complete'>('intro');
   const [shouldAnimate, setShouldAnimate] = useState(true);
   const { settings } = useBroadcastSettings();
+  
+  // Use broadcast data hook with ATLAS weights
+  const { tournament, teams, loading } = useBroadcastData(id);
 
   const rankStyles: Record<string, { emoji: string; color: string }> = {
     iron: { emoji: "⬛", color: "#4A4A4A" },
@@ -43,132 +43,26 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
   };
 
   useEffect(() => {
-    if (!id) return;
+    if (!teams.length) return;
 
-    const fetchTeamData = async () => {
-      const { data: teamsData, error } = await supabase
-        .from('teams')
-        .select(`
-          *,
-          team_members (
-            user_id,
-            is_captain,
-            users (
-              discord_username,
-              discord_avatar_url,
-              current_rank,
-              riot_id,
-              rank_points,
-              weight_rating,
-              peak_rank,
-              tournaments_won
-            )
-          )
-        `)
-        .eq('tournament_id', id)
-        .order('seed', { ascending: true });
+    // Set current team and handle animations
+    const selectedTeam = teamId ? teams.find(t => t.id === teamId) : teams[0];
+    setCurrentTeam(selectedTeam || null);
 
-      if (error || !teamsData) {
-        setLoading(false);
-        return;
-      }
+    // Check animation settings
+    const urlParams = new URLSearchParams(window.location.search);
+    const animateParam = urlParams.get('animate');
+    const animationEnabled = animateParam === 'false' ? false : (settings.animationEnabled && animate);
+    setShouldAnimate(animationEnabled);
 
-      const { data: adaptiveWeights } = await supabase
-        .from('tournament_adaptive_weights')
-        .select('*')
-        .eq('tournament_id', id);
-
-      // DEBUG: Log weight data for debugging
-      console.log('ADAPTIVE WEIGHTS QUERY RESULT:', {
-        tournament_id: id,
-        adaptiveWeights: adaptiveWeights,
-        adaptiveWeightsCount: adaptiveWeights?.length || 0
-      });
-
-      // CRITICAL FIX: Use unified weight system instead of just adaptive weights table
-      const enhancedTeams = await Promise.all(teamsData.map(async team => ({
-        ...team,
-        team_members: await Promise.all(team.team_members.map(async member => {
-          const adaptiveWeight = adaptiveWeights?.find(w => w.user_id === member.user_id);
-          
-          // Use unified weight system for accurate ATLAS calculations
-          const unifiedWeight = await getUnifiedPlayerWeight(
-            {
-              user_id: member.user_id,
-              current_rank: member.users?.current_rank,
-              peak_rank: member.users?.peak_rank,
-              weight_rating: member.users?.weight_rating,
-              manual_rank_override: (member.users as any)?.manual_rank_override,
-              manual_weight_override: (member.users as any)?.manual_weight_override,
-              use_manual_override: (member.users as any)?.use_manual_override,
-              tournaments_won: (member.users as any)?.tournaments_won,
-              discord_username: member.users?.discord_username
-            },
-            { enableATLAS: true, userId: member.user_id, username: member.users?.discord_username }
-          );
-          
-          // DEBUG: Log weight data for debugging
-          if (member.users?.discord_username?.toLowerCase().includes('kera')) {
-            console.log('KERA UNIFIED WEIGHT DEBUG:', {
-              username: member.users.discord_username,
-              user_id: member.user_id,
-              standardWeight: member.users?.weight_rating,
-              adaptiveWeight: adaptiveWeight?.calculated_adaptive_weight,
-              unifiedWeight: unifiedWeight.points,
-              unifiedSource: unifiedWeight.source,
-              unifiedReasoning: unifiedWeight.reasoning
-            });
-          }
-          
-          return {
-            ...member,
-            users: {
-              ...member.users,
-              adaptive_weight: unifiedWeight.points,
-              atlas_weight: unifiedWeight.points,
-              peak_rank_points: adaptiveWeight?.peak_rank_points,
-              weight_source: unifiedWeight.source,
-              display_weight: unifiedWeight.points,
-              unified_reasoning: unifiedWeight.reasoning
-            }
-          };
-        }))
-      })));
-
-      setTeams(enhancedTeams);
-
-      if (teamId) {
-        const team = enhancedTeams.find(t => t.id === teamId);
-        setCurrentTeam(team || enhancedTeams[0]);
-      } else {
-        setCurrentTeam(enhancedTeams[0]);
-      }
-
-      setLoading(false);
-
-      // FIX: Properly respect animation settings - check URL param and global setting
-      const urlParams = new URLSearchParams(window.location.search);
-      const animateParam = urlParams.get('animate');
-      const animationEnabled = animateParam === 'false' ? false : (animate && settings.animationEnabled);
-      setShouldAnimate(animationEnabled);
-      
-      console.log('Animation Debug:', {
-        animateParam,
-        animateProp: animate,
-        globalAnimationEnabled: settings.animationEnabled,
-        shouldAnimate: animationEnabled
-      });
-      
-      if (animationEnabled) {
-        setTimeout(() => setAnimationPhase('roster'), settings.loadingTime / 2);
-        setTimeout(() => setAnimationPhase('complete'), settings.loadingTime);
-      } else {
-        setAnimationPhase('complete');
-      }
-    };
-
-    fetchTeamData();
-  }, [id, teamId, animate, settings.loadingTime, settings.animationEnabled]);
+    if (animationEnabled) {
+      setAnimationPhase('intro');
+      setTimeout(() => setAnimationPhase('roster'), 2000);
+      setTimeout(() => setAnimationPhase('complete'), 4000);
+    } else {
+      setAnimationPhase('complete');
+    }
+  }, [teamId, teams, settings.animationEnabled, animate]);
 
   if (loading || !currentTeam) {
     return (
@@ -233,116 +127,125 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
           !shouldAnimate || animationPhase === 'roster' || animationPhase === 'complete' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
         }`}
       >
-          <div className="text-4xl font-bold mb-8 text-center" style={{ 
-            color: sceneSettings.headerTextColor || settings.headerTextColor,
-            fontSize: `${sceneSettings.headerFontSize || 36}px`,
-            fontFamily: sceneSettings.fontFamily || settings.fontFamily || 'inherit'
-          }}>
+        <div className="text-4xl font-bold mb-8 text-center" style={{ 
+          color: sceneSettings.headerTextColor || settings.headerTextColor,
+          fontSize: `${sceneSettings.headerFontSize || 36}px`,
+          fontFamily: sceneSettings.fontFamily || settings.fontFamily || 'inherit'
+        }}>
           {currentTeam.name}
         </div>
         
         <div className="grid grid-cols-1 gap-6 max-w-2xl">
           {currentTeam.team_members
             .sort((a, b) => (b.is_captain ? 1 : 0) - (a.is_captain ? 1 : 0))
-            .map((member, index) => (
-            <div
-              key={member.user_id}
-              className={`flex items-center space-x-6 bg-black/40 backdrop-blur-md rounded-2xl border border-white/10 shadow-lg transition-all duration-500 ${
-                !shouldAnimate || animationPhase === 'complete' ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'
-              }`}
-              style={{ 
-                transitionDelay: shouldAnimate ? `${index * 200}ms` : '0ms',
-                borderRadius: `${sceneSettings.borderRadius || 16}px`,
-                borderWidth: `${sceneSettings.borderWidth || 1}px`,
-                borderColor: sceneSettings.borderColor || '#ffffff10',
-                padding: `${sceneSettings.padding || 20}px`,
-                gap: `${sceneSettings.spacing || 24}px`,
-                fontFamily: sceneSettings.fontFamily || 'inherit',
-                boxShadow: `0 ${sceneSettings.shadowIntensity || 3}px ${(sceneSettings.shadowIntensity || 3) * 3}px rgba(0,0,0,0.3)`
-              }}
-            >
-              <Avatar className="w-16 h-16 border-2 border-white/20 shadow-md">
-                <AvatarImage 
-                  src={member.users?.discord_avatar_url || undefined} 
-                  alt={member.users?.discord_username}
-                />
-                <AvatarFallback className="bg-slate-700 text-white text-lg">
-                  {member.users?.discord_username?.slice(0, 2).toUpperCase() || '??'}
-                </AvatarFallback>
-              </Avatar>
-              
-              <div className="flex-1">
-                {/* Username + Captain */}
-                <div className="flex items-center space-x-3 mb-1">
-                  <span className="text-xl font-bold tracking-wide" style={{ 
-                    color: sceneSettings.textColor || settings.textColor,
-                    fontSize: `${(sceneSettings.fontSize || 16) * 1.25}px`,
-                    fontWeight: sceneSettings.fontWeight || 'bold',
-                    fontFamily: sceneSettings.fontFamily || settings.fontFamily || 'inherit'
-                  }}>
-                    {member.users?.discord_username || 'Unknown Player'}
-                  </span>
-                  {member.is_captain && (
-                    <Badge variant="outline" className="border-yellow-400 text-yellow-400 text-sm">
-                      CAPTAIN
-                    </Badge>
-                  )}
-                </div>
+            .map((member, index) => {
+              const user = member.users;
+              if (!user) return null;
 
-                {/* Game Info Row */}
-                <div className="flex flex-wrap items-center gap-3 text-sm mt-1">
-                  {sceneSettings.showRiotId && member.users?.riot_id && (
-                    <span className="opacity-70">{member.users.riot_id}</span>
-                  )}
-                  {sceneSettings.showCurrentRank && member.users?.current_rank && renderRank(member.users.current_rank)}
-                  {sceneSettings.showPeakRank && member.users?.peak_rank && (
-                    <span className="opacity-70">⭐ Peak: {member.users.peak_rank}</span>
-                  )}
-                   {sceneSettings.showAdaptiveWeight && ((member.users as any)?.display_weight || (member.users as any)?.adaptive_weight) && (
-                    <span className="text-cyan-400">{(member.users as any)?.display_weight || (member.users as any)?.adaptive_weight} RATING</span>
-                  )}
-                  {sceneSettings.showTournamentWins && (member.users as any)?.tournaments_won && (
-                    <span className="text-green-400">{(member.users as any).tournaments_won}W</span>
-                  )}
+              // Use stored ATLAS weight from broadcast data
+              const displayWeight = (user as any).display_weight || (user as any).atlas_weight || (user as any).adaptive_weight || 150;
+
+              return (
+                <div
+                  key={member.user_id}
+                  className={`flex items-center space-x-6 bg-black/40 backdrop-blur-md rounded-2xl border border-white/10 shadow-lg transition-all duration-500 ${
+                    !shouldAnimate || animationPhase === 'complete' ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'
+                  }`}
+                  style={{ 
+                    transitionDelay: shouldAnimate ? `${index * 200}ms` : '0ms',
+                    borderRadius: `${sceneSettings.borderRadius || 16}px`,
+                    borderWidth: `${sceneSettings.borderWidth || 1}px`,
+                    borderColor: sceneSettings.borderColor || '#ffffff10',
+                    padding: `${sceneSettings.padding || 20}px`,
+                    gap: `${sceneSettings.spacing || 24}px`,
+                    fontFamily: sceneSettings.fontFamily || 'inherit',
+                    boxShadow: `0 ${sceneSettings.shadowIntensity || 3}px ${(sceneSettings.shadowIntensity || 3) * 3}px rgba(0,0,0,0.3)`
+                  }}
+                >
+                  <Avatar className="w-16 h-16 border-2 border-white/20 shadow-md">
+                    <AvatarImage 
+                      src={user.discord_avatar_url || undefined} 
+                      alt={user.discord_username}
+                    />
+                    <AvatarFallback className="bg-slate-700 text-white text-lg">
+                      {user.discord_username?.slice(0, 2).toUpperCase() || '??'}
+                    </AvatarFallback>
+                  </Avatar>
+                  
+                  <div className="flex-1">
+                    {/* Username + Captain */}
+                    <div className="flex items-center space-x-3 mb-1">
+                      <span className="text-xl font-bold tracking-wide" style={{ 
+                        color: sceneSettings.textColor || settings.textColor,
+                        fontSize: `${(sceneSettings.fontSize || 16) * 1.25}px`,
+                        fontWeight: sceneSettings.fontWeight || 'bold',
+                        fontFamily: sceneSettings.fontFamily || settings.fontFamily || 'inherit'
+                      }}>
+                        {user.discord_username || 'Unknown Player'}
+                      </span>
+                      {member.is_captain && (
+                        <Badge variant="outline" className="border-yellow-400 text-yellow-400 text-sm">
+                          CAPTAIN
+                        </Badge>
+                      )}
+                    </div>
+
+                    {/* Game Info Row */}
+                    <div className="flex flex-wrap items-center gap-3 text-sm mt-1">
+                      {sceneSettings.showRiotId && user.riot_id && (
+                        <span className="opacity-70">{user.riot_id}</span>
+                      )}
+                      {sceneSettings.showCurrentRank && user.current_rank && renderRank(user.current_rank)}
+                      {sceneSettings.showPeakRank && user.peak_rank && (
+                        <span className="opacity-70">⭐ Peak: {user.peak_rank}</span>
+                      )}
+                      {sceneSettings.showAdaptiveWeight && (
+                        <Badge variant="outline" className="text-white border-white/30">
+                          {displayWeight} pts
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          ))}
+              );
+            })}
         </div>
 
-        <div className={`mt-8 bg-black/50 backdrop-blur-md rounded-2xl border border-white/10 shadow-xl flex justify-center gap-16 transition-all duration-700 ${
-          !shouldAnimate || animationPhase === 'complete' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-        }`} style={{
+        <div className="mt-8 bg-black/50 backdrop-blur-md rounded-2xl border border-white/10 shadow-xl" style={{
           borderRadius: `${sceneSettings.borderRadius || 16}px`,
           padding: `${(sceneSettings.padding || 16) * 1.5}px ${(sceneSettings.padding || 16) * 2.5}px`,
-          gap: `${(sceneSettings.spacing || 8) * 8}px`,
           boxShadow: `0 ${(sceneSettings.shadowIntensity || 3) * 2}px ${(sceneSettings.shadowIntensity || 3) * 6}px rgba(0,0,0,0.4)`
         }}>
-          <div className="text-center">
-            <div className="text-3xl font-extrabold" style={{ 
-              color: sceneSettings.headerTextColor || settings.headerTextColor,
-              fontSize: `${(sceneSettings.headerFontSize || 24) * 1.25}px`,
-              fontFamily: sceneSettings.fontFamily || 'inherit'
-            }}>
-              {currentTeam.total_rank_points || 0}
+          <div className="flex justify-center gap-16">
+            <div className="text-center">
+              <div className="text-3xl font-extrabold" style={{ 
+                color: sceneSettings.headerTextColor || settings.headerTextColor,
+                fontSize: `${(sceneSettings.headerFontSize || 24) * 1.25}px`,
+                fontFamily: sceneSettings.fontFamily || 'inherit'
+              }}>
+                    {currentTeam.team_members.reduce((total, member) => {
+                      const weight = (member.users as any)?.display_weight || (member.users as any)?.atlas_weight || (member.users as any)?.adaptive_weight || 150;
+                      return total + weight;
+                    }, 0)}
+              </div>
+              <div className="text-sm uppercase tracking-wider" style={{ 
+                color: (sceneSettings.textColor || settings.textColor) + '80',
+                fontFamily: sceneSettings.fontFamily || 'inherit'
+              }}>Total Weight</div>
             </div>
-            <div className="text-sm uppercase tracking-wider" style={{ 
-              color: (sceneSettings.textColor || settings.textColor) + '80',
-              fontFamily: sceneSettings.fontFamily || 'inherit'
-            }}>Total Weight</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-extrabold" style={{ 
-              color: sceneSettings.headerTextColor || settings.headerTextColor,
-              fontSize: `${(sceneSettings.headerFontSize || 24) * 1.25}px`,
-              fontFamily: sceneSettings.fontFamily || 'inherit'
-            }}>
-              #{currentTeam.seed || 'TBD'}
+            <div className="text-center">
+              <div className="text-3xl font-extrabold" style={{ 
+                color: sceneSettings.headerTextColor || settings.headerTextColor,
+                fontSize: `${(sceneSettings.headerFontSize || 24) * 1.25}px`,
+                fontFamily: sceneSettings.fontFamily || 'inherit'
+              }}>
+                #{currentTeam.seed || 'TBD'}
+              </div>
+              <div className="text-sm uppercase tracking-wider" style={{ 
+                color: (sceneSettings.textColor || settings.textColor) + '80',
+                fontFamily: sceneSettings.fontFamily || 'inherit'
+              }}>Seed</div>
             </div>
-            <div className="text-sm uppercase tracking-wider" style={{ 
-              color: (sceneSettings.textColor || settings.textColor) + '80',
-              fontFamily: sceneSettings.fontFamily || 'inherit'
-            }}>Seed</div>
           </div>
         </div>
       </div>
