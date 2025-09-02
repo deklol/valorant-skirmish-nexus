@@ -1,12 +1,12 @@
-import { Client, Collection, GatewayIntentBits, Partials } from 'discord.js';
 import dotenv from 'dotenv';
+dotenv.config();
+
+import { Client, Collection, GatewayIntentBits, Partials } from 'discord.js';
 import { supabase } from './utils/supabase.js';
 import { loadCommands } from './handlers/commandHandler.js';
 import { loadEvents } from './handlers/eventHandler.js';
 import { startCronJobs } from './utils/cronJobs.js';
 import { syncBotCommands } from './utils/deployCommands.js';
-
-dotenv.config();
 
 // Create Discord client with necessary intents
 const client = new Client({
