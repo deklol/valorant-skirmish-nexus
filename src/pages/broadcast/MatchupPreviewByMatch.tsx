@@ -174,54 +174,174 @@ export default function MatchupPreviewByMatch() {
 
   const sceneSettings = settings.sceneSettings.matchupPreview;
 
-  const PlayerCard = ({ member, teamName }: { member: any; teamName: string }) => (
-    <div className="flex items-center space-x-4 bg-black/20 backdrop-blur-sm rounded-lg p-4 border border-white/10">
-      <Avatar className="w-12 h-12">
-        <AvatarImage src={member.users?.discord_avatar_url || undefined} />
-        <AvatarFallback className="bg-slate-700 text-white">
-          {member.users?.discord_username?.slice(0, 2).toUpperCase() || '??'}
-        </AvatarFallback>
-      </Avatar>
-      
-      <div className="flex-1">
-        <div className="flex items-center space-x-2">
-          <span className="text-white font-medium" style={{ color: settings.textColor }}>
-            {member.users?.discord_username || 'Unknown'}
-          </span>
-          {member.is_captain && (
-            <Badge variant="outline" className="border-yellow-400 text-yellow-400 text-xs">
-              C
-            </Badge>
-          )}
+  const TaleOfTapeStats = () => {
+    const team1Stats = {
+      avgWeight: team1Avg,
+      totalWins: team1.team_members.reduce((sum, m) => sum + ((m.users as any)?.tournaments_won || 0), 0),
+      avgRankPoints: Math.round(team1.team_members.reduce((sum, m) => sum + (m.users?.rank_points || 150), 0) / team1.team_members.length),
+      immortalPlayers: team1.team_members.filter(m => m.users?.current_rank?.toLowerCase().includes('immortal')).length,
+      radiantPlayers: team1.team_members.filter(m => m.users?.current_rank?.toLowerCase().includes('radiant')).length,
+    };
+
+    const team2Stats = {
+      avgWeight: team2Avg,
+      totalWins: team2.team_members.reduce((sum, m) => sum + ((m.users as any)?.tournaments_won || 0), 0),
+      avgRankPoints: Math.round(team2.team_members.reduce((sum, m) => sum + (m.users?.rank_points || 150), 0) / team2.team_members.length),
+      immortalPlayers: team2.team_members.filter(m => m.users?.current_rank?.toLowerCase().includes('immortal')).length,
+      radiantPlayers: team2.team_members.filter(m => m.users?.current_rank?.toLowerCase().includes('radiant')).length,
+    };
+
+    const StatRow = ({ label, value1, value2, highlight = false }: { label: string; value1: string | number; value2: string | number; highlight?: boolean }) => (
+      <div className={`grid grid-cols-3 gap-4 py-3 border-b border-white/10 ${highlight ? 'bg-red-500/10' : ''}`}>
+        <div className="text-right font-medium" style={{ color: settings.textColor, fontSize: sceneSettings.fontSize }}>
+          {value1}
+        </div>
+        <div className="text-center text-white/70 uppercase tracking-wide text-sm font-bold">
+          {label}
+        </div>
+        <div className="text-left font-medium" style={{ color: settings.textColor, fontSize: sceneSettings.fontSize }}>
+          {value2}
+        </div>
+      </div>
+    );
+
+    return (
+      <div className="bg-black/40 backdrop-blur-sm rounded-xl border border-white/20 p-6 max-w-md mx-auto">
+        <div className="text-center mb-6">
+          <h3 className="text-2xl font-bold uppercase tracking-wider" style={{ color: settings.headerTextColor }}>
+            Tale of the Tape
+          </h3>
         </div>
         
-        <div className="flex items-center space-x-3 text-sm">
-          {sceneSettings.showRiotId && member.users?.riot_id && (
-            <span className="text-white/70">
-              {member.users.riot_id}
-            </span>
+        <div className="space-y-0">
+          {sceneSettings.showAdaptiveWeight && (
+            <StatRow 
+              label="Avg Weight" 
+              value1={team1Stats.avgWeight} 
+              value2={team2Stats.avgWeight}
+              highlight={Math.abs(team1Stats.avgWeight - team2Stats.avgWeight) > 25}
+            />
           )}
-          {sceneSettings.showCurrentRank && member.users?.current_rank && (
-            <span className={getRankColor(member.users.current_rank)}>
-              {member.users.current_rank}
-            </span>
+          
+          <StatRow 
+            label="Avg Rank Points" 
+            value1={team1Stats.avgRankPoints} 
+            value2={team2Stats.avgRankPoints} 
+          />
+          
+          {sceneSettings.showTournamentWins && (
+            <StatRow 
+              label="Total Wins" 
+              value1={team1Stats.totalWins} 
+              value2={team2Stats.totalWins} 
+            />
           )}
-          {sceneSettings.showPeakRank && member.users?.peak_rank && (
-            <span className={`text-white/60 ${getRankColor(member.users.peak_rank)}`}>
-              Peak: {member.users.peak_rank}
-            </span>
-          )}
-          {sceneSettings.showAdaptiveWeight && (member.users as any)?.display_weight && (
-            <span className="text-cyan-400">
-              {(member.users as any).display_weight} AWR
-            </span>
-          )}
-          {sceneSettings.showTournamentWins && member.users?.tournaments_won && (
-            <span className="text-green-400">
-              {member.users.tournaments_won}W
-            </span>
-          )}
+          
+          <StatRow 
+            label="Radiant Players" 
+            value1={team1Stats.radiantPlayers} 
+            value2={team2Stats.radiantPlayers}
+            highlight={team1Stats.radiantPlayers > 0 || team2Stats.radiantPlayers > 0}
+          />
+          
+          <StatRow 
+            label="Immortal Players" 
+            value1={team1Stats.immortalPlayers} 
+            value2={team2Stats.immortalPlayers} 
+          />
+          
+          <StatRow 
+            label="Seed" 
+            value1={`#${team1.seed || 'TBD'}`} 
+            value2={`#${team2.seed || 'TBD'}`} 
+          />
         </div>
+        
+        <div className="mt-6 text-center">
+          <div className={`text-lg font-bold ${weightDiff < 10 ? 'text-green-400' : weightDiff < 25 ? 'text-yellow-400' : 'text-red-400'}`}>
+            {weightDiff < 10 ? 'VERY BALANCED' : weightDiff < 25 ? 'BALANCED' : 'FAVORED MATCH'}
+          </div>
+          <div className="text-white/50 text-sm mt-1">
+            Weight Difference: {weightDiff} points
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const PlayerLineup = ({ team, side }: { team: Team; side: 'left' | 'right' }) => (
+    <div className={`space-y-4 ${side === 'right' ? 'text-right' : 'text-left'}`}>
+      <div className="mb-8">
+        <div 
+          className="text-4xl font-bold mb-2 uppercase tracking-wide" 
+          style={{ color: settings.headerTextColor, fontSize: sceneSettings.headerFontSize }}
+        >
+          {team.name}
+        </div>
+        <div className="flex items-center space-x-4" style={{ justifyContent: side === 'right' ? 'flex-end' : 'flex-start' }}>
+          <div className="text-cyan-400 text-xl font-bold">
+            AVG: {side === 'left' ? team1Avg : team2Avg}
+          </div>
+          <div className="text-white/50">
+            SEED #{team.seed || 'TBD'}
+          </div>
+        </div>
+      </div>
+      
+      <div className="space-y-3">
+        {team.team_members
+          .sort((a, b) => (b.is_captain ? 1 : 0) - (a.is_captain ? 1 : 0))
+          .map((member, index) => (
+            <div 
+              key={member.user_id} 
+              className={`flex items-center space-x-4 bg-black/20 backdrop-blur-sm rounded-lg p-4 border border-white/10 ${
+                side === 'right' ? 'flex-row-reverse space-x-reverse' : ''
+              }`}
+            >
+              <div className="flex items-center space-x-3">
+                <div className="text-2xl font-bold text-white/30">
+                  {index + 1}
+                </div>
+                <Avatar className="w-12 h-12">
+                  <AvatarImage src={member.users?.discord_avatar_url || undefined} />
+                  <AvatarFallback className="bg-slate-700 text-white">
+                    {member.users?.discord_username?.slice(0, 2).toUpperCase() || '??'}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
+              
+              <div className={`flex-1 ${side === 'right' ? 'text-right' : 'text-left'}`}>
+                <div className="flex items-center space-x-2" style={{ justifyContent: side === 'right' ? 'flex-end' : 'flex-start' }}>
+                  {member.is_captain && (
+                    <Badge variant="outline" className="border-yellow-400 text-yellow-400 text-xs">
+                      C
+                    </Badge>
+                  )}
+                  <span className="text-white font-bold text-lg" style={{ color: settings.textColor }}>
+                    {member.users?.discord_username || 'Unknown'}
+                  </span>
+                </div>
+                
+                <div className={`flex items-center space-x-3 text-sm mt-1 ${side === 'right' ? 'flex-row-reverse space-x-reverse' : ''}`}>
+                  {sceneSettings.showCurrentRank && member.users?.current_rank && (
+                    <span className={`font-medium ${getRankColor(member.users.current_rank)}`}>
+                      {member.users.current_rank}
+                    </span>
+                  )}
+                  {sceneSettings.showAdaptiveWeight && (member.users as any)?.display_weight && (
+                    <span className="text-cyan-400 font-bold">
+                      {(member.users as any).display_weight}
+                    </span>
+                  )}
+                  {sceneSettings.showTournamentWins && (member.users as any)?.tournaments_won && (
+                    <span className="text-green-400">
+                      {(member.users as any).tournaments_won}W
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
       </div>
     </div>
   );
@@ -232,65 +352,57 @@ export default function MatchupPreviewByMatch() {
   };
 
   return (
-    <div className="w-screen h-screen bg-transparent flex items-center justify-center p-8" style={containerStyle}>
-      <div className="max-w-7xl w-full">
-        {/* Header */}
+    <div 
+      className="w-screen h-screen flex items-center justify-center p-8 relative overflow-hidden" 
+      style={{
+        ...containerStyle,
+        backgroundImage: sceneSettings.backgroundImage ? `url(${sceneSettings.backgroundImage})` : undefined,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
+    >
+      {/* Background overlay for better text readability */}
+      <div className="absolute inset-0 bg-black/40" />
+      
+      <div className="relative z-10 max-w-7xl w-full">
+        {/* Main Header */}
         <div className="text-center mb-12">
-          <div className="text-5xl font-bold mb-4 flex items-center justify-center space-x-4" style={{ color: settings.headerTextColor }}>
-            <span>{team1.name}</span>
-            <Swords className="w-12 h-12 text-red-500" />
-            <span>{team2.name}</span>
-          </div>
-          <div className="text-xl text-white/70" style={{ color: settings.textColor + '80' }}>Upcoming Match</div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-16">
-          {/* Team 1 */}
-          <div className="space-y-6">
-            <div className="text-center">
-              <div className="text-3xl font-bold mb-2" style={{ color: settings.headerTextColor }}>{team1.name}</div>
-              <div className="text-cyan-400 text-lg">Avg Weight: {team1Avg}</div>
-              <div className="text-sm text-white/50">Seed: #{team1.seed || 'TBD'}</div>
+          <div className="flex items-center justify-center space-x-6 mb-6">
+            <div 
+              className="text-6xl font-black uppercase tracking-wider" 
+              style={{ color: settings.headerTextColor, fontFamily: sceneSettings.fontFamily }}
+            >
+              {team1.name}
             </div>
-            
-            <div className="space-y-4">
-              {team1.team_members
-                .sort((a, b) => (b.is_captain ? 1 : 0) - (a.is_captain ? 1 : 0))
-                .map((member) => (
-                  <PlayerCard key={member.user_id} member={member} teamName={team1.name} />
-                ))}
+            <div className="flex flex-col items-center">
+              <Swords className="w-16 h-16 text-red-500 mb-2" />
+              <div className="text-white/70 text-lg uppercase tracking-wide font-bold">
+                VS
+              </div>
+            </div>
+            <div 
+              className="text-6xl font-black uppercase tracking-wider" 
+              style={{ color: settings.headerTextColor, fontFamily: sceneSettings.fontFamily }}
+            >
+              {team2.name}
             </div>
           </div>
-
-          {/* Team 2 */}
-          <div className="space-y-6">
-            <div className="text-center">
-              <div className="text-3xl font-bold mb-2" style={{ color: settings.headerTextColor }}>{team2.name}</div>
-              <div className="text-cyan-400 text-lg">Avg Weight: {team2Avg}</div>
-              <div className="text-sm text-white/50">Seed: #{team2.seed || 'TBD'}</div>
-            </div>
-            
-            <div className="space-y-4">
-              {team2.team_members
-                .sort((a, b) => (b.is_captain ? 1 : 0) - (a.is_captain ? 1 : 0))
-                .map((member) => (
-                  <PlayerCard key={member.user_id} member={member} teamName={team2.name} />
-                ))}
-            </div>
+          <div className="text-2xl text-white/80 uppercase tracking-wider font-bold">
+            Upcoming Match
           </div>
         </div>
 
-        {/* Stats Comparison */}
-        <div className="mt-12 text-center">
-          <div className="bg-black/30 backdrop-blur-sm rounded-xl p-6 border border-white/10 inline-block">
-            <div className="text-white/70 mb-2" style={{ color: settings.textColor + '80' }}>Weight Difference</div>
-            <div className={`text-2xl font-bold ${weightDiff < 10 ? 'text-green-400' : weightDiff < 25 ? 'text-yellow-400' : 'text-red-400'}`}>
-              {weightDiff} points
-            </div>
-            <div className="text-sm text-white/50 mt-1" style={{ color: settings.textColor + '60' }}>
-              {weightDiff < 10 ? 'Very Balanced' : weightDiff < 25 ? 'Balanced' : 'Favored Match'}
-            </div>
+        <div className="grid grid-cols-3 gap-8 items-start">
+          {/* Team 1 Lineup */}
+          <PlayerLineup team={team1} side="left" />
+          
+          {/* Center - Tale of the Tape */}
+          <div className="flex justify-center">
+            <TaleOfTapeStats />
           </div>
+          
+          {/* Team 2 Lineup */}
+          <PlayerLineup team={team2} side="right" />
         </div>
       </div>
     </div>
