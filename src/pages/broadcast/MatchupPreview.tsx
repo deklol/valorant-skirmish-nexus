@@ -27,11 +27,14 @@ export default function MatchupPreview() {
     setTeam1(foundTeam1 || null);
     setTeam2(foundTeam2 || null);
 
-    // Check animation settings
+    // Check animation settings - URL parameter overrides stored settings
     const urlParams = new URLSearchParams(window.location.search);
     const animateParam = urlParams.get('animate');
-    const animationEnabled = animateParam === 'false' ? false : settings.animationEnabled;
-    setShouldAnimate(animationEnabled);
+    if (animateParam !== null) {
+      setShouldAnimate(animateParam !== 'false');
+    } else {
+      setShouldAnimate(settings.animationEnabled);
+    }
   }, [teams, team1Id, team2Id, settings.animationEnabled]);
 
   if (loading || !team1 || !team2) {

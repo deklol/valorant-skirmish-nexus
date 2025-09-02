@@ -44,16 +44,24 @@ export default function PlayerSpotlightCard() {
       if (member && member.users) {
         playerData = {
           ...member.users,
-          display_weight: (member.users as any).display_weight,
+          display_weight: (member.users as any).display_weight || (member.users as any).atlas_weight,
           atlas_weight: (member.users as any).atlas_weight,
           adaptive_weight: (member.users as any).adaptive_weight,
           team_name: team.name,
           is_captain: member.is_captain,
-          tournaments_won: 0, // Would need additional query for this
-          total_matches: 0 // Would need additional query for this
+          tournaments_won: (member.users as any).tournaments_won || 0,
+          total_matches: (member.users as any).tournaments_played || 0
         };
         teamName = team.name;
         isCaptain = member.is_captain;
+        console.log('🎯 PLAYER SPOTLIGHT DATA:', {
+          userId: playerId,
+          discord_username: member.users.discord_username,
+          atlas_weight: (member.users as any).atlas_weight,
+          display_weight: (member.users as any).display_weight,
+          tournaments_won: (member.users as any).tournaments_won,
+          tournaments_played: (member.users as any).tournaments_played
+        });
         break;
       }
     }
@@ -61,11 +69,14 @@ export default function PlayerSpotlightCard() {
     setPlayer(playerData);
     setLoading(false);
 
-    // Check animation settings
+    // Check animation settings - URL parameter overrides stored settings
     const urlParams = new URLSearchParams(window.location.search);
     const animateParam = urlParams.get('animate');
-    const animationEnabled = animateParam === 'false' ? false : settings.animationEnabled;
-    setShouldAnimate(animationEnabled);
+    if (animateParam !== null) {
+      setShouldAnimate(animateParam !== 'false');
+    } else {
+      setShouldAnimate(settings.animationEnabled);
+    }
   }, [teams, playerId, settings.animationEnabled]);
 
   const getRankColor = (rank?: string) => {
@@ -211,19 +222,19 @@ export default function PlayerSpotlightCard() {
                   </div>
                 )}
 
-                {sceneSettings.showAdaptiveWeight && (
-                  <>
-                    <div className="flex items-center justify-between p-4 bg-black/20 rounded-xl border border-white/10">
-                      <span style={{ color: sceneSettings.textColor || settings.textColor }}>Tournaments Won</span>
-                      <span className="text-green-400 text-lg font-bold">{player.tournaments_won || 0}</span>
-                    </div>
-                    
-                    <div className="flex items-center justify-between p-4 bg-black/20 rounded-xl border border-white/10">
-                      <span style={{ color: sceneSettings.textColor || settings.textColor }}>Total Matches</span>
-                      <span className="text-blue-400 text-lg font-bold">{player.total_matches || 0}</span>
-                    </div>
-                  </>
-                )}
+                 {sceneSettings.showTournamentWins && (
+                   <div className="flex items-center justify-between p-4 bg-black/20 rounded-xl border border-white/10">
+                     <span style={{ color: sceneSettings.textColor || settings.textColor }}>Tournaments Won</span>
+                     <span className="text-green-400 text-lg font-bold">{player.tournaments_won || 0}</span>
+                   </div>
+                 )}
+                 
+                 {sceneSettings.showTournamentWins && (
+                   <div className="flex items-center justify-between p-4 bg-black/20 rounded-xl border border-white/10">
+                     <span style={{ color: sceneSettings.textColor || settings.textColor }}>Total Tournaments</span>
+                     <span className="text-blue-400 text-lg font-bold">{player.total_matches || 0}</span>
+                   </div>
+                 )}
 
                 {/* Performance Indicator */}
                 <div className="p-4 bg-gradient-to-r from-purple-600/10 to-blue-600/10 rounded-xl border border-white/10">

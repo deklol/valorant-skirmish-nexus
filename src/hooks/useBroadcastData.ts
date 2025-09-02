@@ -61,7 +61,7 @@ export function useBroadcastData(tournamentId: string | undefined) {
           weights: Object.fromEntries(atlasWeightMap)
         });
 
-        // Fetch teams with members and user data
+        // Fetch teams with members and user data + tournament statistics
         const { data: teamsData, error: teamsError } = await supabase
           .from('teams')
           .select(`
@@ -76,7 +76,8 @@ export function useBroadcastData(tournamentId: string | undefined) {
                 riot_id,
                 rank_points,
                 weight_rating,
-                peak_rank
+                peak_rank,
+                tournaments_won
               )
             )
           `)
@@ -91,6 +92,16 @@ export function useBroadcastData(tournamentId: string | undefined) {
           .select('*')
           .eq('tournament_id', tournamentId);
 
+        // Fetch tournament statistics for each user
+        const userIds = teamsData?.flatMap(team => 
+          team.team_members.map(member => member.user_id)
+        ) || [];
+        
+        const { data: userStats } = await supabase
+          .from('users')
+          .select('id, tournaments_won, tournaments_played')
+          .in('id', userIds);
+
         // Fetch real matches for bracket
         const { data: matchesData } = await supabase
           .from('matches')
@@ -103,22 +114,36 @@ export function useBroadcastData(tournamentId: string | undefined) {
           .eq('tournament_id', tournamentId)
           .order('round_number', { ascending: true });
 
-        // Merge ATLAS weights with team member data (using stored balance analysis)
+        // Merge ATLAS weights and tournament statistics with team member data
         const teamsWithATLASWeights = teamsData?.map(team => ({
           ...team,
           team_members: team.team_members.map(member => {
             const adaptiveWeight = adaptiveWeights?.find(w => w.user_id === member.user_id);
-            const atlasWeight = atlasWeightMap.get(member.user_id) || adaptiveWeight?.calculated_adaptive_weight || 150;
+            const atlasWeight = atlasWeightMap.get(member.user_id);
+            const userStat = userStats?.find(u => u.id === member.user_id);
+            
+            // Prefer ATLAS weight, then adaptive weight, then fallback
+            const displayWeight = atlasWeight || adaptiveWeight?.calculated_adaptive_weight || 150;
+            
+            console.log(`🎯 BROADCAST USER ${member.user_id}:`, {
+              username: member.users?.discord_username,
+              atlasWeight,
+              adaptiveWeight: adaptiveWeight?.calculated_adaptive_weight,
+              finalDisplayWeight: displayWeight,
+              tournamentsWon: userStat?.tournaments_won || member.users?.tournaments_won
+            });
             
             return {
               ...member,
               users: {
                 ...member.users,
                 adaptive_weight: adaptiveWeight?.calculated_adaptive_weight,
-                atlas_weight: atlasWeight, // Use stored ATLAS weight
-                display_weight: atlasWeight, // Use ATLAS weight for display
+                atlas_weight: atlasWeight, // ATLAS weight from stored calculations
+                display_weight: displayWeight, // Primary weight to display
                 peak_rank_points: adaptiveWeight?.peak_rank_points,
-                adaptive_factor: adaptiveWeight?.adaptive_factor
+                adaptive_factor: adaptiveWeight?.adaptive_factor,
+                tournaments_won: userStat?.tournaments_won || member.users?.tournaments_won || 0,
+                tournaments_played: userStat?.tournaments_played || 0
               }
             };
           })

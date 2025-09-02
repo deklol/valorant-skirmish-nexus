@@ -49,10 +49,11 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
     const selectedTeam = teamId ? teams.find(t => t.id === teamId) : teams[0];
     setCurrentTeam(selectedTeam || null);
 
-    // Check animation settings
+    // Check animation settings - URL parameter overrides stored settings
     const urlParams = new URLSearchParams(window.location.search);
     const animateParam = urlParams.get('animate');
-    const animationEnabled = animateParam === 'false' ? false : (settings.animationEnabled && animate);
+    const shouldAnimateFromUrl = animateParam !== null ? animateParam !== 'false' : null;
+    const animationEnabled = shouldAnimateFromUrl !== null ? shouldAnimateFromUrl : (settings.animationEnabled && animate);
     setShouldAnimate(animationEnabled);
 
     if (animationEnabled) {

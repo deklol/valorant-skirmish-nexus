@@ -33,7 +33,7 @@ interface BalanceAnalysis {
 
 /**
  * Extract ATLAS weights from stored tournament balance analysis
- * This uses the same logic as the tournament transparency component
+ * EXACT SAME LOGIC as TournamentBalanceTransparency.tsx getUnifiedATLASCalculations()
  */
 export function extractATLASWeightsFromBalanceAnalysis(balanceAnalysis: BalanceAnalysis | null): StoredATLASWeight[] {
   if (!balanceAnalysis) return [];
@@ -42,10 +42,12 @@ export function extractATLASWeightsFromBalanceAnalysis(balanceAnalysis: BalanceA
     hasBalanceAnalysis: !!balanceAnalysis,
     keys: Object.keys(balanceAnalysis || {}),
     hasEvidenceCalculations: !!(balanceAnalysis.evidenceCalculations),
+    hasAtlasCalculations: !!(balanceAnalysis.atlasCalculations),
+    hasAdaptiveCalculations: !!(balanceAnalysis.adaptiveWeightCalculations || balanceAnalysis.adaptive_weight_calculations),
     hasBalanceSteps: !!(balanceAnalysis.balanceSteps || balanceAnalysis.balance_steps)
   });
 
-  // First try to get stored calculation data (like transparency component does)
+  // First try to get actual calculation data (EXACT same order as transparency component)
   const calculations = balanceAnalysis.atlasCalculations || 
                       balanceAnalysis.adaptiveWeightCalculations || 
                       balanceAnalysis.adaptive_weight_calculations || 
@@ -53,26 +55,57 @@ export function extractATLASWeightsFromBalanceAnalysis(balanceAnalysis: BalanceA
                       [];
 
   if (calculations.length > 0) {
-    console.log('🏛️ BROADCAST: Using stored ATLAS calculations:', calculations.length);
-    return calculations.map((calc: any) => ({
-      userId: calc.userId,
-      points: calc.calculation?.points || calc.calculation?.finalPoints || calc.calculation?.calculatedAdaptiveWeight || 0,
-      rank: calc.calculation?.rank || calc.calculation?.currentRank || 'Unranked',
-      source: 'atlas_evidence',
-      evidenceReasoning: calc.calculation?.calculationReasoning
-    }));
+    console.log('🏛️ BROADCAST: Found stored calculations:', {
+      total: calculations.length,
+      firstCalc: calculations[0],
+      calculationKeys: calculations[0]?.calculation ? Object.keys(calculations[0].calculation) : []
+    });
+
+    // Use EXACT same logic as transparency component
+    const uniqueCalculations = calculations.filter((calc: any, index: number, self: any[]) => 
+      index === self.findIndex((c: any) => c.userId === calc.userId)
+    );
+
+    return uniqueCalculations.map((calc: any) => {
+      const storedCalc = calc.calculation as any;
+      
+      // Try multiple weight field names (same as transparency)
+      const points = storedCalc?.finalPoints || 
+                    storedCalc?.calculatedAdaptiveWeight || 
+                    storedCalc?.points ||
+                    storedCalc?.evidenceWeight ||
+                    storedCalc?.weightRating ||
+                    calc.points ||
+                    150;
+
+      console.log(`📊 BROADCAST USER ${calc.userId}:`, {
+        finalPoints: storedCalc?.finalPoints,
+        calculatedAdaptiveWeight: storedCalc?.calculatedAdaptiveWeight,
+        points: storedCalc?.points,
+        evidenceWeight: storedCalc?.evidenceWeight,
+        selectedWeight: points
+      });
+
+      return {
+        userId: calc.userId,
+        points: points,
+        rank: storedCalc?.currentRank || storedCalc?.rank || calc.rank || 'Unranked',
+        source: 'atlas_stored_calculation',
+        evidenceReasoning: storedCalc?.calculationReasoning || storedCalc?.evidenceReasoning
+      };
+    });
   }
 
-  // Fall back to balance steps with evidence weights (same as transparency component)
+  // Fall back to balance steps (same as transparency component)
   const balanceSteps = balanceAnalysis.balanceSteps || balanceAnalysis.balance_steps || [];
   
   if (balanceSteps.length > 0) {
-    console.log('🏛️ BROADCAST: Using balance steps evidence:', balanceSteps.length);
+    console.log('🏛️ BROADCAST: Using balance steps as fallback:', balanceSteps.length);
     return balanceSteps.map((step: BalanceStep) => ({
       userId: step.player.id || 'unknown',
-      points: step.player.evidenceWeight || step.player.points || 0,
+      points: step.player.evidenceWeight || step.player.points || 150,
       rank: step.player.rank || 'Unranked',
-      source: 'evidence_based',
+      source: 'balance_steps_fallback',
       evidenceReasoning: step.player.evidenceReasoning
     }));
   }
