@@ -1,3 +1,4 @@
+import { getUnifiedPlayerWeight } from "@/utils/unifiedWeightSystem";
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,6 +29,7 @@ export default function PlayerSpotlightCard() {
   const { id, playerId } = useParams<{ id: string; playerId: string }>();
   const [player, setPlayer] = useState<PlayerData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [shouldAnimate, setShouldAnimate] = useState(true);
   const { settings } = useBroadcastSettings();
 
   useEffect(() => {
@@ -88,8 +90,21 @@ export default function PlayerSpotlightCard() {
         (stat: any) => stat.teams?.tournaments?.status === 'completed'
       ).length || 0;
 
-      // PRIORITY FIX: Use ATLAS adaptive weight when available
-      const displayWeight = adaptiveWeight?.calculated_adaptive_weight || teamMemberData.users?.weight_rating || 150;
+      // CRITICAL FIX: Use unified weight system for accurate ATLAS calculations
+      const unifiedWeight = await getUnifiedPlayerWeight(
+        {
+          user_id: playerId,
+          current_rank: teamMemberData.users?.current_rank,
+          peak_rank: teamMemberData.users?.peak_rank,
+          weight_rating: teamMemberData.users?.weight_rating,
+          manual_rank_override: (teamMemberData.users as any)?.manual_rank_override,
+          manual_weight_override: (teamMemberData.users as any)?.manual_weight_override,
+          use_manual_override: (teamMemberData.users as any)?.use_manual_override,
+          tournaments_won: (teamMemberData.users as any)?.tournaments_won,
+          discord_username: teamMemberData.users?.discord_username
+        },
+        { enableATLAS: true, userId: playerId, username: teamMemberData.users?.discord_username }
+      );
 
       setPlayer({
         id: playerId,
@@ -100,9 +115,9 @@ export default function PlayerSpotlightCard() {
         rank_points: teamMemberData.users?.rank_points,
         weight_rating: teamMemberData.users?.weight_rating,
         peak_rank: teamMemberData.users?.peak_rank,
-        adaptive_weight: displayWeight,
-        atlas_weight: adaptiveWeight?.calculated_adaptive_weight,
-        weight_source: adaptiveWeight?.weight_source || 'standard',
+        adaptive_weight: unifiedWeight.points,
+        atlas_weight: unifiedWeight.points,
+        weight_source: unifiedWeight.source,
         team_name: (teamMemberData.teams as any)?.name,
         is_captain: teamMemberData.is_captain,
         tournaments_won: tournamentsWon,
@@ -110,10 +125,16 @@ export default function PlayerSpotlightCard() {
       });
 
       setLoading(false);
+
+      // FIX: Properly respect animation settings
+      const urlParams = new URLSearchParams(window.location.search);
+      const animateParam = urlParams.get('animate');
+      const animationEnabled = animateParam === 'false' ? false : settings.animationEnabled;
+      setShouldAnimate(animationEnabled);
     };
 
     fetchPlayerData();
-  }, [id, playerId]);
+  }, [id, playerId, settings.animationEnabled]);
 
   if (loading || !player) {
     return (

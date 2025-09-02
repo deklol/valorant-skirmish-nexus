@@ -1,3 +1,4 @@
+import { getUnifiedPlayerWeight } from "@/utils/unifiedWeightSystem";
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,6 +17,7 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
   const [currentTeam, setCurrentTeam] = useState<Team | null>(null);
   const [loading, setLoading] = useState(true);
   const [animationPhase, setAnimationPhase] = useState<'intro' | 'roster' | 'complete'>('intro');
+  const [shouldAnimate, setShouldAnimate] = useState(true);
   const { settings } = useBroadcastSettings();
 
   const rankStyles: Record<string, { emoji: string; color: string }> = {
@@ -76,25 +78,62 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
         .select('*')
         .eq('tournament_id', id);
 
-      const enhancedTeams = teamsData.map(team => ({
+      // DEBUG: Log weight data for debugging
+      console.log('ADAPTIVE WEIGHTS QUERY RESULT:', {
+        tournament_id: id,
+        adaptiveWeights: adaptiveWeights,
+        adaptiveWeightsCount: adaptiveWeights?.length || 0
+      });
+
+      // CRITICAL FIX: Use unified weight system instead of just adaptive weights table
+      const enhancedTeams = await Promise.all(teamsData.map(async team => ({
         ...team,
-        team_members: team.team_members.map(member => {
+        team_members: await Promise.all(team.team_members.map(async member => {
           const adaptiveWeight = adaptiveWeights?.find(w => w.user_id === member.user_id);
-          // PRIORITY FIX: Use ATLAS adaptive weight when available
-          const displayWeight = adaptiveWeight?.calculated_adaptive_weight || member.users?.weight_rating || 150;
+          
+          // Use unified weight system for accurate ATLAS calculations
+          const unifiedWeight = await getUnifiedPlayerWeight(
+            {
+              user_id: member.user_id,
+              current_rank: member.users?.current_rank,
+              peak_rank: member.users?.peak_rank,
+              weight_rating: member.users?.weight_rating,
+              manual_rank_override: (member.users as any)?.manual_rank_override,
+              manual_weight_override: (member.users as any)?.manual_weight_override,
+              use_manual_override: (member.users as any)?.use_manual_override,
+              tournaments_won: (member.users as any)?.tournaments_won,
+              discord_username: member.users?.discord_username
+            },
+            { enableATLAS: true, userId: member.user_id, username: member.users?.discord_username }
+          );
+          
+          // DEBUG: Log weight data for debugging
+          if (member.users?.discord_username?.toLowerCase().includes('kera')) {
+            console.log('KERA UNIFIED WEIGHT DEBUG:', {
+              username: member.users.discord_username,
+              user_id: member.user_id,
+              standardWeight: member.users?.weight_rating,
+              adaptiveWeight: adaptiveWeight?.calculated_adaptive_weight,
+              unifiedWeight: unifiedWeight.points,
+              unifiedSource: unifiedWeight.source,
+              unifiedReasoning: unifiedWeight.reasoning
+            });
+          }
+          
           return {
             ...member,
             users: {
               ...member.users,
-              adaptive_weight: displayWeight,
-              atlas_weight: adaptiveWeight?.calculated_adaptive_weight,
+              adaptive_weight: unifiedWeight.points,
+              atlas_weight: unifiedWeight.points,
               peak_rank_points: adaptiveWeight?.peak_rank_points,
-              weight_source: adaptiveWeight?.weight_source || 'standard',
-              display_weight: displayWeight // Ensure consistent weight display
+              weight_source: unifiedWeight.source,
+              display_weight: unifiedWeight.points,
+              unified_reasoning: unifiedWeight.reasoning
             }
           };
-        })
-      }));
+        }))
+      })));
 
       setTeams(enhancedTeams);
 
@@ -107,9 +146,20 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
 
       setLoading(false);
 
-      // FIX: Use global animation setting
-      const shouldAnimate = animate && settings.animationEnabled;
-      if (shouldAnimate) {
+      // FIX: Properly respect animation settings - check URL param and global setting
+      const urlParams = new URLSearchParams(window.location.search);
+      const animateParam = urlParams.get('animate');
+      const animationEnabled = animateParam === 'false' ? false : (animate && settings.animationEnabled);
+      setShouldAnimate(animationEnabled);
+      
+      console.log('Animation Debug:', {
+        animateParam,
+        animateProp: animate,
+        globalAnimationEnabled: settings.animationEnabled,
+        shouldAnimate: animationEnabled
+      });
+      
+      if (animationEnabled) {
         setTimeout(() => setAnimationPhase('roster'), settings.loadingTime / 2);
         setTimeout(() => setAnimationPhase('complete'), settings.loadingTime);
       } else {
@@ -118,7 +168,7 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
     };
 
     fetchTeamData();
-  }, [id, teamId, animate, settings.loadingTime]);
+  }, [id, teamId, animate, settings.loadingTime, settings.animationEnabled]);
 
   if (loading || !currentTeam) {
     return (
@@ -156,8 +206,9 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
       {/* Team Name Intro */}
       <div 
         className={`absolute inset-0 flex items-center justify-center transition-all duration-1000 ${
-          animationPhase === 'intro' ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+          shouldAnimate && animationPhase === 'intro' ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
         }`}
+        style={{ display: shouldAnimate && animationPhase === 'intro' ? 'flex' : 'none' }}
       >
         <div className="text-center">
           <div className="text-6xl font-bold mb-4 animate-fade-in" style={{ 
@@ -179,7 +230,7 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
       {/* Team Roster */}
       <div 
         className={`absolute inset-0 flex flex-col items-center justify-center transition-all duration-1000 ${
-          animationPhase === 'roster' || animationPhase === 'complete' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+          !shouldAnimate || animationPhase === 'roster' || animationPhase === 'complete' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
         }`}
       >
           <div className="text-4xl font-bold mb-8 text-center" style={{ 
@@ -197,10 +248,10 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
             <div
               key={member.user_id}
               className={`flex items-center space-x-6 bg-black/40 backdrop-blur-md rounded-2xl border border-white/10 shadow-lg transition-all duration-500 ${
-                animationPhase === 'complete' ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'
+                !shouldAnimate || animationPhase === 'complete' ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'
               }`}
               style={{ 
-                transitionDelay: `${index * 200}ms`,
+                transitionDelay: shouldAnimate ? `${index * 200}ms` : '0ms',
                 borderRadius: `${sceneSettings.borderRadius || 16}px`,
                 borderWidth: `${sceneSettings.borderWidth || 1}px`,
                 borderColor: sceneSettings.borderColor || '#ffffff10',
@@ -260,7 +311,7 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
         </div>
 
         <div className={`mt-8 bg-black/50 backdrop-blur-md rounded-2xl border border-white/10 shadow-xl flex justify-center gap-16 transition-all duration-700 ${
-          animationPhase === 'complete' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+          !shouldAnimate || animationPhase === 'complete' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
         }`} style={{
           borderRadius: `${sceneSettings.borderRadius || 16}px`,
           padding: `${(sceneSettings.padding || 16) * 1.5}px ${(sceneSettings.padding || 16) * 2.5}px`,

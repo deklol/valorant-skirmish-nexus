@@ -1,3 +1,4 @@
+import { getUnifiedPlayerWeight } from "@/utils/unifiedWeightSystem";
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +13,7 @@ export default function MatchupPreview() {
   const [team1, setTeam1] = useState<Team | null>(null);
   const [team2, setTeam2] = useState<Team | null>(null);
   const [loading, setLoading] = useState(true);
+  const [shouldAnimate, setShouldAnimate] = useState(true);
   const { settings } = useBroadcastSettings();
 
   useEffect(() => {
@@ -49,32 +51,54 @@ export default function MatchupPreview() {
         .select('*')
         .eq('tournament_id', id);
 
-      const enhancedTeams = teamsData.map(team => ({
+      // CRITICAL FIX: Use unified weight system instead of just adaptive weights table
+      const enhancedTeams = await Promise.all(teamsData.map(async team => ({
         ...team,
-        team_members: team.team_members.map(member => {
+        team_members: await Promise.all(team.team_members.map(async member => {
           const adaptiveWeight = adaptiveWeights?.find(w => w.user_id === member.user_id);
-          // PRIORITY FIX: Use ATLAS adaptive weight when available
-          const displayWeight = adaptiveWeight?.calculated_adaptive_weight || member.users?.weight_rating || 150;
+          
+          // Use unified weight system for accurate ATLAS calculations
+          const unifiedWeight = await getUnifiedPlayerWeight(
+            {
+              user_id: member.user_id,
+              current_rank: member.users?.current_rank,
+              peak_rank: member.users?.peak_rank,
+              weight_rating: member.users?.weight_rating,
+              manual_rank_override: (member.users as any)?.manual_rank_override,
+              manual_weight_override: (member.users as any)?.manual_weight_override,
+              use_manual_override: (member.users as any)?.use_manual_override,
+              tournaments_won: (member.users as any)?.tournaments_won,
+              discord_username: member.users?.discord_username
+            },
+            { enableATLAS: true, userId: member.user_id, username: member.users?.discord_username }
+          );
+          
           return {
             ...member,
             users: {
               ...member.users,
-              adaptive_weight: displayWeight,
-              atlas_weight: adaptiveWeight?.calculated_adaptive_weight,
-              weight_source: adaptiveWeight?.weight_source || 'standard',
-              display_weight: displayWeight
+              adaptive_weight: unifiedWeight.points,
+              atlas_weight: unifiedWeight.points,
+              weight_source: unifiedWeight.source,
+              display_weight: unifiedWeight.points
             }
           };
-        })
-      }));
+        }))
+      })));
 
       setTeam1(enhancedTeams.find(t => t.id === team1Id) || null);
       setTeam2(enhancedTeams.find(t => t.id === team2Id) || null);
       setLoading(false);
+
+      // FIX: Properly respect animation settings
+      const urlParams = new URLSearchParams(window.location.search);
+      const animateParam = urlParams.get('animate');
+      const animationEnabled = animateParam === 'false' ? false : settings.animationEnabled;
+      setShouldAnimate(animationEnabled);
     };
 
     fetchMatchupData();
-  }, [id, team1Id, team2Id]);
+  }, [id, team1Id, team2Id, settings.animationEnabled]);
 
   if (loading || !team1 || !team2) {
     return (
