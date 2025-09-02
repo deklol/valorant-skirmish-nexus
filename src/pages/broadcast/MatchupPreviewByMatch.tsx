@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Swords } from "lucide-react";
 import { useBroadcastSettings } from "@/hooks/useBroadcastSettings";
+import { extractATLASWeightsFromBalanceAnalysis } from "@/utils/broadcastWeightUtils";
 
 interface Match {
   id: string;
@@ -68,23 +69,67 @@ export default function MatchupPreviewByMatch() {
         return;
       }
 
-      // Get adaptive weights and tournament transparency data
+      // Get adaptive weights and tournament balance analysis data
       const { data: adaptiveWeights } = await supabase
         .from('tournament_adaptive_weights')
         .select('*')
         .eq('tournament_id', id);
 
+      // Get tournament with balance analysis for ATLAS weights
+      const { data: tournamentData } = await supabase
+        .from('tournaments')
+        .select('balance_analysis')
+        .eq('id', id)
+        .single();
+
+      // Extract ATLAS weights from balance analysis
+      const atlasWeights = extractATLASWeightsFromBalanceAnalysis(tournamentData?.balance_analysis as any);
+      const atlasWeightMap = new Map(
+        atlasWeights.map(weight => [weight.userId, weight.points])
+      );
+
+      console.log('🎯 MATCHUP: ATLAS weights extracted:', {
+        totalWeights: atlasWeights.length,
+        weights: atlasWeights,
+        atlasWeightMap: Object.fromEntries(atlasWeightMap)
+      });
+
+      // Get user statistics for additional data
+      const { data: userStats } = await supabase
+        .from('users')
+        .select('id, tournaments_won, tournaments_played')
+        .in('id', teamsData.flatMap(t => t.team_members.map(m => m.user_id)));
+
       const enhancedTeams = teamsData.map(team => ({
         ...team,
         team_members: team.team_members.map(member => {
           const adaptiveWeight = adaptiveWeights?.find(w => w.user_id === member.user_id);
+          const atlasWeight = atlasWeightMap.get(member.user_id);
+          const userStat = userStats?.find(s => s.id === member.user_id);
+          
+          // Prioritize ATLAS weight > adaptive weight > fallback weight (150)
+          const displayWeight = atlasWeight || adaptiveWeight?.calculated_adaptive_weight || member.users?.weight_rating || 150;
+
+          console.log(`🎯 PLAYER ${member.user_id}:`, {
+            username: member.users?.discord_username,
+            atlasWeight,
+            adaptiveWeight: adaptiveWeight?.calculated_adaptive_weight,
+            fallbackWeight: member.users?.weight_rating,
+            finalDisplayWeight: displayWeight
+          });
+
           return {
             ...member,
             users: {
               ...member.users,
               adaptive_weight: adaptiveWeight?.calculated_adaptive_weight,
+              atlas_weight: atlasWeight, // ATLAS weight from stored calculations
+              display_weight: displayWeight, // Primary weight to display
               peak_rank_points: adaptiveWeight?.peak_rank_points,
+              adaptive_factor: adaptiveWeight?.adaptive_factor,
               weight_source: adaptiveWeight?.weight_source || 'current_rank',
+              tournaments_won: userStat?.tournaments_won || member.users?.tournaments_won || 0,
+              tournaments_played: userStat?.tournaments_played || 0
             }
           };
         })
@@ -108,7 +153,7 @@ export default function MatchupPreviewByMatch() {
 
   const getTeamAverageWeight = (team: Team) => {
     const weights = team.team_members
-      .map(m => (m.users as any)?.adaptive_weight || m.users?.weight_rating || 150)
+      .map(m => (m.users as any)?.display_weight || (m.users as any)?.adaptive_weight || m.users?.weight_rating || 150)
       .filter(Boolean);
     return weights.length > 0 ? Math.round(weights.reduce((a, b) => a + b, 0) / weights.length) : 150;
   };
@@ -166,9 +211,9 @@ export default function MatchupPreviewByMatch() {
               Peak: {member.users.peak_rank}
             </span>
           )}
-          {sceneSettings.showAdaptiveWeight && (member.users as any)?.adaptive_weight && (
+          {sceneSettings.showAdaptiveWeight && (member.users as any)?.display_weight && (
             <span className="text-cyan-400">
-              {(member.users as any).adaptive_weight} AWR
+              {(member.users as any).display_weight} AWR
             </span>
           )}
           {sceneSettings.showTournamentWins && member.users?.tournaments_won && (
