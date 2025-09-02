@@ -51,6 +51,9 @@ export interface BroadcastSettings {
     teamRoster: BroadcastSceneSettings;
     matchupPreview: BroadcastSceneSettings;
     playerSpotlight: BroadcastSceneSettings;
+    tournamentStats: BroadcastSceneSettings;
+    bracketOverlay: BroadcastSceneSettings;
+    teamsOverview: BroadcastSceneSettings;
   };
 }
 
@@ -106,6 +109,28 @@ const DEFAULT_SETTINGS: BroadcastSettings = {
       ...DEFAULT_SCENE_SETTINGS,
       showPeakRank: true,
       showTournamentWins: true,
+    },
+    tournamentStats: {
+      ...DEFAULT_SCENE_SETTINGS,
+      showAdaptiveWeight: true,
+      showCurrentRank: true,
+      showPeakRank: false,
+      showTournamentWins: false,
+      showRiotId: false,
+    },
+    bracketOverlay: {
+      ...DEFAULT_SCENE_SETTINGS,
+      showAdaptiveWeight: false,
+      showCurrentRank: false,
+      showPeakRank: false,
+      showTournamentWins: false,
+      showRiotId: false,
+    },
+    teamsOverview: {
+      ...DEFAULT_SCENE_SETTINGS,
+      showPeakRank: false,
+      showTournamentWins: true,
+      showRiotId: false,
     },
   }
 };

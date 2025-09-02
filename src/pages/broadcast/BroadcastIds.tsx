@@ -176,6 +176,12 @@ export default function BroadcastIds() {
                   {baseUrl}/broadcast/{id}/bracket
                 </div>
               </div>
+              <div>
+                <span className="font-bold">Teams Overview:</span>
+                <div className="bg-muted p-2 rounded mt-1">
+                  {baseUrl}/broadcast/{id}/teams-overview
+                </div>
+              </div>
             </div>
           </div>
 

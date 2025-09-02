@@ -39,6 +39,7 @@ import MatchupPreviewByMatch from "./pages/broadcast/MatchupPreviewByMatch";
 import BracketOverlay from "./pages/broadcast/BracketOverlay";
 import PlayerSpotlightCard from "./pages/broadcast/PlayerSpotlightCard";
 import TournamentStats from "./pages/broadcast/TournamentStats";
+import TeamsOverview from "./pages/broadcast/TeamsOverview";
 import TournamentData from "./pages/broadcast/api/TournamentData";
 import BroadcastIds from "./pages/broadcast/BroadcastIds";
 import { AppSettingsProvider } from "./contexts/AppSettingsContext";
@@ -75,6 +76,7 @@ const AppContent = () => {
             <Route path="/broadcast/:id/bracket" element={<BracketOverlay />} />
             <Route path="/broadcast/:id/player/:playerId" element={<PlayerSpotlightCard />} />
             <Route path="/broadcast/:id/stats" element={<TournamentStats />} />
+            <Route path="/broadcast/:id/teams-overview" element={<TeamsOverview />} />
             <Route path="/broadcast/:id/ids" element={<BroadcastIds />} />
             
             {/* API endpoint for external integrations */}

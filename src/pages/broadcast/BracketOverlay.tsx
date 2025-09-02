@@ -2,6 +2,7 @@ import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tournament } from "@/types/tournament";
+import { useBroadcastSettings } from "@/hooks/useBroadcastSettings";
 
 interface Match {
   id: string;
@@ -20,6 +21,7 @@ export default function BracketOverlay() {
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
+  const { settings } = useBroadcastSettings();
 
   useEffect(() => {
     if (!id) return;
@@ -78,14 +80,40 @@ export default function BracketOverlay() {
     return acc;
   }, {} as Record<number, Match[]>);
 
+  const sceneSettings = settings.sceneSettings.bracketOverlay;
+  const containerStyle = {
+    backgroundColor: sceneSettings.backgroundColor || settings.backgroundColor,
+    backgroundImage: sceneSettings.backgroundImage || settings.backgroundImage ? `url(${sceneSettings.backgroundImage || settings.backgroundImage})` : undefined,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    fontFamily: sceneSettings.fontFamily || settings.fontFamily || 'inherit',
+  };
+
   const maxRound = Math.max(...Object.keys(rounds).map(Number));
 
   return (
-    <div className="w-screen h-screen bg-transparent overflow-hidden p-8">
+    <div className="w-screen h-screen bg-transparent overflow-hidden p-8" style={containerStyle}>
       {/* Tournament Header */}
       <div className="text-center mb-8">
-        <div className="text-4xl font-bold text-white mb-2">{tournament.name}</div>
-        <div className="text-xl text-white/70">Tournament Bracket</div>
+        <div 
+          className="text-4xl font-bold mb-2"
+          style={{ 
+            color: sceneSettings.headerTextColor || settings.headerTextColor,
+            fontFamily: sceneSettings.fontFamily || 'inherit',
+            fontSize: sceneSettings.headerFontSize || 36
+          }}
+        >
+          {tournament.name}
+        </div>
+        <div 
+          className="text-xl"
+          style={{ 
+            color: (sceneSettings.textColor || settings.textColor) + '70',
+            fontFamily: sceneSettings.fontFamily || 'inherit'
+          }}
+        >
+          Tournament Bracket
+        </div>
       </div>
 
       {/* Bracket */}
@@ -95,7 +123,13 @@ export default function BracketOverlay() {
           .map(([roundNum, roundMatches]) => (
           <div key={roundNum} className="flex flex-col space-y-8 min-w-[300px]">
             <div className="text-center">
-              <div className="text-lg font-semibold text-white mb-4">
+              <div 
+                className="text-lg font-semibold mb-4"
+                style={{ 
+                  color: sceneSettings.headerTextColor || settings.headerTextColor,
+                  fontFamily: sceneSettings.fontFamily || 'inherit'
+                }}
+              >
                 {Number(roundNum) === maxRound 
                   ? 'Final' 
                   : Number(roundNum) === maxRound - 1 
@@ -109,7 +143,13 @@ export default function BracketOverlay() {
               {roundMatches.map((match) => (
                 <div 
                   key={match.id}
-                  className="bg-black/40 backdrop-blur-sm rounded-lg border border-white/20 overflow-hidden"
+                  className="backdrop-blur-sm rounded-lg border overflow-hidden"
+                  style={{ 
+                    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                    borderColor: sceneSettings.borderColor || '#ffffff20',
+                    borderRadius: sceneSettings.borderRadius || 8,
+                    borderWidth: sceneSettings.borderWidth || 1,
+                  }}
                 >
                   {/* Team 1 */}
                   <div className={`p-4 border-b border-white/10 ${
@@ -120,11 +160,23 @@ export default function BracketOverlay() {
                         : 'bg-black/20'
                   }`}>
                     <div className="flex items-center justify-between">
-                      <span className="text-white font-medium">
+                      <span 
+                        className="font-medium"
+                        style={{ 
+                          color: sceneSettings.textColor || settings.textColor,
+                          fontFamily: sceneSettings.fontFamily || 'inherit'
+                        }}
+                      >
                         {match.team1?.name || 'TBD'}
                       </span>
                       {match.score_team1 !== undefined && (
-                        <span className="text-white font-bold text-lg">
+                        <span 
+                          className="font-bold text-lg"
+                          style={{ 
+                            color: sceneSettings.headerTextColor || settings.headerTextColor,
+                            fontFamily: sceneSettings.fontFamily || 'inherit'
+                          }}
+                        >
                           {match.score_team1}
                         </span>
                       )}

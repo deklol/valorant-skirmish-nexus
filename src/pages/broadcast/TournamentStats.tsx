@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tournament } from "@/types/tournament";
 import { Users, Trophy, Clock, Target } from "lucide-react";
+import { useBroadcastSettings } from "@/hooks/useBroadcastSettings";
 
 interface StatsData {
   totalPlayers: number;
@@ -19,6 +20,7 @@ export default function TournamentStats() {
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [stats, setStats] = useState<StatsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const { settings } = useBroadcastSettings();
 
   useEffect(() => {
     if (!id) return;
@@ -130,88 +132,276 @@ export default function TournamentStats() {
     );
   }
 
+  const sceneSettings = settings.sceneSettings.tournamentStats;
+  const containerStyle = {
+    backgroundColor: sceneSettings.backgroundColor || settings.backgroundColor,
+    backgroundImage: sceneSettings.backgroundImage || settings.backgroundImage ? `url(${sceneSettings.backgroundImage || settings.backgroundImage})` : undefined,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    fontFamily: sceneSettings.fontFamily || settings.fontFamily || 'inherit',
+  };
+
   const getRankColor = (rank: string) => {
     const rankLower = rank.toLowerCase();
-    if (rankLower.includes('radiant')) return 'text-yellow-400';
-    if (rankLower.includes('immortal')) return 'text-purple-400';
-    if (rankLower.includes('ascendant')) return 'text-green-400';
-    if (rankLower.includes('diamond')) return 'text-blue-400';
-    if (rankLower.includes('platinum')) return 'text-cyan-400';
-    return 'text-slate-400';
+    if (rankLower.includes('radiant')) return '#FFF176';
+    if (rankLower.includes('immortal')) return '#A52834';
+    if (rankLower.includes('ascendant')) return '#84FF6F';
+    if (rankLower.includes('diamond')) return '#8d64e2';
+    if (rankLower.includes('platinum')) return '#5CA3E4';
+    return '#9CA3AF';
   };
 
   return (
-    <div className="w-screen h-screen bg-transparent flex items-center justify-center p-8">
+    <div className="w-screen h-screen bg-transparent flex items-center justify-center p-8" style={containerStyle}>
       <div className="max-w-4xl w-full">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold text-white mb-4">{tournament.name}</h1>
-          <div className="text-xl text-white/70">Tournament Statistics</div>
+          <h1 
+            className="text-5xl font-bold mb-4"
+            style={{ 
+              color: sceneSettings.headerTextColor || settings.headerTextColor,
+              fontFamily: sceneSettings.fontFamily || 'inherit',
+              fontSize: sceneSettings.headerFontSize || 48
+            }}
+          >
+            {tournament.name}
+          </h1>
+          <div 
+            className="text-xl"
+            style={{ 
+              color: (sceneSettings.textColor || settings.textColor) + '70',
+              fontFamily: sceneSettings.fontFamily || 'inherit'
+            }}
+          >
+            Tournament Statistics
+          </div>
         </div>
 
-        {/* Stats Grid */}
+        {/* Stats Grid - Complete remaining cards */}
         <div className="grid grid-cols-2 gap-8 mb-12">
           {/* Participants */}
-          <div className="bg-black/40 backdrop-blur-sm rounded-2xl p-8 border border-white/20 text-center">
+          <div 
+            className="backdrop-blur-sm rounded-2xl p-8 border text-center"
+            style={{ 
+              backgroundColor: 'rgba(0, 0, 0, 0.4)',
+              borderColor: sceneSettings.borderColor || '#ffffff20',
+              borderRadius: sceneSettings.borderRadius || 16,
+              borderWidth: sceneSettings.borderWidth || 1,
+              padding: sceneSettings.padding || 32
+            }}
+          >
             <div className="flex items-center justify-center mb-4">
-              <Users className="w-12 h-12 text-blue-400" />
+              <Users className="w-12 h-12" style={{ color: sceneSettings.textColor || settings.textColor }} />
             </div>
-            <div className="text-4xl font-bold text-white mb-2">{stats.totalPlayers}</div>
-            <div className="text-white/70 text-lg">Players</div>
-            <div className="text-cyan-400 text-sm mt-2">{stats.totalTeams} Teams</div>
+            <div 
+              className="text-4xl font-bold mb-2"
+              style={{ 
+                color: sceneSettings.headerTextColor || settings.headerTextColor,
+                fontFamily: sceneSettings.fontFamily || 'inherit'
+              }}
+            >
+              {stats.totalPlayers}
+            </div>
+            <div 
+              className="text-lg"
+              style={{ 
+                color: (sceneSettings.textColor || settings.textColor) + '70',
+                fontFamily: sceneSettings.fontFamily || 'inherit'
+              }}
+            >
+              Players
+            </div>
+            <div 
+              className="text-sm mt-2"
+              style={{ 
+                color: sceneSettings.textColor || settings.textColor,
+                fontFamily: sceneSettings.fontFamily || 'inherit'
+              }}
+            >
+              {stats.totalTeams} Teams
+            </div>
           </div>
 
           {/* Matches */}
-          <div className="bg-black/40 backdrop-blur-sm rounded-2xl p-8 border border-white/20 text-center">
+          <div 
+            className="backdrop-blur-sm rounded-2xl p-8 border text-center"
+            style={{ 
+              backgroundColor: 'rgba(0, 0, 0, 0.4)',
+              borderColor: sceneSettings.borderColor || '#ffffff20',
+              borderRadius: sceneSettings.borderRadius || 16,
+              borderWidth: sceneSettings.borderWidth || 1,
+              padding: sceneSettings.padding || 32
+            }}
+          >
             <div className="flex items-center justify-center mb-4">
-              <Trophy className="w-12 h-12 text-yellow-400" />
+              <Trophy className="w-12 h-12" style={{ color: sceneSettings.textColor || settings.textColor }} />
             </div>
-            <div className="text-4xl font-bold text-white mb-2">
+            <div 
+              className="text-4xl font-bold mb-2"
+              style={{ 
+                color: sceneSettings.headerTextColor || settings.headerTextColor,
+                fontFamily: sceneSettings.fontFamily || 'inherit'
+              }}
+            >
               {stats.completedMatches}/{stats.totalMatches}
             </div>
-            <div className="text-white/70 text-lg">Matches</div>
-            <div className="text-green-400 text-sm mt-2">
+            <div 
+              className="text-lg"
+              style={{ 
+                color: (sceneSettings.textColor || settings.textColor) + '70',
+                fontFamily: sceneSettings.fontFamily || 'inherit'
+              }}
+            >
+              Matches
+            </div>
+            <div 
+              className="text-sm mt-2"
+              style={{ 
+                color: sceneSettings.textColor || settings.textColor,
+                fontFamily: sceneSettings.fontFamily || 'inherit'
+              }}
+            >
               {Math.round(stats.tournamentProgress)}% Complete
             </div>
           </div>
 
           {/* Average Weight */}
-          <div className="bg-black/40 backdrop-blur-sm rounded-2xl p-8 border border-white/20 text-center">
+          <div 
+            className="backdrop-blur-sm rounded-2xl p-8 border text-center"
+            style={{ 
+              backgroundColor: 'rgba(0, 0, 0, 0.4)',
+              borderColor: sceneSettings.borderColor || '#ffffff20',
+              borderRadius: sceneSettings.borderRadius || 16,
+              borderWidth: sceneSettings.borderWidth || 1,
+              padding: sceneSettings.padding || 32
+            }}
+          >
             <div className="flex items-center justify-center mb-4">
-              <Target className="w-12 h-12 text-purple-400" />
+              <Target className="w-12 h-12" style={{ color: sceneSettings.textColor || settings.textColor }} />
             </div>
-            <div className="text-4xl font-bold text-purple-400 mb-2">{stats.averageWeight}</div>
-            <div className="text-white/70 text-lg">Avg Weight</div>
-            <div className="text-white/50 text-sm mt-2">Tournament Rating</div>
+            <div 
+              className="text-4xl font-bold mb-2"
+              style={{ 
+                color: sceneSettings.textColor || settings.textColor,
+                fontFamily: sceneSettings.fontFamily || 'inherit'
+              }}
+            >
+              {stats.averageWeight}
+            </div>
+            <div 
+              className="text-lg"
+              style={{ 
+                color: (sceneSettings.textColor || settings.textColor) + '70',
+                fontFamily: sceneSettings.fontFamily || 'inherit'
+              }}
+            >
+              Avg Weight
+            </div>
+            <div 
+              className="text-sm mt-2"
+              style={{ 
+                color: (sceneSettings.textColor || settings.textColor) + '50',
+                fontFamily: sceneSettings.fontFamily || 'inherit'
+              }}
+            >
+              Tournament Rating
+            </div>
           </div>
 
           {/* Top Rank */}
-          <div className="bg-black/40 backdrop-blur-sm rounded-2xl p-8 border border-white/20 text-center">
+          <div 
+            className="backdrop-blur-sm rounded-2xl p-8 border text-center"
+            style={{ 
+              backgroundColor: 'rgba(0, 0, 0, 0.4)',
+              borderColor: sceneSettings.borderColor || '#ffffff20',
+              borderRadius: sceneSettings.borderRadius || 16,
+              borderWidth: sceneSettings.borderWidth || 1,
+              padding: sceneSettings.padding || 32
+            }}
+          >
             <div className="flex items-center justify-center mb-4">
-              <Clock className="w-12 h-12 text-green-400" />
+              <Clock className="w-12 h-12" style={{ color: sceneSettings.textColor || settings.textColor }} />
             </div>
-            <div className={`text-4xl font-bold mb-2 ${getRankColor(stats.topRank)}`}>
+            <div 
+              className="text-4xl font-bold mb-2"
+              style={{ 
+                color: getRankColor(stats.topRank),
+                fontFamily: sceneSettings.fontFamily || 'inherit'
+              }}
+            >
               {stats.topRank}
             </div>
-            <div className="text-white/70 text-lg">Highest Rank</div>
-            <div className="text-white/50 text-sm mt-2">In Tournament</div>
+            <div 
+              className="text-lg"
+              style={{ 
+                color: (sceneSettings.textColor || settings.textColor) + '70',
+                fontFamily: sceneSettings.fontFamily || 'inherit'
+              }}
+            >
+              Highest Rank
+            </div>
+            <div 
+              className="text-sm mt-2"
+              style={{ 
+                color: (sceneSettings.textColor || settings.textColor) + '50',
+                fontFamily: sceneSettings.fontFamily || 'inherit'
+              }}
+            >
+              In Tournament
+            </div>
           </div>
         </div>
 
         {/* Progress Bar */}
-        <div className="bg-black/40 backdrop-blur-sm rounded-2xl p-8 border border-white/20">
+        <div 
+          className="backdrop-blur-sm rounded-2xl p-8 border"
+          style={{ 
+            backgroundColor: 'rgba(0, 0, 0, 0.4)',
+            borderColor: sceneSettings.borderColor || '#ffffff20',
+            borderRadius: sceneSettings.borderRadius || 16,
+            borderWidth: sceneSettings.borderWidth || 1,
+            padding: sceneSettings.padding || 32
+          }}
+        >
           <div className="text-center mb-6">
-            <div className="text-2xl font-bold text-white mb-2">Tournament Progress</div>
-            <div className="text-white/70">{stats.completedMatches} of {stats.totalMatches} matches completed</div>
+            <div 
+              className="text-2xl font-bold mb-2"
+              style={{ 
+                color: sceneSettings.headerTextColor || settings.headerTextColor,
+                fontFamily: sceneSettings.fontFamily || 'inherit'
+              }}
+            >
+              Tournament Progress
+            </div>
+            <div 
+              style={{ 
+                color: (sceneSettings.textColor || settings.textColor) + '70',
+                fontFamily: sceneSettings.fontFamily || 'inherit'
+              }}
+            >
+              {stats.completedMatches} of {stats.totalMatches} matches completed
+            </div>
           </div>
           
           <div className="relative">
-            <div className="w-full bg-black/30 rounded-full h-6 border border-white/10">
+            <div 
+              className="w-full rounded-full h-6 border"
+              style={{ 
+                backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                borderColor: sceneSettings.borderColor || '#ffffff10'
+              }}
+            >
               <div 
                 className="bg-gradient-to-r from-green-500 to-blue-500 h-6 rounded-full flex items-center justify-center transition-all duration-1000"
                 style={{ width: `${stats.tournamentProgress}%` }}
               >
-                <span className="text-white text-sm font-bold">
+                <span 
+                  className="text-sm font-bold"
+                  style={{ 
+                    color: sceneSettings.headerTextColor || settings.headerTextColor,
+                    fontFamily: sceneSettings.fontFamily || 'inherit'
+                  }}
+                >
                   {Math.round(stats.tournamentProgress)}%
                 </span>
               </div>

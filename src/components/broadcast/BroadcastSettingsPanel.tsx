@@ -429,11 +429,14 @@ export default function BroadcastSettingsPanel() {
           </CardHeader>
           <CardContent className="h-[calc(100%-80px)] overflow-y-auto">
             <Tabs defaultValue="general" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-6">
                 <TabsTrigger value="general">General</TabsTrigger>
                 <TabsTrigger value="team-roster">Team Roster</TabsTrigger>
                 <TabsTrigger value="matchup">Matchup</TabsTrigger>
                 <TabsTrigger value="spotlight">Spotlight</TabsTrigger>
+                <TabsTrigger value="tournament-stats">Stats</TabsTrigger>
+                <TabsTrigger value="bracket">Bracket</TabsTrigger>
+                <TabsTrigger value="teams-overview">Teams</TabsTrigger>
               </TabsList>
 
               <TabsContent value="general" className="space-y-4">
@@ -499,6 +502,27 @@ export default function BroadcastSettingsPanel() {
                 <SceneCustomization 
                   scene="playerSpotlight" 
                   sceneSettings={settings.sceneSettings.playerSpotlight} 
+                />
+              </TabsContent>
+
+              <TabsContent value="tournament-stats" className="space-y-4">
+                <SceneCustomization 
+                  scene="tournamentStats" 
+                  sceneSettings={settings.sceneSettings.tournamentStats} 
+                />
+              </TabsContent>
+
+              <TabsContent value="bracket" className="space-y-4">
+                <SceneCustomization 
+                  scene="bracketOverlay" 
+                  sceneSettings={settings.sceneSettings.bracketOverlay} 
+                />
+              </TabsContent>
+
+              <TabsContent value="teams-overview" className="space-y-4">
+                <SceneCustomization 
+                  scene="teamsOverview" 
+                  sceneSettings={settings.sceneSettings.teamsOverview} 
                 />
               </TabsContent>
             </Tabs>

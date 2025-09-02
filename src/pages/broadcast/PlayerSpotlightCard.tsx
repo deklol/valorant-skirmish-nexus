@@ -137,7 +137,7 @@ export default function PlayerSpotlightCard() {
                 {player.discord_username || 'Unknown Player'}
               </div>
               {player.is_captain && (
-                <Crown className="w-8 h-8 text-yellow-400" />
+                <Crown className="w-8 h-8" style={{ color: sceneSettings.headerTextColor || settings.headerTextColor }} />
               )}
             </div>
             
@@ -199,7 +199,7 @@ export default function PlayerSpotlightCard() {
                 {sceneSettings.showRiotId && player.riot_id && (
                   <div className="flex items-center justify-between p-4 bg-black/20 rounded-xl border border-white/10">
                     <span style={{ color: sceneSettings.textColor || settings.textColor }}>Riot ID</span>
-                    <span className="text-cyan-400 font-mono">{player.riot_id}</span>
+                    <span style={{ color: sceneSettings.textColor || settings.textColor }} className="font-mono">{player.riot_id}</span>
                   </div>
                 )}
               </div>
@@ -213,26 +213,33 @@ export default function PlayerSpotlightCard() {
                   Performance
                 </div>
                 
-                {sceneSettings.showAdaptiveWeight && (
-                  <div className="flex items-center justify-between p-4 bg-black/20 rounded-xl border border-white/10">
-                    <span style={{ color: sceneSettings.textColor || settings.textColor }}>Tournament Weight</span>
-                    <Badge variant="outline" className="text-lg px-4 py-2 text-cyan-400 border-cyan-400/50">
-                      {displayWeight} pts
-                    </Badge>
-                  </div>
-                )}
+                 {sceneSettings.showAdaptiveWeight && (
+                   <div className="flex items-center justify-between p-4 bg-black/20 rounded-xl border border-white/10">
+                     <span style={{ color: sceneSettings.textColor || settings.textColor }}>Tournament Weight</span>
+                     <Badge 
+                       variant="outline" 
+                       className="text-lg px-4 py-2"
+                       style={{ 
+                         color: sceneSettings.textColor || settings.textColor,
+                         borderColor: (sceneSettings.textColor || settings.textColor) + '50'
+                       }}
+                     >
+                       {displayWeight} pts
+                     </Badge>
+                   </div>
+                 )}
 
                  {sceneSettings.showTournamentWins && (
                    <div className="flex items-center justify-between p-4 bg-black/20 rounded-xl border border-white/10">
                      <span style={{ color: sceneSettings.textColor || settings.textColor }}>Tournaments Won</span>
-                     <span className="text-green-400 text-lg font-bold">{player.tournaments_won || 0}</span>
+                     <span style={{ color: sceneSettings.textColor || settings.textColor }} className="text-lg font-bold">{player.tournaments_won || 0}</span>
                    </div>
                  )}
                  
                  {sceneSettings.showTournamentWins && (
                    <div className="flex items-center justify-between p-4 bg-black/20 rounded-xl border border-white/10">
                      <span style={{ color: sceneSettings.textColor || settings.textColor }}>Total Tournaments</span>
-                     <span className="text-blue-400 text-lg font-bold">{player.total_matches || 0}</span>
+                     <span style={{ color: sceneSettings.textColor || settings.textColor }} className="text-lg font-bold">{player.total_matches || 0}</span>
                    </div>
                  )}
 
@@ -242,12 +249,10 @@ export default function PlayerSpotlightCard() {
                     <div className="text-sm mb-2" style={{ color: (sceneSettings.textColor || settings.textColor) + '70' }}>
                       Performance Rating
                     </div>
-                    <div className={`text-3xl font-bold ${
-                      displayWeight >= 400 ? 'text-red-400' : 
-                      displayWeight >= 300 ? 'text-purple-400' : 
-                      displayWeight >= 200 ? 'text-blue-400' : 
-                      'text-green-400'
-                    }`}>
+                     <div 
+                       className="text-3xl font-bold"
+                       style={{ color: sceneSettings.headerTextColor || settings.headerTextColor }}
+                     >
                       {displayWeight >= 400 ? 'Elite' : 
                        displayWeight >= 300 ? 'High' : 
                        displayWeight >= 200 ? 'Intermediate' : 
