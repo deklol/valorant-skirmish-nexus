@@ -212,43 +212,50 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
             })}
         </div>
 
-        <div className="mt-8 bg-black/50 backdrop-blur-md rounded-2xl border border-white/10 shadow-xl" style={{
-          borderRadius: `${sceneSettings.borderRadius || 16}px`,
-          padding: `${(sceneSettings.padding || 16) * 1.5}px ${(sceneSettings.padding || 16) * 2.5}px`,
-          boxShadow: `0 ${(sceneSettings.shadowIntensity || 3) * 2}px ${(sceneSettings.shadowIntensity || 3) * 6}px rgba(0,0,0,0.4)`
-        }}>
-          <div className="flex justify-center gap-16">
-            <div className="text-center">
-              <div className="text-3xl font-extrabold" style={{ 
-                color: sceneSettings.headerTextColor || settings.headerTextColor,
-                fontSize: `${(sceneSettings.headerFontSize || 24) * 1.25}px`,
-                fontFamily: sceneSettings.fontFamily || 'inherit'
-              }}>
-                    {currentTeam.team_members.reduce((total, member) => {
-                      const weight = (member.users as any)?.display_weight || (member.users as any)?.atlas_weight || (member.users as any)?.adaptive_weight || 150;
-                      return total + weight;
-                    }, 0)}
-              </div>
-              <div className="text-sm uppercase tracking-wider" style={{ 
-                color: (sceneSettings.textColor || settings.textColor) + '80',
-                fontFamily: sceneSettings.fontFamily || 'inherit'
-              }}>Total Weight</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-extrabold" style={{ 
-                color: sceneSettings.headerTextColor || settings.headerTextColor,
-                fontSize: `${(sceneSettings.headerFontSize || 24) * 1.25}px`,
-                fontFamily: sceneSettings.fontFamily || 'inherit'
-              }}>
-                #{currentTeam.seed || 'TBD'}
-              </div>
-              <div className="text-sm uppercase tracking-wider" style={{ 
-                color: (sceneSettings.textColor || settings.textColor) + '80',
-                fontFamily: sceneSettings.fontFamily || 'inherit'
-              }}>Seed</div>
+        {/* Team Stats Section - Toggleable */}
+        {(sceneSettings.showTeamTotalWeight || sceneSettings.showTeamSeed) && (
+          <div className="mt-8 bg-black/50 backdrop-blur-md rounded-2xl border border-white/10 shadow-xl" style={{
+            borderRadius: `${sceneSettings.borderRadius || 16}px`,
+            padding: `${(sceneSettings.padding || 16) * 1.5}px ${(sceneSettings.padding || 16) * 2.5}px`,
+            boxShadow: `0 ${(sceneSettings.shadowIntensity || 3) * 2}px ${(sceneSettings.shadowIntensity || 3) * 6}px rgba(0,0,0,0.4)`
+          }}>
+            <div className="flex justify-center gap-16">
+              {sceneSettings.showTeamTotalWeight && (
+                <div className="text-center">
+                  <div className="text-3xl font-extrabold" style={{ 
+                    color: sceneSettings.headerTextColor || settings.headerTextColor,
+                    fontSize: `${(sceneSettings.headerFontSize || 24) * 1.25}px`,
+                    fontFamily: sceneSettings.fontFamily || 'inherit'
+                  }}>
+                      {currentTeam.team_members.reduce((total, member) => {
+                        const weight = (member.users as any)?.display_weight || (member.users as any)?.atlas_weight || (member.users as any)?.adaptive_weight || 150;
+                        return total + weight;
+                      }, 0)}
+                  </div>
+                  <div className="text-sm uppercase tracking-wider" style={{ 
+                    color: (sceneSettings.textColor || settings.textColor) + '80',
+                    fontFamily: sceneSettings.fontFamily || 'inherit'
+                  }}>Total Weight</div>
+                </div>
+              )}
+              {sceneSettings.showTeamSeed && (
+                <div className="text-center">
+                  <div className="text-3xl font-extrabold" style={{ 
+                    color: sceneSettings.headerTextColor || settings.headerTextColor,
+                    fontSize: `${(sceneSettings.headerFontSize || 24) * 1.25}px`,
+                    fontFamily: sceneSettings.fontFamily || 'inherit'
+                  }}>
+                    #{currentTeam.seed || 'TBD'}
+                  </div>
+                  <div className="text-sm uppercase tracking-wider" style={{ 
+                    color: (sceneSettings.textColor || settings.textColor) + '80',
+                    fontFamily: sceneSettings.fontFamily || 'inherit'
+                  }}>Seed</div>
+                </div>
+              )}
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

@@ -160,6 +160,20 @@ export default function BroadcastSettingsPanel() {
             />
             <Label>Riot ID</Label>
           </div>
+          <div className="flex items-center space-x-2">
+            <Switch
+              checked={sceneSettings.showTeamTotalWeight}
+              onCheckedChange={(checked) => updateSceneSettings(scene, { showTeamTotalWeight: checked })}
+            />
+            <Label>Team Total Weight</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Switch
+              checked={sceneSettings.showTeamSeed}
+              onCheckedChange={(checked) => updateSceneSettings(scene, { showTeamSeed: checked })}
+            />
+            <Label>Team Seed</Label>
+          </div>
         </div>
       </div>
 
@@ -429,7 +443,7 @@ export default function BroadcastSettingsPanel() {
           </CardHeader>
           <CardContent className="h-[calc(100%-80px)] overflow-y-auto">
             <Tabs defaultValue="general" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-6">
+              <TabsList className="grid w-full grid-cols-7">
                 <TabsTrigger value="general">General</TabsTrigger>
                 <TabsTrigger value="team-roster">Team Roster</TabsTrigger>
                 <TabsTrigger value="matchup">Matchup</TabsTrigger>

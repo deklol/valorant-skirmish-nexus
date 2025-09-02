@@ -9,6 +9,10 @@ export interface BroadcastDisplaySettings {
 }
 
 export interface BroadcastSceneSettings extends BroadcastDisplaySettings {
+  // Team stats display options
+  showTeamTotalWeight?: boolean;
+  showTeamSeed?: boolean;
+  
   // Visual customization
   backgroundImage?: string;
   backgroundColor?: string;
@@ -64,6 +68,10 @@ const DEFAULT_SCENE_SETTINGS: BroadcastSceneSettings = {
   showPeakRank: false,
   showTournamentWins: false,
   showRiotId: true,
+  
+  // Team stats display options
+  showTeamTotalWeight: true,
+  showTeamSeed: true,
   
   // Layout & Design
   borderRadius: 12,

@@ -192,11 +192,23 @@ export default function BracketOverlay() {
                         : 'bg-black/20'
                   }`}>
                     <div className="flex items-center justify-between">
-                      <span className="text-white font-medium">
+                      <span 
+                        className="font-medium"
+                        style={{ 
+                          color: sceneSettings.textColor || settings.textColor,
+                          fontFamily: sceneSettings.fontFamily || 'inherit'
+                        }}
+                      >
                         {match.team2?.name || 'TBD'}
                       </span>
                       {match.score_team2 !== undefined && (
-                        <span className="text-white font-bold text-lg">
+                        <span 
+                          className="font-bold text-lg"
+                          style={{ 
+                            color: sceneSettings.headerTextColor || settings.headerTextColor,
+                            fontFamily: sceneSettings.fontFamily || 'inherit'
+                          }}
+                        >
                           {match.score_team2}
                         </span>
                       )}
@@ -204,14 +216,27 @@ export default function BracketOverlay() {
                   </div>
                   
                   {/* Match Status */}
-                  <div className="px-4 py-2 bg-black/30 text-center">
-                    <span className={`text-sm font-medium ${
-                      match.status === 'completed' 
-                        ? 'text-green-400' 
-                        : match.status === 'live' 
-                          ? 'text-red-400' 
-                          : 'text-white/60'
-                    }`}>
+                  <div 
+                    className="px-4 py-2 text-center"
+                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}
+                  >
+                    <span 
+                      className={`text-sm font-medium ${
+                        match.status === 'completed' 
+                          ? '' 
+                          : match.status === 'live' 
+                            ? '' 
+                            : ''
+                      }`}
+                      style={{ 
+                        color: match.status === 'completed' 
+                          ? '#10B981' 
+                          : match.status === 'live' 
+                            ? '#EF4444' 
+                            : (sceneSettings.textColor || settings.textColor) + '60',
+                        fontFamily: sceneSettings.fontFamily || 'inherit'
+                      }}
+                    >
                       {match.status === 'completed' 
                         ? 'Completed' 
                         : match.status === 'live' 
