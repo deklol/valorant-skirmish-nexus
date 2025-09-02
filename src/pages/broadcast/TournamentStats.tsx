@@ -4,6 +4,16 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tournament } from "@/types/tournament";
 import { Users, Trophy, Clock, Target } from "lucide-react";
 import { useBroadcastSettings } from "@/hooks/useBroadcastSettings";
+import { BroadcastLoading } from "@/components/broadcast/BroadcastLoading";
+import { 
+  getBroadcastContainerStyle, 
+  getBroadcastHeaderStyle, 
+  getBroadcastTextStyle,
+  getBroadcastCardStyle,
+  BROADCAST_CONTAINER_CLASSES,
+  getRankColor,
+  BROADCAST_DEFAULTS
+} from "@/utils/broadcastLayoutUtils";
 
 interface StatsData {
   totalPlayers: number;
@@ -125,11 +135,7 @@ export default function TournamentStats() {
   }, [id]);
 
   if (loading || !tournament || !stats) {
-    return (
-      <div className="w-screen h-screen bg-transparent flex items-center justify-center">
-        <div className="text-white text-2xl">Loading stats...</div>
-      </div>
-    );
+    return <BroadcastLoading message="Loading tournament stats..." />;
   }
 
   const sceneSettings = settings.sceneSettings.tournamentStats;

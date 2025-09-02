@@ -7,6 +7,16 @@ import { Badge } from "@/components/ui/badge";
 import { Swords } from "lucide-react";
 import { useBroadcastSettings } from "@/hooks/useBroadcastSettings";
 import { formatSeedDisplay } from "@/utils/broadcastSeedingUtils";
+import { BroadcastLoading } from "@/components/broadcast/BroadcastLoading";
+import { 
+  getBroadcastContainerStyle, 
+  getBroadcastHeaderStyle, 
+  getBroadcastTextStyle,
+  getBroadcastCardStyle,
+  BROADCAST_CONTAINER_CLASSES,
+  getRankColor,
+  BROADCAST_DEFAULTS
+} from "@/utils/broadcastLayoutUtils";
 
 export default function MatchupPreview() {
   const { id, team1Id, team2Id } = useParams<{ id: string; team1Id: string; team2Id: string }>();
@@ -57,11 +67,7 @@ export default function MatchupPreview() {
   }, [teams, team1Id, team2Id, settings.animationEnabled, settings.sceneSettings.matchupPreview.showAdaptiveWeight]);
 
   if (loading || !team1 || !team2) {
-    return (
-      <div className="w-screen h-screen bg-transparent flex items-center justify-center">
-        <div className="text-white text-2xl">Loading matchup...</div>
-      </div>
-    );
+    return <BroadcastLoading message="Loading matchup..." />;
   }
 
   const getTeamAverageWeight = (team: Team) => {
@@ -77,51 +83,44 @@ export default function MatchupPreview() {
   const team2Avg = getTeamAverageWeight(team2);
   const weightDiff = Math.abs(team1Avg - team2Avg);
 
-  const getRankColor = (rank?: string) => {
-    if (!rank) return 'text-slate-400';
-    const rankLower = rank.toLowerCase();
-    if (rankLower.includes('radiant')) return 'text-yellow-400';
-    if (rankLower.includes('immortal')) return 'text-purple-400';
-    if (rankLower.includes('ascendant')) return 'text-green-400';
-    if (rankLower.includes('diamond')) return 'text-blue-400';
-    return 'text-slate-400';
-  };
-
   const sceneSettings = settings.sceneSettings.matchupPreview;
-
-  const containerStyle = {
-    backgroundColor: sceneSettings.backgroundColor || settings.backgroundColor,
-    backgroundImage: sceneSettings.backgroundImage || settings.backgroundImage ? `url(${sceneSettings.backgroundImage || settings.backgroundImage})` : undefined,
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    fontFamily: sceneSettings.fontFamily || settings.fontFamily || 'inherit',
-  };
+  const containerStyle = getBroadcastContainerStyle(sceneSettings, settings);
 
   return (
-    <div className="w-screen h-screen bg-transparent flex items-center justify-center p-8" style={containerStyle}>
+    <div className={BROADCAST_CONTAINER_CLASSES + " flex items-center justify-center p-8"} style={containerStyle}>
       <div className="max-w-7xl w-full">
         {/* Header */}
         <div className="text-center mb-12">
-          <div className="text-5xl font-bold mb-4 flex items-center justify-center space-x-4" style={{ 
-            color: sceneSettings.headerTextColor || settings.headerTextColor,
-            fontFamily: sceneSettings.fontFamily || settings.fontFamily || 'inherit'
-          }}>
+          <div 
+            className="text-5xl font-bold mb-4 flex items-center justify-center space-x-4" 
+            style={getBroadcastHeaderStyle(sceneSettings, settings, 'large')}
+          >
             <span>{team1.name}</span>
             <Swords className="w-12 h-12 text-red-500" />
             <span>{team2.name}</span>
           </div>
-          <div className="text-xl" style={{ 
-            color: (sceneSettings.textColor || settings.textColor) + '70',
-            fontFamily: sceneSettings.fontFamily || settings.fontFamily || 'inherit'
-          }}>Upcoming Match</div>
+          <div 
+            className="text-xl" 
+            style={getBroadcastTextStyle(sceneSettings, settings, '70')}
+          >
+            Upcoming Match
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-16">
           {/* Team 1 */}
           <div className="space-y-6">
             <div className="text-center">
-              <div className="text-3xl font-bold mb-2" style={{ color: settings.textColor }}>{team1.name}</div>
-              <div className="text-sm opacity-70 mb-2" style={{ color: settings.textColor }}>
+              <div 
+                className="text-3xl font-bold mb-2" 
+                style={getBroadcastHeaderStyle(sceneSettings, settings, 'medium')}
+              >
+                {team1.name}
+              </div>
+              <div 
+                className="text-sm opacity-70 mb-2" 
+                style={getBroadcastTextStyle(sceneSettings, settings)}
+              >
                 {formatSeedDisplay((team1 as any).calculatedSeed || team1.seed)}
               </div>
               {sceneSettings.showAdaptiveWeight && (
@@ -143,7 +142,10 @@ export default function MatchupPreview() {
                   
                   <div className="flex-1">
                     <div className="flex items-center space-x-2">
-                      <span className="font-medium" style={{ color: settings.textColor }}>
+                      <span 
+                        className="font-medium" 
+                        style={getBroadcastTextStyle(sceneSettings, settings)}
+                      >
                         {member.users?.discord_username || 'Unknown'}
                       </span>
                       {member.is_captain && (
@@ -155,7 +157,7 @@ export default function MatchupPreview() {
                     
                     <div className="flex items-center space-x-3 text-sm">
                       {sceneSettings.showCurrentRank && member.users?.current_rank && (
-                        <span className={getRankColor(member.users.current_rank)}>
+                        <span style={{ color: getRankColor(member.users.current_rank) }}>
                           {member.users.current_rank}
                         </span>
                       )}
@@ -174,8 +176,16 @@ export default function MatchupPreview() {
           {/* Team 2 */}
           <div className="space-y-6">
             <div className="text-center">
-              <div className="text-3xl font-bold mb-2" style={{ color: settings.textColor }}>{team2.name}</div>
-              <div className="text-sm opacity-70 mb-2" style={{ color: settings.textColor }}>
+              <div 
+                className="text-3xl font-bold mb-2" 
+                style={getBroadcastHeaderStyle(sceneSettings, settings, 'medium')}
+              >
+                {team2.name}
+              </div>
+              <div 
+                className="text-sm opacity-70 mb-2" 
+                style={getBroadcastTextStyle(sceneSettings, settings)}
+              >
                 {formatSeedDisplay((team2 as any).calculatedSeed || team2.seed)}
               </div>
               {sceneSettings.showAdaptiveWeight && (
@@ -197,7 +207,10 @@ export default function MatchupPreview() {
                   
                   <div className="flex-1">
                     <div className="flex items-center space-x-2">
-                      <span className="font-medium" style={{ color: settings.textColor }}>
+                      <span 
+                        className="font-medium" 
+                        style={getBroadcastTextStyle(sceneSettings, settings)}
+                      >
                         {member.users?.discord_username || 'Unknown'}
                       </span>
                       {member.is_captain && (
@@ -209,7 +222,7 @@ export default function MatchupPreview() {
                     
                     <div className="flex items-center space-x-3 text-sm">
                       {sceneSettings.showCurrentRank && member.users?.current_rank && (
-                        <span className={getRankColor(member.users.current_rank)}>
+                        <span style={{ color: getRankColor(member.users.current_rank) }}>
                           {member.users.current_rank}
                         </span>
                       )}
@@ -229,12 +242,23 @@ export default function MatchupPreview() {
         {/* Stats Comparison */}
         {sceneSettings.showAdaptiveWeight && (
           <div className="mt-12 text-center">
-            <div className="bg-black/30 backdrop-blur-sm rounded-xl p-6 border border-white/10 inline-block">
-              <div className="mb-2" style={{ color: settings.textColor + '70' }}>Weight Difference</div>
+            <div 
+              className="bg-black/30 backdrop-blur-sm rounded-xl p-6 border border-white/10 inline-block"
+              style={getBroadcastCardStyle(sceneSettings)}
+            >
+              <div 
+                className="mb-2" 
+                style={getBroadcastTextStyle(sceneSettings, settings, '70')}
+              >
+                Weight Difference
+              </div>
               <div className={`text-2xl font-bold ${weightDiff < 10 ? 'text-green-400' : weightDiff < 25 ? 'text-yellow-400' : 'text-red-400'}`}>
                 {weightDiff} points
               </div>
-              <div className="text-sm mt-1" style={{ color: settings.textColor + '50' }}>
+              <div 
+                className="text-sm mt-1" 
+                style={getBroadcastTextStyle(sceneSettings, settings, '50')}
+              >
                 {weightDiff < 10 ? 'Very Balanced' : weightDiff < 25 ? 'Balanced' : 'Favored Match'}
               </div>
             </div>

@@ -3,6 +3,15 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tournament } from "@/types/tournament";
 import { useBroadcastSettings } from "@/hooks/useBroadcastSettings";
+import { BroadcastLoading } from "@/components/broadcast/BroadcastLoading";
+import { 
+  getBroadcastContainerStyle, 
+  getBroadcastHeaderStyle, 
+  getBroadcastTextStyle,
+  getBroadcastCardStyle,
+  BROADCAST_CONTAINER_CLASSES,
+  BROADCAST_DEFAULTS
+} from "@/utils/broadcastLayoutUtils";
 
 interface Match {
   id: string;
@@ -65,11 +74,7 @@ export default function BracketOverlay() {
   }, [id]);
 
   if (loading || !tournament) {
-    return (
-      <div className="w-screen h-screen bg-transparent flex items-center justify-center">
-        <div className="text-white text-2xl">Loading bracket...</div>
-      </div>
-    );
+    return <BroadcastLoading message="Loading bracket..." />;
   }
 
   const rounds = matches.reduce((acc, match) => {
@@ -81,36 +86,22 @@ export default function BracketOverlay() {
   }, {} as Record<number, Match[]>);
 
   const sceneSettings = settings.sceneSettings.bracketOverlay;
-  const containerStyle = {
-    backgroundColor: sceneSettings.backgroundColor || settings.backgroundColor,
-    backgroundImage: sceneSettings.backgroundImage || settings.backgroundImage ? `url(${sceneSettings.backgroundImage || settings.backgroundImage})` : undefined,
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    fontFamily: sceneSettings.fontFamily || settings.fontFamily || 'inherit',
-  };
-
+  const containerStyle = getBroadcastContainerStyle(sceneSettings, settings);
   const maxRound = Math.max(...Object.keys(rounds).map(Number));
 
   return (
-    <div className="w-screen h-screen bg-transparent overflow-hidden p-8" style={containerStyle}>
+    <div className={BROADCAST_CONTAINER_CLASSES + " overflow-hidden p-8"} style={containerStyle}>
       {/* Tournament Header */}
       <div className="text-center mb-8">
         <div 
-          className="text-4xl font-bold mb-2"
-          style={{ 
-            color: sceneSettings.headerTextColor || settings.headerTextColor,
-            fontFamily: sceneSettings.fontFamily || 'inherit',
-            fontSize: sceneSettings.headerFontSize || 36
-          }}
+          className="font-bold mb-2"
+          style={getBroadcastHeaderStyle(sceneSettings, settings, 'large')}
         >
           {tournament.name}
         </div>
         <div 
           className="text-xl"
-          style={{ 
-            color: (sceneSettings.textColor || settings.textColor) + '70',
-            fontFamily: sceneSettings.fontFamily || 'inherit'
-          }}
+          style={getBroadcastTextStyle(sceneSettings, settings, '70')}
         >
           Tournament Bracket
         </div>

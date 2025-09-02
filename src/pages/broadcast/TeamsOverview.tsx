@@ -9,6 +9,16 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Users, Trophy, Crown } from "lucide-react";
 import { formatSeedDisplay } from "@/utils/broadcastSeedingUtils";
+import { BroadcastLoading } from "@/components/broadcast/BroadcastLoading";
+import { 
+  getBroadcastContainerStyle, 
+  getBroadcastHeaderStyle, 
+  getBroadcastTextStyle,
+  getBroadcastCardStyle,
+  BROADCAST_CONTAINER_CLASSES,
+  getRankColor,
+  BROADCAST_DEFAULTS
+} from "@/utils/broadcastLayoutUtils";
 
 interface Team extends BroadcastTeam {
   status?: 'active' | 'eliminated';
@@ -59,21 +69,11 @@ export default function TeamsOverview() {
   }, [broadcastTeams, id]);
 
   if (loading || !tournament) {
-    return (
-      <div className="w-screen h-screen bg-transparent flex items-center justify-center">
-        <div className="text-white text-2xl">Loading teams...</div>
-      </div>
-    );
+    return <BroadcastLoading message="Loading teams overview..." />;
   }
 
   const sceneSettings = settings.sceneSettings.teamsOverview;
-  const containerStyle = {
-    backgroundColor: sceneSettings.backgroundColor || settings.backgroundColor,
-    backgroundImage: sceneSettings.backgroundImage || settings.backgroundImage ? `url(${sceneSettings.backgroundImage || settings.backgroundImage})` : undefined,
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    fontFamily: sceneSettings.fontFamily || settings.fontFamily || 'inherit',
-  };
+  const containerStyle = getBroadcastContainerStyle(sceneSettings, settings);
 
   const activeTeams = teams.filter(team => team.status === 'active');
   const eliminatedTeams = teams.filter(team => team.status === 'eliminated');
@@ -226,27 +226,19 @@ export default function TeamsOverview() {
   );
 
   return (
-    <div className="w-screen h-screen bg-transparent overflow-y-auto p-8" style={containerStyle}>
+    <div className={BROADCAST_CONTAINER_CLASSES + " overflow-y-auto p-8"} style={containerStyle}>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
           <h1 
-            className="text-6xl font-bold mb-4"
-            style={{ 
-              color: sceneSettings.headerTextColor || settings.headerTextColor,
-              fontFamily: sceneSettings.fontFamily || 'inherit',
-              fontSize: '60px'
-            }}
+            className="font-bold mb-4"
+            style={getBroadcastHeaderStyle(sceneSettings, settings, 'xl')}
           >
             {tournament.name}
           </h1>
           <div 
             className="text-3xl font-medium"
-            style={{ 
-              color: (sceneSettings.textColor || settings.textColor) + '80',
-              fontFamily: sceneSettings.fontFamily || 'inherit',
-              fontSize: '32px'
-            }}
+            style={getBroadcastTextStyle(sceneSettings, settings, '80')}
           >
             Teams Overview
           </div>

@@ -4,8 +4,21 @@ import { useEffect, useState } from "react";
 import type { Team } from "@/types/tournamentDetail";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Crown } from "lucide-react";
 import { useBroadcastSettings } from "@/hooks/useBroadcastSettings";
 import { formatSeedDisplay } from "@/utils/broadcastSeedingUtils";
+import { BroadcastLoading } from "@/components/broadcast/BroadcastLoading";
+import { 
+  getBroadcastContainerStyle, 
+  getBroadcastHeaderStyle, 
+  getBroadcastTextStyle,
+  getBroadcastCardStyle,
+  BROADCAST_CONTAINER_CLASSES,
+  BROADCAST_CONTENT_CLASSES,
+  BROADCAST_PADDING_CLASSES,
+  getRankColor,
+  BROADCAST_DEFAULTS
+} from "@/utils/broadcastLayoutUtils";
 
 interface TeamRosterProps {
   animate?: boolean;
@@ -67,22 +80,11 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
   }, [teamId, teams, settings.animationEnabled, animate]);
 
   if (loading || !currentTeam) {
-    return (
-      <div className="w-screen h-screen bg-transparent flex items-center justify-center">
-        <div className="text-white text-2xl">Loading...</div>
-      </div>
-    );
+    return <BroadcastLoading message="Loading team roster..." />;
   }
 
   const sceneSettings = settings.sceneSettings.teamRoster;
-  const containerStyle = {
-    backgroundColor: sceneSettings.backgroundColor || settings.backgroundColor,
-    backgroundImage: sceneSettings.backgroundImage || settings.backgroundImage ? `url(${sceneSettings.backgroundImage || settings.backgroundImage})` : undefined,
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    fontFamily: sceneSettings.fontFamily || settings.fontFamily || 'inherit',
-    fontSize: `${sceneSettings.fontSize || 16}px`,
-  };
+  const containerStyle = getBroadcastContainerStyle(sceneSettings, settings);
 
   const renderRank = (rank?: string) => {
     const { emoji, color } = formatRank(rank);
@@ -98,7 +100,7 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
   };
 
   return (
-    <div className="w-screen h-screen bg-transparent overflow-hidden" style={containerStyle}>
+    <div className={BROADCAST_CONTAINER_CLASSES} style={containerStyle}>
       {/* Team Name Intro */}
       <div 
         className={`absolute inset-0 flex items-center justify-center transition-all duration-1000 ${
@@ -107,17 +109,16 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
         style={{ display: shouldAnimate && animationPhase === 'intro' ? 'flex' : 'none' }}
       >
         <div className="text-center">
-          <div className="text-6xl font-bold mb-4 animate-fade-in" style={{ 
-            color: sceneSettings.headerTextColor || settings.headerTextColor,
-            fontSize: `${(sceneSettings.headerFontSize || 48) * 1.25}px`,
-            fontFamily: sceneSettings.fontFamily || 'inherit'
-          }}>
+          <div 
+            className="font-bold mb-4 animate-fade-in" 
+            style={getBroadcastHeaderStyle(sceneSettings, settings, 'xl')}
+          >
             {currentTeam.name}
           </div>
-          <div className="text-2xl" style={{ 
-            color: (sceneSettings.textColor || settings.textColor) + '80',
-            fontFamily: sceneSettings.fontFamily || 'inherit'
-          }}>
+          <div 
+            className="text-2xl" 
+            style={getBroadcastTextStyle(sceneSettings, settings, '80')}
+          >
             Team Roster
           </div>
         </div>
@@ -129,11 +130,10 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
           !shouldAnimate || animationPhase === 'roster' || animationPhase === 'complete' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
         }`}
       >
-        <div className="text-4xl font-bold mb-8 text-center" style={{ 
-          color: sceneSettings.headerTextColor || settings.headerTextColor,
-          fontSize: `${sceneSettings.headerFontSize || 36}px`,
-          fontFamily: sceneSettings.fontFamily || settings.fontFamily || 'inherit'
-        }}>
+        <div 
+          className="text-4xl font-bold mb-8 text-center" 
+          style={getBroadcastHeaderStyle(sceneSettings, settings, 'large')}
+        >
           {currentTeam.name}
         </div>
         
@@ -155,13 +155,8 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
                   }`}
                   style={{ 
                     transitionDelay: shouldAnimate ? `${index * 200}ms` : '0ms',
-                    borderRadius: `${sceneSettings.borderRadius || 16}px`,
-                    borderWidth: `${sceneSettings.borderWidth || 1}px`,
-                    borderColor: sceneSettings.borderColor || '#ffffff10',
-                    padding: `${sceneSettings.padding || 20}px`,
-                    gap: `${sceneSettings.spacing || 24}px`,
-                    fontFamily: sceneSettings.fontFamily || 'inherit',
-                    boxShadow: `0 ${sceneSettings.shadowIntensity || 3}px ${(sceneSettings.shadowIntensity || 3) * 3}px rgba(0,0,0,0.3)`
+                    ...getBroadcastCardStyle(sceneSettings),
+                    gap: `${sceneSettings.spacing || BROADCAST_DEFAULTS.spacing}px`,
                   }}
                 >
                   <Avatar className="w-16 h-16 border-2 border-white/20 shadow-md">
@@ -177,12 +172,10 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
                   <div className="flex-1">
                     {/* Username + Captain */}
                     <div className="flex items-center space-x-3 mb-1">
-                      <span className="text-xl font-bold tracking-wide" style={{ 
-                        color: sceneSettings.textColor || settings.textColor,
-                        fontSize: `${(sceneSettings.fontSize || 16) * 1.25}px`,
-                        fontWeight: sceneSettings.fontWeight || 'bold',
-                        fontFamily: sceneSettings.fontFamily || settings.fontFamily || 'inherit'
-                      }}>
+                      <span 
+                        className="text-xl font-bold tracking-wide" 
+                        style={getBroadcastTextStyle(sceneSettings, settings)}
+                      >
                         {user.discord_username || 'Unknown Player'}
                       </span>
                       {member.is_captain && (
@@ -215,43 +208,44 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
 
         {/* Team Stats Section - Toggleable */}
         {(sceneSettings.showTeamTotalWeight || sceneSettings.showTeamSeed) && (
-          <div className="mt-8 bg-black/50 backdrop-blur-md rounded-2xl border border-white/10 shadow-xl" style={{
-            borderRadius: `${sceneSettings.borderRadius || 16}px`,
-            padding: `${(sceneSettings.padding || 16) * 1.5}px ${(sceneSettings.padding || 16) * 2.5}px`,
-            boxShadow: `0 ${(sceneSettings.shadowIntensity || 3) * 2}px ${(sceneSettings.shadowIntensity || 3) * 6}px rgba(0,0,0,0.4)`
-          }}>
+          <div 
+            className="mt-8 backdrop-blur-md border shadow-xl" 
+            style={getBroadcastCardStyle(sceneSettings)}
+          >
             <div className="flex justify-center gap-16">
               {sceneSettings.showTeamTotalWeight && (
                 <div className="text-center">
-                  <div className="text-3xl font-extrabold" style={{ 
-                    color: sceneSettings.headerTextColor || settings.headerTextColor,
-                    fontSize: `${(sceneSettings.headerFontSize || 24) * 1.25}px`,
-                    fontFamily: sceneSettings.fontFamily || 'inherit'
-                  }}>
+                  <div 
+                    className="text-3xl font-extrabold" 
+                    style={getBroadcastHeaderStyle(sceneSettings, settings, 'medium')}
+                  >
                       {currentTeam.team_members.reduce((total, member) => {
                         const weight = (member.users as any)?.display_weight || (member.users as any)?.atlas_weight || (member.users as any)?.adaptive_weight || 150;
                         return total + weight;
                       }, 0)}
                   </div>
-                  <div className="text-sm uppercase tracking-wider" style={{ 
-                    color: (sceneSettings.textColor || settings.textColor) + '80',
-                    fontFamily: sceneSettings.fontFamily || 'inherit'
-                  }}>Total Weight</div>
+                  <div 
+                    className="text-sm uppercase tracking-wider" 
+                    style={getBroadcastTextStyle(sceneSettings, settings, '80')}
+                  >
+                    Total Weight
+                  </div>
                 </div>
               )}
               {sceneSettings.showTeamSeed && (
                 <div className="text-center">
-                  <div className="text-3xl font-extrabold" style={{ 
-                    color: sceneSettings.headerTextColor || settings.headerTextColor,
-                    fontSize: `${(sceneSettings.headerFontSize || 24) * 1.25}px`,
-                    fontFamily: sceneSettings.fontFamily || 'inherit'
-                  }}>
-                    #{(currentTeam as any).calculatedSeed || currentTeam.seed || 'TBD'}
+                  <div 
+                    className="text-3xl font-extrabold" 
+                    style={getBroadcastHeaderStyle(sceneSettings, settings, 'medium')}
+                  >
+                     #{(currentTeam as any).calculatedSeed || currentTeam.seed || 'TBD'}
                   </div>
-                  <div className="text-sm uppercase tracking-wider" style={{ 
-                    color: (sceneSettings.textColor || settings.textColor) + '80',
-                    fontFamily: sceneSettings.fontFamily || 'inherit'
-                  }}>Seed</div>
+                  <div 
+                    className="text-sm uppercase tracking-wider" 
+                    style={getBroadcastTextStyle(sceneSettings, settings, '80')}
+                  >
+                    Seed
+                  </div>
                 </div>
               )}
             </div>
