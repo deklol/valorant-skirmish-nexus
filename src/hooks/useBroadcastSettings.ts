@@ -155,7 +155,24 @@ export function useBroadcastSettings() {
     if (savedSettings) {
       try {
         const parsed = JSON.parse(savedSettings);
-        setSettings({ ...DEFAULT_SETTINGS, ...parsed });
+        // Deep merge sceneSettings to ensure new scenes have default values
+        const mergedSceneSettings = {
+          ...DEFAULT_SETTINGS.sceneSettings,
+          ...parsed.sceneSettings,
+          // Ensure each scene has all default properties
+          teamRoster: { ...DEFAULT_SETTINGS.sceneSettings.teamRoster, ...parsed.sceneSettings?.teamRoster },
+          matchupPreview: { ...DEFAULT_SETTINGS.sceneSettings.matchupPreview, ...parsed.sceneSettings?.matchupPreview },
+          playerSpotlight: { ...DEFAULT_SETTINGS.sceneSettings.playerSpotlight, ...parsed.sceneSettings?.playerSpotlight },
+          tournamentStats: { ...DEFAULT_SETTINGS.sceneSettings.tournamentStats, ...parsed.sceneSettings?.tournamentStats },
+          bracketOverlay: { ...DEFAULT_SETTINGS.sceneSettings.bracketOverlay, ...parsed.sceneSettings?.bracketOverlay },
+          teamsOverview: { ...DEFAULT_SETTINGS.sceneSettings.teamsOverview, ...parsed.sceneSettings?.teamsOverview },
+        };
+        
+        setSettings({ 
+          ...DEFAULT_SETTINGS, 
+          ...parsed,
+          sceneSettings: mergedSceneSettings
+        });
       } catch (error) {
         console.error('Failed to parse saved settings:', error);
       }
