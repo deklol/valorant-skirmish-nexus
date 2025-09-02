@@ -11,8 +11,11 @@ export function useBroadcastData(tournamentId: string | undefined) {
   const [error, setError] = useState<string | null>(null);
   const [atlasWeights, setAtlasWeights] = useState<Map<string, number>>(new Map());
 
+  console.log('🎬 BROADCAST HOOK INIT:', { tournamentId, loading });
+
   useEffect(() => {
     if (!tournamentId) {
+      console.log('❌ BROADCAST: No tournament ID provided');
       setError("No tournament ID provided");
       setLoading(false);
       return;
@@ -20,6 +23,7 @@ export function useBroadcastData(tournamentId: string | undefined) {
 
     const fetchBroadcastData = async () => {
       try {
+        console.log('🎬 BROADCAST: Starting data fetch for tournament:', tournamentId);
         setLoading(true);
         
         // Fetch tournament data with balance analysis
@@ -130,24 +134,39 @@ export function useBroadcastData(tournamentId: string | undefined) {
               atlasWeight,
               adaptiveWeight: adaptiveWeight?.calculated_adaptive_weight,
               finalDisplayWeight: displayWeight,
-              tournamentsWon: userStat?.tournaments_won || member.users?.tournaments_won
+              tournamentsWon: userStat?.tournaments_won || member.users?.tournaments_won,
+              hasUsers: !!member.users,
+              userKeys: member.users ? Object.keys(member.users) : []
+            });
+            
+            const enhancedUser = {
+              ...member.users,
+              adaptive_weight: adaptiveWeight?.calculated_adaptive_weight,
+              atlas_weight: atlasWeight, // ATLAS weight from stored calculations
+              display_weight: displayWeight, // Primary weight to display
+              peak_rank_points: adaptiveWeight?.peak_rank_points,
+              adaptive_factor: adaptiveWeight?.adaptive_factor,
+              tournaments_won: userStat?.tournaments_won || member.users?.tournaments_won || 0,
+              tournaments_played: userStat?.tournaments_played || 0
+            };
+            
+            console.log(`💫 ENHANCED USER ${member.user_id}:`, {
+              enhancedUserKeys: Object.keys(enhancedUser),
+              display_weight: enhancedUser.display_weight,
+              atlas_weight: enhancedUser.atlas_weight
             });
             
             return {
               ...member,
-              users: {
-                ...member.users,
-                adaptive_weight: adaptiveWeight?.calculated_adaptive_weight,
-                atlas_weight: atlasWeight, // ATLAS weight from stored calculations
-                display_weight: displayWeight, // Primary weight to display
-                peak_rank_points: adaptiveWeight?.peak_rank_points,
-                adaptive_factor: adaptiveWeight?.adaptive_factor,
-                tournaments_won: userStat?.tournaments_won || member.users?.tournaments_won || 0,
-                tournaments_played: userStat?.tournaments_played || 0
-              }
+              users: enhancedUser
             };
           })
         })) || [];
+
+        console.log('🎬 BROADCAST: Final teams data:', {
+          totalTeams: teamsWithATLASWeights.length,
+          firstTeamSample: teamsWithATLASWeights[0]?.team_members?.[0]?.users
+        });
 
         setTeams(teamsWithATLASWeights);
         
