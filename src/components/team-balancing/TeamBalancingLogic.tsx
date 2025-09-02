@@ -163,6 +163,8 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
       .eq('id', tournamentId)
       .single();
 
+    const playersWithWeights: any[] = [];
+
     for (let i = 0; i < sortedPlayers.length; i++) {
       const player = sortedPlayers[i];
       const teamName = `${player.users?.discord_username || 'Player'} (Solo)`;
@@ -183,14 +185,32 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
           } as EvidenceBasedConfig)
         : getRankPointsWithManualOverride(player.users);
       
-      // Create team
+      // Store player data for seeding
+      const playerWithWeight = {
+        player,
+        teamName,
+        rankResult,
+        originalIndex: i
+      };
+      
+      playersWithWeights.push(playerWithWeight);
+    }
+
+    // Sort players by weight (descending) for correct seeding in 1v1
+    const sortedPlayersForSeeding = playersWithWeights.sort((a, b) => b.rankResult.points - a.rankResult.points);
+
+    // Create teams in seed order
+    for (let seedIndex = 0; seedIndex < sortedPlayersForSeeding.length; seedIndex++) {
+      const playerData = sortedPlayersForSeeding[seedIndex];
+      
+      // Create team with correct seed (highest weight = seed #1)
       const { data: newTeam, error: teamError } = await supabase
         .from('teams')
         .insert({
-          name: teamName,
+          name: playerData.teamName,
           tournament_id: tournamentId,
-          total_rank_points: rankResult.points,
-          seed: i + 1
+          total_rank_points: playerData.rankResult.points,
+          seed: seedIndex + 1 // Correct seeding: highest weight = seed #1
         })
         .select()
         .single();
@@ -202,13 +222,13 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
         .from('team_members')
         .insert({
           team_id: newTeam.id,
-          user_id: player.user_id,
+          user_id: playerData.player.user_id,
           is_captain: true
         });
 
       // Send notification to player
       try {
-        await notifyTeamAssigned(newTeam.id, teamName, [player.user_id]);
+        await notifyTeamAssigned(newTeam.id, playerData.teamName, [playerData.player.user_id]);
       } catch (notificationError) {
         atlasLogger.error('Failed to send notification', notificationError);
       }
@@ -268,7 +288,10 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
     const usedNames = new Set<string>();
     const createdTeams: any[] = [];
 
-    // Create teams in database
+    // Calculate team weights and create teams with proper seeding
+    const teamsWithWeights = [];
+
+    // First pass: Calculate all team weights and names
     for (let i = 0; i < teams.length; i++) {
       if (teams[i].length === 0) continue;
 
@@ -313,24 +336,39 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
         return sum + rankResult.points;
       }, 0);
 
-      // Create team
+      teamsWithWeights.push({
+        name: teamName,
+        totalWeight,
+        players: teams[i],
+        originalIndex: i
+      });
+    }
+
+    // Sort teams by weight (descending) for correct seeding
+    const sortedTeams = teamsWithWeights.sort((a, b) => b.totalWeight - a.totalWeight);
+
+    // Second pass: Create teams in correct seed order
+    for (let seedIndex = 0; seedIndex < sortedTeams.length; seedIndex++) {
+      const teamData = sortedTeams[seedIndex];
+
+      // Create team with correct seed (highest weight = seed #1)
       const { data: newTeam, error: teamError } = await supabase
         .from('teams')
         .insert({
-          name: teamName,
+          name: teamData.name,
           tournament_id: tournamentId,
-          total_rank_points: totalWeight,
-          seed: i + 1
+          total_rank_points: teamData.totalWeight,
+          seed: seedIndex + 1 // Correct seeding: highest weight = seed #1
         })
         .select()
         .single();
 
       if (teamError) throw teamError;
-      createdTeams.push({ ...newTeam, players: teams[i] });
+      createdTeams.push({ ...newTeam, players: teamData.players });
 
       // Add team members
-      for (let j = 0; j < teams[i].length; j++) {
-        const player = teams[i][j];
+      for (let j = 0; j < teamData.players.length; j++) {
+        const player = teamData.players[j];
         const isCaptain = j === 0; // First player (highest weight) is captain
 
         // Find the original signup to get user_id
@@ -347,11 +385,11 @@ export const useTeamBalancingLogic = ({ tournamentId, maxTeams, onTeamsBalanced 
       }
 
       // Send notifications to team members
-      const teamUserIds = teams[i]
+      const teamUserIds = teamData.players
         .map(player => sortedPlayers.find(s => s.users?.id === player.id)?.user_id)
         .filter(Boolean);
       try {
-        await notifyTeamAssigned(newTeam.id, teamName, teamUserIds);
+        await notifyTeamAssigned(newTeam.id, teamData.name, teamUserIds);
       } catch (notificationError) {
         atlasLogger.error('Failed to send notification', notificationError);
       }

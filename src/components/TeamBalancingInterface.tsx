@@ -1201,7 +1201,11 @@ try {
       
       const teamsWithMembers = reorderedTeams.filter(team => team.members.length > 0);
 
-      for (const team of teamsWithMembers) {
+      // Sort teams by total weight (descending) for correct seeding
+      // Higher weight = Lower seed number (Seed #1 is strongest)
+      const teamsSortedByWeight = [...teamsWithMembers].sort((a, b) => b.totalWeight - a.totalWeight);
+
+      for (const team of teamsSortedByWeight) {
         if (team.isPlaceholder) {
           const { data: newTeam, error: createError } = await supabase
             .from('teams')
@@ -1209,7 +1213,7 @@ try {
               name: team.name,
               tournament_id: tournamentId,
               total_rank_points: team.totalWeight,
-              seed: reorderedTeams.indexOf(team) + 1
+              seed: teamsSortedByWeight.indexOf(team) + 1 // Correct seeding: highest weight = seed #1
             })
             .select()
             .single();
