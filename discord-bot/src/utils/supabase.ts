@@ -23,7 +23,7 @@ export const db = {
       .from('users')
       .select('*')
       .eq('discord_id', discordId)
-      .single();
+      .maybeSingle();
     
     return { data, error };
   },
@@ -72,7 +72,7 @@ export const db = {
       .from('tournaments')
       .select('*')
       .eq('id', id)
-      .single();
+      .maybeSingle();
     
     return { data, error };
   },

@@ -1,9 +1,9 @@
 import { Events, Interaction, EmbedBuilder } from 'discord.js';
-import { db } from '../utils/supabase';
+import { db, supabase } from '../utils/supabase';
 import { createTournamentEmbed, createQuickMatchEmbed } from '../utils/embeds';
 import { handleUserRegistration } from '../utils/userRegistration';
 
-module.exports = {
+export default {
   name: Events.InteractionCreate,
   async execute(interaction: Interaction) {
     // Handle slash commands
@@ -70,9 +70,9 @@ module.exports = {
             }
             break;
             
-          case 'register':
-            await handleUserRegistration(interaction);
-            break;
+        case 'register':
+          await handleUserRegistration(interaction);
+          break;
             
           default:
             await interaction.reply({ 
@@ -111,7 +111,7 @@ async function handleTournamentSignup(interaction: any, tournamentId: string, us
     return;
   }
   
-  if (tournament.status !== 'open_registration') {
+  if (tournament.status !== 'open') {
     await interaction.reply({
       content: '❌ Registration is not open for this tournament.',
       ephemeral: true
@@ -120,12 +120,12 @@ async function handleTournamentSignup(interaction: any, tournamentId: string, us
   }
   
   // Check if user already signed up
-  const { data: existingSignup } = await db.supabase
+  const { data: existingSignup } = await supabase
     .from('tournament_signups')
     .select('id')
     .eq('user_id', user.id)
     .eq('tournament_id', tournamentId)
-    .single();
+    .maybeSingle();
     
   if (existingSignup) {
     await interaction.reply({

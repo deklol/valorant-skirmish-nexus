@@ -2,7 +2,7 @@ import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { db } from '../utils/supabase';
 import { createTournamentEmbed } from '../utils/embeds';
 
-module.exports = {
+export default {
   data: new SlashCommandBuilder()
     .setName('tournaments')
     .setDescription('View active tournaments')
