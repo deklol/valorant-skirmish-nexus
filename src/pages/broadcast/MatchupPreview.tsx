@@ -24,6 +24,24 @@ export default function MatchupPreview() {
     const foundTeam1 = teams.find(t => t.id === team1Id);
     const foundTeam2 = teams.find(t => t.id === team2Id);
     
+    // Debug logging for ATLAS weight display issue
+    console.log('🔧 MATCHUP PREVIEW DEBUG:', {
+      sceneSettings: settings.sceneSettings.matchupPreview,
+      showAdaptiveWeight: settings.sceneSettings.matchupPreview.showAdaptiveWeight,
+      team1Members: foundTeam1?.team_members.map(m => ({
+        username: m.users?.discord_username,
+        display_weight: (m.users as any)?.display_weight,
+        atlas_weight: (m.users as any)?.atlas_weight,
+        adaptive_weight: (m.users as any)?.adaptive_weight
+      })),
+      team2Members: foundTeam2?.team_members.map(m => ({
+        username: m.users?.discord_username,
+        display_weight: (m.users as any)?.display_weight,
+        atlas_weight: (m.users as any)?.atlas_weight,
+        adaptive_weight: (m.users as any)?.adaptive_weight
+      }))
+    });
+    
     setTeam1(foundTeam1 || null);
     setTeam2(foundTeam2 || null);
 
@@ -35,7 +53,7 @@ export default function MatchupPreview() {
     } else {
       setShouldAnimate(settings.animationEnabled);
     }
-  }, [teams, team1Id, team2Id, settings.animationEnabled]);
+  }, [teams, team1Id, team2Id, settings.animationEnabled, settings.sceneSettings.matchupPreview.showAdaptiveWeight]);
 
   if (loading || !team1 || !team2) {
     return (
@@ -137,9 +155,9 @@ export default function MatchupPreview() {
                           {member.users.current_rank}
                         </span>
                       )}
-                      {sceneSettings.showAdaptiveWeight && ((member.users as any)?.display_weight || (member.users as any)?.atlas_weight) && (
+                      {sceneSettings.showAdaptiveWeight && (
                         <span className="text-cyan-400">
-                          {(member.users as any)?.display_weight || (member.users as any)?.atlas_weight} pts
+                          {(member.users as any)?.display_weight || (member.users as any)?.atlas_weight || (member.users as any)?.adaptive_weight || 150} pts
                         </span>
                       )}
                     </div>
@@ -188,9 +206,9 @@ export default function MatchupPreview() {
                           {member.users.current_rank}
                         </span>
                       )}
-                      {sceneSettings.showAdaptiveWeight && ((member.users as any)?.display_weight || (member.users as any)?.atlas_weight) && (
+                      {sceneSettings.showAdaptiveWeight && (
                         <span className="text-cyan-400">
-                          {(member.users as any)?.display_weight || (member.users as any)?.atlas_weight} pts
+                          {(member.users as any)?.display_weight || (member.users as any)?.atlas_weight || (member.users as any)?.adaptive_weight || 150} pts
                         </span>
                       )}
                     </div>

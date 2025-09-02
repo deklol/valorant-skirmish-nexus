@@ -125,7 +125,10 @@ export default function BroadcastSettingsPanel() {
           <div className="flex items-center space-x-2">
             <Switch
               checked={sceneSettings.showAdaptiveWeight}
-              onCheckedChange={(checked) => updateSceneSettings(scene, { showAdaptiveWeight: checked })}
+              onCheckedChange={(checked) => {
+                console.log('🔧 ATLAS Weight setting changed:', { scene, checked });
+                updateSceneSettings(scene, { showAdaptiveWeight: checked });
+              }}
             />
             <Label>ATLAS Weight</Label>
           </div>
