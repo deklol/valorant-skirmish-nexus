@@ -88,6 +88,9 @@ export default function PlayerSpotlightCard() {
         (stat: any) => stat.teams?.tournaments?.status === 'completed'
       ).length || 0;
 
+      // PRIORITY FIX: Use ATLAS adaptive weight when available
+      const displayWeight = adaptiveWeight?.calculated_adaptive_weight || teamMemberData.users?.weight_rating || 150;
+
       setPlayer({
         id: playerId,
         discord_username: teamMemberData.users?.discord_username || 'Unknown Player',
@@ -97,7 +100,7 @@ export default function PlayerSpotlightCard() {
         rank_points: teamMemberData.users?.rank_points,
         weight_rating: teamMemberData.users?.weight_rating,
         peak_rank: teamMemberData.users?.peak_rank,
-        adaptive_weight: adaptiveWeight?.calculated_adaptive_weight || teamMemberData.users?.weight_rating,
+        adaptive_weight: displayWeight,
         atlas_weight: adaptiveWeight?.calculated_adaptive_weight,
         weight_source: adaptiveWeight?.weight_source || 'standard',
         team_name: (teamMemberData.teams as any)?.name,
@@ -138,11 +141,11 @@ export default function PlayerSpotlightCard() {
   const sceneSettings = settings.sceneSettings.playerSpotlight;
 
   const containerStyle = {
-    backgroundColor: sceneSettings.backgroundColor === 'transparent' ? 'transparent' : sceneSettings.backgroundColor,
-    backgroundImage: sceneSettings.backgroundImage ? `url(${sceneSettings.backgroundImage})` : undefined,
+    backgroundColor: sceneSettings.backgroundColor || settings.backgroundColor,
+    backgroundImage: sceneSettings.backgroundImage || settings.backgroundImage ? `url(${sceneSettings.backgroundImage || settings.backgroundImage})` : undefined,
     backgroundSize: 'cover',
     backgroundPosition: 'center',
-    fontFamily: sceneSettings.fontFamily || 'inherit',
+    fontFamily: sceneSettings.fontFamily || settings.fontFamily || 'inherit',
   };
 
   return (
@@ -161,7 +164,10 @@ export default function PlayerSpotlightCard() {
             
             <div className="space-y-2">
               <div className="flex items-center justify-center space-x-3">
-                <h1 className="text-4xl font-bold" style={{ color: settings.headerTextColor }}>
+                <h1 className="text-4xl font-bold" style={{ 
+                  color: sceneSettings.headerTextColor || settings.headerTextColor,
+                  fontFamily: sceneSettings.fontFamily || settings.fontFamily || 'inherit'
+                }}>
                   {player.discord_username}
                 </h1>
                 {player.is_captain && (
@@ -172,7 +178,10 @@ export default function PlayerSpotlightCard() {
               </div>
               
               {sceneSettings.showRiotId && player.riot_id && (
-                <div className="text-xl" style={{ color: settings.textColor + '70' }}>{player.riot_id}</div>
+                <div className="text-xl" style={{ 
+                  color: (sceneSettings.textColor || settings.textColor) + '70',
+                  fontFamily: sceneSettings.fontFamily || settings.fontFamily || 'inherit'
+                }}>{player.riot_id}</div>
               )}
               
               {player.team_name && (

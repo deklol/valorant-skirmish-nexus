@@ -130,11 +130,11 @@ export default function BroadcastIds() {
         </div>
       </div>
 
-      {/* Full Width Layout: Left side stacks above Settings */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* LEFT SIDE (IDs + URLs + Teams + Matches + Docs) */}
-        <div className="space-y-8">
-          {/* API Endpoints */}
+      {/* Full Width Layout: 50/50 split */}
+      <div className="grid grid-cols-2 gap-8 h-[calc(100vh-200px)]">
+        {/* LEFT SIDE (50%) - IDs + URLs + Teams + Matches */}
+        <div className="space-y-6 overflow-y-auto pr-4">
+          {/* Broadcast URLs */}
           <div className="bg-card rounded-lg p-6">
             <h3 className="text-xl font-semibold mb-4">📡 Broadcast URLs</h3>
             <div className="space-y-3 text-sm font-mono">
@@ -363,8 +363,8 @@ export default function BroadcastIds() {
           </div>
         </div>
 
-        {/* RIGHT SIDE - Settings now spans full width below */}
-        <div className="space-y-6">
+        {/* RIGHT SIDE (50%) - Settings Panel */}
+        <div className="overflow-hidden">
           <BroadcastSettingsPanel />
         </div>
       </div>

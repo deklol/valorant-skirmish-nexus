@@ -389,31 +389,7 @@ export default function BroadcastSettingsPanel() {
         </div>
       </div>
 
-      {/* Animation */}
-      <div className="space-y-4">
-        <h4 className="font-medium text-lg">Animation</h4>
-        
-        <div className="grid grid-cols-2 gap-4">
-          <div className="flex items-center space-x-2">
-            <Switch
-              checked={sceneSettings.animationEnabled !== false}
-              onCheckedChange={(checked) => updateSceneSettings(scene, { animationEnabled: checked })}
-            />
-            <Label>Enable Animations</Label>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Animation Duration: {sceneSettings.animationDuration || 500}ms</Label>
-            <Slider
-              value={[sceneSettings.animationDuration || 500]}
-              onValueChange={([value]) => updateSceneSettings(scene, { animationDuration: value })}
-              max={2000}
-              min={100}
-              step={50}
-            />
-          </div>
-        </div>
-      </div>
+      {/* Animation removed - now global only */}
     </div>
   );
 

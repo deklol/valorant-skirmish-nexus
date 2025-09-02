@@ -27,27 +27,26 @@ export interface BroadcastSceneSettings extends BroadcastDisplaySettings {
   headerFontSize?: number;
   fontWeight?: string;
   
-  // Animations
-  animationEnabled?: boolean;
-  animationDuration?: number;
-  
   // Layout
   padding?: number;
   spacing?: number;
 }
 
 export interface BroadcastSettings {
-  // Timing settings
+  // Global settings - applied to all scenes unless overridden
+  backgroundImage?: string;
+  backgroundColor: string;
+  headerTextColor: string;
+  textColor: string;
+  fontFamily?: string;
+  
+  // Animation settings
+  animationEnabled: boolean;
   loadingTime: number; // ms
   transitionTime: number; // ms
   transitionType: 'fade' | 'slide' | 'scale' | 'none';
   
-  // Global fallback colors (used when scene doesn't override)
-  headerTextColor: string;
-  textColor: string;
-  backgroundColor: string;
-  
-  // Per-scene settings
+  // Per-scene settings (can override global settings)
   sceneSettings: {
     teamRoster: BroadcastSceneSettings;
     matchupPreview: BroadcastSceneSettings;
@@ -63,12 +62,6 @@ const DEFAULT_SCENE_SETTINGS: BroadcastSceneSettings = {
   showTournamentWins: false,
   showRiotId: true,
   
-  // Visual customization
-  backgroundImage: undefined,
-  backgroundColor: 'transparent',
-  textColor: '#ffffff',
-  headerTextColor: '#ffffff',
-  
   // Layout & Design
   borderRadius: 12,
   borderWidth: 1,
@@ -76,14 +69,9 @@ const DEFAULT_SCENE_SETTINGS: BroadcastSceneSettings = {
   shadowIntensity: 3,
   
   // Typography
-  fontFamily: 'inherit',
   fontSize: 16,
   headerFontSize: 24,
   fontWeight: 'normal',
-  
-  // Animations
-  animationEnabled: true,
-  animationDuration: 500,
   
   // Layout
   padding: 16,
@@ -91,12 +79,18 @@ const DEFAULT_SCENE_SETTINGS: BroadcastSceneSettings = {
 };
 
 const DEFAULT_SETTINGS: BroadcastSettings = {
+  // Global settings
+  backgroundColor: 'transparent',
+  headerTextColor: '#ffffff',
+  textColor: '#ffffff',
+  fontFamily: 'inherit',
+  
+  // Animation settings
+  animationEnabled: true,
   loadingTime: 2000,
   transitionTime: 500,
   transitionType: 'fade',
-  headerTextColor: '#ffffff',
-  textColor: '#ffffff',
-  backgroundColor: 'transparent',
+  
   sceneSettings: {
     teamRoster: {
       ...DEFAULT_SCENE_SETTINGS,

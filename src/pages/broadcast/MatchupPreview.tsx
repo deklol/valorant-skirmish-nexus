@@ -53,14 +53,16 @@ export default function MatchupPreview() {
         ...team,
         team_members: team.team_members.map(member => {
           const adaptiveWeight = adaptiveWeights?.find(w => w.user_id === member.user_id);
-          const atlasWeight = adaptiveWeight?.calculated_adaptive_weight || member.users?.weight_rating;
+          // PRIORITY FIX: Use ATLAS adaptive weight when available
+          const displayWeight = adaptiveWeight?.calculated_adaptive_weight || member.users?.weight_rating || 150;
           return {
             ...member,
             users: {
               ...member.users,
-              adaptive_weight: atlasWeight,
+              adaptive_weight: displayWeight,
               atlas_weight: adaptiveWeight?.calculated_adaptive_weight,
-              weight_source: adaptiveWeight?.weight_source || 'standard'
+              weight_source: adaptiveWeight?.weight_source || 'standard',
+              display_weight: displayWeight
             }
           };
         })
@@ -83,9 +85,9 @@ export default function MatchupPreview() {
   }
 
   const getTeamAverageWeight = (team: Team) => {
-          const weights = team.team_members
-            .map(m => (m.users as any)?.adaptive_weight || m.users?.weight_rating || 150)
-            .filter(Boolean);
+    const weights = team.team_members
+      .map(m => (m.users as any)?.display_weight || (m.users as any)?.adaptive_weight || m.users?.weight_rating || 150)
+      .filter(Boolean);
     return weights.length > 0 ? Math.round(weights.reduce((a, b) => a + b, 0) / weights.length) : 150;
   };
 
@@ -106,11 +108,11 @@ export default function MatchupPreview() {
   const sceneSettings = settings.sceneSettings.matchupPreview;
 
   const containerStyle = {
-    backgroundColor: sceneSettings.backgroundColor === 'transparent' ? 'transparent' : sceneSettings.backgroundColor,
-    backgroundImage: sceneSettings.backgroundImage ? `url(${sceneSettings.backgroundImage})` : undefined,
+    backgroundColor: sceneSettings.backgroundColor || settings.backgroundColor,
+    backgroundImage: sceneSettings.backgroundImage || settings.backgroundImage ? `url(${sceneSettings.backgroundImage || settings.backgroundImage})` : undefined,
     backgroundSize: 'cover',
     backgroundPosition: 'center',
-    fontFamily: sceneSettings.fontFamily || 'inherit',
+    fontFamily: sceneSettings.fontFamily || settings.fontFamily || 'inherit',
   };
 
   return (
@@ -118,12 +120,18 @@ export default function MatchupPreview() {
       <div className="max-w-7xl w-full">
         {/* Header */}
         <div className="text-center mb-12">
-          <div className="text-5xl font-bold mb-4 flex items-center justify-center space-x-4" style={{ color: settings.headerTextColor }}>
+          <div className="text-5xl font-bold mb-4 flex items-center justify-center space-x-4" style={{ 
+            color: sceneSettings.headerTextColor || settings.headerTextColor,
+            fontFamily: sceneSettings.fontFamily || settings.fontFamily || 'inherit'
+          }}>
             <span>{team1.name}</span>
             <Swords className="w-12 h-12 text-red-500" />
             <span>{team2.name}</span>
           </div>
-          <div className="text-xl" style={{ color: settings.textColor + '70' }}>Upcoming Match</div>
+          <div className="text-xl" style={{ 
+            color: (sceneSettings.textColor || settings.textColor) + '70',
+            fontFamily: sceneSettings.fontFamily || settings.fontFamily || 'inherit'
+          }}>Upcoming Match</div>
         </div>
 
         <div className="grid grid-cols-2 gap-16">
@@ -166,9 +174,9 @@ export default function MatchupPreview() {
                           {member.users.current_rank}
                         </span>
                       )}
-                      {sceneSettings.showAdaptiveWeight && (member.users as any)?.adaptive_weight && (
+                      {sceneSettings.showAdaptiveWeight && ((member.users as any)?.display_weight || (member.users as any)?.adaptive_weight) && (
                         <span className="text-cyan-400">
-                          {(member.users as any).adaptive_weight}
+                          {(member.users as any)?.display_weight || (member.users as any)?.adaptive_weight}
                         </span>
                       )}
                     </div>
@@ -217,9 +225,9 @@ export default function MatchupPreview() {
                           {member.users.current_rank}
                         </span>
                       )}
-                      {sceneSettings.showAdaptiveWeight && (member.users as any)?.adaptive_weight && (
+                      {sceneSettings.showAdaptiveWeight && ((member.users as any)?.display_weight || (member.users as any)?.adaptive_weight) && (
                         <span className="text-cyan-400">
-                          {(member.users as any).adaptive_weight}
+                          {(member.users as any)?.display_weight || (member.users as any)?.adaptive_weight}
                         </span>
                       )}
                     </div>

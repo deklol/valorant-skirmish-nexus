@@ -80,15 +80,17 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
         ...team,
         team_members: team.team_members.map(member => {
           const adaptiveWeight = adaptiveWeights?.find(w => w.user_id === member.user_id);
-          const atlasWeight = adaptiveWeight?.calculated_adaptive_weight || member.users?.weight_rating;
+          // PRIORITY FIX: Use ATLAS adaptive weight when available
+          const displayWeight = adaptiveWeight?.calculated_adaptive_weight || member.users?.weight_rating || 150;
           return {
             ...member,
             users: {
               ...member.users,
-              adaptive_weight: atlasWeight,
+              adaptive_weight: displayWeight,
               atlas_weight: adaptiveWeight?.calculated_adaptive_weight,
               peak_rank_points: adaptiveWeight?.peak_rank_points,
-              weight_source: adaptiveWeight?.weight_source || 'standard'
+              weight_source: adaptiveWeight?.weight_source || 'standard',
+              display_weight: displayWeight // Ensure consistent weight display
             }
           };
         })
@@ -105,7 +107,9 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
 
       setLoading(false);
 
-      if (animate) {
+      // FIX: Use global animation setting
+      const shouldAnimate = animate && settings.animationEnabled;
+      if (shouldAnimate) {
         setTimeout(() => setAnimationPhase('roster'), settings.loadingTime / 2);
         setTimeout(() => setAnimationPhase('complete'), settings.loadingTime);
       } else {
@@ -126,11 +130,11 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
 
   const sceneSettings = settings.sceneSettings.teamRoster;
   const containerStyle = {
-    backgroundColor: sceneSettings.backgroundColor === 'transparent' ? 'transparent' : sceneSettings.backgroundColor,
-    backgroundImage: sceneSettings.backgroundImage ? `url(${sceneSettings.backgroundImage})` : undefined,
+    backgroundColor: sceneSettings.backgroundColor || settings.backgroundColor,
+    backgroundImage: sceneSettings.backgroundImage || settings.backgroundImage ? `url(${sceneSettings.backgroundImage || settings.backgroundImage})` : undefined,
     backgroundSize: 'cover',
     backgroundPosition: 'center',
-    fontFamily: sceneSettings.fontFamily || 'inherit',
+    fontFamily: sceneSettings.fontFamily || settings.fontFamily || 'inherit',
     fontSize: `${sceneSettings.fontSize || 16}px`,
   };
 
@@ -178,11 +182,11 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
           animationPhase === 'roster' || animationPhase === 'complete' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
         }`}
       >
-        <div className="text-4xl font-bold mb-8 text-center" style={{ 
-          color: sceneSettings.headerTextColor || settings.headerTextColor,
-          fontSize: `${sceneSettings.headerFontSize || 36}px`,
-          fontFamily: sceneSettings.fontFamily || 'inherit'
-        }}>
+          <div className="text-4xl font-bold mb-8 text-center" style={{ 
+            color: sceneSettings.headerTextColor || settings.headerTextColor,
+            fontSize: `${sceneSettings.headerFontSize || 36}px`,
+            fontFamily: sceneSettings.fontFamily || settings.fontFamily || 'inherit'
+          }}>
           {currentTeam.name}
         </div>
         
@@ -223,7 +227,7 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
                     color: sceneSettings.textColor || settings.textColor,
                     fontSize: `${(sceneSettings.fontSize || 16) * 1.25}px`,
                     fontWeight: sceneSettings.fontWeight || 'bold',
-                    fontFamily: sceneSettings.fontFamily || 'inherit'
+                    fontFamily: sceneSettings.fontFamily || settings.fontFamily || 'inherit'
                   }}>
                     {member.users?.discord_username || 'Unknown Player'}
                   </span>
@@ -243,8 +247,8 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
                   {sceneSettings.showPeakRank && member.users?.peak_rank && (
                     <span className="opacity-70">⭐ Peak: {member.users.peak_rank}</span>
                   )}
-                  {sceneSettings.showAdaptiveWeight && (member.users as any)?.adaptive_weight && (
-                    <span className="text-cyan-400">{(member.users as any).adaptive_weight} RATING</span>
+                   {sceneSettings.showAdaptiveWeight && ((member.users as any)?.display_weight || (member.users as any)?.adaptive_weight) && (
+                    <span className="text-cyan-400">{(member.users as any)?.display_weight || (member.users as any)?.adaptive_weight} RATING</span>
                   )}
                   {sceneSettings.showTournamentWins && (member.users as any)?.tournaments_won && (
                     <span className="text-green-400">{(member.users as any).tournaments_won}W</span>
