@@ -34,6 +34,44 @@ export interface BroadcastSceneSettings extends BroadcastDisplaySettings {
   // Layout
   padding?: number;
   spacing?: number;
+
+  // Scene-specific settings
+  // Team Roster specific
+  showCaptainBadges?: boolean;
+  showRankEmojis?: boolean;
+  playerCardLayout?: 'compact' | 'detailed';
+  
+  // Matchup Preview specific
+  showVsHeader?: boolean;
+  showWeightDifference?: boolean;
+  showBalanceAssessment?: boolean;
+  matchupLayout?: 'side-by-side' | 'stacked';
+  
+  // Teams Overview specific
+  showActiveEliminated?: boolean;
+  showTeamStatusBadges?: boolean;
+  showTournamentStatus?: boolean;
+  showMemberCount?: boolean;
+  gridColumns?: 1 | 2 | 3;
+  
+  // Player Spotlight specific
+  showPerformanceRating?: boolean;
+  showLargeAvatar?: boolean;
+  statsLayout?: 'grid' | 'stacked';
+  showTournamentHistory?: boolean;
+  
+  // Tournament Stats specific
+  showIndividualStatCards?: boolean;
+  showProgressBar?: boolean;
+  showTournamentStatusHeader?: boolean;
+  statIconStyle?: 'filled' | 'outline';
+  statCardLayout?: 'grid' | 'row';
+  
+  // Bracket Overlay specific
+  showMatchCards?: boolean;
+  showRoundIndicators?: boolean;
+  showWinnerHighlight?: boolean;
+  bracketStructure?: 'single' | 'double';
 }
 
 export interface BroadcastSettings {
@@ -87,6 +125,44 @@ const DEFAULT_SCENE_SETTINGS: BroadcastSceneSettings = {
   // Layout
   padding: 16,
   spacing: 8,
+
+  // Scene-specific defaults
+  // Team Roster
+  showCaptainBadges: true,
+  showRankEmojis: true,
+  playerCardLayout: 'detailed',
+  
+  // Matchup Preview
+  showVsHeader: true,
+  showWeightDifference: true,
+  showBalanceAssessment: true,
+  matchupLayout: 'side-by-side',
+  
+  // Teams Overview
+  showActiveEliminated: true,
+  showTeamStatusBadges: true,
+  showTournamentStatus: true,
+  showMemberCount: true,
+  gridColumns: 2,
+  
+  // Player Spotlight
+  showPerformanceRating: true,
+  showLargeAvatar: true,
+  statsLayout: 'grid',
+  showTournamentHistory: true,
+  
+  // Tournament Stats
+  showIndividualStatCards: true,
+  showProgressBar: true,
+  showTournamentStatusHeader: true,
+  statIconStyle: 'filled',
+  statCardLayout: 'grid',
+  
+  // Bracket Overlay
+  showMatchCards: true,
+  showRoundIndicators: true,
+  showWinnerHighlight: true,
+  bracketStructure: 'single',
 };
 
 const DEFAULT_SETTINGS: BroadcastSettings = {
@@ -107,16 +183,30 @@ const DEFAULT_SETTINGS: BroadcastSettings = {
       ...DEFAULT_SCENE_SETTINGS,
       showPeakRank: false,
       showTournamentWins: false,
+      // Team Roster specific settings
+      showCaptainBadges: true,
+      showRankEmojis: true,
+      playerCardLayout: 'detailed',
     },
     matchupPreview: {
       ...DEFAULT_SCENE_SETTINGS,
       showRiotId: false,
       showPeakRank: false,
+      // Matchup Preview specific settings
+      showVsHeader: true,
+      showWeightDifference: true,
+      showBalanceAssessment: true,
+      matchupLayout: 'side-by-side',
     },
     playerSpotlight: {
       ...DEFAULT_SCENE_SETTINGS,
       showPeakRank: true,
       showTournamentWins: true,
+      // Player Spotlight specific settings
+      showPerformanceRating: true,
+      showLargeAvatar: true,
+      statsLayout: 'grid',
+      showTournamentHistory: true,
     },
     tournamentStats: {
       ...DEFAULT_SCENE_SETTINGS,
@@ -125,6 +215,12 @@ const DEFAULT_SETTINGS: BroadcastSettings = {
       showPeakRank: false,
       showTournamentWins: false,
       showRiotId: false,
+      // Tournament Stats specific settings
+      showIndividualStatCards: true,
+      showProgressBar: true,
+      showTournamentStatusHeader: true,
+      statIconStyle: 'filled',
+      statCardLayout: 'grid',
     },
     bracketOverlay: {
       ...DEFAULT_SCENE_SETTINGS,
@@ -133,12 +229,23 @@ const DEFAULT_SETTINGS: BroadcastSettings = {
       showPeakRank: false,
       showTournamentWins: false,
       showRiotId: false,
+      // Bracket Overlay specific settings
+      showMatchCards: true,
+      showRoundIndicators: true,
+      showWinnerHighlight: true,
+      bracketStructure: 'single',
     },
     teamsOverview: {
       ...DEFAULT_SCENE_SETTINGS,
       showPeakRank: false,
       showTournamentWins: true,
       showRiotId: false,
+      // Teams Overview specific settings
+      showActiveEliminated: true,
+      showTeamStatusBadges: true,
+      showTournamentStatus: true,
+      showMemberCount: true,
+      gridColumns: 2,
     },
   }
 };
