@@ -1,10 +1,10 @@
 /**
  * Button Interaction Handler for Quick Match System
  */
-import { QuickMatchManager } from '../utils/quickMatchManager';
-import { db } from '../utils/supabase';
-import { createQuickMatchEmbed, createMapVotingEmbed } from '../utils/embeds';
-import { handleUserRegistration } from '../utils/userRegistration';
+import { QuickMatchManager } from '../utils/quickMatchManager.js';
+import { db } from '../utils/supabase.js';
+import { createQuickMatchEmbed, createMapVotingEmbed } from '../utils/embeds.js';
+import { handleUserRegistration } from '../utils/userRegistration.js';
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
 
 export async function handleButtonInteraction(interaction: any) {

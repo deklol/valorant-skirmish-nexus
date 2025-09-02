@@ -1,7 +1,7 @@
 import { SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
-import { QuickMatchManager } from '../utils/quickMatchManager';
-import { db } from '../utils/supabase';
-import { createQuickMatchEmbed } from '../utils/embeds';
+import { QuickMatchManager } from '../utils/quickMatchManager.js';
+import { db } from '../utils/supabase.js';
+import { createQuickMatchEmbed } from '../utils/embeds.js';
 
 export default {
   data: new SlashCommandBuilder()

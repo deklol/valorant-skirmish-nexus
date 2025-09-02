@@ -2,7 +2,7 @@
  * Team Balancer for Discord Quick Matches
  * Simplified version of the website's balancing system
  */
-import { calculateAdaptiveWeight, ExtendedUserRankData } from './adaptiveWeightSystem';
+import { calculateAdaptiveWeight, ExtendedUserRankData } from './adaptiveWeightSystem.js';
 
 export interface BalancerPlayer {
   index: number;

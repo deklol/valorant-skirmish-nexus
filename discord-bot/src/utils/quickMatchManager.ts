@@ -2,8 +2,8 @@
  * Quick Match Session Manager
  * Handles all quick match operations and database interactions
  */
-import { supabase } from './supabase';
-import { balanceQuickMatchTeams, convertPlayersForBalancing } from './teamBalancer';
+import { supabase } from './supabase.js';
+import { balanceQuickMatchTeams, convertPlayersForBalancing } from './teamBalancer.js';
 
 export interface QuickMatchSession {
   id: string;

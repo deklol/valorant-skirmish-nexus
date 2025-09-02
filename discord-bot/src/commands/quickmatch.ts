@@ -1,7 +1,7 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { db } from '../utils/supabase';
-import { createQuickMatchEmbed } from '../utils/embeds';
-import { handleUserRegistration } from '../utils/userRegistration';
+import { db } from '../utils/supabase.js';
+import { createQuickMatchEmbed } from '../utils/embeds.js';
+import { handleUserRegistration } from '../utils/userRegistration.js';
 
 export default {
   data: new SlashCommandBuilder()

@@ -1,4 +1,4 @@
-import { RANK_POINT_MAPPING } from "./rankingSystem";
+import { RANK_POINT_MAPPING } from "./rankingSystem.js";
 
 // Extended interface for tournament winner data
 export interface ExtendedUserRankData {

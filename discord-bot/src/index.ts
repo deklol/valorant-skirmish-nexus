@@ -1,10 +1,10 @@
 import { Client, Collection, GatewayIntentBits, Partials } from 'discord.js';
 import dotenv from 'dotenv';
-import { supabase } from './utils/supabase';
-import { loadCommands } from './handlers/commandHandler';
-import { loadEvents } from './handlers/eventHandler';
-import { startCronJobs } from './utils/cronJobs';
-import { syncBotCommands } from './utils/deployCommands';
+import { supabase } from './utils/supabase.js';
+import { loadCommands } from './handlers/commandHandler.js';
+import { loadEvents } from './handlers/eventHandler.js';
+import { startCronJobs } from './utils/cronJobs.js';
+import { syncBotCommands } from './utils/deployCommands.js';
 
 dotenv.config();
 

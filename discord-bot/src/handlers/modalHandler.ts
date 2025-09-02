@@ -1,9 +1,9 @@
 /**
  * Modal Interaction Handler for Quick Match System
  */
-import { QuickMatchManager } from '../utils/quickMatchManager';
+import { QuickMatchManager } from '../utils/quickMatchManager.js';
 import { EmbedBuilder } from 'discord.js';
-import { supabase } from '../utils/supabase';
+import { supabase } from '../utils/supabase.js';
 
 export async function handleModalInteraction(interaction: any) {
   const customId = interaction.customId;
@@ -141,8 +141,8 @@ async function handleScoreSubmission(interaction: any, customId: string) {
 
 async function updateLobbyMessage(interaction: any, session: any) {
   try {
-    const { createQuickMatchEmbed } = await import('../utils/embeds');
-    const { db } = await import('../utils/supabase');
+    const { createQuickMatchEmbed } = await import('../utils/embeds.js');
+    const { db } = await import('../utils/supabase.js');
     
     const queueData = await db.getQuickMatchQueue();
     const { embed, components } = createQuickMatchEmbed(queueData, session);
