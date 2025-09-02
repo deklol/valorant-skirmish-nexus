@@ -5,6 +5,7 @@ import type { Team } from "@/types/tournamentDetail";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useBroadcastSettings } from "@/hooks/useBroadcastSettings";
+import { formatSeedDisplay } from "@/utils/broadcastSeedingUtils";
 
 interface TeamRosterProps {
   animate?: boolean;
@@ -245,7 +246,7 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
                     fontSize: `${(sceneSettings.headerFontSize || 24) * 1.25}px`,
                     fontFamily: sceneSettings.fontFamily || 'inherit'
                   }}>
-                    #{currentTeam.seed || 'TBD'}
+                    #{(currentTeam as any).calculatedSeed || currentTeam.seed || 'TBD'}
                   </div>
                   <div className="text-sm uppercase tracking-wider" style={{ 
                     color: (sceneSettings.textColor || settings.textColor) + '80',

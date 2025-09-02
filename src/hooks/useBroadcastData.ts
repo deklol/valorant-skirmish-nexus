@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Team } from "@/types/tournamentDetail";
 import type { Tournament } from "@/types/tournament";
 import { extractATLASWeightsFromBalanceAnalysis } from "@/utils/broadcastWeightUtils";
+import { calculateBroadcastSeeds } from "@/utils/broadcastSeedingUtils";
 
 export function useBroadcastData(tournamentId: string | undefined) {
   const [tournament, setTournament] = useState<Tournament | null>(null);
@@ -86,7 +87,7 @@ export function useBroadcastData(tournamentId: string | undefined) {
             )
           `)
           .eq('tournament_id', tournamentId)
-          .order('seed', { ascending: true });
+          .order('total_rank_points', { ascending: false });
 
         if (teamsError) throw teamsError;
 
@@ -118,8 +119,9 @@ export function useBroadcastData(tournamentId: string | undefined) {
           .eq('tournament_id', tournamentId)
           .order('round_number', { ascending: true });
 
-        // Merge ATLAS weights and tournament statistics with team member data
-        const teamsWithATLASWeights = teamsData?.map(team => ({
+        // Calculate proper seeds based on team weights and merge ATLAS weights
+        const teamsWithCalculatedSeeds = teamsData ? calculateBroadcastSeeds(teamsData) : [];
+        const teamsWithATLASWeights = teamsWithCalculatedSeeds?.map(team => ({
           ...team,
           team_members: team.team_members.map(member => {
             const adaptiveWeight = adaptiveWeights?.find(w => w.user_id === member.user_id);

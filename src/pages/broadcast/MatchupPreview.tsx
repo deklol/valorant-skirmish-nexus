@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Swords } from "lucide-react";
 import { useBroadcastSettings } from "@/hooks/useBroadcastSettings";
+import { formatSeedDisplay } from "@/utils/broadcastSeedingUtils";
 
 export default function MatchupPreview() {
   const { id, team1Id, team2Id } = useParams<{ id: string; team1Id: string; team2Id: string }>();
@@ -120,6 +121,9 @@ export default function MatchupPreview() {
           <div className="space-y-6">
             <div className="text-center">
               <div className="text-3xl font-bold mb-2" style={{ color: settings.textColor }}>{team1.name}</div>
+              <div className="text-sm opacity-70 mb-2" style={{ color: settings.textColor }}>
+                {formatSeedDisplay((team1 as any).calculatedSeed || team1.seed)}
+              </div>
               {sceneSettings.showAdaptiveWeight && (
                 <div className="text-cyan-400 text-lg">Avg Weight: {team1Avg}</div>
               )}
@@ -171,6 +175,9 @@ export default function MatchupPreview() {
           <div className="space-y-6">
             <div className="text-center">
               <div className="text-3xl font-bold mb-2" style={{ color: settings.textColor }}>{team2.name}</div>
+              <div className="text-sm opacity-70 mb-2" style={{ color: settings.textColor }}>
+                {formatSeedDisplay((team2 as any).calculatedSeed || team2.seed)}
+              </div>
               {sceneSettings.showAdaptiveWeight && (
                 <div className="text-cyan-400 text-lg">Avg Weight: {team2Avg}</div>
               )}

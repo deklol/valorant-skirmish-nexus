@@ -5,6 +5,7 @@ import BroadcastSettingsPanel from "@/components/broadcast/BroadcastSettingsPane
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { calculateBroadcastSeeds, formatSeedDisplay } from "@/utils/broadcastSeedingUtils";
 
 interface Tournament {
   id: string;
@@ -17,6 +18,7 @@ interface BroadcastTeam {
   name: string;
   seed: number;
   total_rank_points: number;
+  calculatedSeed?: number;
   team_members: {
     user_id: string;
     is_captain: boolean;
@@ -78,7 +80,7 @@ export default function BroadcastIds() {
           )
         `)
         .eq("tournament_id", id)
-        .order("seed", { ascending: true });
+        .order("total_rank_points", { ascending: false });
 
       const { data: matchesData } = await supabase
         .from("matches")
@@ -88,7 +90,10 @@ export default function BroadcastIds() {
         .order("match_number");
 
       setTournament(tournamentData || null);
-      setTeams(teamsData || []);
+      
+      // Calculate proper seeds based on team weights
+      const teamsWithCalculatedSeeds = teamsData ? calculateBroadcastSeeds(teamsData) : [];
+      setTeams(teamsWithCalculatedSeeds);
       setMatches(matchesData || []);
       setLoading(false);
     };
@@ -197,7 +202,12 @@ export default function BroadcastIds() {
                     <div>
                       <h4 className="font-semibold text-lg">{team.name}</h4>
                       <p className="text-sm text-muted-foreground">
-                        Seed #{team.seed} • Weight: {team.total_rank_points}
+                        {formatSeedDisplay(team.calculatedSeed || team.seed)} • Weight: {team.total_rank_points}
+                        {team.calculatedSeed !== team.seed && (
+                          <span className="text-yellow-400 ml-2">
+                            (DB: #{team.seed})
+                          </span>
+                        )}
                       </p>
                     </div>
                     <div className="flex items-center space-x-2">

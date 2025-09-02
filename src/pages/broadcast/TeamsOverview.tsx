@@ -6,12 +6,15 @@ import { useBroadcastSettings } from "@/hooks/useBroadcastSettings";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Users, Trophy, Crown } from "lucide-react";
+import { calculateBroadcastSeeds, formatSeedDisplay } from "@/utils/broadcastSeedingUtils";
 
 interface Team {
   id: string;
   name: string;
   status?: 'active' | 'eliminated';
   eliminated_round?: number;
+  total_rank_points?: number;
+  calculatedSeed?: number;
   team_members: Array<{
     user_id: string;
     is_captain: boolean;
@@ -57,6 +60,7 @@ export default function TeamsOverview() {
         .select(`
           id,
           name,
+          total_rank_points,
           team_members (
             user_id,
             is_captain,
@@ -67,7 +71,8 @@ export default function TeamsOverview() {
             )
           )
         `)
-        .eq('tournament_id', id);
+        .eq('tournament_id', id)
+        .order('total_rank_points', { ascending: false });
 
       // Fetch matches to determine eliminated teams
       const { data: matchesData } = await supabase
@@ -80,8 +85,11 @@ export default function TeamsOverview() {
         .eq('status', 'completed');
 
       if (!teamsError && teamsData) {
+        // Calculate proper seeds based on team weights
+        const teamsWithCalculatedSeeds = calculateBroadcastSeeds(teamsData);
+        
         // Determine which teams are eliminated
-        const teamsWithStatus = teamsData.map(team => {
+        const teamsWithStatus = teamsWithCalculatedSeeds.map(team => {
           // Find if team lost any matches
           const lostMatch = matchesData?.find(match => 
             (match.team1_id === team.id || match.team2_id === team.id) && 
@@ -196,7 +204,7 @@ export default function TeamsOverview() {
             fontFamily: sceneSettings.fontFamily || 'inherit'
           }}
         >
-          Avg Weight: {getTeamAverageWeight(team)}
+          {formatSeedDisplay(team.calculatedSeed || 1)} • Avg Weight: {getTeamAverageWeight(team)}
         </div>
       </div>
 
