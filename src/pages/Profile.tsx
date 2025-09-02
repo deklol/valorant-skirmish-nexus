@@ -30,6 +30,7 @@ import { Username } from "@/components/Username";
 import { Users } from "lucide-react";
 import { ProfileHeaderSkeleton } from "@/components/ui/loading-skeleton";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import DiscordLinking from "@/components/DiscordLinking";
 
 interface UserProfile {
   id: string;
@@ -106,6 +107,19 @@ const Profile = () => {
   useEffect(() => {
     if (user) {
       fetchProfile();
+    }
+    
+    // Check if user just linked Discord
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('discord_linked') === 'true') {
+      toast({
+        title: "Success",
+        description: "Discord account linked successfully!",
+      });
+      
+      // Clean up URL
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, newUrl);
     }
   }, [user]);
 
@@ -615,6 +629,9 @@ const Profile = () => {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Discord Linking Section */}
+              <DiscordLinking />
 
               <Card className="bg-slate-700 border-slate-600">
                 <CardHeader>
