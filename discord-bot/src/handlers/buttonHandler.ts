@@ -349,8 +349,8 @@ async function handleSubmitScore(interaction: any, session: any) {
     .setPlaceholder('Enter Team B score (e.g., 11)')
     .setRequired(true);
 
-  const firstActionRow = new ActionRowBuilder().addComponents(teamAScoreInput);
-  const secondActionRow = new ActionRowBuilder().addComponents(teamBScoreInput);
+  const firstActionRow = new ActionRowBuilder<TextInputBuilder>().addComponents(teamAScoreInput);
+  const secondActionRow = new ActionRowBuilder<TextInputBuilder>().addComponents(teamBScoreInput);
 
   modal.addComponents(firstActionRow, secondActionRow);
 

@@ -3,7 +3,7 @@ import { QuickMatchManager } from '../utils/quickMatchManager';
 import { db } from '../utils/supabase';
 import { createQuickMatchEmbed } from '../utils/embeds';
 
-module.exports = {
+export default {
   data: new SlashCommandBuilder()
     .setName('quick-match')
     .setDescription('Manage Quick Match lobbies')

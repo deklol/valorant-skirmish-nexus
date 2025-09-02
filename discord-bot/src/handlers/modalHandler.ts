@@ -3,6 +3,7 @@
  */
 import { QuickMatchManager } from '../utils/quickMatchManager';
 import { EmbedBuilder } from 'discord.js';
+import { supabase } from '../utils/supabase';
 
 export async function handleModalInteraction(interaction: any) {
   const customId = interaction.customId;
@@ -80,6 +81,13 @@ async function handleScoreSubmission(interaction: any, customId: string) {
   } else {
     await interaction.editReply({
       content: '❌ Match cannot end in a tie. Please enter the correct scores.'
+    });
+    return;
+  }
+
+  if (!session.match_id) {
+    await interaction.editReply({
+      content: '❌ No match ID found for this session.'
     });
     return;
   }

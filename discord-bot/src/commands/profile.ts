@@ -3,7 +3,7 @@ import { db } from '../utils/supabase';
 import { createUserProfileEmbed } from '../utils/embeds';
 import { handleUserRegistration } from '../utils/userRegistration';
 
-module.exports = {
+export default {
   data: new SlashCommandBuilder()
     .setName('profile')
     .setDescription('View your tournament profile and statistics')

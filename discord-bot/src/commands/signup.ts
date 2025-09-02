@@ -1,8 +1,8 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
-import { db } from '../utils/supabase';
+import { db, supabase } from '../utils/supabase';
 import { handleUserRegistration } from '../utils/userRegistration';
 
-module.exports = {
+export default {
   data: new SlashCommandBuilder()
     .setName('signup')
     .setDescription('Sign up for a tournament')
@@ -58,12 +58,12 @@ module.exports = {
       }
       
       // Check if already signed up
-      const { data: existingSignup } = await db.supabase
+      const { data: existingSignup } = await supabase
         .from('tournament_signups')
         .select('id')
         .eq('user_id', user.id)
         .eq('tournament_id', tournament.id)
-        .single();
+        .maybeSingle();
         
       if (existingSignup) {
         await interaction.editReply('❌ You are already signed up for this tournament.');

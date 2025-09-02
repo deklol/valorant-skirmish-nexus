@@ -3,7 +3,7 @@ import { db } from '../utils/supabase';
 import { createQuickMatchEmbed } from '../utils/embeds';
 import { handleUserRegistration } from '../utils/userRegistration';
 
-module.exports = {
+export default {
   data: new SlashCommandBuilder()
     .setName('quickmatch')
     .setDescription('Join the quick match queue for instant 10-man games')

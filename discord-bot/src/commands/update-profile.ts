@@ -2,7 +2,7 @@ import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { db, supabase } from '../utils/supabase';
 import { handleUserRegistration } from '../utils/userRegistration';
 
-module.exports = {
+export default {
   data: new SlashCommandBuilder()
     .setName('update-profile')
     .setDescription('Update your tournament profile information')

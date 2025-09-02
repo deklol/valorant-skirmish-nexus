@@ -2,7 +2,7 @@ import { SlashCommandBuilder } from 'discord.js';
 import { db } from '../utils/supabase';
 import { createLeaderboardEmbed } from '../utils/embeds';
 
-module.exports = {
+export default {
   data: new SlashCommandBuilder()
     .setName('leaderboard')
     .setDescription('View the tournament leaderboard')

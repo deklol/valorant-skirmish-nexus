@@ -18,7 +18,7 @@ export interface AdaptiveWeightConfig {
   baseFactor: number; // Base adaptive factor (0.5 = 50/50 between current and peak)
   decayMultiplier: number; // How much decay affects the factor
   timeWeightDays: number; // Days after which time weighting kicks in
-  tournamentWinnerBonuses?: {
+  tournamentWinnerBonuses: {
     enabled: boolean;
     oneWin: number; // Bonus for 1 tournament win (+15 points)
     twoWins: number; // Bonus for 2 tournament wins (+25 points)
@@ -125,7 +125,7 @@ function calculateTournamentWinnerBonus(
   isElitePlayer: boolean
 ): { bonus: number; reasoning: string } {
   const bonuses = config.tournamentWinnerBonuses;
-  if (!bonuses?.enabled) {
+  if (!bonuses.enabled) {
     return { bonus: 0, reasoning: '' };
   }
 
