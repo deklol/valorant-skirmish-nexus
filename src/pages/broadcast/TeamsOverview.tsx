@@ -1,79 +1,33 @@
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useBroadcastData } from "@/hooks/useBroadcastData";
 import type { Tournament } from "@/types/tournament";
+import type { Team as BroadcastTeam } from "@/types/tournamentDetail";
 import { useBroadcastSettings } from "@/hooks/useBroadcastSettings";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Users, Trophy, Crown } from "lucide-react";
-import { calculateBroadcastSeeds, formatSeedDisplay } from "@/utils/broadcastSeedingUtils";
+import { formatSeedDisplay } from "@/utils/broadcastSeedingUtils";
 
-interface Team {
-  id: string;
-  name: string;
+interface Team extends BroadcastTeam {
   status?: 'active' | 'eliminated';
   eliminated_round?: number;
-  total_rank_points?: number;
   calculatedSeed?: number;
-  team_members: Array<{
-    user_id: string;
-    is_captain: boolean;
-    users: {
-      discord_username: string;
-      discord_avatar_url?: string;
-      current_rank?: string;
-      display_weight?: number;
-      atlas_weight?: number;
-      adaptive_weight?: number;
-    };
-  }>;
 }
 
 export default function TeamsOverview() {
   const { id } = useParams<{ id: string }>();
-  const [tournament, setTournament] = useState<Tournament | null>(null);
   const [teams, setTeams] = useState<Team[]>([]);
-  const [loading, setLoading] = useState(true);
   const { settings } = useBroadcastSettings();
+  
+  // Use broadcast data hook with proper ATLAS weights
+  const { tournament, teams: broadcastTeams, loading } = useBroadcastData(id);
 
   useEffect(() => {
-    if (!id) return;
+    if (!broadcastTeams.length) return;
 
-    const fetchTeamsData = async () => {
-      // Fetch tournament
-      const { data: tournamentData, error: tournamentError } = await supabase
-        .from('tournaments')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (tournamentError) {
-        setLoading(false);
-        return;
-      }
-
-      setTournament(tournamentData as Tournament);
-
-      // Fetch teams with members
-      const { data: teamsData, error: teamsError } = await supabase
-        .from('teams')
-        .select(`
-          id,
-          name,
-          total_rank_points,
-          team_members (
-            user_id,
-            is_captain,
-            users (
-              discord_username,
-              discord_avatar_url,
-              current_rank
-            )
-          )
-        `)
-        .eq('tournament_id', id)
-        .order('total_rank_points', { ascending: false });
-
+    const fetchMatchData = async () => {
       // Fetch matches to determine eliminated teams
       const { data: matchesData } = await supabase
         .from('matches')
@@ -84,33 +38,25 @@ export default function TeamsOverview() {
         .eq('tournament_id', id)
         .eq('status', 'completed');
 
-      if (!teamsError && teamsData) {
-        // Calculate proper seeds based on team weights
-        const teamsWithCalculatedSeeds = calculateBroadcastSeeds(teamsData);
-        
-        // Determine which teams are eliminated
-        const teamsWithStatus = teamsWithCalculatedSeeds.map(team => {
-          // Find if team lost any matches
-          const lostMatch = matchesData?.find(match => 
-            (match.team1_id === team.id || match.team2_id === team.id) && 
-            match.winner?.id !== team.id
-          );
+      // Determine which teams are eliminated using broadcast teams data
+      const teamsWithStatus = broadcastTeams.map(team => {
+        const lostMatch = matchesData?.find(match => 
+          (match.team1_id === team.id || match.team2_id === team.id) && 
+          match.winner?.id !== team.id
+        );
 
-          return {
-            ...team,
-            status: lostMatch ? 'eliminated' as const : 'active' as const,
-            eliminated_round: lostMatch?.round_number
-          };
-        });
+        return {
+          ...team,
+          status: lostMatch ? 'eliminated' as const : 'active' as const,
+          eliminated_round: lostMatch?.round_number
+        } as Team;
+      });
 
-        setTeams(teamsWithStatus);
-      }
-
-      setLoading(false);
+      setTeams(teamsWithStatus);
     };
 
-    fetchTeamsData();
-  }, [id]);
+    fetchMatchData();
+  }, [broadcastTeams, id]);
 
   if (loading || !tournament) {
     return (
@@ -133,7 +79,9 @@ export default function TeamsOverview() {
   const eliminatedTeams = teams.filter(team => team.status === 'eliminated');
 
   const getDisplayWeight = (member: Team['team_members'][0]) => {
-    return member.users.display_weight || member.users.atlas_weight || member.users.adaptive_weight || 150;
+    // Use enhanced user data from broadcast hook
+    const enhancedUser = member.users as any;
+    return enhancedUser?.display_weight || enhancedUser?.atlas_weight || enhancedUser?.adaptive_weight || 150;
   };
 
   const getTeamAverageWeight = (team: Team) => {
@@ -170,10 +118,11 @@ export default function TeamsOverview() {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div 
-              className="text-xl font-bold"
+              className="text-2xl font-bold"
               style={{ 
                 color: sceneSettings.headerTextColor || settings.headerTextColor,
-                fontFamily: sceneSettings.fontFamily || 'inherit'
+                fontFamily: sceneSettings.fontFamily || 'inherit',
+                fontSize: '28px'
               }}
             >
               {team.name}
@@ -187,10 +136,11 @@ export default function TeamsOverview() {
           <div className="flex items-center space-x-2">
             <Users className="w-4 h-4" style={{ color: sceneSettings.textColor || settings.textColor }} />
             <span 
-              className="text-sm"
+              className="text-lg font-medium"
               style={{ 
                 color: sceneSettings.textColor || settings.textColor,
-                fontFamily: sceneSettings.fontFamily || 'inherit'
+                fontFamily: sceneSettings.fontFamily || 'inherit',
+                fontSize: '18px'
               }}
             >
               {team.team_members.length}
@@ -198,54 +148,57 @@ export default function TeamsOverview() {
           </div>
         </div>
         <div 
-          className="text-sm mt-1"
+          className="text-lg mt-2 font-medium"
           style={{ 
-            color: (sceneSettings.textColor || settings.textColor) + '70',
-            fontFamily: sceneSettings.fontFamily || 'inherit'
+            color: (sceneSettings.textColor || settings.textColor) + '90',
+            fontFamily: sceneSettings.fontFamily || 'inherit',
+            fontSize: '16px'
           }}
         >
-          {formatSeedDisplay(team.calculatedSeed || 1)} • Avg Weight: {getTeamAverageWeight(team)}
+          {formatSeedDisplay((team as any).calculatedSeed || 1)} • Avg Weight: {getTeamAverageWeight(team)}
         </div>
       </div>
 
       {/* Team Members */}
-      <div className="p-4 space-y-3">
+      <div className="p-6 space-y-4">
         {team.team_members.map((member) => (
-          <div key={member.user_id} className="flex items-center space-x-3">
-            <Avatar className="w-8 h-8">
+          <div key={member.user_id} className="flex items-center space-x-4">
+            <Avatar className="w-12 h-12">
               <AvatarImage 
                 src={member.users.discord_avatar_url || undefined} 
                 alt={member.users.discord_username}
               />
-              <AvatarFallback className="bg-slate-700 text-white text-xs">
+              <AvatarFallback className="bg-slate-700 text-white text-sm">
                 {member.users.discord_username?.slice(0, 2).toUpperCase() || '??'}
               </AvatarFallback>
             </Avatar>
             
             <div className="flex-1 min-w-0">
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-3">
                 <span 
-                  className="text-sm font-medium truncate"
+                  className="text-lg font-semibold truncate"
                   style={{ 
                     color: sceneSettings.textColor || settings.textColor,
-                    fontFamily: sceneSettings.fontFamily || 'inherit'
+                    fontFamily: sceneSettings.fontFamily || 'inherit',
+                    fontSize: '18px'
                   }}
                 >
                   {member.users.discord_username}
                 </span>
                 {member.is_captain && (
-                  <Crown className="w-3 h-3" style={{ color: sceneSettings.headerTextColor || settings.headerTextColor }} />
+                  <Crown className="w-5 h-5" style={{ color: sceneSettings.headerTextColor || settings.headerTextColor }} />
                 )}
               </div>
               
-              <div className="flex items-center space-x-2 mt-1">
+              <div className="flex items-center space-x-3 mt-2">
                 {sceneSettings.showCurrentRank && member.users.current_rank && (
                   <Badge 
                     variant="outline" 
-                    className="text-xs px-2 py-0"
+                    className="text-sm px-3 py-1"
                     style={{ 
                       borderColor: getRankColor(member.users.current_rank) + '50',
-                      color: getRankColor(member.users.current_rank)
+                      color: getRankColor(member.users.current_rank),
+                      fontSize: '14px'
                     }}
                   >
                     {member.users.current_rank}
@@ -254,13 +207,14 @@ export default function TeamsOverview() {
                 
                 {sceneSettings.showAdaptiveWeight && (
                   <span 
-                    className="text-xs"
+                    className="text-sm font-medium"
                     style={{ 
-                      color: (sceneSettings.textColor || settings.textColor) + '70',
-                      fontFamily: sceneSettings.fontFamily || 'inherit'
+                      color: (sceneSettings.textColor || settings.textColor) + '90',
+                      fontFamily: sceneSettings.fontFamily || 'inherit',
+                      fontSize: '14px'
                     }}
                   >
-                    {getDisplayWeight(member)}
+                    {getDisplayWeight(member)} pts
                   </span>
                 )}
               </div>
@@ -275,22 +229,23 @@ export default function TeamsOverview() {
     <div className="w-screen h-screen bg-transparent overflow-y-auto p-8" style={containerStyle}>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-12">
           <h1 
-            className="text-4xl font-bold mb-2"
+            className="text-6xl font-bold mb-4"
             style={{ 
               color: sceneSettings.headerTextColor || settings.headerTextColor,
               fontFamily: sceneSettings.fontFamily || 'inherit',
-              fontSize: sceneSettings.headerFontSize || 36
+              fontSize: '60px'
             }}
           >
             {tournament.name}
           </h1>
           <div 
-            className="text-xl"
+            className="text-3xl font-medium"
             style={{ 
-              color: (sceneSettings.textColor || settings.textColor) + '70',
-              fontFamily: sceneSettings.fontFamily || 'inherit'
+              color: (sceneSettings.textColor || settings.textColor) + '80',
+              fontFamily: sceneSettings.fontFamily || 'inherit',
+              fontSize: '32px'
             }}
           >
             Teams Overview
@@ -301,13 +256,14 @@ export default function TeamsOverview() {
         {activeTeams.length > 0 && (
           <div className="mb-8">
             <div 
-              className="text-2xl font-bold mb-4 flex items-center space-x-2"
+              className="text-4xl font-bold mb-6 flex items-center space-x-3"
               style={{ 
                 color: sceneSettings.headerTextColor || settings.headerTextColor,
-                fontFamily: sceneSettings.fontFamily || 'inherit'
+                fontFamily: sceneSettings.fontFamily || 'inherit',
+                fontSize: '36px'
               }}
             >
-              <Trophy className="w-6 h-6" style={{ color: '#10B981' }} />
+              <Trophy className="w-8 h-8" style={{ color: '#10B981' }} />
               <span>Active Teams ({activeTeams.length})</span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -322,13 +278,14 @@ export default function TeamsOverview() {
         {eliminatedTeams.length > 0 && (
           <div>
             <div 
-              className="text-2xl font-bold mb-4 flex items-center space-x-2"
+              className="text-4xl font-bold mb-6 flex items-center space-x-3"
               style={{ 
                 color: sceneSettings.headerTextColor || settings.headerTextColor,
-                fontFamily: sceneSettings.fontFamily || 'inherit'
+                fontFamily: sceneSettings.fontFamily || 'inherit',
+                fontSize: '36px'
               }}
             >
-              <Users className="w-6 h-6" style={{ color: '#6B7280' }} />
+              <Users className="w-8 h-8" style={{ color: '#6B7280' }} />
               <span>Eliminated Teams ({eliminatedTeams.length})</span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
