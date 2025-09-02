@@ -59,7 +59,7 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
   useEffect(() => {
     if (!teams.length) return;
 
-    // Set current team and handle animations
+    // Set current team immediately
     const selectedTeam = teamId ? teams.find(t => t.id === teamId) : teams[0];
     setCurrentTeam(selectedTeam || null);
 
@@ -75,12 +75,26 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
       setTimeout(() => setAnimationPhase('roster'), 2000);
       setTimeout(() => setAnimationPhase('complete'), 4000);
     } else {
+      // Skip directly to complete phase when animations disabled
       setAnimationPhase('complete');
     }
   }, [teamId, teams, settings.animationEnabled, animate]);
 
-  if (loading || !currentTeam) {
+  // Show loading only when actually loading data, not when team is temporarily null
+  if (loading) {
     return <BroadcastLoading message="Loading team roster..." />;
+  }
+
+  // If no team found, show error instead of loading
+  if (!currentTeam) {
+    return (
+      <div className={`${BROADCAST_CONTAINER_CLASSES} flex items-center justify-center`} style={getBroadcastContainerStyle(settings.sceneSettings.teamRoster, settings)}>
+        <div className="text-center">
+          <div className="text-2xl font-bold text-red-400 mb-2">Team Not Found</div>
+          <div className="text-white/70">The requested team could not be loaded.</div>
+        </div>
+      </div>
+    );
   }
 
   const sceneSettings = settings.sceneSettings.teamRoster;
