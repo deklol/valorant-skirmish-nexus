@@ -3,7 +3,7 @@
  */
 import { QuickMatchManager } from '../utils/quickMatchManager.js';
 import { EmbedBuilder } from 'discord.js';
-import { supabase } from '../utils/supabase.js';
+import { getSupabase } from '../utils/supabase.js';
 
 export async function handleModalInteraction(interaction: any) {
   const customId = interaction.customId;
@@ -62,7 +62,7 @@ async function handleScoreSubmission(interaction: any, customId: string) {
     // Team A wins - get the team ID from the first player
     const teamAPlayer = session.team_a_data[0];
     // We need to get the actual team ID from the match
-    const { data: match } = await supabase
+    const { data: match } = await getSupabase()
       .from('matches')
       .select('team1_id, team2_id')
       .eq('id', session.match_id)
@@ -71,7 +71,7 @@ async function handleScoreSubmission(interaction: any, customId: string) {
     winningTeamId = match?.team1_id;
   } else if (teamBScore > teamAScore) {
     // Team B wins
-    const { data: match } = await supabase
+    const { data: match } = await getSupabase()
       .from('matches')
       .select('team1_id, team2_id')
       .eq('id', session.match_id)

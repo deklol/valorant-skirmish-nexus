@@ -1,5 +1,5 @@
 import { Events, Interaction, EmbedBuilder } from 'discord.js';
-import { db, supabase } from '../utils/supabase';
+import { db, getSupabase } from '../utils/supabase';
 import { createTournamentEmbed, createQuickMatchEmbed } from '../utils/embeds';
 import { handleUserRegistration } from '../utils/userRegistration';
 
@@ -120,7 +120,7 @@ async function handleTournamentSignup(interaction: any, tournamentId: string, us
   }
   
   // Check if user already signed up
-  const { data: existingSignup } = await supabase
+  const { data: existingSignup } = await getSupabase()
     .from('tournament_signups')
     .select('id')
     .eq('user_id', user.id)

@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
-import { db, supabase } from '../utils/supabase.js';
+import { db, getSupabase } from '../utils/supabase.js';
 import { handleUserRegistration } from '../utils/userRegistration.js';
 
 export default {
@@ -118,7 +118,7 @@ export default {
       // Try to scrape new rank data if Riot ID was updated
       if (riotId) {
         try {
-          await supabase.functions.invoke('scrape-rank', {
+          await getSupabase().functions.invoke('scrape-rank', {
             body: {
               riot_id: riotId,
               user_id: user.id

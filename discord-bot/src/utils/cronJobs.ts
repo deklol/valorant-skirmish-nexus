@@ -1,6 +1,6 @@
 import cron from 'node-cron';
 import { Client, TextChannel } from 'discord.js';
-import { db, supabase } from './supabase.js';
+import { db, getSupabase } from './supabase.js';
 import { createTournamentEmbed } from './embeds.js';
 
 export function startCronJobs(client: Client) {
@@ -109,7 +109,7 @@ async function cleanupQuickMatchQueue() {
     // Remove users who have been in queue for more than 2 hours
     const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
     
-    await supabase
+    const { error } = await getSupabase()
       .from('quick_match_queue')
       .update({ is_active: false })
       .lt('joined_at', twoHoursAgo);

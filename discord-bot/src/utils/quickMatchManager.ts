@@ -2,7 +2,7 @@
  * Quick Match Session Manager
  * Handles all quick match operations and database interactions
  */
-import { supabase } from './supabase.js';
+import { getSupabase } from './supabase.js';
 import { balanceQuickMatchTeams, convertPlayersForBalancing } from './teamBalancer.js';
 
 export interface QuickMatchSession {
@@ -35,7 +35,7 @@ export class QuickMatchManager {
    * Create a new quick match session
    */
   static async createSession(channelId: string, createdBy?: string): Promise<QuickMatchSession> {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('quick_match_sessions')
       .insert({
         discord_channel_id: channelId,
@@ -60,7 +60,7 @@ export class QuickMatchManager {
    * Get active session for a channel
    */
   static async getActiveSession(channelId: string): Promise<QuickMatchSession | null> {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('quick_match_sessions')
       .select('*')
       .eq('discord_channel_id', channelId)
@@ -84,7 +84,7 @@ export class QuickMatchManager {
     sessionId: string, 
     updates: Partial<QuickMatchSession>
   ): Promise<QuickMatchSession> {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('quick_match_sessions')
       .update({
         ...updates,
@@ -179,7 +179,7 @@ export class QuickMatchManager {
     discordId: string,
     mapId: string
   ): Promise<void> {
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('quick_match_votes')
       .upsert({
         session_id: sessionId,
@@ -198,7 +198,7 @@ export class QuickMatchManager {
    * Get all votes for a session
    */
   static async getSessionVotes(sessionId: string): Promise<MapVote[]> {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('quick_match_votes')
       .select(`
         user_id,
@@ -281,7 +281,7 @@ export class QuickMatchManager {
     selectedMapId: string
   ): Promise<string> {
     // Create teams first
-    const { data: teamAData, error: teamAError } = await supabase
+    const { data: teamAData, error: teamAError } = await getSupabase()
       .from('teams')
       .insert({
         name: 'Team A',
@@ -295,7 +295,7 @@ export class QuickMatchManager {
       throw new Error(`Failed to create Team A: ${teamAError.message}`);
     }
 
-    const { data: teamBData, error: teamBError } = await supabase
+    const { data: teamBData, error: teamBError } = await getSupabase()
       .from('teams')
       .insert({
         name: 'Team B',
@@ -322,10 +322,10 @@ export class QuickMatchManager {
       is_captain: false
     }));
 
-    await supabase.from('team_members').insert([...teamAMembers, ...teamBMembers]);
+    await getSupabase().from('team_members').insert([...teamAMembers, ...teamBMembers]);
 
     // Create the match
-    const { data: matchData, error: matchError } = await supabase
+    const { data: matchData, error: matchError } = await getSupabase()
       .from('matches')
       .insert({
         tournament_id: null,
@@ -365,7 +365,7 @@ export class QuickMatchManager {
     scoreTeam2: number
   ): Promise<void> {
     // Update match with results
-    const { error: matchError } = await supabase
+    const { error: matchError } = await getSupabase()
       .from('matches')
       .update({
         status: 'completed',
@@ -401,7 +401,7 @@ export class QuickMatchManager {
    * Get available maps for voting
    */
   static async getAvailableMaps(): Promise<any[]> {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('maps')
       .select('*')
       .eq('is_active', true)

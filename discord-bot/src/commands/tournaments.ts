@@ -43,7 +43,7 @@ export default {
       // Filter tournaments if specific status requested
       let filteredTournaments = tournaments;
       if (statusFilter !== 'all') {
-        filteredTournaments = tournaments.filter(t => t.status === statusFilter);
+        filteredTournaments = tournaments.filter((t: any) => t.status === statusFilter);
       }
       
       if (filteredTournaments.length === 0) {

@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
-import { db, supabase } from '../utils/supabase.js';
+import { db, getSupabase } from '../utils/supabase.js';
 import { handleUserRegistration } from '../utils/userRegistration.js';
 
 export default {
@@ -40,7 +40,7 @@ export default {
       if (!tournament) {
         const { data: tournaments } = await db.getActiveTournaments();
         if (tournaments) {
-          tournament = tournaments.find(t => 
+          tournament = tournaments.find((t: any) => 
             t.name.toLowerCase().includes(tournamentInput.toLowerCase())
           );
         }
@@ -58,7 +58,7 @@ export default {
       }
       
       // Check if already signed up
-      const { data: existingSignup } = await supabase
+      const { data: existingSignup } = await getSupabase()
         .from('tournament_signups')
         .select('id')
         .eq('user_id', user.id)
@@ -132,12 +132,12 @@ export default {
       }
       
       const filtered = tournaments
-        .filter(tournament => 
+        .filter((tournament: any) => 
           tournament.status === 'open_registration' &&
           tournament.name.toLowerCase().includes(focusedValue.toLowerCase())
         )
         .slice(0, 25)
-        .map(tournament => ({
+        .map((tournament: any) => ({
           name: `${tournament.name} (${tournament.status})`,
           value: tournament.id
         }));

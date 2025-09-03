@@ -7,7 +7,7 @@ import {
   ButtonBuilder,
   ButtonStyle
 } from 'discord.js';
-import { db, supabase } from './supabase.js';
+import { db } from './supabase.js';
 
 export async function handleUserRegistration(interaction: any) {
   // Check if user already exists

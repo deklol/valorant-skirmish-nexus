@@ -30,8 +30,8 @@ export function getSupabaseClient() {
   return supabase;
 }
 
-// Export for backward compatibility with files that import { supabase }
-export { getSupabaseClient as supabase };
+// Export for backward compatibility - return the actual client, not a function
+export const getSupabase = () => getSupabaseClient();
 
 // Database utility functions
 export const db = {
