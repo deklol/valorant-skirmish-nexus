@@ -32,6 +32,10 @@ export default function BracketOverlay() {
   const [loading, setLoading] = useState(true);
   const { settings } = useBroadcastSettings();
 
+  // Check for animate=false in URL
+  const searchParams = new URLSearchParams(window.location.search);
+  const shouldSkipAnimations = searchParams.get('animate') === 'false';
+
   useEffect(() => {
     if (!id) return;
 
@@ -73,8 +77,20 @@ export default function BracketOverlay() {
     fetchBracketData();
   }, [id]);
 
-  if (loading || !tournament) {
+  // Skip loading state entirely if animate=false
+  if (!shouldSkipAnimations && (loading || !tournament)) {
     return <BroadcastLoading message="Loading bracket..." />;
+  }
+
+  // If animate=false and we don't have data yet, show empty state instantly
+  if (shouldSkipAnimations && !tournament) {
+    return (
+      <div className="w-screen h-screen bg-transparent flex items-center justify-center">
+        <div className="text-4xl font-black text-white">
+          Tournament not found
+        </div>
+      </div>
+    );
   }
 
   const rounds = matches.reduce((acc, match) => {

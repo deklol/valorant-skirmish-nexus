@@ -25,10 +25,11 @@ export default function MatchupPreview() {
   const [loading, setLoading] = useState(true);
   const { settings } = useBroadcastSettings();
   
-  // Check URL parameters for OBS mode override
+  // Check URL parameters for OBS mode and animation overrides
   const urlParams = new URLSearchParams(window.location.search);
   const forceObsMode = urlParams.get('obs') === 'true' || urlParams.get('transparent') === 'true';
   const forceNormalMode = urlParams.get('obs') === 'false' || urlParams.get('transparent') === 'false';
+  const animateDisabled = urlParams.get('animate') === 'false';
 
   useEffect(() => {
     if (!id || !matchId) return;
@@ -149,7 +150,11 @@ export default function MatchupPreview() {
     fetchMatchupData();
   }, [id, matchId]);
 
+  // Skip loading screen when animate=false
   if (loading || !match || !team1 || !team2) {
+    if (animateDisabled) {
+      return null; // Don't show loading when animations are disabled
+    }
     return (
       <div className="w-screen h-screen bg-transparent flex items-center justify-center">
         <div className="text-white text-2xl">Loading matchup...</div>

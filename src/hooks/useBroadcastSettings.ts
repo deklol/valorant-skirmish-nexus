@@ -187,10 +187,10 @@ const DEFAULT_SETTINGS: BroadcastSettings = {
   textColor: '#ffffff',
   fontFamily: 'inherit',
   
-  // Animation settings
-  animationEnabled: true,
-  loadingTime: 2000,
-  transitionTime: 500,
+  // Animation settings - check URL parameter override
+  animationEnabled: new URLSearchParams(window.location.search).get('animate') === 'false' ? false : true,
+  loadingTime: new URLSearchParams(window.location.search).get('animate') === 'false' ? 0 : 2000,
+  transitionTime: new URLSearchParams(window.location.search).get('animate') === 'false' ? 0 : 500,
   transitionType: 'fade',
   
   sceneSettings: {
