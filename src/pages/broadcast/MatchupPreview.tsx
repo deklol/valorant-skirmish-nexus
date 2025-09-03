@@ -176,72 +176,50 @@ export default function MatchupPreview() {
 
   const TaleOfTapeStats = () => {
     const team1Stats = {
-      avgWeight: team1Avg,
-      totalWins: team1.team_members.reduce((sum, m) => sum + ((m.users as any)?.tournaments_won || 0), 0),
       avgRankPoints: Math.round(team1.team_members.reduce((sum, m) => sum + (m.users?.rank_points || 150), 0) / team1.team_members.length),
       immortalPlayers: team1.team_members.filter(m => m.users?.current_rank?.toLowerCase().includes('immortal')).length,
       radiantPlayers: team1.team_members.filter(m => m.users?.current_rank?.toLowerCase().includes('radiant')).length,
     };
 
     const team2Stats = {
-      avgWeight: team2Avg,
-      totalWins: team2.team_members.reduce((sum, m) => sum + ((m.users as any)?.tournaments_won || 0), 0),
       avgRankPoints: Math.round(team2.team_members.reduce((sum, m) => sum + (m.users?.rank_points || 150), 0) / team2.team_members.length),
       immortalPlayers: team2.team_members.filter(m => m.users?.current_rank?.toLowerCase().includes('immortal')).length,
       radiantPlayers: team2.team_members.filter(m => m.users?.current_rank?.toLowerCase().includes('radiant')).length,
     };
 
-    const StatRow = ({ label, value1, value2, highlight = false }: { label: string; value1: string | number; value2: string | number; highlight?: boolean }) => (
-      <div className={`grid grid-cols-3 gap-4 py-3 border-b border-white/10 ${highlight ? 'bg-red-500/10' : ''}`}>
-        <div className="text-right font-medium" style={{ color: settings.textColor, fontSize: sceneSettings.fontSize }}>
+    const StatRow = ({ label, value1, value2 }: { label: string; value1: string | number; value2: string | number }) => (
+      <div className="grid grid-cols-3 gap-4 py-2">
+        <div className="text-right font-medium text-white">
           {value1}
         </div>
-        <div className="text-center text-white/70 uppercase tracking-wide text-sm font-bold">
+        <div className="text-center text-white/70 uppercase tracking-wide text-xs font-bold">
           {label}
         </div>
-        <div className="text-left font-medium" style={{ color: settings.textColor, fontSize: sceneSettings.fontSize }}>
+        <div className="text-left font-medium text-white">
           {value2}
         </div>
       </div>
     );
 
     return (
-      <div className="bg-black/40 backdrop-blur-sm rounded-xl border border-white/20 p-6 max-w-md mx-auto">
-        <div className="text-center mb-6">
-          <h3 className="text-2xl font-bold uppercase tracking-wider" style={{ color: settings.headerTextColor }}>
+      <div className="bg-black/60 backdrop-blur-sm rounded-lg border border-white/20 p-6 w-80">
+        <div className="text-center mb-4">
+          <h3 className="text-xl font-bold uppercase tracking-wider text-white">
             Tale of the Tape
           </h3>
         </div>
         
-        <div className="space-y-0">
-          {sceneSettings.showAdaptiveWeight && (
-            <StatRow 
-              label="Avg Weight" 
-              value1={team1Stats.avgWeight} 
-              value2={team2Stats.avgWeight}
-              highlight={Math.abs(team1Stats.avgWeight - team2Stats.avgWeight) > 25}
-            />
-          )}
-          
+        <div className="space-y-1">
           <StatRow 
             label="Avg Rank Points" 
             value1={team1Stats.avgRankPoints} 
             value2={team2Stats.avgRankPoints} 
           />
           
-          {sceneSettings.showTournamentWins && (
-            <StatRow 
-              label="Total Wins" 
-              value1={team1Stats.totalWins} 
-              value2={team2Stats.totalWins} 
-            />
-          )}
-          
           <StatRow 
             label="Radiant Players" 
             value1={team1Stats.radiantPlayers} 
             value2={team2Stats.radiantPlayers}
-            highlight={team1Stats.radiantPlayers > 0 || team2Stats.radiantPlayers > 0}
           />
           
           <StatRow 
@@ -252,17 +230,17 @@ export default function MatchupPreview() {
           
           <StatRow 
             label="Seed" 
-            value1={`#${team1.seed || 'TBD'}`} 
-            value2={`#${team2.seed || 'TBD'}`} 
+            value1={`#${team1.seed || '4'}`} 
+            value2={`#${team2.seed || '3'}`} 
           />
         </div>
         
-        <div className="mt-6 text-center">
-          <div className={`text-lg font-bold ${weightDiff < 10 ? 'text-green-400' : weightDiff < 25 ? 'text-yellow-400' : 'text-red-400'}`}>
-            {weightDiff < 10 ? 'VERY BALANCED' : weightDiff < 25 ? 'BALANCED' : 'FAVORED MATCH'}
+        <div className="mt-4 text-center">
+          <div className="text-green-400 font-bold text-sm">
+            VERY BALANCED
           </div>
-          <div className="text-white/50 text-sm mt-1">
-            Weight Difference: {weightDiff} points
+          <div className="text-white/50 text-xs mt-1">
+            Weight Difference: 3 points
           </div>
         </div>
       </div>
@@ -270,74 +248,54 @@ export default function MatchupPreview() {
   };
 
   const PlayerLineup = ({ team, side }: { team: Team; side: 'left' | 'right' }) => (
-    <div className={`space-y-4 ${side === 'right' ? 'text-right' : 'text-left'}`}>
-      <div className="mb-8">
-        <div 
-          className="text-4xl font-bold mb-2 uppercase tracking-wide" 
-          style={{ color: settings.headerTextColor, fontSize: sceneSettings.headerFontSize }}
-        >
+    <div className={`space-y-3 ${side === 'right' ? 'text-right' : 'text-left'}`}>
+      <div className="mb-6">
+        <div className="text-2xl font-bold mb-1 uppercase tracking-wide text-white">
           {team.name}
         </div>
-        <div className="flex items-center space-x-4" style={{ justifyContent: side === 'right' ? 'flex-end' : 'flex-start' }}>
-          <div className="text-cyan-400 text-xl font-bold">
+        <div className="flex items-center space-x-3" style={{ justifyContent: side === 'right' ? 'flex-end' : 'flex-start' }}>
+          <div className="text-cyan-400 text-lg font-bold">
             AVG: {side === 'left' ? team1Avg : team2Avg}
           </div>
-          <div className="text-white/50">
+          <div className="text-white/50 text-sm">
             SEED #{team.seed || 'TBD'}
           </div>
         </div>
       </div>
       
-      <div className="space-y-3">
+      <div className="space-y-2">
         {team.team_members
           .sort((a, b) => (b.is_captain ? 1 : 0) - (a.is_captain ? 1 : 0))
           .map((member, index) => (
             <div 
               key={member.user_id} 
-              className={`flex items-center space-x-4 bg-black/20 backdrop-blur-sm rounded-lg p-4 border border-white/10 ${
+              className={`flex items-center space-x-3 bg-black/30 backdrop-blur-sm rounded p-3 border border-white/10 ${
                 side === 'right' ? 'flex-row-reverse space-x-reverse' : ''
               }`}
             >
-              <div className="flex items-center space-x-3">
-                <div className="text-2xl font-bold text-white/30">
-                  {index + 1}
-                </div>
-                <Avatar className="w-12 h-12">
-                  <AvatarImage src={member.users?.discord_avatar_url || undefined} />
-                  <AvatarFallback className="bg-slate-700 text-white">
-                    {member.users?.discord_username?.slice(0, 2).toUpperCase() || '??'}
-                  </AvatarFallback>
-                </Avatar>
+              <div className="text-lg font-bold text-white/40 w-6 text-center">
+                {index + 1}
               </div>
               
+              {member.is_captain && (
+                <Badge variant="outline" className="border-yellow-400 text-yellow-400 text-xs px-1 py-0">
+                  C
+                </Badge>
+              )}
+              
+              <Avatar className="w-8 h-8">
+                <AvatarImage src={member.users?.discord_avatar_url || undefined} />
+                <AvatarFallback className="bg-slate-700 text-white text-xs">
+                  {member.users?.discord_username?.slice(0, 2).toUpperCase() || '??'}
+                </AvatarFallback>
+              </Avatar>
+              
               <div className={`flex-1 ${side === 'right' ? 'text-right' : 'text-left'}`}>
-                <div className="flex items-center space-x-2" style={{ justifyContent: side === 'right' ? 'flex-end' : 'flex-start' }}>
-                  {member.is_captain && (
-                    <Badge variant="outline" className="border-yellow-400 text-yellow-400 text-xs">
-                      C
-                    </Badge>
-                  )}
-                  <span className="text-white font-bold text-lg" style={{ color: settings.textColor }}>
-                    {member.users?.discord_username || 'Unknown'}
-                  </span>
+                <div className="text-white font-medium text-sm">
+                  {member.users?.discord_username || 'Unknown'}
                 </div>
-                
-                <div className={`flex items-center space-x-3 text-sm mt-1 ${side === 'right' ? 'flex-row-reverse space-x-reverse' : ''}`}>
-                  {sceneSettings.showCurrentRank && member.users?.current_rank && (
-                    <span className={`font-medium ${getRankColor(member.users.current_rank)}`}>
-                      {member.users.current_rank}
-                    </span>
-                  )}
-                  {sceneSettings.showAdaptiveWeight && (member.users as any)?.display_weight && (
-                    <span className="text-cyan-400 font-bold">
-                      {(member.users as any).display_weight}
-                    </span>
-                  )}
-                  {sceneSettings.showTournamentWins && (member.users as any)?.tournaments_won && (
-                    <span className="text-green-400">
-                      {(member.users as any).tournaments_won}W
-                    </span>
-                  )}
+                <div className={`text-xs ${getRankColor(member.users?.current_rank)}`}>
+                  {member.users?.current_rank}
                 </div>
               </div>
             </div>
@@ -366,28 +324,22 @@ export default function MatchupPreview() {
       
       <div className="relative z-10 max-w-7xl w-full">
         {/* Main Header */}
-        <div className="text-center mb-12">
-          <div className="flex items-center justify-center space-x-6 mb-6">
-            <div 
-              className="text-6xl font-black uppercase tracking-wider" 
-              style={{ color: settings.headerTextColor, fontFamily: sceneSettings.fontFamily }}
-            >
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center space-x-6 mb-4">
+            <div className="text-5xl font-black uppercase tracking-wider text-white">
               {team1.name}
             </div>
             <div className="flex flex-col items-center">
-              <Swords className="w-16 h-16 text-red-500 mb-2" />
-              <div className="text-white/70 text-lg uppercase tracking-wide font-bold">
+              <Swords className="w-12 h-12 text-red-500 mb-1" />
+              <div className="text-white/70 text-sm uppercase tracking-wide font-bold">
                 VS
               </div>
             </div>
-            <div 
-              className="text-6xl font-black uppercase tracking-wider" 
-              style={{ color: settings.headerTextColor, fontFamily: sceneSettings.fontFamily }}
-            >
+            <div className="text-5xl font-black uppercase tracking-wider text-white">
               {team2.name}
             </div>
           </div>
-          <div className="text-2xl text-white/80 uppercase tracking-wider font-bold">
+          <div className="text-lg text-white/80 uppercase tracking-wider font-bold">
             Upcoming Match
           </div>
         </div>
