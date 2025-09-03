@@ -186,17 +186,17 @@ export default function TournamentStats() {
       );
     }
 
-    // New broadcast-optimized design
+    // New broadcast-optimized design - blocky style
     return (
       <div 
-        className="border-4 border-white bg-black text-center p-6"
-        style={{ minHeight: '200px' }}
+        className="bg-black text-center p-6"
+        style={{ minHeight: '180px' }}
       >
         <div className="flex items-center justify-center mb-4">
-          <Icon className="w-16 h-16" style={{ color }} />
+          <Icon className="w-12 h-12" style={{ color }} />
         </div>
         <div 
-          className="text-5xl font-black text-white mb-2"
+          className="text-4xl font-black text-white mb-2"
           style={{ 
             fontFamily: BROADCAST_DEFAULTS.fontFamily,
             color
@@ -205,14 +205,14 @@ export default function TournamentStats() {
           {value}
         </div>
         <div 
-          className="text-2xl font-bold text-white"
+          className="text-xl font-bold text-white"
           style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
         >
           {title}
         </div>
         {subtitle && (
           <div 
-            className="text-lg text-gray-300 mt-2 font-semibold"
+            className="text-sm text-gray-300 mt-2 font-semibold"
             style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
           >
             {subtitle}
@@ -284,7 +284,7 @@ export default function TournamentStats() {
 
         {/* Progress Bar */}
         {isBroadcastMode && (
-          <div className="bg-black border-4 border-white p-6 mb-8">
+          <div className="bg-black p-6 mb-8">
             <div 
               className="text-2xl font-black text-white mb-4 text-center"
               style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
@@ -292,7 +292,7 @@ export default function TournamentStats() {
               TOURNAMENT PROGRESS
             </div>
             
-            <div className="bg-gray-800 border-2 border-white h-12 relative">
+            <div className="bg-gray-800 h-12 relative">
               <div 
                 className="h-full transition-all duration-1000 flex items-center justify-center"
                 style={{ 
@@ -314,7 +314,7 @@ export default function TournamentStats() {
         {/* Tournament Status Footer */}
         <div className="text-center mt-auto">
           <div 
-            className="inline-flex items-center px-8 py-4 border-4 border-white font-black text-2xl"
+            className="inline-flex items-center px-8 py-4 font-black text-2xl"
             style={{
               backgroundColor: tournament.status === 'live' 
                 ? BROADCAST_DEFAULTS.errorColor

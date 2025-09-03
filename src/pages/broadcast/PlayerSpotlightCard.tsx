@@ -195,131 +195,112 @@ export default function PlayerSpotlightCard() {
     );
   }
 
-  // New broadcast-optimized design
+  // New broadcast-optimized design - blocky style
   return (
     <div className={BROADCAST_CONTAINER_CLASSES} style={containerStyle}>
       <div className="max-w-full h-full flex items-center justify-center p-8">
-        <div className="max-w-6xl w-full">
-          {/* Player Header Block */}
+        <div className="max-w-4xl w-full">
+          {/* Player Name Block */}
           <div 
-            className="bg-black border-4 border-white p-8 mb-6"
-            style={{ borderColor: BROADCAST_DEFAULTS.accentColor }}
+            className="px-6 py-4 text-white flex items-center justify-between mb-0"
+            style={{ 
+              backgroundColor: '#FF6B35'
+            }}
           >
-            <div className="flex items-center gap-8">
-              {/* Avatar */}
-              <div className="bg-gray-600 border-4 border-white w-48 h-48">
+            <div className="flex items-center gap-4">
+              <span className="text-3xl font-bold">
+                {player.discord_username}
+              </span>
+            </div>
+          </div>
+
+          {/* Player Info Horizontal Cards */}
+          <div className="grid grid-cols-4 mb-8">
+            {/* Avatar Card */}
+            <div className="bg-black p-6 flex flex-col items-center">
+              <div className="w-20 h-20 bg-gray-600 mb-3">
                 <img
                   src={player.discord_avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${player.discord_username}`}
                   alt={player.discord_username}
                   className="w-full h-full object-cover"
                 />
               </div>
-
-              {/* Player Info */}
-              <div className="flex-1">
-                <div 
-                  className="text-6xl font-black text-white mb-4"
-                  style={{ 
-                    fontFamily: BROADCAST_DEFAULTS.fontFamily,
-                    color: BROADCAST_DEFAULTS.accentColor,
-                    textShadow: '2px 2px 0px #000000'
-                  }}
-                >
-                  {player.discord_username}
-                </div>
-
-                {player.riot_id && (
-                  <div 
-                    className="text-3xl text-white mb-6"
-                    style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
-                  >
-                    {player.riot_id}
-                  </div>
-                )}
-
-                {/* Rank and Weight Badges */}
-                <div className="flex items-center gap-4">
-                  {player.current_rank && (
-                    <div 
-                      className="px-6 py-3 border-4 border-white font-black text-2xl"
-                      style={{
-                        backgroundColor: getRankColor(player.current_rank),
-                        color: '#000000',
-                        fontFamily: BROADCAST_DEFAULTS.fontFamily
-                      }}
-                    >
-                      {player.current_rank}
-                    </div>
-                  )}
-                  
-                  <div 
-                    className="px-6 py-3 border-4 border-white font-black text-2xl"
-                    style={{
-                      backgroundColor: BROADCAST_DEFAULTS.accentColor,
-                      color: '#000000',
-                      fontFamily: BROADCAST_DEFAULTS.fontFamily
-                    }}
-                  >
-                    {displayWeight} POINTS
-                  </div>
-                </div>
-              </div>
+              <div className="text-white text-sm text-center">Avatar</div>
             </div>
+
+            {/* Rank Card */}
+            {player.current_rank && (
+              <div className="bg-black p-6 flex flex-col items-center">
+                <div 
+                  className="w-20 h-20 flex items-center justify-center text-2xl mb-3"
+                  style={{ backgroundColor: getRankColor(player.current_rank) }}
+                >
+                  {formatRankEmoji(player.current_rank)}
+                </div>
+                <div className="text-white text-sm text-center">{player.current_rank}</div>
+              </div>
+            )}
+
+            {/* Weight Card */}
+            <div className="bg-black p-6 flex flex-col items-center">
+              <div className="w-20 h-20 bg-blue-600 flex items-center justify-center text-xl font-bold text-white mb-3">
+                {displayWeight}
+              </div>
+              <div className="text-white text-sm text-center">Weight</div>
+            </div>
+
+            {/* Riot ID Card */}
+            {player.riot_id && (
+              <div className="bg-black p-6 flex flex-col items-center">
+                <div className="w-20 h-20 bg-red-600 flex items-center justify-center text-white mb-3 text-sm text-center font-bold">
+                  RIOT
+                </div>
+                <div className="text-white text-sm text-center truncate w-full">{player.riot_id}</div>
+              </div>
+            )}
           </div>
 
-          {/* Stats Grid */}
-          <div className="grid grid-cols-3 gap-6">
-            <div className="bg-black border-4 border-white p-8 text-center">
-              <Target 
-                className="w-16 h-16 mx-auto mb-4" 
-                style={{ color: BROADCAST_DEFAULTS.primaryColor }} 
-              />
+          {/* Stats Blocks */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-black p-6 text-center">
               <div 
-                className="text-5xl font-black mb-2"
+                className="text-4xl font-black mb-2"
                 style={{ 
-                  color: BROADCAST_DEFAULTS.primaryColor,
+                  color: '#3B82F6',
                   fontFamily: BROADCAST_DEFAULTS.fontFamily 
                 }}
               >
                 {displayWeight}
               </div>
               <div 
-                className="text-2xl font-bold text-white"
+                className="text-xl font-bold text-white"
                 style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
               >
                 CURRENT WEIGHT
               </div>
             </div>
 
-            <div className="bg-black border-4 border-white p-8 text-center">
-              <Trophy 
-                className="w-16 h-16 mx-auto mb-4" 
-                style={{ color: BROADCAST_DEFAULTS.warningColor }} 
-              />
+            <div className="bg-black p-6 text-center">
               <div 
-                className="text-5xl font-black mb-2"
+                className="text-4xl font-black mb-2"
                 style={{ 
-                  color: BROADCAST_DEFAULTS.warningColor,
+                  color: '#F59E0B',
                   fontFamily: BROADCAST_DEFAULTS.fontFamily 
                 }}
               >
                 {player.tournament_wins || 0}
               </div>
               <div 
-                className="text-2xl font-bold text-white"
+                className="text-xl font-bold text-white"
                 style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
               >
                 TOURNAMENT WINS
               </div>
             </div>
 
-            <div className="bg-black border-4 border-white p-8 text-center">
-              <TrendingUp 
-                className="w-16 h-16 mx-auto mb-4" 
-                style={{ color: getRankColor(player.peak_rank) }} 
-              />
+            <div className="bg-black p-6 text-center">
               <div 
-                className="text-3xl font-black mb-2 text-white"
+                className="text-2xl font-black mb-2 text-white"
                 style={{ 
                   color: getRankColor(player.peak_rank),
                   fontFamily: BROADCAST_DEFAULTS.fontFamily 
@@ -328,7 +309,7 @@ export default function PlayerSpotlightCard() {
                 {player.peak_rank || 'UNRANKED'}
               </div>
               <div 
-                className="text-2xl font-bold text-white"
+                className="text-xl font-bold text-white"
                 style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
               >
                 PEAK RANK
@@ -339,4 +320,19 @@ export default function PlayerSpotlightCard() {
       </div>
     </div>
   );
+
+  function formatRankEmoji(rank?: string) {
+    if (!rank) return "❓";
+    const rankLower = rank.toLowerCase();
+    if (rankLower.includes('radiant')) return "✨";
+    if (rankLower.includes('immortal')) return "🟥";
+    if (rankLower.includes('ascendant')) return "🟩";
+    if (rankLower.includes('diamond')) return "🟪";
+    if (rankLower.includes('platinum')) return "🟦";
+    if (rankLower.includes('gold')) return "🟨";
+    if (rankLower.includes('silver')) return "⬜";
+    if (rankLower.includes('bronze')) return "🟫";
+    if (rankLower.includes('iron')) return "⬛";
+    return "❓";
+  }
 }
