@@ -31,10 +31,11 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
   const [shouldAnimate, setShouldAnimate] = useState(true);
   const { settings } = useBroadcastSettings();
   
-  // Check URL parameters for OBS mode override
+  // Check URL parameters for OBS mode override and animation
   const urlParams = new URLSearchParams(window.location.search);
   const forceObsMode = urlParams.get('obs') === 'true' || urlParams.get('transparent') === 'true';
   const forceNormalMode = urlParams.get('obs') === 'false' || urlParams.get('transparent') === 'false';
+  const animateDisabled = urlParams.get('animate') === 'false';
   
   // Use broadcast data hook with ATLAS weights
   const { tournament, teams, loading } = useBroadcastData(id);
@@ -85,9 +86,14 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
     }
   }, [teamId, teams, settings.animationEnabled, animate]);
 
-  // Show loading only when actually loading data, not when team is temporarily null
-  if (loading) {
+  // Show loading only when actually loading data AND animations are enabled
+  if (loading && !animateDisabled) {
     return <BroadcastLoading message="Loading team roster..." />;
+  }
+
+  // Skip loading entirely if animate=false
+  if (loading && animateDisabled) {
+    return null; // Don't show anything while loading when animations are disabled
   }
 
   // If no team found, show error instead of loading
