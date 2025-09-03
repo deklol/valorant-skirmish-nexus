@@ -108,78 +108,7 @@ export default function TeamsOverview() {
   };
 
   const TeamBlock = ({ team, isEliminated = false }: { team: Team; isEliminated?: boolean }) => {
-    if (!isBroadcastMode) {
-      // Legacy mode - keep existing design
-      return (
-        <div className="backdrop-blur-sm rounded-xl border border-white/20 overflow-hidden bg-black/40 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <h3 className="text-2xl font-bold text-white">{team.name}</h3>
-              {isEliminated && (
-                <Badge variant="destructive" className="text-xs">
-                  Eliminated R{team.eliminated_round}
-                </Badge>
-              )}
-            </div>
-            <div className="flex items-center gap-4 text-sm text-gray-300">
-              <div className="flex items-center gap-1">
-                <Trophy className="w-4 h-4" />
-                <span>Seed #{(team as any).calculatedSeed || 'TBD'}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Users className="w-4 h-4" />
-                <span>Avg: {getTeamAverageWeight(team)}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-5 gap-3">
-            {team.team_members.slice(0, 5).map((member) => (
-              <div
-                key={member.user_id}
-                className="bg-white/5 rounded-lg p-3 flex flex-col items-center text-center border border-white/10"
-              >
-                <div className="w-12 h-12 rounded-full overflow-hidden mb-2 border-2 border-white/20">
-                  <img
-                    src={member.users.discord_avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.users.discord_username}`}
-                    alt={member.users.discord_username}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-
-                <div className="text-white font-medium text-sm mb-1 truncate w-full">
-                  {member.users.discord_username}
-                </div>
-
-                {member.is_captain && (
-                  <div className="flex items-center mb-1">
-                    <Crown className="w-4 h-4 text-yellow-400" />
-                  </div>
-                )}
-
-                {member.users.current_rank && (
-                  <Badge 
-                    className="text-xs mb-1" 
-                    style={{ 
-                      backgroundColor: getRankColor(member.users.current_rank),
-                      color: '#000000'
-                    }}
-                  >
-                    {member.users.current_rank.replace(/\s+/g, ' ').toUpperCase()}
-                  </Badge>
-                )}
-
-                <div className="text-gray-300 text-xs">
-                  {getDisplayWeight(member)}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-    }
-
-    // New broadcast-optimized design
+    // Always use the new broadcast-optimized design
     return (
       <div className="space-y-3">
         {/* Team Header Block */}
@@ -188,7 +117,7 @@ export default function TeamsOverview() {
           <div 
             className="w-16 h-16 border-2 border-white"
             style={{ 
-              backgroundColor: isEliminated ? BROADCAST_DEFAULTS.errorColor : sceneSettings.teamAccentColor || BROADCAST_DEFAULTS.primaryColor 
+              backgroundColor: isEliminated ? BROADCAST_DEFAULTS.errorColor : (sceneSettings.teamAccentColor || BROADCAST_DEFAULTS.primaryColor)
             }}
           />
           
