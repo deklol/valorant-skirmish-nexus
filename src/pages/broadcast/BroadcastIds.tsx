@@ -150,17 +150,9 @@ export default function BroadcastIds() {
                 </div>
               </div>
               <div>
-                <span className="font-bold">Match Preview (by Match ID):</span>
+                <span className="font-bold">Match Preview:</span>
                 <div className="bg-muted p-2 rounded mt-1">
                   {baseUrl}/broadcast/{id}/matchup/[MATCH_ID]
-                </div>
-              </div>
-              <div>
-                <span className="font-bold">
-                  Match Preview (by Team IDs - Legacy):
-                </span>
-                <div className="bg-muted p-2 rounded mt-1">
-                  {baseUrl}/broadcast/{id}/matchup/[TEAM_ID]/[TEAM_ID]
                 </div>
               </div>
               <div>
@@ -347,8 +339,7 @@ export default function BroadcastIds() {
                   <li>Add a Browser Source</li>
                   <li>Copy the URL you want to use from above</li>
                   <li>
-                    Replace [TEAM_ID], [MATCH_ID], or [USER_ID] with actual IDs
-                    from this page
+                    Replace [TEAM_ID], [MATCH_ID], or [USER_ID] with actual IDs from this page
                   </li>
                   <li>Set width/height as needed (pages are responsive)</li>
                   <li>All pages have transparent backgrounds</li>
