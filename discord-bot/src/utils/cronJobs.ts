@@ -53,7 +53,7 @@ async function checkTournamentRegistrationOpening(client: Client) {
               users!inner(discord_username, current_rank, riot_id)
             `)
             .eq('tournament_id', tournament.id);
-          const embed = createTournamentEmbed(tournament, { data: signups });
+          const embed = createTournamentEmbed(tournament, signups || []);
           
           await channel.send({
             content: `🎮 **NEW TOURNAMENT REGISTRATION OPEN!** @here`,
