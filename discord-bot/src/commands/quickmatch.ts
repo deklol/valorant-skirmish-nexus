@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { db } from '../utils/supabase.js';
+import { getSupabase } from '../utils/supabase.js';
 import { createQuickMatchEmbed } from '../utils/embeds.js';
 import { handleUserRegistration } from '../utils/userRegistration.js';
 
@@ -27,7 +27,7 @@ export default {
     
     try {
       // Check if user is registered
-      const { data: user } = await db.findUserByDiscordId(interaction.user.id);
+      const { data: user } = await getSupabase().from('users').select('*').eq('discord_id', interaction.user.id).maybeSingle();
       
       if (!user && subcommand !== 'status') {
         await interaction.deleteReply();
@@ -58,7 +58,11 @@ export default {
 
 async function handleQueueCommand(interaction: any, user: any) {
   // Add user to queue
-  const { error } = await db.addToQuickMatchQueue(user.id);
+  const { error } = await getSupabase().from('quick_match_queue').upsert({
+    user_id: user.id,
+    joined_at: new Date().toISOString(),
+    is_active: true
+  });
   
   if (error) {
     // User might already be in queue, just show current status
@@ -66,7 +70,22 @@ async function handleQueueCommand(interaction: any, user: any) {
   }
   
   // Show queue status
-  const queueData = await db.getQuickMatchQueue();
+  const queueData = await getSupabase().from('quick_match_queue').select(`
+    *,
+    users!inner(
+      id,
+      discord_username, 
+      discord_id, 
+      current_rank, 
+      peak_rank,
+      weight_rating,
+      manual_rank_override,
+      manual_weight_override,
+      use_manual_override,
+      tournaments_won,
+      last_tournament_win
+    )
+  `).eq('is_active', true).order('joined_at', { ascending: true });
   const { embed, components } = createQuickMatchEmbed(queueData);
   
   await interaction.editReply({
@@ -83,7 +102,7 @@ async function handleQueueCommand(interaction: any, user: any) {
 }
 
 async function handleLeaveCommand(interaction: any, user: any) {
-  await db.removeFromQuickMatchQueue(user.id);
+  await getSupabase().from('quick_match_queue').update({ is_active: false }).eq('user_id', user.id);
   
   await interaction.editReply({
     content: '✅ You have been removed from the quick match queue.'
@@ -91,7 +110,22 @@ async function handleLeaveCommand(interaction: any, user: any) {
 }
 
 async function handleStatusCommand(interaction: any) {
-  const queueData = await db.getQuickMatchQueue();
+  const queueData = await getSupabase().from('quick_match_queue').select(`
+    *,
+    users!inner(
+      id,
+      discord_username, 
+      discord_id, 
+      current_rank, 
+      peak_rank,
+      weight_rating,
+      manual_rank_override,
+      manual_weight_override,
+      use_manual_override,
+      tournaments_won,
+      last_tournament_win
+    )
+  `).eq('is_active', true).order('joined_at', { ascending: true });
   const { embed, components } = createQuickMatchEmbed(queueData);
   
   await interaction.editReply({

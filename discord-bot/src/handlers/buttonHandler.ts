@@ -2,7 +2,7 @@
  * Button Interaction Handler for Quick Match System
  */
 import { QuickMatchManager } from '../utils/quickMatchManager.js';
-import { db } from '../utils/supabase.js';
+import { getSupabase } from '../utils/supabase.js';
 import { createQuickMatchEmbed, createMapVotingEmbed } from '../utils/embeds.js';
 import { handleUserRegistration } from '../utils/userRegistration.js';
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
@@ -78,7 +78,7 @@ async function handleJoinQueue(interaction: any, session: any, userId: string) {
   await interaction.deferReply({ ephemeral: true });
 
   // Check if user is registered
-  const { data: user } = await db.findUserByDiscordId(userId);
+  const { data: user } = await getSupabase().from('users').select('*').eq('discord_id', userId).maybeSingle();
   
   if (!user) {
     await interaction.editReply({
@@ -115,7 +115,11 @@ async function handleJoinQueue(interaction: any, session: any, userId: string) {
   }
 
   // Add to queue
-  const { error } = await db.addToQuickMatchQueue(user.id);
+  const { error } = await getSupabase().from('quick_match_queue').upsert({
+    user_id: user.id,
+    joined_at: new Date().toISOString(),
+    is_active: true
+  });
   
   if (error && !error.message.includes('duplicate')) {
     await interaction.editReply({
@@ -135,14 +139,14 @@ async function handleJoinQueue(interaction: any, session: any, userId: string) {
 async function handleLeaveQueue(interaction: any, session: any, userId: string) {
   await interaction.deferReply({ ephemeral: true });
 
-  const { data: user } = await db.findUserByDiscordId(userId);
+  const { data: user } = await getSupabase().from('users').select('*').eq('discord_id', userId).maybeSingle();
   
   if (!user) {
     await interaction.editReply({content: '❌ User not found.'});
     return;
   }
 
-  await db.removeFromQuickMatchQueue(user.id);
+  await getSupabase().from('quick_match_queue').update({ is_active: false }).eq('user_id', user.id);
   
   // Update the embed
   await updateLobbyMessage(interaction, session);
@@ -161,7 +165,22 @@ async function handleRunBalance(interaction: any, session: any, channelId: strin
   }
 
   // Get current queue
-  const queueData = await db.getQuickMatchQueue();
+  const queueData = await getSupabase().from('quick_match_queue').select(`
+    *,
+    users!inner(
+      id,
+      discord_username, 
+      discord_id, 
+      current_rank, 
+      peak_rank,
+      weight_rating,
+      manual_rank_override,
+      manual_weight_override,
+      use_manual_override,
+      tournaments_won,
+      last_tournament_win
+    )
+  `).eq('is_active', true).order('joined_at', { ascending: true });
   const queue = queueData.data;
 
   if (!queue || queue.length !== 10) {
@@ -180,7 +199,7 @@ async function handleRunBalance(interaction: any, session: any, channelId: strin
     const { teamA, teamB, balanceAnalysis } = await QuickMatchManager.balanceTeams(session.id, queue);
     
     // Clear the queue since players are now in teams
-    await db.clearQuickMatchQueue();
+    await getSupabase().from('quick_match_queue').update({ is_active: false }).eq('is_active', true);
     
     // Update lobby message with balanced teams
     const updatedSession = await QuickMatchManager.getActiveSession(channelId);
@@ -203,7 +222,7 @@ async function handleRunBalance(interaction: any, session: any, channelId: strin
 
 async function startMapVoting(interaction: any, session: any) {
   // Get available maps
-  const { data: maps } = await db.getActiveMaps();
+  const { data: maps } = await getSupabase().from('maps').select('*').eq('is_active', true).order('display_name');
   
   if (!maps || maps.length === 0) {
     await interaction.followUp({
@@ -235,7 +254,7 @@ async function handleMapVoteButton(interaction: any, customId: string, channelId
   }
 
   // Check if user is in one of the teams
-  const { data: user } = await db.findUserByDiscordId(userId);
+  const { data: user } = await getSupabase().from('users').select('*').eq('discord_id', userId).maybeSingle();
   if (!user) {
     await interaction.editReply({content: '❌ User not found.'});
     return;
@@ -371,7 +390,7 @@ async function handleCancelLobby(interaction: any, session: any) {
   }
 
   await QuickMatchManager.cancelSession(session.id);
-  await db.clearQuickMatchQueue();
+  await getSupabase().from('quick_match_queue').update({ is_active: false }).eq('is_active', true);
   
   await interaction.editReply({content: '✅ Lobby has been cancelled.'});
   
@@ -407,7 +426,22 @@ async function handleLegacyButton(interaction: any, customId: string, channelId:
 
 async function updateLobbyMessage(interaction: any, session: any) {
   try {
-    const queueData = await db.getQuickMatchQueue();
+    const queueData = await getSupabase().from('quick_match_queue').select(`
+      *,
+      users!inner(
+        id,
+        discord_username, 
+        discord_id, 
+        current_rank, 
+        peak_rank,
+        weight_rating,
+        manual_rank_override,
+        manual_weight_override,
+        use_manual_override,
+        tournaments_won,
+        last_tournament_win
+      )
+    `).eq('is_active', true).order('joined_at', { ascending: true });
     const { embed, components } = createQuickMatchEmbed(queueData, session);
     
     // Update the original message

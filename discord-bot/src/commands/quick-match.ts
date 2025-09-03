@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
 import { QuickMatchManager } from '../utils/quickMatchManager.js';
-import { db } from '../utils/supabase.js';
+import { getSupabase } from '../utils/supabase.js';
 import { createQuickMatchEmbed } from '../utils/embeds.js';
 
 export default {
@@ -77,7 +77,22 @@ async function handleStartCommand(interaction: any, channelId: string) {
   const session = await QuickMatchManager.createSession(channelId, interaction.user.id);
   
   // Get current queue
-  const queueData = await db.getQuickMatchQueue();
+  const queueData = await getSupabase().from('quick_match_queue').select(`
+    *,
+    users!inner(
+      id,
+      discord_username, 
+      discord_id, 
+      current_rank, 
+      peak_rank,
+      weight_rating,
+      manual_rank_override,
+      manual_weight_override,
+      use_manual_override,
+      tournaments_won,
+      last_tournament_win
+    )
+  `).eq('is_active', true).order('joined_at', { ascending: true });
   
   // Create initial embed
   const { embed, components } = createQuickMatchEmbed(queueData, session);
@@ -127,7 +142,7 @@ async function handleEndCommand(interaction: any, channelId: string) {
 
 async function handleClearCommand(interaction: any, channelId: string) {
   // Clear the queue
-  await db.clearQuickMatchQueue();
+  await getSupabase().from('quick_match_queue').update({ is_active: false }).eq('is_active', true);
   
   // End any active session
   const session = await QuickMatchManager.getActiveSession(channelId);
@@ -145,7 +160,22 @@ async function handleClearCommand(interaction: any, channelId: string) {
 
 async function handleStatusCommand(interaction: any, channelId: string) {
   const session = await QuickMatchManager.getActiveSession(channelId);
-  const queueData = await db.getQuickMatchQueue();
+  const queueData = await getSupabase().from('quick_match_queue').select(`
+    *,
+    users!inner(
+      id,
+      discord_username, 
+      discord_id, 
+      current_rank, 
+      peak_rank,
+      weight_rating,
+      manual_rank_override,
+      manual_weight_override,
+      use_manual_override,
+      tournaments_won,
+      last_tournament_win
+    )
+  `).eq('is_active', true).order('joined_at', { ascending: true });
   
   const { embed, components } = createQuickMatchEmbed(queueData, session);
   
