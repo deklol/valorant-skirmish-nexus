@@ -31,6 +31,7 @@ import { ShopMedicManager } from "@/components/admin/ShopMedicManager";
 import SponsorManager from "@/components/admin/SponsorManager";
 import { VODManager } from "@/components/admin/VODManager";
 import { RankWeightSyncManager } from "@/components/admin/RankWeightSyncManager";
+import { TeamSessionMedicManager } from "@/components/TeamSessionMedicManager";
 
 const Admin = () => {
   const { isAdmin } = useAuth();
@@ -123,6 +124,10 @@ const Admin = () => {
               <Settings className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Shop Medic</span>
             </TabsTrigger>
+            <TabsTrigger value="team-medic" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
+              <Users className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Team Session Medic</span>
+            </TabsTrigger>
             
             {/* Enhanced Phase 2-4 Tools */}
             <TabsTrigger value="stats-medic" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
@@ -195,6 +200,10 @@ const Admin = () => {
 
           <TabsContent value="shop-medic">
             <ShopMedicManager />
+          </TabsContent>
+
+          <TabsContent value="team-medic">
+            <TeamSessionMedicManager />
           </TabsContent>
 
           {/* Phase 2-4 Enhanced Tools */}

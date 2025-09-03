@@ -1295,6 +1295,54 @@ export type Database = {
           },
         ]
       }
+      team_session_modifications: {
+        Row: {
+          admin_user_id: string
+          affected_user_id: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          modification_type: string
+          new_team_weight: number | null
+          original_team_weight: number | null
+          reason: string | null
+          stats_applied: Json | null
+          stats_reversed: Json | null
+          team_id: string
+          tournament_id: string
+        }
+        Insert: {
+          admin_user_id: string
+          affected_user_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          modification_type: string
+          new_team_weight?: number | null
+          original_team_weight?: number | null
+          reason?: string | null
+          stats_applied?: Json | null
+          stats_reversed?: Json | null
+          team_id: string
+          tournament_id: string
+        }
+        Update: {
+          admin_user_id?: string
+          affected_user_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          modification_type?: string
+          new_team_weight?: number | null
+          original_team_weight?: number | null
+          reason?: string | null
+          stats_applied?: Json | null
+          stats_reversed?: Json | null
+          team_id?: string
+          tournament_id?: string
+        }
+        Relationships: []
+      }
       team_tournament_registrations: {
         Row: {
           id: string
@@ -2298,6 +2346,16 @@ export type Database = {
         Args: { p_purchase_id: string; p_user_id: string }
         Returns: Json
       }
+      add_player_to_team: {
+        Args: {
+          p_is_captain?: boolean
+          p_reason?: string
+          p_team_id: string
+          p_tournament_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       advance_match_winner_secure: {
         Args: {
           p_loser_id: string
@@ -2618,6 +2676,10 @@ export type Database = {
         }
         Returns: string
       }
+      recalculate_team_weight: {
+        Args: { p_team_id: string }
+        Returns: number
+      }
       record_tournament_metric: {
         Args: {
           p_metadata?: Json
@@ -2629,6 +2691,19 @@ export type Database = {
       }
       refund_purchase: {
         Args: { p_purchase_id: string; p_refund_reason?: string }
+        Returns: Json
+      }
+      remove_player_from_team: {
+        Args: {
+          p_reason?: string
+          p_team_id: string
+          p_tournament_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      reverse_player_tournament_stats: {
+        Args: { p_team_id: string; p_tournament_id: string; p_user_id: string }
         Returns: Json
       }
       reverse_team_progression: {
