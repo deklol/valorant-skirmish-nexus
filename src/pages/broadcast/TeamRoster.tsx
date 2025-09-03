@@ -151,7 +151,7 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
           {currentTeam.name}
         </div>
         
-        <div className="grid grid-cols-1 gap-6 max-w-2xl">
+        <div className="space-y-3">
           {currentTeam.team_members
             .sort((a, b) => (b.is_captain ? 1 : 0) - (a.is_captain ? 1 : 0))
             .map((member, index) => {
@@ -162,58 +162,72 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
               const displayWeight = (user as any).display_weight || (user as any).atlas_weight || (user as any).adaptive_weight || 150;
 
               return (
-                <div
-                  key={member.user_id}
-                  className={`flex items-center space-x-6 bg-black/40 backdrop-blur-md rounded-2xl border border-white/10 shadow-lg transition-all duration-500 ${
-                    !shouldAnimate || animationPhase === 'complete' ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'
-                  }`}
-                  style={{ 
-                    transitionDelay: shouldAnimate ? `${index * 200}ms` : '0ms',
-                    ...getBroadcastCardStyle(sceneSettings),
-                    gap: `${sceneSettings.spacing || BROADCAST_DEFAULTS.spacing}px`,
-                  }}
-                >
-                  <Avatar className="w-16 h-16 border-2 border-white/20 shadow-md">
-                    <AvatarImage 
-                      src={user.discord_avatar_url || undefined} 
-                      alt={user.discord_username}
-                    />
-                    <AvatarFallback className="bg-slate-700 text-white text-lg">
-                      {user.discord_username?.slice(0, 2).toUpperCase() || '??'}
-                    </AvatarFallback>
-                  </Avatar>
-                  
-                  <div className="flex-1">
-                    {/* Username + Captain */}
-                    <div className="flex items-center space-x-3 mb-1">
-                      <span 
-                        className="text-xl font-bold tracking-wide" 
-                        style={getBroadcastTextStyle(sceneSettings, settings)}
-                      >
+                <div key={member.user_id} className="space-y-3">
+                  {/* Player Name Block */}
+                  <div 
+                    className="px-6 py-4 text-white flex items-center justify-between"
+                    style={{ 
+                      backgroundColor: sceneSettings.teamAccentColor || BROADCAST_DEFAULTS.primaryColor 
+                    }}
+                  >
+                    <div className="flex items-center gap-4">
+                      <span className="text-2xl font-bold">
                         {user.discord_username || 'Unknown Player'}
                       </span>
                       {member.is_captain && (
-                        <Badge variant="outline" className="border-yellow-400 text-yellow-400 text-sm">
+                        <div className="bg-yellow-400 text-black px-3 py-1 text-sm font-bold">
                           CAPTAIN
-                        </Badge>
+                        </div>
                       )}
+                    </div>
+                  </div>
+
+                  {/* Player Info Horizontal Cards */}
+                  <div className="grid grid-cols-4 gap-3">
+                    {/* Avatar Card */}
+                    <div className="bg-black/60 p-4 flex flex-col items-center">
+                      <div className="w-16 h-16 bg-gray-600 mb-2">
+                        <img
+                          src={user.discord_avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.discord_username}`}
+                          alt={user.discord_username}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="text-white text-sm text-center">Avatar</div>
                     </div>
 
-                    {/* Game Info Row */}
-                    <div className="flex flex-wrap items-center gap-3 text-sm mt-1">
-                      {sceneSettings.showRiotId && user.riot_id && (
-                        <span className="opacity-70">{user.riot_id}</span>
-                      )}
-                      {sceneSettings.showCurrentRank && user.current_rank && renderRank(user.current_rank)}
-                      {sceneSettings.showPeakRank && user.peak_rank && (
-                        <span className="opacity-70">⭐ Peak: {user.peak_rank}</span>
-                      )}
-                      {sceneSettings.showAdaptiveWeight && (
-                        <Badge variant="outline" className="text-white border-white/30">
-                          {displayWeight} pts
-                        </Badge>
-                      )}
-                    </div>
+                    {/* Rank Card */}
+                    {sceneSettings.showCurrentRank && user.current_rank && (
+                      <div className="bg-black/60 p-4 flex flex-col items-center">
+                        <div 
+                          className="w-16 h-16 flex items-center justify-center text-2xl mb-2"
+                          style={{ backgroundColor: getRankColor(user.current_rank) }}
+                        >
+                          {formatRank(user.current_rank).emoji}
+                        </div>
+                        <div className="text-white text-sm text-center">{user.current_rank}</div>
+                      </div>
+                    )}
+
+                    {/* Weight Card */}
+                    {sceneSettings.showAdaptiveWeight && (
+                      <div className="bg-black/60 p-4 flex flex-col items-center">
+                        <div className="w-16 h-16 bg-blue-600 flex items-center justify-center text-xl font-bold text-white mb-2">
+                          {displayWeight}
+                        </div>
+                        <div className="text-white text-sm text-center">Weight</div>
+                      </div>
+                    )}
+
+                    {/* Riot ID Card */}
+                    {sceneSettings.showRiotId && user.riot_id && (
+                      <div className="bg-black/60 p-4 flex flex-col items-center">
+                        <div className="w-16 h-16 bg-red-600 flex items-center justify-center text-white mb-2 text-xs text-center font-bold">
+                          RIOT
+                        </div>
+                        <div className="text-white text-sm text-center truncate w-full">{user.riot_id}</div>
+                      </div>
+                    )}
                   </div>
                 </div>
               );
