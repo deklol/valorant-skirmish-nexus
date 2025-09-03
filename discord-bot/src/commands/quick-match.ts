@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } from 'discord.js';
 import { QuickMatchManager } from '../utils/quickMatchManager.js';
 import { getSupabase } from '../utils/supabase.js';
 import { createQuickMatchEmbed } from '../utils/embeds.js';
@@ -66,11 +66,9 @@ async function handleStartCommand(interaction: any, channelId: string) {
   const existingSession = await QuickMatchManager.getActiveSession(channelId);
   
   if (existingSession) {
-    await interaction.editReply({
-      content: '⚠️ There is already an active Quick Match lobby in this channel.',
-      ephemeral: true
+    return await interaction.editReply({
+      content: '⚠️ There is already an active Quick Match lobby in this channel.'
     });
-    return;
   }
 
   // Create new session
@@ -123,8 +121,7 @@ async function handleEndCommand(interaction: any, channelId: string) {
   
   if (!session) {
     await interaction.editReply({
-      content: '❌ No active Quick Match lobby found in this channel.',
-      ephemeral: true
+      content: '❌ No active Quick Match lobby found in this channel.'
     });
     return;
   }
@@ -133,8 +130,7 @@ async function handleEndCommand(interaction: any, channelId: string) {
   await QuickMatchManager.cancelSession(session.id);
   
   await interaction.editReply({
-    content: '✅ Quick Match lobby has been ended.',
-    ephemeral: true
+    content: '✅ Quick Match lobby has been ended.'
   });
 
   console.log(`✅ Quick Match lobby ended in channel ${channelId}, session ${session.id}`);
@@ -151,8 +147,7 @@ async function handleClearCommand(interaction: any, channelId: string) {
   }
   
   await interaction.editReply({
-    content: '✅ Queue cleared and lobby ended.',
-    ephemeral: true
+    content: '✅ Queue cleared and lobby ended.'
   });
 
   console.log(`✅ Queue cleared and lobby ended in channel ${channelId}`);

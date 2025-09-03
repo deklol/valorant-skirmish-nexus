@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder, MessageFlags } from 'discord.js';
 import { getSupabase } from '../utils/supabase.js';
 import { handleUserRegistration } from '../utils/userRegistration.js';
 
@@ -13,7 +13,7 @@ export default {
         .setAutocomplete(true)),
 
   async execute(interaction: any) {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     
     try {
       // Check if user is registered

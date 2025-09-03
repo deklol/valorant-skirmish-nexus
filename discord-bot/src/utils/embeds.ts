@@ -85,7 +85,7 @@ export function createTournamentEmbed(tournament: any, signupsData: any) {
         const user = signup.users;
         if (!user) return null;
         const rankEmoji = getRankEmoji(user.current_rank || 'Unranked');
-        return `${rankEmoji} ${user.discord_username}`;
+        return `${rankEmoji} ${user.discord_username} (${user.current_rank || 'Unranked'})`;
       })
       .filter(Boolean)
       .slice(0, 20) // Limit to 20 users to avoid embed limit

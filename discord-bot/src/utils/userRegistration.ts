@@ -1,4 +1,4 @@
-import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } from 'discord.js';
 import { getSupabase } from './supabase.js';
 
 export async function handleUserRegistration(interaction: any) {
@@ -10,11 +10,10 @@ export async function handleUserRegistration(interaction: any) {
     .maybeSingle();
 
   if (existingUser) {
-    await interaction.reply({
+    return await interaction.reply({
       content: '✅ You are already registered!',
-      ephemeral: true
+      flags: MessageFlags.Ephemeral
     });
-    return;
   }
 
   // Create registration embed
@@ -49,14 +48,14 @@ export async function handleUserRegistration(interaction: any) {
     await interaction.reply({
       embeds: [embed],
       components: [button],
-      ephemeral: true
+      flags: MessageFlags.Ephemeral
     });
   } else {
     // For other interactions, reply with registration prompt
     await interaction.reply({
       embeds: [embed],
       components: [button],
-      ephemeral: true
+      flags: MessageFlags.Ephemeral
     });
   }
 }

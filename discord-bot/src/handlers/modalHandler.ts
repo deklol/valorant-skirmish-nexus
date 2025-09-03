@@ -2,7 +2,7 @@
  * Modal Interaction Handler for Quick Match System
  */
 import { QuickMatchManager } from '../utils/quickMatchManager.js';
-import { EmbedBuilder } from 'discord.js';
+import { EmbedBuilder, MessageFlags } from 'discord.js';
 import { getSupabase } from '../utils/supabase.js';
 
 export async function handleModalSubmit(interaction: any) {
@@ -20,14 +20,14 @@ export async function handleModalSubmit(interaction: any) {
     if (!interaction.replied && !interaction.deferred) {
       await interaction.reply({
         content: '❌ An error occurred while processing your submission.',
-        ephemeral: true
+        flags: MessageFlags.Ephemeral
       });
     }
   }
 }
 
 async function handleScoreSubmission(interaction: any, customId: string) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
   
   const sessionId = customId.replace('score_submit_', '');
   const session = await QuickMatchManager.getActiveSession(interaction.channel.id);

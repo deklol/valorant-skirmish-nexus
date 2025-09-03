@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder, MessageFlags } from 'discord.js';
 import { getSupabase } from '../utils/supabase.js';
 import { createTournamentEmbed } from '../utils/embeds.js';
 
@@ -82,7 +82,7 @@ export default {
       if (filteredTournaments.length > 5) {
         await interaction.followUp({
           content: `📝 Showing first 5 of ${filteredTournaments.length} tournaments. Use filters to narrow results.`,
-          ephemeral: true
+          flags: MessageFlags.Ephemeral
         });
       }
       

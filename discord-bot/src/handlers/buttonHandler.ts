@@ -38,7 +38,7 @@ export async function handleButtonInteraction(interaction: any) {
     if (!interaction.replied && !interaction.deferred) {
       await interaction.reply({
         content: '❌ An error occurred while processing your request.',
-        ephemeral: true
+        flags: MessageFlags.Ephemeral
       });
     }
   }
@@ -80,7 +80,7 @@ async function handleQuickMatchButton(interaction: any, customId: string, channe
 }
 
 async function handleJoinQueue(interaction: any, session: any, userId: string) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   // Check if user is registered
   const { data: user } = await getSupabase().from('users').select('*').eq('discord_id', userId).maybeSingle();
@@ -142,7 +142,7 @@ async function handleJoinQueue(interaction: any, session: any, userId: string) {
 }
 
 async function handleLeaveQueue(interaction: any, session: any, userId: string) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   const { data: user } = await getSupabase().from('users').select('*').eq('discord_id', userId).maybeSingle();
   
@@ -162,7 +162,7 @@ async function handleLeaveQueue(interaction: any, session: any, userId: string) 
 }
 
 async function handleRunBalance(interaction: any, session: any, channelId: string) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   if (!session) {
     await interaction.editReply({content: '❌ No active session found.'});
@@ -219,8 +219,7 @@ async function handleRunBalance(interaction: any, session: any, channelId: strin
     console.error('Team balancing error:', error);
     await QuickMatchManager.updateSession(session.id, { status: 'waiting' });
     await interaction.followUp({
-      content: '❌ Failed to balance teams. Please try again.',
-      ephemeral: true
+      content: '❌ Failed to balance teams. Please try again.'
     });
   }
 }
@@ -231,8 +230,7 @@ async function startMapVoting(interaction: any, session: any) {
   
   if (!maps || maps.length === 0) {
     await interaction.followUp({
-      content: '❌ No maps available for voting.',
-      ephemeral: true
+      content: '❌ No maps available for voting.'
     });
     return;
   }
@@ -248,7 +246,7 @@ async function startMapVoting(interaction: any, session: any) {
 }
 
 async function handleMapVoteButton(interaction: any, customId: string, channelId: string, userId: string) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   const mapId = customId.replace('vote_', '');
   const session = await QuickMatchManager.getActiveSession(channelId);
@@ -299,8 +297,7 @@ async function finalizeMapVoting(interaction: any, session: any) {
     
     if (!results.winningMap) {
       await interaction.followUp({
-        content: '❌ No winning map found. Please try voting again.',
-        ephemeral: true
+        content: '❌ No winning map found. Please try voting again.'
       });
       return;
     }
@@ -339,18 +336,17 @@ async function finalizeMapVoting(interaction: any, session: any) {
   } catch (error) {
     console.error('Match creation error:', error);
     await interaction.followUp({
-      content: '❌ Failed to create match. Please contact an admin.',
-      ephemeral: true
+      content: '❌ Failed to create match. Please contact an admin.'
     });
   }
 }
 
 async function handleSubmitScore(interaction: any, session: any) {
   if (!session || session.status !== 'in_progress') {
-    await interaction.reply({
-      content: '❌ No match in progress.',
-      ephemeral: true
-    });
+      await interaction.reply({
+        content: '❌ No match in progress.',
+        flags: MessageFlags.Ephemeral
+      });
     return;
   }
 
@@ -387,7 +383,7 @@ async function handleRefresh(interaction: any, session: any) {
 }
 
 async function handleCancelLobby(interaction: any, session: any) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   if (!session) {
     await interaction.editReply({content: '❌ No active session found.'});
@@ -404,7 +400,7 @@ async function handleCancelLobby(interaction: any, session: any) {
 }
 
 async function handleNewLobby(interaction: any, channelId: string) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   // Create new session
   const session = await QuickMatchManager.createSession(channelId, interaction.user.id);

@@ -4,7 +4,7 @@
 import { getSupabase } from '../utils/supabase.js';
 import { createTournamentEmbed } from '../utils/embeds.js';
 import { handleUserRegistration } from '../utils/userRegistration.js';
-import { EmbedBuilder } from 'discord.js';
+import { EmbedBuilder, MessageFlags } from 'discord.js';
 
 export async function handleTournamentButton(interaction: any, customId: string, channelId: string, userId: string) {
   const [action, tournamentId] = customId.split('_');
@@ -35,14 +35,14 @@ export async function handleTournamentButton(interaction: any, customId: string,
     if (!interaction.replied && !interaction.deferred) {
       await interaction.reply({
         content: '❌ An error occurred while processing your request.',
-        ephemeral: true
+        flags: MessageFlags.Ephemeral
       });
     }
   }
 }
 
 async function handleTournamentSignup(interaction: any, tournamentId: string, userId: string) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   // Check if user is registered
   const { data: user } = await getSupabase()
@@ -124,7 +124,7 @@ async function handleTournamentSignup(interaction: any, tournamentId: string, us
 }
 
 async function handleTournamentWithdraw(interaction: any, tournamentId: string, userId: string) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   // Check if user is registered
   const { data: user } = await getSupabase()
@@ -200,7 +200,7 @@ async function handleTournamentRefresh(interaction: any, tournamentId: string) {
 }
 
 async function handleTournamentInfo(interaction: any, tournamentId: string) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   // Get tournament info with more details
   const { data: tournament } = await getSupabase()

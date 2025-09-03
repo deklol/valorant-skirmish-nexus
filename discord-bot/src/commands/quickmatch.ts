@@ -1,4 +1,4 @@
-import { SlashCommandBuilder } from 'discord.js';
+import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import { getSupabase } from '../utils/supabase.js';
 import { createQuickMatchEmbed } from '../utils/embeds.js';
 import { handleUserRegistration } from '../utils/userRegistration.js';
@@ -95,7 +95,7 @@ async function handleQueueCommand(interaction: any, user: any) {
   if (!error) {
     await interaction.followUp({
       content: '✅ You have been added to the quick match queue!',
-      ephemeral: true
+      flags: MessageFlags.Ephemeral
     });
   }
 }
