@@ -195,7 +195,7 @@ export default function MatchupPreview() {
           <div className="bg-black text-center font-bold text-white text-lg p-2">
             {value1}
           </div>
-          <div className="bg-gray-800 text-center text-white uppercase tracking-wider text-sm font-bold p-2">
+          <div className="bg-black text-center text-white uppercase tracking-wider text-sm font-bold p-2">
             {label}
           </div>
           <div className="bg-black text-center font-bold text-white text-lg p-2">
@@ -206,8 +206,8 @@ export default function MatchupPreview() {
 
       return (
         <div className="w-80">
-          {/* Header */}
-          <div className="bg-gray-700 text-center p-3">
+          {/* Header - Black instead of grey */}
+          <div className="bg-black text-center p-3">
             <h3 className="text-xl font-black uppercase tracking-wider text-white">
               TALE OF THE TAPE
             </h3>
@@ -234,7 +234,7 @@ export default function MatchupPreview() {
             />
           </div>
           
-          {/* Footer */}
+          {/* Footer - Keep green as requested */}
           <div className="bg-green-600 text-center p-2">
             <div className="text-black font-black text-sm">
               VERY BALANCED
@@ -332,8 +332,8 @@ export default function MatchupPreview() {
                   AVG: {side === 'left' ? team1Avg : team2Avg}
                 </span>
               </div>
-              <div className="bg-gray-600 px-3 py-1">
-                <span className="text-white text-sm font-bold">
+              <div className="bg-white px-3 py-1">
+                <span className="text-black text-sm font-bold">
                   SEED #{team.seed || 'TBD'}
                 </span>
               </div>
@@ -376,7 +376,7 @@ export default function MatchupPreview() {
                   <div 
                     className="px-4 py-3 text-white flex items-center justify-between"
                     style={{ 
-                      backgroundColor: sceneSettings.teamAccentColor || '#FF6B35'
+                      backgroundColor: '#FF6B35'
                     }}
                   >
                     <div className="flex items-center gap-3">
@@ -391,10 +391,10 @@ export default function MatchupPreview() {
                     </div>
                   </div>
 
-                  {/* Player Info Horizontal Cards */}
+                  {/* Player Info Horizontal Cards - No gaps, all black */}
                   <div className="grid grid-cols-4">
                     {/* Avatar Card */}
-                    <div className="bg-black/90 p-3 flex flex-col items-center">
+                    <div className="bg-black p-3 flex flex-col items-center">
                       <div className="w-12 h-12 bg-gray-600 mb-1">
                         <img
                           src={user.discord_avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.discord_username}`}
@@ -406,41 +406,35 @@ export default function MatchupPreview() {
                     </div>
 
                     {/* Rank Card */}
-                    {sceneSettings.showCurrentRank && user.current_rank && (
-                      <div className="bg-black/90 p-3 flex flex-col items-center">
-                        <div 
-                          className="w-12 h-12 flex items-center justify-center text-lg mb-1"
-                          style={{ backgroundColor: getRankColor(user.current_rank) }}
-                        >
-                          {emoji}
-                        </div>
-                        <div className="text-white text-xs text-center truncate w-full">
-                          {user.current_rank}
-                        </div>
+                    <div className="bg-black p-3 flex flex-col items-center">
+                      <div 
+                        className="w-12 h-12 flex items-center justify-center text-lg mb-1"
+                        style={{ backgroundColor: getRankColor(user.current_rank) }}
+                      >
+                        {emoji}
                       </div>
-                    )}
+                      <div className="text-white text-xs text-center truncate w-full">
+                        {user.current_rank || 'Unranked'}
+                      </div>
+                    </div>
 
                     {/* Weight Card */}
-                    {sceneSettings.showAdaptiveWeight && (
-                      <div className="bg-black/90 p-3 flex flex-col items-center">
-                        <div className="w-12 h-12 bg-blue-600 flex items-center justify-center text-sm font-bold text-white mb-1">
-                          {displayWeight}
-                        </div>
-                        <div className="text-white text-xs text-center">Weight</div>
+                    <div className="bg-black p-3 flex flex-col items-center">
+                      <div className="w-12 h-12 bg-blue-600 flex items-center justify-center text-sm font-bold text-white mb-1">
+                        {displayWeight}
                       </div>
-                    )}
+                      <div className="text-white text-xs text-center">Weight</div>
+                    </div>
 
                     {/* Riot ID Card */}
-                    {sceneSettings.showRiotId && user.riot_id && (
-                      <div className="bg-black/90 p-3 flex flex-col items-center">
-                        <div className="w-12 h-12 bg-red-600 flex items-center justify-center text-white mb-1 text-xs text-center font-bold">
-                          RIOT
-                        </div>
-                        <div className="text-white text-xs text-center truncate w-full">
-                          {user.riot_id}
-                        </div>
+                    <div className="bg-black p-3 flex flex-col items-center">
+                      <div className="w-12 h-12 bg-red-600 flex items-center justify-center text-white mb-1 text-xs text-center font-bold">
+                        RIOT
                       </div>
-                    )}
+                      <div className="text-white text-xs text-center truncate w-full">
+                        {user.riot_id || 'N/A'}
+                      </div>
+                    </div>
                   </div>
                 </div>
               );
@@ -482,6 +476,11 @@ export default function MatchupPreview() {
                         {user.current_rank}
                       </div>
                     )}
+                  </div>
+                  
+                  {/* Weight display for original design */}
+                  <div className="text-xs text-cyan-400 font-bold">
+                    {displayWeight}
                   </div>
                 </div>
               );
@@ -562,7 +561,7 @@ export default function MatchupPreview() {
                   </div>
                 </div>
                 
-                <div className="bg-gray-700 inline-block px-6 py-2">
+                <div className="bg-black inline-block px-6 py-2">
                   <div className="text-lg text-white uppercase tracking-wider font-bold">
                     UPCOMING MATCH
                   </div>
