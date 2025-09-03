@@ -277,7 +277,7 @@ export default function MatchupPreview() {
                 {index + 1}
               </div>
               
-              {member.is_captain && (
+              {member.is_captain && sceneSettings.showCaptainBadges && (
                 <Badge variant="outline" className="border-yellow-400 text-yellow-400 text-xs px-1 py-0">
                   C
                 </Badge>
@@ -294,9 +294,11 @@ export default function MatchupPreview() {
                 <div className="text-white font-medium text-sm">
                   {member.users?.discord_username || 'Unknown'}
                 </div>
-                <div className={`text-xs ${getRankColor(member.users?.current_rank)}`}>
-                  {member.users?.current_rank}
-                </div>
+                {sceneSettings.showCurrentRank && (
+                  <div className={`text-xs ${getRankColor(member.users?.current_rank)}`}>
+                    {member.users?.current_rank}
+                  </div>
+                )}
               </div>
             </div>
           ))}
@@ -324,25 +326,27 @@ export default function MatchupPreview() {
       
       <div className="relative z-10 max-w-7xl w-full">
         {/* Main Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center space-x-6 mb-4">
-            <div className="text-5xl font-black uppercase tracking-wider text-white">
-              {team1.name}
-            </div>
-            <div className="flex flex-col items-center">
-              <Swords className="w-12 h-12 text-red-500 mb-1" />
-              <div className="text-white/70 text-sm uppercase tracking-wide font-bold">
-                VS
+        {sceneSettings.showVsHeader && (
+          <div className="text-center mb-8">
+            <div className="flex items-center justify-center space-x-6 mb-4">
+              <div className="text-5xl font-black uppercase tracking-wider text-white">
+                {team1.name}
+              </div>
+              <div className="flex flex-col items-center">
+                <Swords className="w-12 h-12 text-red-500 mb-1" />
+                <div className="text-white/70 text-sm uppercase tracking-wide font-bold">
+                  VS
+                </div>
+              </div>
+              <div className="text-5xl font-black uppercase tracking-wider text-white">
+                {team2.name}
               </div>
             </div>
-            <div className="text-5xl font-black uppercase tracking-wider text-white">
-              {team2.name}
+            <div className="text-lg text-white/80 uppercase tracking-wider font-bold">
+              Upcoming Match
             </div>
           </div>
-          <div className="text-lg text-white/80 uppercase tracking-wider font-bold">
-            Upcoming Match
-          </div>
-        </div>
+        )}
 
         <div className="grid grid-cols-3 gap-8 items-start">
           {/* Team 1 Lineup */}

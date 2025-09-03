@@ -254,74 +254,63 @@ export default function BroadcastSettingsPanel() {
             <div className="space-y-4">
               <h4 className="font-medium text-lg">Matchup Preview Options</h4>
               <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    checked={sceneSettings.showVsHeader ?? true}
-                    onCheckedChange={(checked) => updateSceneSettings(scene, { showVsHeader: checked })}
-                  />
-                  <Label>VS Header with Swords</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    checked={sceneSettings.showWeightDifference ?? true}
-                    onCheckedChange={(checked) => updateSceneSettings(scene, { showWeightDifference: checked })}
-                  />
-                  <Label>Weight Difference Box</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    checked={sceneSettings.showBalanceAssessment ?? true}
-                    onCheckedChange={(checked) => updateSceneSettings(scene, { showBalanceAssessment: checked })}
-                  />
-                  <Label>Balance Assessment Text</Label>
-                </div>
                 <div className="space-y-2">
-                  <Label>Matchup Preset</Label>
+                  <Label>Layout Style</Label>
                   <Select 
-                    value="custom"
+                    value="standard"
                     onValueChange={(value) => {
-                      if (value === 'basic') {
+                      // Presets for the simplified matchup view
+                      if (value === 'minimal') {
                         updateSceneSettings(scene, { 
-                          showVsHeader: true,
-                          showCurrentRank: true,
-                          showAdaptiveWeight: false,
-                          showWeightDifference: false,
-                          showBalanceAssessment: false,
-                          showRiotId: false,
-                          matchupLayout: 'side-by-side'
+                          showCaptainBadges: false,
+                          showCurrentRank: false,
+                          showVsHeader: true
                         });
-                      } else if (value === 'analyst') {
+                      } else if (value === 'standard') {
                         updateSceneSettings(scene, { 
-                          showVsHeader: true,
+                          showCaptainBadges: true,
                           showCurrentRank: true,
-                          showAdaptiveWeight: true,
-                          showWeightDifference: true,
-                          showBalanceAssessment: true,
-                          showRiotId: true,
-                          matchupLayout: 'side-by-side'
+                          showVsHeader: true
                         });
-                      } else if (value === 'compact') {
+                      } else if (value === 'broadcast') {
                         updateSceneSettings(scene, { 
-                          showVsHeader: false,
+                          showCaptainBadges: true,
                           showCurrentRank: true,
-                          showAdaptiveWeight: true,
-                          showWeightDifference: false,
-                          showBalanceAssessment: false,
-                          showRiotId: false,
-                          matchupLayout: 'stacked'
+                          showVsHeader: true
                         });
                       }
                     }}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Choose a preset..." />
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="basic">Basic View</SelectItem>
-                      <SelectItem value="analyst">Analyst View</SelectItem>
-                      <SelectItem value="compact">Compact View</SelectItem>
+                      <SelectItem value="minimal">Minimal - Names Only</SelectItem>
+                      <SelectItem value="standard">Standard - Full Info</SelectItem>
+                      <SelectItem value="broadcast">Broadcast Ready</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={sceneSettings.showVsHeader ?? true}
+                    onCheckedChange={(checked) => updateSceneSettings(scene, { showVsHeader: checked })}
+                  />
+                  <Label>VS Header</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={sceneSettings.showCaptainBadges ?? true}
+                    onCheckedChange={(checked) => updateSceneSettings(scene, { showCaptainBadges: checked })}
+                  />
+                  <Label>Captain Badges</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={sceneSettings.showCurrentRank ?? true}
+                    onCheckedChange={(checked) => updateSceneSettings(scene, { showCurrentRank: checked })}
+                  />
+                  <Label>Player Ranks</Label>
                 </div>
               </div>
             </div>
