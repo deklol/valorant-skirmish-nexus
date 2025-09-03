@@ -86,8 +86,6 @@ export default {
         });
       }
       
-      // Delete the "thinking" message
-      await interaction.deleteReply();
       
     } catch (error) {
       console.error('Tournaments command error:', error);

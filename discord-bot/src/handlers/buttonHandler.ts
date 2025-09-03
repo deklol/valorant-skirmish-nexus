@@ -5,6 +5,7 @@ import { QuickMatchManager } from '../utils/quickMatchManager.js';
 import { getSupabase } from '../utils/supabase.js';
 import { createQuickMatchEmbed, createMapVotingEmbed } from '../utils/embeds.js';
 import { handleUserRegistration } from '../utils/userRegistration.js';
+import { handleTournamentButton } from './tournamentButtonHandler.js';
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
 
 export async function handleButtonInteraction(interaction: any) {
@@ -15,8 +16,12 @@ export async function handleButtonInteraction(interaction: any) {
   console.log(`🔘 Button interaction: ${customId} from user ${userId} in channel ${channelId}`);
 
   try {
+    // Tournament buttons
+    if (customId.startsWith('signup_') || customId.startsWith('withdraw_') || customId.startsWith('refresh_') || customId.startsWith('info_')) {
+      await handleTournamentButton(interaction, customId, channelId, userId);
+    }
     // Quick Match buttons
-    if (customId.startsWith('qm_')) {
+    else if (customId.startsWith('qm_')) {
       await handleQuickMatchButton(interaction, customId, channelId, userId);
     }
     // Map voting buttons

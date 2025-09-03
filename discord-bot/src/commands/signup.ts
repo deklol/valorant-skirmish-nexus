@@ -24,7 +24,6 @@ export default {
         .maybeSingle();
       
       if (!user) {
-        await interaction.deleteReply();
         await handleUserRegistration(interaction);
         return;
       }

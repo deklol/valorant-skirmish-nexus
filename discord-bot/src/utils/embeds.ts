@@ -41,7 +41,7 @@ export function getRankColor(rank: string): number {
 }
 
 export function createTournamentEmbed(tournament: any, signupsData: any) {
-  const { data: signups } = signupsData;
+  const signups = signupsData || [];
   const signupCount = signups?.length || 0;
   
   const embed = new EmbedBuilder()
@@ -78,6 +78,30 @@ export function createTournamentEmbed(tournament: any, signupsData: any) {
       }
     ]);
 
+  // Add registered users list if there are signups
+  if (signups && signups.length > 0) {
+    const usersList = signups
+      .map((signup: any) => {
+        const user = signup.users;
+        if (!user) return null;
+        const rankEmoji = getRankEmoji(user.current_rank || 'Unranked');
+        return `${rankEmoji} ${user.discord_username}`;
+      })
+      .filter(Boolean)
+      .slice(0, 20) // Limit to 20 users to avoid embed limit
+      .join('\n');
+    
+    if (usersList) {
+      embed.addFields([
+        {
+          name: '📋 Registered Players',
+          value: usersList + (signups.length > 20 ? `\n... and ${signups.length - 20} more` : ''),
+          inline: false
+        }
+      ]);
+    }
+  }
+
   if (tournament.banner_image_url) {
     embed.setImage(tournament.banner_image_url);
   }
@@ -94,6 +118,11 @@ export function createTournamentEmbed(tournament: any, signupsData: any) {
         .setLabel('Withdraw')
         .setStyle(ButtonStyle.Danger)
         .setEmoji('❌'),
+      new ButtonBuilder()
+        .setCustomId(`refresh_${tournament.id}`)
+        .setLabel('Refresh')
+        .setStyle(ButtonStyle.Success)
+        .setEmoji('🔄'),
       new ButtonBuilder()
         .setCustomId(`info_${tournament.id}`)
         .setLabel('More Info')

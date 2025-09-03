@@ -28,7 +28,6 @@ export default {
       
       if (error || !user) {
         if (isOwnProfile) {
-          await interaction.deleteReply();
           await handleUserRegistration(interaction);
           return;
         } else {

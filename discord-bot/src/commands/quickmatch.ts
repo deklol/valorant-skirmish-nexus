@@ -30,7 +30,6 @@ export default {
       const { data: user } = await getSupabase().from('users').select('*').eq('discord_id', interaction.user.id).maybeSingle();
       
       if (!user && subcommand !== 'status') {
-        await interaction.deleteReply();
         await handleUserRegistration(interaction);
         return;
       }
