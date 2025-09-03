@@ -1,6 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { getSupabase } from '../utils/supabase.js';
-import { createQuickMatchEmbed } from '../utils/embeds.js';
+import { getSupabase } from '../utils/supabase';
+import { createQuickMatchEmbed } from '../utils/embeds';
 import { handleUserRegistration } from '../utils/userRegistration.js';
 
 export default {

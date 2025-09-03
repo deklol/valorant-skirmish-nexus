@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
-import { getSupabase } from '../utils/supabase.js';
-import { handleUserRegistration } from '../utils/userRegistration.js';
+import { getSupabase } from '../utils/supabase';
+import { handleUserRegistration } from '../utils/userRegistration';
 
 export default {
   data: new SlashCommandBuilder()

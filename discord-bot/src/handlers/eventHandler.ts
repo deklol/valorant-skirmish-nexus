@@ -10,7 +10,7 @@ const __dirname = dirname(__filename);
 export async function loadEvents(client: Client) {
   const eventsPath = join(__dirname, '..', 'events');
   const eventFiles = readdirSync(eventsPath).filter(file => 
-    file.endsWith('.js') || file.endsWith('.ts')
+    file.endsWith('.js') && !file.endsWith('.d.ts')
   );
 
   for (const file of eventFiles) {

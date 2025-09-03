@@ -1,6 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { getSupabase } from '../utils/supabase.js';
-import { createLeaderboardEmbed } from '../utils/embeds.js';
+import { getSupabase } from '../utils/supabase';
+import { createLeaderboardEmbed } from '../utils/embeds';
 
 export default {
   data: new SlashCommandBuilder()

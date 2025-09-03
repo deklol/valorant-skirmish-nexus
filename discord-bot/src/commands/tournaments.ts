@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
-import { getSupabase } from '../utils/supabase.js';
-import { createTournamentEmbed } from '../utils/embeds.js';
+import { getSupabase } from '../utils/supabase';
+import { createTournamentEmbed } from '../utils/embeds';
 
 export default {
   data: new SlashCommandBuilder()
