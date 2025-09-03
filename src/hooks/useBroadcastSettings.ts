@@ -19,6 +19,7 @@ export interface BroadcastSceneSettings extends BroadcastDisplaySettings {
   textColor?: string;
   headerTextColor?: string;
   transparentBackground?: boolean;
+  broadcastFriendlyMode?: boolean;
   
   // Layout & Design
   borderRadius?: number;
@@ -114,6 +115,7 @@ const DEFAULT_SCENE_SETTINGS: BroadcastSceneSettings = {
   
   // Visual customization
   transparentBackground: false,
+  broadcastFriendlyMode: false,
   
   // Layout & Design
   borderRadius: 12,

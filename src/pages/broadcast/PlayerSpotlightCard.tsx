@@ -5,7 +5,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Crown } from "lucide-react";
 import { useBroadcastSettings } from "@/hooks/useBroadcastSettings";
-import { getBroadcastContainerStyle } from "@/utils/broadcastLayoutUtils";
+import { 
+  getBroadcastContainerStyle, 
+  getBroadcastHeaderStyle, 
+  getBroadcastTextStyle,
+  getBroadcastCardStyle,
+  getBroadcastCardClasses,
+  BROADCAST_CONTAINER_CLASSES
+} from "@/utils/broadcastLayoutUtils";
 
 interface PlayerData {
   discord_username?: string;
@@ -102,6 +109,8 @@ export default function PlayerSpotlightCard() {
 
   const sceneSettings = settings.sceneSettings.playerSpotlight;
   const containerStyle = getBroadcastContainerStyle(sceneSettings, settings);
+  const cardStyle = getBroadcastCardStyle(sceneSettings, settings);
+  const cardClasses = getBroadcastCardClasses(sceneSettings.broadcastFriendlyMode);
 
   const displayWeight = player.display_weight || player.atlas_weight || player.adaptive_weight || 150;
 
@@ -110,10 +119,8 @@ export default function PlayerSpotlightCard() {
       <div className="max-w-4xl w-full">
         {/* Player Spotlight Card */}
         <div 
-          className="backdrop-blur-md rounded-3xl border border-white/10 shadow-2xl overflow-hidden"
-          style={{
-            backgroundColor: sceneSettings.transparentBackground ? 'transparent' : 'rgba(0, 0, 0, 0.4)',
-          }}
+          className={`${cardClasses} ${sceneSettings.broadcastFriendlyMode ? '' : 'rounded-3xl'} overflow-hidden`}
+          style={cardStyle}
         >
           {/* Header */}
           <div 

@@ -10,6 +10,7 @@ import {
   getBroadcastHeaderStyle, 
   getBroadcastTextStyle,
   getBroadcastCardStyle,
+  getBroadcastCardClasses,
   BROADCAST_CONTAINER_CLASSES,
   getRankColor,
   BROADCAST_DEFAULTS
@@ -140,6 +141,8 @@ export default function TournamentStats() {
 
   const sceneSettings = settings.sceneSettings.tournamentStats;
   const containerStyle = getBroadcastContainerStyle(sceneSettings, settings);
+  const cardStyle = getBroadcastCardStyle(sceneSettings, settings);
+  const cardClasses = getBroadcastCardClasses(sceneSettings.broadcastFriendlyMode);
 
   const getRankColor = (rank: string) => {
     const rankLower = rank.toLowerCase();
@@ -182,14 +185,8 @@ export default function TournamentStats() {
           <div className="grid grid-cols-2 gap-8 mb-12">
           {/* Participants */}
           <div 
-            className="backdrop-blur-sm rounded-2xl p-8 border text-center"
-            style={{ 
-              backgroundColor: sceneSettings.transparentBackground ? 'transparent' : 'rgba(0, 0, 0, 0.4)',
-              borderColor: sceneSettings.borderColor || '#ffffff20',
-              borderRadius: sceneSettings.borderRadius || 16,
-              borderWidth: sceneSettings.borderWidth || 1,
-              padding: sceneSettings.padding || 32
-            }}
+            className={`${cardClasses} ${sceneSettings.broadcastFriendlyMode ? 'p-8 text-center' : 'backdrop-blur-sm rounded-2xl p-8 border text-center'}`}
+            style={cardStyle}
           >
             <div className="flex items-center justify-center mb-4">
               <Users className="w-12 h-12" style={{ color: sceneSettings.textColor || settings.textColor }} />
@@ -225,14 +222,8 @@ export default function TournamentStats() {
 
           {/* Matches */}
           <div 
-            className="backdrop-blur-sm rounded-2xl p-8 border text-center"
-            style={{ 
-              backgroundColor: sceneSettings.transparentBackground ? 'transparent' : 'rgba(0, 0, 0, 0.4)',
-              borderColor: sceneSettings.borderColor || '#ffffff20',
-              borderRadius: sceneSettings.borderRadius || 16,
-              borderWidth: sceneSettings.borderWidth || 1,
-              padding: sceneSettings.padding || 32
-            }}
+            className={`${cardClasses} ${sceneSettings.broadcastFriendlyMode ? 'p-8 text-center' : 'backdrop-blur-sm rounded-2xl p-8 border text-center'}`}
+            style={cardStyle}
           >
             <div className="flex items-center justify-center mb-4">
               <Trophy className="w-12 h-12" style={{ color: sceneSettings.textColor || settings.textColor }} />
@@ -268,14 +259,8 @@ export default function TournamentStats() {
 
           {/* Average Weight */}
           <div 
-            className="backdrop-blur-sm rounded-2xl p-8 border text-center"
-            style={{ 
-              backgroundColor: sceneSettings.transparentBackground ? 'transparent' : 'rgba(0, 0, 0, 0.4)',
-              borderColor: sceneSettings.borderColor || '#ffffff20',
-              borderRadius: sceneSettings.borderRadius || 16,
-              borderWidth: sceneSettings.borderWidth || 1,
-              padding: sceneSettings.padding || 32
-            }}
+            className={`${cardClasses} ${sceneSettings.broadcastFriendlyMode ? 'p-8 text-center' : 'backdrop-blur-sm rounded-2xl p-8 border text-center'}`}
+            style={cardStyle}
           >
             <div className="flex items-center justify-center mb-4">
               <Target className="w-12 h-12" style={{ color: sceneSettings.textColor || settings.textColor }} />
@@ -311,14 +296,8 @@ export default function TournamentStats() {
 
           {/* Top Rank */}
           <div 
-            className="backdrop-blur-sm rounded-2xl p-8 border text-center"
-            style={{ 
-              backgroundColor: sceneSettings.transparentBackground ? 'transparent' : 'rgba(0, 0, 0, 0.4)',
-              borderColor: sceneSettings.borderColor || '#ffffff20',
-              borderRadius: sceneSettings.borderRadius || 16,
-              borderWidth: sceneSettings.borderWidth || 1,
-              padding: sceneSettings.padding || 32
-            }}
+            className={`${cardClasses} ${sceneSettings.broadcastFriendlyMode ? 'p-8 text-center' : 'backdrop-blur-sm rounded-2xl p-8 border text-center'}`}
+            style={cardStyle}
           >
             <div className="flex items-center justify-center mb-4">
               <Clock className="w-12 h-12" style={{ color: sceneSettings.textColor || settings.textColor }} />
@@ -357,14 +336,8 @@ export default function TournamentStats() {
         {/* Progress Bar */}
         {sceneSettings.showProgressBar && (
           <div
-            className="backdrop-blur-sm rounded-2xl p-8 border"
-            style={{ 
-              backgroundColor: sceneSettings.transparentBackground ? 'transparent' : 'rgba(0, 0, 0, 0.4)',
-              borderColor: sceneSettings.borderColor || '#ffffff20',
-              borderRadius: sceneSettings.borderRadius || 16,
-              borderWidth: sceneSettings.borderWidth || 1,
-              padding: sceneSettings.padding || 32
-            }}
+            className={`${cardClasses} ${sceneSettings.broadcastFriendlyMode ? 'p-8' : 'backdrop-blur-sm rounded-2xl p-8 border'}`}
+            style={cardStyle}
           >
             <div className="text-center mb-6">
               <div 
@@ -417,12 +390,12 @@ export default function TournamentStats() {
         {sceneSettings.showTournamentStatusHeader && (
           <div className="mt-8 text-center">
             <div 
-              className={`inline-block px-6 py-3 rounded-full font-bold text-lg ${
+              className={`inline-block px-6 py-3 ${sceneSettings.broadcastFriendlyMode ? 'rounded-none border-4' : 'rounded-full border'} font-bold text-lg ${
                 tournament.status === 'live' 
-                  ? 'bg-red-500/20 text-red-400 border border-red-500/30' 
+                  ? 'bg-red-500/20 text-red-400 border-red-500/30' 
                   : tournament.status === 'completed' 
-                    ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                    : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                    ? 'bg-green-500/20 text-green-400 border-green-500/30'
+                    : 'bg-blue-500/20 text-blue-400 border-blue-500/30'
               }`}
             >
               {tournament.status === 'live' && '🔴 LIVE'}

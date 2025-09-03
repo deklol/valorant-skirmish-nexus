@@ -69,6 +69,16 @@ export function getBroadcastCardStyle(
   sceneSettings: any,
   globalSettings?: any
 ): CSSProperties {
+  if (sceneSettings?.broadcastFriendlyMode) {
+    return {
+      backgroundColor: sceneSettings?.visuals?.cardBackgroundColor || 'rgba(20, 20, 20, 0.9)',
+      borderRadius: '0',
+      border: 'none',
+      boxShadow: 'none',
+      padding: `${sceneSettings.padding || BROADCAST_DEFAULTS.padding}px`,
+    };
+  }
+
   return {
     backgroundColor: BROADCAST_DEFAULTS.cardBackground,
     borderColor: sceneSettings.borderColor || BROADCAST_DEFAULTS.borderColor,
@@ -145,6 +155,10 @@ export const BROADCAST_PADDING_CLASSES = "p-8";
 
 // Standard card classes with backdrop blur
 export const BROADCAST_CARD_CLASSES = "backdrop-blur-sm border shadow-lg";
+
+// Broadcast friendly card classes
+export const getBroadcastCardClasses = (broadcastFriendlyMode?: boolean) => 
+  broadcastFriendlyMode ? "" : "backdrop-blur-sm border shadow-lg";
 
 // Rank color utility (consistent across all scenes)
 export function getRankColor(rank?: string): string {

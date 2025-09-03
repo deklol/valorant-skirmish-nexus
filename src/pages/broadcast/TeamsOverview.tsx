@@ -15,6 +15,7 @@ import {
   getBroadcastHeaderStyle, 
   getBroadcastTextStyle,
   getBroadcastCardStyle,
+  getBroadcastCardClasses,
   BROADCAST_CONTAINER_CLASSES,
   getRankColor,
   BROADCAST_DEFAULTS
@@ -74,6 +75,8 @@ export default function TeamsOverview() {
 
   const sceneSettings = settings.sceneSettings.teamsOverview;
   const containerStyle = getBroadcastContainerStyle(sceneSettings, settings);
+  const cardStyle = getBroadcastCardStyle(sceneSettings, settings);
+  const cardClasses = getBroadcastCardClasses(sceneSettings.broadcastFriendlyMode);
 
   const activeTeams = teams.filter(team => team.status === 'active');
   const eliminatedTeams = teams.filter(team => team.status === 'eliminated');
@@ -103,14 +106,16 @@ export default function TeamsOverview() {
 
   const TeamCard = ({ team, isEliminated = false }: { team: Team; isEliminated?: boolean }) => (
     <div 
-      className={`backdrop-blur-sm rounded-xl border overflow-hidden transition-all duration-300 ${
+      className={`${cardClasses} ${sceneSettings.broadcastFriendlyMode ? '' : 'rounded-xl'} overflow-hidden transition-all duration-300 ${
         isEliminated ? 'opacity-50 grayscale' : 'opacity-100'
       }`}
       style={{ 
-        backgroundColor: sceneSettings.transparentBackground ? 'transparent' : 'rgba(0, 0, 0, 0.4)',
-        borderColor: sceneSettings.borderColor || '#ffffff20',
-        borderRadius: sceneSettings.borderRadius || 12,
-        borderWidth: sceneSettings.borderWidth || 1,
+        ...cardStyle,
+        backgroundColor: isEliminated && !sceneSettings.broadcastFriendlyMode 
+          ? 'rgba(239, 68, 68, 0.1)' 
+          : isEliminated 
+            ? '#dc2626'
+            : cardStyle.backgroundColor,
       }}
     >
       {/* Team Header */}
@@ -165,12 +170,13 @@ export default function TeamsOverview() {
       <div className="p-6 space-y-4">
         {team.team_members.map((member) => (
           <div key={member.user_id} className="flex items-center space-x-4">
-            <Avatar className="w-12 h-12">
+            <Avatar className={`w-12 h-12 ${sceneSettings.broadcastFriendlyMode ? 'rounded-none' : ''}`}>
               <AvatarImage 
                 src={member.users.discord_avatar_url || undefined} 
                 alt={member.users.discord_username}
+                className={sceneSettings.broadcastFriendlyMode ? 'rounded-none' : ''}
               />
-              <AvatarFallback className="bg-slate-700 text-white text-sm">
+              <AvatarFallback className={`bg-slate-700 text-white text-sm ${sceneSettings.broadcastFriendlyMode ? 'rounded-none' : ''}`}>
                 {member.users.discord_username?.slice(0, 2).toUpperCase() || '??'}
               </AvatarFallback>
             </Avatar>
@@ -196,11 +202,12 @@ export default function TeamsOverview() {
                 {sceneSettings.showCurrentRank && member.users.current_rank && (
                   <Badge 
                     variant="outline" 
-                    className="text-sm px-3 py-1"
+                    className={`text-sm px-3 py-1 ${sceneSettings.broadcastFriendlyMode ? 'rounded-none border-2' : ''}`}
                     style={{ 
-                      borderColor: getRankColor(member.users.current_rank) + '50',
+                      borderColor: getRankColor(member.users.current_rank) + (sceneSettings.broadcastFriendlyMode ? '' : '50'),
                       color: getRankColor(member.users.current_rank),
-                      fontSize: '14px'
+                      fontSize: '14px',
+                      backgroundColor: sceneSettings.broadcastFriendlyMode ? getRankColor(member.users.current_rank) + '20' : 'transparent'
                     }}
                   >
                     {member.users.current_rank}
@@ -298,12 +305,12 @@ export default function TeamsOverview() {
         {sceneSettings.showTournamentStatus && (
           <div className="mt-8 text-center">
           <div 
-            className={`inline-block px-6 py-3 rounded-full font-bold text-lg ${
+            className={`inline-block px-6 py-3 ${sceneSettings.broadcastFriendlyMode ? 'rounded-none border-4' : 'rounded-full border'} font-bold text-lg ${
               tournament.status === 'live' 
-                ? 'bg-red-500/20 text-red-400 border border-red-500/30' 
+                ? 'bg-red-500/20 text-red-400 border-red-500/30' 
                 : tournament.status === 'completed' 
-                  ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                  : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                  ? 'bg-green-500/20 text-green-400 border-green-500/30'
+                  : 'bg-blue-500/20 text-blue-400 border-blue-500/30'
             }`}
           >
             {tournament.status === 'live' && '🔴 LIVE'}
