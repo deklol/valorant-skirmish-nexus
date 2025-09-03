@@ -2,11 +2,11 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import { Client, Collection, GatewayIntentBits, Partials } from 'discord.js';
-import { initializeSupabase } from './utils/supabase.js';
-import { loadCommands } from './handlers/commandHandler.js';
-import { loadEvents } from './handlers/eventHandler.js';
-import { startCronJobs } from './utils/cronJobs.js';
-import { syncBotCommands } from './utils/deployCommands.js';
+import { initializeSupabase } from './utils/supabase';
+import { loadCommands } from './handlers/commandHandler';
+import { loadEvents } from './handlers/eventHandler';
+import { startCronJobs } from './utils/cronJobs';
+import { syncBotCommands } from './utils/deployCommands';
 
 // Create Discord client with necessary intents
 const client = new Client({

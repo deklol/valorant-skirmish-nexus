@@ -1,7 +1,7 @@
 import cron from 'node-cron';
 import { Client, TextChannel } from 'discord.js';
-import { db, getSupabase } from './supabase.js';
-import { createTournamentEmbed } from './embeds.js';
+import { getSupabase } from './supabase';
+import { createTournamentEmbed } from './embeds';
 
 export function startCronJobs(client: Client) {
   console.log('⏰ Starting scheduled jobs...');
@@ -24,7 +24,11 @@ export function startCronJobs(client: Client) {
 
 async function checkTournamentRegistrationOpening(client: Client) {
   try {
-    const { data: tournaments } = await db.getActiveTournaments();
+    const { data: tournaments } = await getSupabase()
+      .from('tournaments')
+      .select('*')
+      .in('status', ['open', 'live', 'balancing'])
+      .order('start_time', { ascending: true });
     
     if (!tournaments) return;
     
@@ -42,7 +46,14 @@ async function checkTournamentRegistrationOpening(client: Client) {
         const channel = client.channels.cache.get(channelId) as TextChannel;
         
         if (channel?.isTextBased()) {
-          const embed = createTournamentEmbed(tournament, await db.getTournamentSignups(tournament.id));
+          const { data: signups } = await getSupabase()
+            .from('tournament_signups')
+            .select(`
+              *,
+              users!inner(discord_username, current_rank, riot_id)
+            `)
+            .eq('tournament_id', tournament.id);
+          const embed = createTournamentEmbed(tournament, { data: signups });
           
           await channel.send({
             content: `🎮 **NEW TOURNAMENT REGISTRATION OPEN!** @here`,
@@ -59,7 +70,11 @@ async function checkTournamentRegistrationOpening(client: Client) {
 
 async function checkTournamentCheckInReminders(client: Client) {
   try {
-    const { data: tournaments } = await db.getActiveTournaments();
+    const { data: tournaments } = await getSupabase()
+      .from('tournaments')
+      .select('*')
+      .in('status', ['open', 'live', 'balancing'])
+      .order('start_time', { ascending: true });
     
     if (!tournaments) return;
     
@@ -73,7 +88,13 @@ async function checkTournamentCheckInReminders(client: Client) {
       
       // Send reminder 30 minutes before check-in
       if (timeDiff > 0 && timeDiff < 30 * 60 * 1000) {
-        const { data: signups } = await db.getTournamentSignups(tournament.id);
+        const { data: signups } = await getSupabase()
+          .from('tournament_signups')
+          .select(`
+            *,
+            users!inner(discord_username, discord_id, current_rank, riot_id)
+          `)
+          .eq('tournament_id', tournament.id);
         
         if (signups) {
           for (const signup of signups) {
