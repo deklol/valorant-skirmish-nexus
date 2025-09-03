@@ -198,16 +198,16 @@ export default function TeamsOverview() {
           </div>
         </div>
 
-        {/* Player Grid */}
-        <div className="grid grid-cols-5 gap-2">
+        {/* Player List - Horizontal Cards */}
+        <div className="space-y-1">
           {team.team_members.slice(0, 5).map((member) => (
             <div
               key={member.user_id}
-              className="bg-black border-2 border-white p-3 flex flex-col items-center text-center"
-              style={{ minHeight: '120px' }}
+              className="bg-black border-2 border-white p-2 flex items-center gap-3"
+              style={{ minHeight: '60px' }}
             >
               {/* Avatar */}
-              <div className="w-12 h-12 bg-gray-600 border-2 border-white mb-2">
+              <div className="w-12 h-12 bg-gray-600 border-2 border-white flex-shrink-0">
                 <img
                   src={member.users.discord_avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.users.discord_username}`}
                   alt={member.users.discord_username}
@@ -216,36 +216,54 @@ export default function TeamsOverview() {
               </div>
 
               {/* Username */}
-              <div 
-                className="text-white font-bold text-sm mb-1 truncate w-full"
-                style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
-              >
-                {member.users.discord_username}
+              <div className="flex-1 min-w-0">
+                <div 
+                  className="text-white font-bold text-lg truncate"
+                  style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
+                >
+                  {member.users.discord_username}
+                </div>
+                {member.users.riot_id && (
+                  <div 
+                    className="text-gray-400 text-sm truncate"
+                    style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
+                  >
+                    {member.users.riot_id}
+                  </div>
+                )}
               </div>
 
               {/* Captain Badge */}
               {member.is_captain && (
-                <div className="flex items-center mb-1">
-                  <Crown className="w-4 h-4 text-yellow-400" />
+                <div 
+                  className="px-2 py-1 border border-white text-xs font-bold"
+                  style={{
+                    backgroundColor: BROADCAST_DEFAULTS.warningColor,
+                    color: '#000000',
+                    fontFamily: BROADCAST_DEFAULTS.fontFamily
+                  }}
+                >
+                  CAPT
                 </div>
               )}
 
-              {/* Rank */}
+              {/* Rank Badge */}
               {member.users.current_rank && (
                 <div 
-                  className="text-xs font-bold px-2 py-1 border border-white"
+                  className="px-2 py-1 border border-white text-xs font-bold"
                   style={{ 
                     backgroundColor: getRankColor(member.users.current_rank),
-                    color: '#000000'
+                    color: '#000000',
+                    fontFamily: BROADCAST_DEFAULTS.fontFamily
                   }}
                 >
-                  {member.users.current_rank.replace(/\s+/g, ' ').toUpperCase()}
+                  {member.users.current_rank.split(' ')[0].toUpperCase()}
                 </div>
               )}
 
               {/* Weight */}
               <div 
-                className="text-white font-bold text-xs mt-1"
+                className="text-white font-bold text-sm bg-gray-800 px-2 py-1 border border-white min-w-[60px] text-center"
                 style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
               >
                 {getDisplayWeight(member)}
