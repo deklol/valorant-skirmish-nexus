@@ -216,7 +216,7 @@ async function checkDayOfTournamentReminders(client: Client) {
               }
             } catch (error) {
               // User might have DMs disabled
-              console.log(`❌ Could not send day-of reminder to ${signup.users.discord_username}: ${error.message}`);
+              console.log(`❌ Could not send day-of reminder to ${signup.users.discord_username}: ${error instanceof Error ? error.message : String(error)}`);
             }
           }
           
