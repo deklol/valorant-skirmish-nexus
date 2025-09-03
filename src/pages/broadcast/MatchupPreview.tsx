@@ -194,226 +194,122 @@ export default function MatchupPreview() {
 
   const sceneSettings = settings.sceneSettings.matchupPreview;
 
-  const TaleOfTapeStats = () => {
-    const team1Stats = {
-      avgWeight: Math.round(team1.team_members.reduce((sum, m) => sum + ((m.users as any)?.display_weight || (m.users as any)?.atlas_weight || (m.users as any)?.adaptive_weight || m.users?.weight_rating || 150), 0) / team1.team_members.length),
-      totalTournamentWins: team1.team_members.reduce((sum, m) => sum + ((m.users as any)?.tournaments_won || 0), 0),
-      totalTournamentsPlayed: team1.team_members.reduce((sum, m) => sum + ((m.users as any)?.tournaments_played || 0), 0),
-      avgPeakRankPoints: Math.round(team1.team_members.reduce((sum, m) => sum + ((m.users as any)?.peak_rank_points || m.users?.rank_points || 150), 0) / team1.team_members.length),
-      experienceLevel: Math.round(team1.team_members.reduce((sum, m) => sum + ((m.users as any)?.tournaments_played || 0), 0) / team1.team_members.length),
-      highestRank: getHighestRank(team1.team_members),
-      teamWinRate: team1.team_members.reduce((sum, m) => sum + ((m.users as any)?.tournaments_played || 0), 0) > 0 ? 
-        Math.round((team1.team_members.reduce((sum, m) => sum + ((m.users as any)?.tournaments_won || 0), 0) / 
-        team1.team_members.reduce((sum, m) => sum + ((m.users as any)?.tournaments_played || 0), 0)) * 100) : 0
-    };
+  const PlayerSpotlight = () => {
+    // Find player with highest unified weight
+    const allPlayers = [...team1.team_members, ...team2.team_members];
+    const highestWeightPlayer = allPlayers.reduce((highest, current) => {
+      const currentWeight = (current.users as any)?.display_weight || (current.users as any)?.atlas_weight || (current.users as any)?.adaptive_weight || current.users?.weight_rating || 150;
+      const highestWeight = (highest.users as any)?.display_weight || (highest.users as any)?.atlas_weight || (highest.users as any)?.adaptive_weight || highest.users?.weight_rating || 150;
+      return currentWeight > highestWeight ? current : highest;
+    });
 
-    const team2Stats = {
-      avgWeight: Math.round(team2.team_members.reduce((sum, m) => sum + ((m.users as any)?.display_weight || (m.users as any)?.atlas_weight || (m.users as any)?.adaptive_weight || m.users?.weight_rating || 150), 0) / team2.team_members.length),
-      totalTournamentWins: team2.team_members.reduce((sum, m) => sum + ((m.users as any)?.tournaments_won || 0), 0),
-      totalTournamentsPlayed: team2.team_members.reduce((sum, m) => sum + ((m.users as any)?.tournaments_played || 0), 0),
-      avgPeakRankPoints: Math.round(team2.team_members.reduce((sum, m) => sum + ((m.users as any)?.peak_rank_points || m.users?.rank_points || 150), 0) / team2.team_members.length),
-      experienceLevel: Math.round(team2.team_members.reduce((sum, m) => sum + ((m.users as any)?.tournaments_played || 0), 0) / team2.team_members.length),
-      highestRank: getHighestRank(team2.team_members),
-      teamWinRate: team2.team_members.reduce((sum, m) => sum + ((m.users as any)?.tournaments_played || 0), 0) > 0 ? 
-        Math.round((team2.team_members.reduce((sum, m) => sum + ((m.users as any)?.tournaments_won || 0), 0) / 
-        team2.team_members.reduce((sum, m) => sum + ((m.users as any)?.tournaments_played || 0), 0)) * 100) : 0
-    };
-
-    // Win prediction calculation
-    const calculateWinPrediction = () => {
-      let team1Score = 0;
-      let team2Score = 0;
-
-      // Weight advantage (40% of prediction)
-      if (team1Stats.avgWeight > team2Stats.avgWeight) {
-        team1Score += 40;
-      } else if (team2Stats.avgWeight > team1Stats.avgWeight) {
-        team2Score += 40;
-      } else {
-        team1Score += 20;
-        team2Score += 20;
-      }
-
-      // Seed advantage (30% of prediction) - lower seed is better
-      const team1Seed = team1.seed || 99;
-      const team2Seed = team2.seed || 99;
-      if (team1Seed < team2Seed) {
-        team1Score += 30;
-      } else if (team2Seed < team1Seed) {
-        team2Score += 30;
-      } else {
-        team1Score += 15;
-        team2Score += 15;
-      }
-
-      // Experience advantage (20% of prediction)
-      if (team1Stats.experienceLevel > team2Stats.experienceLevel) {
-        team1Score += 20;
-      } else if (team2Stats.experienceLevel > team1Stats.experienceLevel) {
-        team2Score += 20;
-      } else {
-        team1Score += 10;
-        team2Score += 10;
-      }
-
-      // Win rate advantage (10% of prediction)
-      const team1WinRate = team1Stats.totalTournamentsPlayed > 0 ? team1Stats.totalTournamentWins / team1Stats.totalTournamentsPlayed : 0;
-      const team2WinRate = team2Stats.totalTournamentsPlayed > 0 ? team2Stats.totalTournamentWins / team2Stats.totalTournamentsPlayed : 0;
-      
-      if (team1WinRate > team2WinRate) {
-        team1Score += 10;
-      } else if (team2WinRate > team1WinRate) {
-        team2Score += 10;
-      } else {
-        team1Score += 5;
-        team2Score += 5;
-      }
-
-      // Normalize to percentages
-      const total = team1Score + team2Score;
-      const team1Percentage = Math.round((team1Score / total) * 100);
-      const team2Percentage = 100 - team1Percentage;
-
-      return { team1: team1Percentage, team2: team2Percentage };
-    };
-
-    const winPrediction = calculateWinPrediction();
-
-    // Use blocky design ONLY when transparentBackground is true
-    if (sceneSettings.transparentBackground) {
-      const StatRow = ({ label, value1, value2 }: { label: string; value1: string | number; value2: string | number }) => (
-        <div className="grid grid-cols-3 gap-0 py-2">
-          <div className="bg-black text-center font-bold text-white text-lg p-2">
-            {value1}
-          </div>
-          <div className="bg-black text-center text-white uppercase tracking-wider text-sm font-bold p-2">
-            {label}
-          </div>
-          <div className="bg-black text-center font-bold text-white text-lg p-2">
-            {value2}
-          </div>
-        </div>
-      );
-
-      return (
-        <div className="w-80">
-          {/* Header - Black instead of grey */}
-          <div className="bg-black text-center p-3">
-            <h3 className="text-xl font-black uppercase tracking-wider text-white">
-              UPCOMING MATCH
-            </h3>
-          </div>
-          
-          {/* Stats */}
-          <div className="space-y-0">
-            <StatRow 
-              label="AVG WEIGHT" 
-              value1={team1Stats.avgWeight} 
-              value2={team2Stats.avgWeight} 
-            />
-            
-            <div className="grid grid-cols-3 gap-0 py-2">
-              <div className="bg-black text-center font-bold text-white text-lg p-2">
-                {winPrediction.team1}%
-              </div>
-              <div className="bg-[#FF6B35] text-center text-white uppercase tracking-wider text-sm font-bold p-2">
-                WIN PREDICTION
-              </div>
-              <div className="bg-black text-center font-bold text-white text-lg p-2">
-                {winPrediction.team2}%
-              </div>
+    const playerTeam = team1.team_members.includes(highestWeightPlayer) ? team1 : team2;
+    const playerWeight = (highestWeightPlayer.users as any)?.display_weight || (highestWeightPlayer.users as any)?.atlas_weight || (highestWeightPlayer.users as any)?.adaptive_weight || highestWeightPlayer.users?.weight_rating || 150;
+    
+    return (
+      <div className="w-80">
+        {sceneSettings.transparentBackground ? (
+          // Blocky design for transparent background
+          <div className="bg-black border-4 border-[#FF6B35]">
+            {/* Header */}
+            <div className="bg-[#FF6B35] text-center p-3">
+              <h3 className="text-xl font-black uppercase tracking-wider text-white">
+                PLAYER SPOTLIGHT
+              </h3>
             </div>
             
-            <StatRow 
-              label="EXPERIENCE" 
-              value1={team1Stats.experienceLevel} 
-              value2={team2Stats.experienceLevel} 
-            />
-            
-            <StatRow 
-              label="SEED" 
-              value1={`#${team1.seed || '4'}`} 
-              value2={`#${team2.seed || '3'}`} 
-            />
-          </div>
-          
-          {/* Footer - Keep green as requested */}
-          <div className="bg-green-600 text-center p-2">
-            <div className="text-black font-black text-sm">
-              VERY BALANCED
+            {/* Player Info */}
+            <div className="p-6 text-center">
+              <div className="mb-4">
+                <Avatar className="w-20 h-20 mx-auto border-4 border-[#FF6B35]">
+                  <AvatarImage 
+                    src={highestWeightPlayer.users?.discord_avatar_url || ''} 
+                    alt={highestWeightPlayer.users?.discord_username || 'Player'}
+                  />
+                  <AvatarFallback className="bg-gray-600 text-white text-xl font-bold">
+                    {(highestWeightPlayer.users?.discord_username || 'P').charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="text-white font-bold text-xl">
+                  {highestWeightPlayer.users?.discord_username || 'Unknown Player'}
+                </div>
+                
+                <div className="text-gray-300 text-sm">
+                  {playerTeam.name}
+                </div>
+                
+                <div className="bg-[#FF6B35] px-3 py-1 inline-block">
+                  <span className="text-white font-bold text-lg">
+                    {playerWeight} Weight
+                  </span>
+                </div>
+                
+                <div className="space-y-1 pt-2">
+                  <div className="text-white text-sm">
+                    <span className="text-gray-400">Current:</span> <span className={getRankColor(highestWeightPlayer.users?.current_rank)}>{highestWeightPlayer.users?.current_rank || 'Unranked'}</span>
+                  </div>
+                  <div className="text-white text-sm">
+                    <span className="text-gray-400">Peak:</span> <span className={getRankColor(highestWeightPlayer.users?.peak_rank)}>{highestWeightPlayer.users?.peak_rank || highestWeightPlayer.users?.current_rank || 'Unranked'}</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      );
-    } else {
-      // Original design when transparentBackground is false
-      const StatRow = ({ label, value1, value2 }: { label: string; value1: string | number; value2: string | number }) => (
-        <div className="grid grid-cols-3 gap-4 py-1">
-          <div className="text-right font-medium text-white text-sm">
-            {value1}
-          </div>
-          <div className="text-center text-white/60 uppercase tracking-wide text-xs font-medium">
-            {label}
-          </div>
-          <div className="text-left font-medium text-white text-sm">
-            {value2}
-          </div>
-        </div>
-      );
-
-      return (
-        <div 
-          className="backdrop-blur-sm rounded-lg border border-white/20 p-4 w-64"
-          style={{
-            backgroundColor: 'rgba(0, 0, 0, 0.6)',
-          }}
-        >
-          <div className="text-center mb-3">
-            <h3 className="text-lg font-bold uppercase tracking-wider text-white">
-              Tale of the Tape
-            </h3>
-          </div>
-          
-          <div className="space-y-1">
-            <StatRow 
-              label="Avg Weight" 
-              value1={team1Stats.avgWeight} 
-              value2={team2Stats.avgWeight} 
-            />
-            
-            <StatRow 
-              label="Win Prediction" 
-              value1={`${winPrediction.team1}%`} 
-              value2={`${winPrediction.team2}%`} 
-            />
-            
-            <StatRow 
-              label="Experience" 
-              value1={team1Stats.experienceLevel} 
-              value2={team2Stats.experienceLevel} 
-            />
-            
-            <StatRow 
-              label="Team Win Rate" 
-              value1={`${team1Stats.teamWinRate}%`} 
-              value2={`${team2Stats.teamWinRate}%`} 
-            />
-            
-            <StatRow 
-              label="Seed" 
-              value1={`#${team1.seed || '4'}`} 
-              value2={`#${team2.seed || '3'}`} 
-            />
-          </div>
-          
-          <div className="mt-3 text-center">
-            <div className="text-green-400 font-bold text-xs">
-              VERY BALANCED
+        ) : (
+          // Original design for non-transparent background
+          <div 
+            className="backdrop-blur-sm rounded-lg border border-white/20 p-6 w-80"
+            style={{
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            }}
+          >
+            <div className="text-center">
+              <h3 className="text-lg font-bold uppercase tracking-wider text-white mb-4">
+                Player Spotlight
+              </h3>
+              
+              <div className="mb-4">
+                <Avatar className="w-16 h-16 mx-auto">
+                  <AvatarImage 
+                    src={highestWeightPlayer.users?.discord_avatar_url || ''} 
+                    alt={highestWeightPlayer.users?.discord_username || 'Player'}
+                  />
+                  <AvatarFallback className="bg-gray-600 text-white font-bold">
+                    {(highestWeightPlayer.users?.discord_username || 'P').charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="text-white font-bold text-lg">
+                  {highestWeightPlayer.users?.discord_username || 'Unknown Player'}
+                </div>
+                
+                <div className="text-gray-300 text-sm">
+                  {playerTeam.name}
+                </div>
+                
+                <Badge variant="secondary" className="text-sm font-bold">
+                  {playerWeight} Weight
+                </Badge>
+                
+                <div className="space-y-1 pt-2">
+                  <div className="text-white text-sm">
+                    <span className="text-gray-400">Current:</span> <span className={getRankColor(highestWeightPlayer.users?.current_rank)}>{highestWeightPlayer.users?.current_rank || 'Unranked'}</span>
+                  </div>
+                  <div className="text-white text-sm">
+                    <span className="text-gray-400">Peak:</span> <span className={getRankColor(highestWeightPlayer.users?.peak_rank)}>{highestWeightPlayer.users?.peak_rank || highestWeightPlayer.users?.current_rank || 'Unranked'}</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      );
-    }
+        )}
+      </div>
+    );
   };
 
   const PlayerLineup = ({ team, side }: { team: Team; side: 'left' | 'right' }) => (
@@ -701,9 +597,9 @@ export default function MatchupPreview() {
           {/* Team 1 Lineup */}
           <PlayerLineup team={team1} side="left" />
           
-          {/* Center - Tale of the Tape */}
+          {/* Center - Player Spotlight */}
           <div className="flex justify-center">
-            <TaleOfTapeStats />
+            <PlayerSpotlight />
           </div>
           
           {/* Team 2 Lineup */}
