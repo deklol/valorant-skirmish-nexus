@@ -579,12 +579,22 @@ export default function BroadcastSettingsPanel() {
       <div className="space-y-4">
         <h4 className="font-medium text-lg">Visual Design</h4>
         <div className="grid grid-cols-2 gap-4">
+          <div className="flex items-center space-x-2 col-span-2">
+            <Switch
+              checked={sceneSettings.transparentBackground ?? false}
+              onCheckedChange={(checked) => updateSceneSettings(scene, { transparentBackground: checked })}
+            />
+            <Label className="font-medium text-orange-400">
+              Transparent Background Mode (OBS/vMix Overlay)
+            </Label>
+          </div>
           <div className="space-y-2">
             <Label>Background Color</Label>
             <Input
               type="color"
               value={sceneSettings.backgroundColor || settings.backgroundColor}
               onChange={(e) => updateSceneSettings(scene, { backgroundColor: e.target.value })}
+              disabled={sceneSettings.transparentBackground}
             />
           </div>
           <div className="space-y-2">

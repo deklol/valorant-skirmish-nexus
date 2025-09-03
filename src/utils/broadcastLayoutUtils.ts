@@ -48,11 +48,15 @@ export function getBroadcastContainerStyle(
   sceneSettings: any,
   globalSettings: any
 ): CSSProperties {
+  const isTransparent = sceneSettings.transparentBackground;
+  
   return {
-    backgroundColor: sceneSettings.backgroundColor || globalSettings.backgroundColor || BROADCAST_DEFAULTS.backgroundColor,
-    backgroundImage: (sceneSettings.backgroundImage || globalSettings.backgroundImage) 
-      ? `url(${sceneSettings.backgroundImage || globalSettings.backgroundImage})` 
-      : undefined,
+    backgroundColor: isTransparent 
+      ? 'transparent' 
+      : (sceneSettings.backgroundColor || globalSettings.backgroundColor || BROADCAST_DEFAULTS.backgroundColor),
+    backgroundImage: (isTransparent || (!sceneSettings.backgroundImage && !globalSettings.backgroundImage)) 
+      ? undefined
+      : `url(${sceneSettings.backgroundImage || globalSettings.backgroundImage})`,
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     fontFamily: sceneSettings.fontFamily || globalSettings.fontFamily || BROADCAST_DEFAULTS.fontFamily,

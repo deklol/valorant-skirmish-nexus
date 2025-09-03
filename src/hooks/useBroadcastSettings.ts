@@ -18,6 +18,7 @@ export interface BroadcastSceneSettings extends BroadcastDisplaySettings {
   backgroundColor?: string;
   textColor?: string;
   headerTextColor?: string;
+  transparentBackground?: boolean;
   
   // Layout & Design
   borderRadius?: number;
@@ -110,6 +111,9 @@ const DEFAULT_SCENE_SETTINGS: BroadcastSceneSettings = {
   // Team stats display options
   showTeamTotalWeight: true,
   showTeamSeed: true,
+  
+  // Visual customization
+  transparentBackground: false,
   
   // Layout & Design
   borderRadius: 12,
