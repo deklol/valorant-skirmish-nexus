@@ -24,6 +24,11 @@ export default function MatchupPreview() {
   const [team2, setTeam2] = useState<Team | null>(null);
   const [loading, setLoading] = useState(true);
   const { settings } = useBroadcastSettings();
+  
+  // Check URL parameters for OBS mode override
+  const urlParams = new URLSearchParams(window.location.search);
+  const forceObsMode = urlParams.get('obs') === 'true' || urlParams.get('transparent') === 'true';
+  const forceNormalMode = urlParams.get('obs') === 'false' || urlParams.get('transparent') === 'false';
 
   useEffect(() => {
     if (!id || !matchId) return;
@@ -193,6 +198,20 @@ export default function MatchupPreview() {
   };
 
   const sceneSettings = settings.sceneSettings.matchupPreview;
+  
+  // Create modified scene settings with URL parameter overrides
+  const effectiveSceneSettings = {
+    ...sceneSettings,
+    transparentBackground: forceObsMode ? true : forceNormalMode ? false : sceneSettings.transparentBackground
+  };
+
+  console.log('🎯 OBS Mode Check:', {
+    urlParams: Object.fromEntries(urlParams.entries()),
+    forceObsMode,
+    forceNormalMode,
+    originalTransparentBackground: sceneSettings.transparentBackground,
+    effectiveTransparentBackground: effectiveSceneSettings.transparentBackground
+  });
 
   const PlayerSpotlight = () => {
     // Find player with highest unified weight
@@ -208,7 +227,7 @@ export default function MatchupPreview() {
     
     return (
       <div className="w-80">
-        {sceneSettings.transparentBackground ? (
+        {effectiveSceneSettings.transparentBackground ? (
           // Blocky design for transparent background
           <div className="bg-black border-4 border-[#FF6B35]">
             {/* Header */}
@@ -314,7 +333,7 @@ export default function MatchupPreview() {
 
   const PlayerLineup = ({ team, side }: { team: Team; side: 'left' | 'right' }) => (
     <div className="space-y-0">
-      {sceneSettings.transparentBackground ? (
+      {effectiveSceneSettings.transparentBackground ? (
         // Blocky design for transparent background
         <>
           {/* Team Header Block */}
@@ -361,7 +380,7 @@ export default function MatchupPreview() {
       )}
       
       {/* Players List */}
-      <div className={sceneSettings.transparentBackground ? "space-y-0" : "space-y-1"}>
+      <div className={effectiveSceneSettings.transparentBackground ? "space-y-0" : "space-y-1"}>
         {team.team_members
           .sort((a, b) => (b.is_captain ? 1 : 0) - (a.is_captain ? 1 : 0))
           .map((member, index) => {
@@ -371,7 +390,7 @@ export default function MatchupPreview() {
             const displayWeight = (user as any).display_weight || (user as any).atlas_weight || (user as any).adaptive_weight || 150;
             const { emoji, color } = formatRank(user.current_rank);
 
-            if (sceneSettings.transparentBackground) {
+            if (effectiveSceneSettings.transparentBackground) {
               // Blocky player cards for transparent background
               return (
                 <div key={member.user_id}>
@@ -386,7 +405,7 @@ export default function MatchupPreview() {
                       <span className="text-lg font-bold">
                         {user.discord_username || 'Unknown Player'}
                       </span>
-                      {member.is_captain && sceneSettings.showCaptainBadges && (
+                      {member.is_captain && effectiveSceneSettings.showCaptainBadges && (
                         <div className="bg-yellow-400 text-black px-2 py-1 text-xs font-bold">
                           CAPTAIN
                         </div>
@@ -457,7 +476,7 @@ export default function MatchupPreview() {
                     {index + 1}
                   </div>
                   
-                  {member.is_captain && sceneSettings.showCaptainBadges && (
+                  {member.is_captain && effectiveSceneSettings.showCaptainBadges && (
                     <Badge variant="outline" className="border-yellow-400 text-yellow-400 text-xs px-1 py-0">
                       C
                     </Badge>
@@ -474,7 +493,7 @@ export default function MatchupPreview() {
                     <div className="text-white font-medium text-xs truncate">
                       {user.discord_username || 'Unknown'}
                     </div>
-                    {sceneSettings.showCurrentRank && (
+                    {effectiveSceneSettings.showCurrentRank && (
                       <div className={`text-xs ${getRankColor(user.current_rank)} truncate`}>
                         {user.current_rank}
                       </div>

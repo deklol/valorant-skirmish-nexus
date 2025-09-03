@@ -31,6 +31,11 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
   const [shouldAnimate, setShouldAnimate] = useState(true);
   const { settings } = useBroadcastSettings();
   
+  // Check URL parameters for OBS mode override
+  const urlParams = new URLSearchParams(window.location.search);
+  const forceObsMode = urlParams.get('obs') === 'true' || urlParams.get('transparent') === 'true';
+  const forceNormalMode = urlParams.get('obs') === 'false' || urlParams.get('transparent') === 'false';
+  
   // Use broadcast data hook with ATLAS weights
   const { tournament, teams, loading } = useBroadcastData(id);
 
@@ -98,7 +103,14 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
   }
 
   const sceneSettings = settings.sceneSettings.teamRoster;
-  const containerStyle = getBroadcastContainerStyle(sceneSettings, settings);
+  
+  // Create modified scene settings with URL parameter overrides
+  const effectiveSceneSettings = {
+    ...sceneSettings,
+    transparentBackground: forceObsMode ? true : forceNormalMode ? false : sceneSettings.transparentBackground
+  };
+  
+  const containerStyle = getBroadcastContainerStyle(effectiveSceneSettings, settings);
 
   const renderRank = (rank?: string) => {
     const { emoji, color } = formatRank(rank);
@@ -163,140 +175,138 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
 
               return (
                 <div key={member.user_id}>
-                  {sceneSettings.transparentBackground ? (
+                  {effectiveSceneSettings.transparentBackground ? (
                     // Blocky design for OBS/vMix
                     <>
-                      {/* Player Name Block */}
-                      <div 
-                        className="px-6 py-4 text-white flex items-center justify-between"
-                        style={{ 
-                          backgroundColor: sceneSettings.teamAccentColor || BROADCAST_DEFAULTS.primaryColor 
-                        }}
-                      >
-                        <div className="flex items-center gap-4">
-                          <span className="text-2xl font-bold">
-                            {user.discord_username || 'Unknown Player'}
-                          </span>
-                          {member.is_captain && (
-                            <div className="bg-yellow-400 text-black px-3 py-1 text-sm font-bold">
-                              CAPTAIN
-                            </div>
-                          )}
+                    <div 
+                      className="px-6 py-4 text-white flex items-center justify-between"
+                      style={{ 
+                        backgroundColor: effectiveSceneSettings.teamAccentColor || BROADCAST_DEFAULTS.primaryColor 
+                      }}
+                    >
+                      <div className="flex items-center gap-4">
+                        <span className="text-2xl font-bold">
+                          {user.discord_username || 'Unknown Player'}
+                        </span>
+                        {member.is_captain && (
+                          <div className="bg-yellow-400 text-black px-3 py-1 text-sm font-bold">
+                            CAPTAIN
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Player Info Horizontal Cards */}
+                    <div className="grid grid-cols-4">
+                      {/* Avatar Card */}
+                      <div className="bg-black/60 p-4 flex flex-col items-center">
+                        <div className="w-16 h-16 bg-gray-600 mb-2">
+                          <img
+                            src={user.discord_avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.discord_username}`}
+                            alt={user.discord_username}
+                            className="w-full h-full object-cover"
+                          />
                         </div>
                       </div>
 
-                      {/* Player Info Horizontal Cards */}
-                      <div className="grid grid-cols-4">
-                        {/* Avatar Card */}
+                      {/* Rank Card */}
+                      {effectiveSceneSettings.showCurrentRank && user.current_rank && (
                         <div className="bg-black/60 p-4 flex flex-col items-center">
-                          <div className="w-16 h-16 bg-gray-600 mb-2">
-                            <img
-                              src={user.discord_avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.discord_username}`}
-                              alt={user.discord_username}
-                              className="w-full h-full object-cover"
-                            />
+                          <div 
+                            className="w-16 h-16 flex items-center justify-center text-2xl mb-2"
+                            style={{ backgroundColor: getRankColor(user.current_rank) }}
+                          >
+                            {formatRank(user.current_rank).emoji}
                           </div>
+                          <div className="text-white text-sm text-center">{user.current_rank}</div>
                         </div>
+                      )}
 
-                        {/* Rank Card */}
-                        {sceneSettings.showCurrentRank && user.current_rank && (
-                          <div className="bg-black/60 p-4 flex flex-col items-center">
-                            <div 
-                              className="w-16 h-16 flex items-center justify-center text-2xl mb-2"
-                              style={{ backgroundColor: getRankColor(user.current_rank) }}
-                            >
-                              {formatRank(user.current_rank).emoji}
-                            </div>
-                            <div className="text-white text-sm text-center">{user.current_rank}</div>
+                      {/* Weight Card */}
+                      {effectiveSceneSettings.showAdaptiveWeight && (
+                        <div className="bg-black/60 p-4 flex flex-col items-center">
+                          <div className="w-16 h-16 bg-blue-600 flex items-center justify-center text-xl font-bold text-white mb-2">
+                            {displayWeight}
                           </div>
-                        )}
+                          <div className="text-white text-sm text-center">Weight</div>
+                        </div>
+                      )}
 
-                        {/* Weight Card */}
-                        {sceneSettings.showAdaptiveWeight && (
-                          <div className="bg-black/60 p-4 flex flex-col items-center">
-                            <div className="w-16 h-16 bg-blue-600 flex items-center justify-center text-xl font-bold text-white mb-2">
-                              {displayWeight}
-                            </div>
-                            <div className="text-white text-sm text-center">Weight</div>
+                      {/* Riot ID Card */}
+                      {effectiveSceneSettings.showRiotId && user.riot_id && (
+                        <div className="bg-black/60 p-4 flex flex-col items-center">
+                          <div className="w-16 h-16 bg-red-600 flex items-center justify-center text-white mb-2 text-xs text-center font-bold">
+                            RIOT
                           </div>
-                        )}
-
-                        {/* Riot ID Card */}
-                        {sceneSettings.showRiotId && user.riot_id && (
-                          <div className="bg-black/60 p-4 flex flex-col items-center">
-                            <div className="w-16 h-16 bg-red-600 flex items-center justify-center text-white mb-2 text-xs text-center font-bold">
-                              RIOT
-                            </div>
-                            <div className="text-white text-sm text-center truncate w-full">{user.riot_id}</div>
-                          </div>
-                        )}
-                      </div>
+                          <div className="text-white text-sm text-center truncate w-full">{user.riot_id}</div>
+                        </div>
+                      )}
+                    </div>
                     </>
                   ) : (
                     // Original design for non-transparent background
                     <>
-                      {/* Player Name Block */}
-                      <div 
-                        className="px-6 py-4 text-white flex items-center justify-between rounded-t-lg"
-                        style={{ 
-                          backgroundColor: sceneSettings.teamAccentColor || BROADCAST_DEFAULTS.primaryColor 
-                        }}
-                      >
-                        <div className="flex items-center gap-4">
-                          <span className="text-2xl font-bold">
-                            {user.discord_username || 'Unknown Player'}
-                          </span>
-                          {member.is_captain && (
-                            <Badge variant="secondary" className="bg-yellow-400 text-black font-bold">
-                              <Crown className="w-3 h-3 mr-1" />
-                              CAPTAIN
-                            </Badge>
+                        <div 
+                          className="px-6 py-4 text-white flex items-center justify-between rounded-t-lg"
+                          style={{ 
+                            backgroundColor: effectiveSceneSettings.teamAccentColor || BROADCAST_DEFAULTS.primaryColor 
+                          }}
+                        >
+                          <div className="flex items-center gap-4">
+                            <span className="text-2xl font-bold">
+                              {user.discord_username || 'Unknown Player'}
+                            </span>
+                            {member.is_captain && (
+                              <Badge variant="secondary" className="bg-yellow-400 text-black font-bold">
+                                <Crown className="w-3 h-3 mr-1" />
+                                CAPTAIN
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Player Info Cards */}
+                        <div className="grid grid-cols-4 rounded-b-lg overflow-hidden">
+                          {/* Avatar Card */}
+                          <div className="backdrop-blur-sm bg-white/10 p-4 flex flex-col items-center">
+                            <Avatar className="w-16 h-16 mb-2">
+                              <AvatarImage 
+                                src={user.discord_avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.discord_username}`} 
+                                alt={user.discord_username} 
+                              />
+                              <AvatarFallback className="bg-gray-600 text-white font-bold">
+                                {(user.discord_username || 'U').charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                          </div>
+
+                          {/* Rank Card */}
+                          {effectiveSceneSettings.showCurrentRank && user.current_rank && (
+                            <div className="backdrop-blur-sm bg-white/10 p-4 flex flex-col items-center">
+                              {renderRank(user.current_rank)}
+                            </div>
+                          )}
+
+                          {/* Weight Card */}
+                          {effectiveSceneSettings.showAdaptiveWeight && (
+                            <div className="backdrop-blur-sm bg-white/10 p-4 flex flex-col items-center">
+                              <Badge variant="secondary" className="text-lg font-bold bg-blue-600 text-white">
+                                {displayWeight}
+                              </Badge>
+                              <div className="text-white text-sm mt-1 text-center">Weight</div>
+                            </div>
+                          )}
+
+                          {/* Riot ID Card */}
+                          {effectiveSceneSettings.showRiotId && user.riot_id && (
+                            <div className="backdrop-blur-sm bg-white/10 p-4 flex flex-col items-center">
+                              <Badge variant="destructive" className="text-sm font-bold">
+                                RIOT
+                              </Badge>
+                              <div className="text-white text-sm mt-1 text-center truncate w-full">{user.riot_id}</div>
+                            </div>
                           )}
                         </div>
-                      </div>
-
-                      {/* Player Info Cards */}
-                      <div className="grid grid-cols-4 rounded-b-lg overflow-hidden">
-                        {/* Avatar Card */}
-                        <div className="backdrop-blur-sm bg-white/10 p-4 flex flex-col items-center">
-                          <Avatar className="w-16 h-16 mb-2">
-                            <AvatarImage 
-                              src={user.discord_avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.discord_username}`} 
-                              alt={user.discord_username} 
-                            />
-                            <AvatarFallback className="bg-gray-600 text-white font-bold">
-                              {(user.discord_username || 'U').charAt(0).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                        </div>
-
-                        {/* Rank Card */}
-                        {sceneSettings.showCurrentRank && user.current_rank && (
-                          <div className="backdrop-blur-sm bg-white/10 p-4 flex flex-col items-center">
-                            {renderRank(user.current_rank)}
-                          </div>
-                        )}
-
-                        {/* Weight Card */}
-                        {sceneSettings.showAdaptiveWeight && (
-                          <div className="backdrop-blur-sm bg-white/10 p-4 flex flex-col items-center">
-                            <Badge variant="secondary" className="text-lg font-bold bg-blue-600 text-white">
-                              {displayWeight}
-                            </Badge>
-                            <div className="text-white text-sm mt-1 text-center">Weight</div>
-                          </div>
-                        )}
-
-                        {/* Riot ID Card */}
-                        {sceneSettings.showRiotId && user.riot_id && (
-                          <div className="backdrop-blur-sm bg-white/10 p-4 flex flex-col items-center">
-                            <Badge variant="destructive" className="text-sm font-bold">
-                              RIOT
-                            </Badge>
-                            <div className="text-white text-sm mt-1 text-center truncate w-full">{user.riot_id}</div>
-                          </div>
-                        )}
-                      </div>
                     </>
                   )}
                 </div>
@@ -305,17 +315,17 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
         </div>
 
         {/* Team Stats Section - Toggleable */}
-        {(sceneSettings.showTeamTotalWeight || sceneSettings.showTeamSeed) && (
+        {(effectiveSceneSettings.showTeamTotalWeight || effectiveSceneSettings.showTeamSeed) && (
           <div 
             className="mt-8 backdrop-blur-md border shadow-xl" 
-            style={getBroadcastCardStyle(sceneSettings)}
+            style={getBroadcastCardStyle(effectiveSceneSettings)}
           >
             <div className="flex justify-center gap-16">
-              {sceneSettings.showTeamTotalWeight && (
+              {effectiveSceneSettings.showTeamTotalWeight && (
                 <div className="text-center">
                   <div 
                     className="text-3xl font-extrabold" 
-                    style={getBroadcastHeaderStyle(sceneSettings, settings, 'medium')}
+                    style={getBroadcastHeaderStyle(effectiveSceneSettings, settings, 'medium')}
                   >
                       {currentTeam.team_members.reduce((total, member) => {
                         const weight = (member.users as any)?.display_weight || (member.users as any)?.atlas_weight || (member.users as any)?.adaptive_weight || 150;
@@ -324,23 +334,23 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
                   </div>
                   <div 
                     className="text-sm uppercase tracking-wider" 
-                    style={getBroadcastTextStyle(sceneSettings, settings, '80')}
+                    style={getBroadcastTextStyle(effectiveSceneSettings, settings, '80')}
                   >
                     Total Weight
                   </div>
                 </div>
               )}
-              {sceneSettings.showTeamSeed && (
+              {effectiveSceneSettings.showTeamSeed && (
                 <div className="text-center">
                   <div 
                     className="text-3xl font-extrabold" 
-                    style={getBroadcastHeaderStyle(sceneSettings, settings, 'medium')}
+                    style={getBroadcastHeaderStyle(effectiveSceneSettings, settings, 'medium')}
                   >
                      #{(currentTeam as any).calculatedSeed || currentTeam.seed || 'TBD'}
                   </div>
                   <div 
                     className="text-sm uppercase tracking-wider" 
-                    style={getBroadcastTextStyle(sceneSettings, settings, '80')}
+                    style={getBroadcastTextStyle(effectiveSceneSettings, settings, '80')}
                   >
                     Seed
                   </div>
