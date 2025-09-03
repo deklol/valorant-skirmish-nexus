@@ -33,6 +33,10 @@ export default function PlayerSpotlightCard() {
   const [loading, setLoading] = useState(true);
   const { settings } = useBroadcastSettings();
 
+  // Check for animate=false in URL
+  const searchParams = new URLSearchParams(window.location.search);
+  const shouldSkipAnimations = searchParams.get('animate') === 'false';
+
   useEffect(() => {
     if (!id || !playerId) return;
 
@@ -72,7 +76,8 @@ export default function PlayerSpotlightCard() {
     fetchPlayerData();
   }, [id, playerId]);
 
-  if (loading || !player) {
+  // Skip loading state entirely if animate=false
+  if (!shouldSkipAnimations && (loading || !player)) {
     return (
       <div className="w-screen h-screen bg-transparent flex items-center justify-center">
         <div 
@@ -83,6 +88,23 @@ export default function PlayerSpotlightCard() {
           }}
         >
           Loading Player Spotlight...
+        </div>
+      </div>
+    );
+  }
+
+  // If animate=false and we don't have data yet, show empty state instantly
+  if (shouldSkipAnimations && !player) {
+    return (
+      <div className="w-screen h-screen bg-transparent flex items-center justify-center">
+        <div 
+          className="text-4xl font-black text-white"
+          style={{ 
+            fontFamily: BROADCAST_DEFAULTS.fontFamily,
+            textShadow: '2px 2px 0px #000000'
+          }}
+        >
+          No Player Data
         </div>
       </div>
     );

@@ -31,6 +31,10 @@ export default function TeamsOverview() {
   const { settings } = useBroadcastSettings();
   
   const { tournament, teams: broadcastTeams, loading } = useBroadcastData(id);
+  
+  // Check for animate=false in URL
+  const searchParams = new URLSearchParams(window.location.search);
+  const shouldSkipAnimations = searchParams.get('animate') === 'false';
 
   useEffect(() => {
     if (!broadcastTeams.length) return;
@@ -64,8 +68,26 @@ export default function TeamsOverview() {
     fetchMatchData();
   }, [broadcastTeams, id]);
 
-  if (loading || !tournament) {
+  // Skip loading state entirely if animate=false
+  if (!shouldSkipAnimations && (loading || !tournament)) {
     return <BroadcastLoading message="Loading teams overview..." />;
+  }
+
+  // If animate=false and we don't have data yet, show empty state instantly
+  if (shouldSkipAnimations && (!tournament || !broadcastTeams.length)) {
+    return (
+      <div className="w-screen h-screen bg-transparent flex items-center justify-center">
+        <div 
+          className="text-4xl font-black text-white"
+          style={{ 
+            fontFamily: BROADCAST_DEFAULTS.fontFamily,
+            textShadow: '2px 2px 0px #000000'
+          }}
+        >
+          No Data Available
+        </div>
+      </div>
+    );
   }
 
   const sceneSettings = settings.sceneSettings.teamsOverview;

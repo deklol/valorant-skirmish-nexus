@@ -29,6 +29,10 @@ export default function TournamentStats() {
   const [loading, setLoading] = useState(true);
   const { settings } = useBroadcastSettings();
 
+  // Check for animate=false in URL
+  const searchParams = new URLSearchParams(window.location.search);
+  const shouldSkipAnimations = searchParams.get('animate') === 'false';
+
   useEffect(() => {
     if (!id) return;
 
@@ -107,7 +111,8 @@ export default function TournamentStats() {
     fetchTournamentStats();
   }, [id]);
 
-  if (loading || !tournament || !stats) {
+  // Skip loading state entirely if animate=false
+  if (!shouldSkipAnimations && (loading || !tournament || !stats)) {
     return (
       <div className="w-screen h-screen bg-transparent flex items-center justify-center">
         <div 
@@ -118,6 +123,23 @@ export default function TournamentStats() {
           }}
         >
           Loading Tournament Stats...
+        </div>
+      </div>
+    );
+  }
+
+  // If animate=false and we don't have data yet, show empty state instantly
+  if (shouldSkipAnimations && (!tournament || !stats)) {
+    return (
+      <div className="w-screen h-screen bg-transparent flex items-center justify-center">
+        <div 
+          className="text-4xl font-black text-white"
+          style={{ 
+            fontFamily: BROADCAST_DEFAULTS.fontFamily,
+            textShadow: '2px 2px 0px #000000'
+          }}
+        >
+          No Data Available
         </div>
       </div>
     );
