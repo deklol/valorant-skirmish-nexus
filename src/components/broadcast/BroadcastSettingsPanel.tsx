@@ -198,17 +198,50 @@ export default function BroadcastSettingsPanel() {
                   <Label>Rank Emojis</Label>
                 </div>
                 <div className="space-y-2 col-span-2">
-                  <Label>Player Card Layout</Label>
+                  <Label>Roster Preset</Label>
                   <Select 
-                    value={sceneSettings.playerCardLayout || 'detailed'} 
-                    onValueChange={(value) => updateSceneSettings(scene, { playerCardLayout: value as 'compact' | 'detailed' })}
+                    value="custom"
+                    onValueChange={(value) => {
+                      if (value === 'minimal') {
+                        updateSceneSettings(scene, { 
+                          showCurrentRank: false,
+                          showAdaptiveWeight: true,
+                          showRiotId: false,
+                          showTeamTotalWeight: false,
+                          showTeamSeed: true,
+                          showCaptainBadges: true,
+                          playerCardLayout: 'compact'
+                        });
+                      } else if (value === 'broadcast') {
+                        updateSceneSettings(scene, { 
+                          showCurrentRank: true,
+                          showAdaptiveWeight: true,
+                          showRiotId: false,
+                          showTeamTotalWeight: true,
+                          showTeamSeed: true,
+                          showCaptainBadges: true,
+                          playerCardLayout: 'detailed'
+                        });
+                      } else if (value === 'complete') {
+                        updateSceneSettings(scene, { 
+                          showCurrentRank: true,
+                          showAdaptiveWeight: true,
+                          showRiotId: true,
+                          showTeamTotalWeight: true,
+                          showTeamSeed: true,
+                          showCaptainBadges: true,
+                          playerCardLayout: 'detailed'
+                        });
+                      }
+                    }}
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Choose a preset..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="compact">Compact</SelectItem>
-                      <SelectItem value="detailed">Detailed</SelectItem>
+                      <SelectItem value="minimal">Minimal Info</SelectItem>
+                      <SelectItem value="broadcast">Broadcast Ready</SelectItem>
+                      <SelectItem value="complete">Complete Info</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -243,17 +276,50 @@ export default function BroadcastSettingsPanel() {
                   <Label>Balance Assessment Text</Label>
                 </div>
                 <div className="space-y-2">
-                  <Label>Layout Style</Label>
+                  <Label>Matchup Preset</Label>
                   <Select 
-                    value={sceneSettings.matchupLayout || 'side-by-side'} 
-                    onValueChange={(value) => updateSceneSettings(scene, { matchupLayout: value as 'side-by-side' | 'stacked' })}
+                    value="custom"
+                    onValueChange={(value) => {
+                      if (value === 'basic') {
+                        updateSceneSettings(scene, { 
+                          showVsHeader: true,
+                          showCurrentRank: true,
+                          showAdaptiveWeight: false,
+                          showWeightDifference: false,
+                          showBalanceAssessment: false,
+                          showRiotId: false,
+                          matchupLayout: 'side-by-side'
+                        });
+                      } else if (value === 'analyst') {
+                        updateSceneSettings(scene, { 
+                          showVsHeader: true,
+                          showCurrentRank: true,
+                          showAdaptiveWeight: true,
+                          showWeightDifference: true,
+                          showBalanceAssessment: true,
+                          showRiotId: true,
+                          matchupLayout: 'side-by-side'
+                        });
+                      } else if (value === 'compact') {
+                        updateSceneSettings(scene, { 
+                          showVsHeader: false,
+                          showCurrentRank: true,
+                          showAdaptiveWeight: true,
+                          showWeightDifference: false,
+                          showBalanceAssessment: false,
+                          showRiotId: false,
+                          matchupLayout: 'stacked'
+                        });
+                      }
+                    }}
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Choose a preset..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="side-by-side">Side by Side</SelectItem>
-                      <SelectItem value="stacked">Stacked</SelectItem>
+                      <SelectItem value="basic">Basic View</SelectItem>
+                      <SelectItem value="analyst">Analyst View</SelectItem>
+                      <SelectItem value="compact">Compact View</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -335,17 +401,50 @@ export default function BroadcastSettingsPanel() {
                   <Label>Tournament History Stats</Label>
                 </div>
                 <div className="space-y-2">
-                  <Label>Stats Layout</Label>
+                  <Label>Display Preset</Label>
                   <Select 
-                    value={sceneSettings.statsLayout || 'grid'} 
-                    onValueChange={(value) => updateSceneSettings(scene, { statsLayout: value as 'grid' | 'stacked' })}
+                    value="custom"
+                    onValueChange={(value) => {
+                      if (value === 'minimal') {
+                        updateSceneSettings(scene, { 
+                          showCurrentRank: true,
+                          showPeakRank: false,
+                          showRiotId: false,
+                          showAdaptiveWeight: true,
+                          showTournamentWins: false,
+                          showPerformanceRating: false,
+                          statsLayout: 'stacked'
+                        });
+                      } else if (value === 'detailed') {
+                        updateSceneSettings(scene, { 
+                          showCurrentRank: true,
+                          showPeakRank: true,
+                          showRiotId: true,
+                          showAdaptiveWeight: true,
+                          showTournamentWins: true,
+                          showPerformanceRating: true,
+                          statsLayout: 'grid'
+                        });
+                      } else if (value === 'broadcast') {
+                        updateSceneSettings(scene, { 
+                          showCurrentRank: true,
+                          showPeakRank: false,
+                          showRiotId: false,
+                          showAdaptiveWeight: true,
+                          showTournamentWins: false,
+                          showPerformanceRating: true,
+                          statsLayout: 'grid'
+                        });
+                      }
+                    }}
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Choose a preset..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="grid">2-Column Grid</SelectItem>
-                      <SelectItem value="stacked">Stacked</SelectItem>
+                      <SelectItem value="minimal">Minimal Info</SelectItem>
+                      <SelectItem value="broadcast">Broadcast Ready</SelectItem>
+                      <SelectItem value="detailed">Full Details</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -395,17 +494,41 @@ export default function BroadcastSettingsPanel() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Card Layout</Label>
+                  <Label>Stats Preset</Label>
                   <Select 
-                    value={sceneSettings.statCardLayout || 'grid'} 
-                    onValueChange={(value) => updateSceneSettings(scene, { statCardLayout: value as 'grid' | 'row' })}
+                    value="custom"
+                    onValueChange={(value) => {
+                      if (value === 'essential') {
+                        updateSceneSettings(scene, { 
+                          showIndividualStatCards: true,
+                          showProgressBar: false,
+                          showTournamentStatusHeader: true,
+                          statCardLayout: 'grid'
+                        });
+                      } else if (value === 'minimal') {
+                        updateSceneSettings(scene, { 
+                          showIndividualStatCards: false,
+                          showProgressBar: true,
+                          showTournamentStatusHeader: true,
+                          statCardLayout: 'row'
+                        });
+                      } else if (value === 'complete') {
+                        updateSceneSettings(scene, { 
+                          showIndividualStatCards: true,
+                          showProgressBar: true,
+                          showTournamentStatusHeader: true,
+                          statCardLayout: 'grid'
+                        });
+                      }
+                    }}
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Choose a preset..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="grid">Grid</SelectItem>
-                      <SelectItem value="row">Row</SelectItem>
+                      <SelectItem value="essential">Essential Stats</SelectItem>
+                      <SelectItem value="minimal">Minimal View</SelectItem>
+                      <SelectItem value="complete">Complete View</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -608,30 +731,6 @@ export default function BroadcastSettingsPanel() {
               </div>
             </div>
 
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Broadcast URLs</h3>
-              <div className="space-y-3">
-                {Object.entries(broadcastUrls).map(([key, url]) => (
-                  <div key={key} className="flex items-center space-x-2">
-                    <Label className="w-32 text-sm font-medium capitalize">
-                      {key.replace(/([A-Z])/g, ' $1').trim()}:
-                    </Label>
-                    <Input 
-                      value={url} 
-                      readOnly 
-                      className="flex-1 text-xs font-mono"
-                    />
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => copyToClipboard(url, key)}
-                    >
-                      <Copy className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
           </TabsContent>
 
           <TabsContent value="teamRoster" className="mt-6">
