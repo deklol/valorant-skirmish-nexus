@@ -195,8 +195,9 @@ export default function PlayerSpotlightCard() {
     );
   }
 
-  // New broadcast-optimized design - blocky style
-  return (
+  // Use blocky design ONLY when transparentBackground is enabled
+  if (sceneSettings.transparentBackground) {
+    return (
     <div className={BROADCAST_CONTAINER_CLASSES} style={containerStyle}>
       <div className="max-w-full h-full flex items-center justify-center p-8">
         <div className="max-w-4xl w-full">
@@ -320,6 +321,152 @@ export default function PlayerSpotlightCard() {
       </div>
     </div>
   );
+  } else {
+    // Original broadcast design when transparent background is disabled
+    return (
+      <div className={BROADCAST_CONTAINER_CLASSES} style={containerStyle}>
+        <div className="max-w-full h-full flex items-center justify-center p-8">
+          <div className="max-w-6xl w-full">
+            {/* Player Header Block */}
+            <div 
+              className="bg-black border-4 border-white p-8 mb-6"
+              style={{ borderColor: BROADCAST_DEFAULTS.accentColor }}
+            >
+              <div className="flex items-center gap-8">
+                {/* Avatar */}
+                <div className="bg-gray-600 border-4 border-white w-48 h-48">
+                  <img
+                    src={player.discord_avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${player.discord_username}`}
+                    alt={player.discord_username}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+
+                {/* Player Info */}
+                <div className="flex-1">
+                  <div 
+                    className="text-6xl font-black text-white mb-4"
+                    style={{ 
+                      fontFamily: BROADCAST_DEFAULTS.fontFamily,
+                      color: BROADCAST_DEFAULTS.accentColor,
+                      textShadow: '2px 2px 0px #000000'
+                    }}
+                  >
+                    {player.discord_username}
+                  </div>
+
+                  {player.riot_id && (
+                    <div 
+                      className="text-3xl text-white mb-6"
+                      style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
+                    >
+                      {player.riot_id}
+                    </div>
+                  )}
+
+                  {/* Rank and Weight Badges */}
+                  <div className="flex items-center gap-4">
+                    {player.current_rank && (
+                      <div 
+                        className="px-6 py-3 border-4 border-white font-black text-2xl"
+                        style={{
+                          backgroundColor: getRankColor(player.current_rank),
+                          color: '#000000',
+                          fontFamily: BROADCAST_DEFAULTS.fontFamily
+                        }}
+                      >
+                        {player.current_rank}
+                      </div>
+                    )}
+                    
+                    <div 
+                      className="px-6 py-3 border-4 border-white font-black text-2xl"
+                      style={{
+                        backgroundColor: BROADCAST_DEFAULTS.accentColor,
+                        color: '#000000',
+                        fontFamily: BROADCAST_DEFAULTS.fontFamily
+                      }}
+                    >
+                      {displayWeight} POINTS
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-3 gap-6">
+              <div className="bg-black border-4 border-white p-8 text-center">
+                <Target 
+                  className="w-16 h-16 mx-auto mb-4" 
+                  style={{ color: BROADCAST_DEFAULTS.primaryColor }} 
+                />
+                <div 
+                  className="text-5xl font-black mb-2"
+                  style={{ 
+                    color: BROADCAST_DEFAULTS.primaryColor,
+                    fontFamily: BROADCAST_DEFAULTS.fontFamily 
+                  }}
+                >
+                  {displayWeight}
+                </div>
+                <div 
+                  className="text-2xl font-bold text-white"
+                  style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
+                >
+                  CURRENT WEIGHT
+                </div>
+              </div>
+
+              <div className="bg-black border-4 border-white p-8 text-center">
+                <Trophy 
+                  className="w-16 h-16 mx-auto mb-4" 
+                  style={{ color: BROADCAST_DEFAULTS.warningColor }} 
+                />
+                <div 
+                  className="text-5xl font-black mb-2"
+                  style={{ 
+                    color: BROADCAST_DEFAULTS.warningColor,
+                    fontFamily: BROADCAST_DEFAULTS.fontFamily 
+                  }}
+                >
+                  {player.tournament_wins || 0}
+                </div>
+                <div 
+                  className="text-2xl font-bold text-white"
+                  style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
+                >
+                  TOURNAMENT WINS
+                </div>
+              </div>
+
+              <div className="bg-black border-4 border-white p-8 text-center">
+                <TrendingUp 
+                  className="w-16 h-16 mx-auto mb-4" 
+                  style={{ color: getRankColor(player.peak_rank) }} 
+                />
+                <div 
+                  className="text-3xl font-black mb-2 text-white"
+                  style={{ 
+                    color: getRankColor(player.peak_rank),
+                    fontFamily: BROADCAST_DEFAULTS.fontFamily 
+                  }}
+                >
+                  {player.peak_rank || 'UNRANKED'}
+                </div>
+                <div 
+                  className="text-2xl font-bold text-white"
+                  style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
+                >
+                  PEAK RANK
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   function formatRankEmoji(rank?: string) {
     if (!rank) return "❓";

@@ -165,7 +165,7 @@ export default function TournamentStats() {
     color?: string 
   }) => {
     if (!isBroadcastMode) {
-      // Legacy mode
+      // Original design when transparentBackground is false
       return (
         <div className="backdrop-blur-sm rounded-2xl p-8 border border-white/20 bg-black/40 text-center">
           <div className="flex items-center justify-center mb-4">
@@ -186,40 +186,62 @@ export default function TournamentStats() {
       );
     }
 
-    // New broadcast-optimized design - blocky style
-    return (
-      <div 
-        className="bg-black text-center p-6"
-        style={{ minHeight: '180px' }}
-      >
-        <div className="flex items-center justify-center mb-4">
-          <Icon className="w-12 h-12" style={{ color }} />
-        </div>
+    // Use blocky design ONLY when transparentBackground is enabled
+    if (sceneSettings.transparentBackground) {
+      return (
         <div 
-          className="text-4xl font-black text-white mb-2"
-          style={{ 
-            fontFamily: BROADCAST_DEFAULTS.fontFamily,
-            color
-          }}
+          className="bg-black text-center p-6"
+          style={{ minHeight: '180px' }}
         >
-          {value}
-        </div>
-        <div 
-          className="text-xl font-bold text-white"
-          style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
-        >
-          {title}
-        </div>
-        {subtitle && (
+          <div className="flex items-center justify-center mb-4">
+            <Icon className="w-12 h-12" style={{ color }} />
+          </div>
           <div 
-            className="text-sm text-gray-300 mt-2 font-semibold"
+            className="text-4xl font-black text-white mb-2"
+            style={{ 
+              fontFamily: BROADCAST_DEFAULTS.fontFamily,
+              color
+            }}
+          >
+            {value}
+          </div>
+          <div 
+            className="text-xl font-bold text-white"
             style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
           >
-            {subtitle}
+            {title}
           </div>
-        )}
-      </div>
-    );
+          {subtitle && (
+            <div 
+              className="text-sm text-gray-300 mt-2 font-semibold"
+              style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
+            >
+              {subtitle}
+            </div>
+          )}
+        </div>
+      );
+    } else {
+      // Original design when transparentBackground is false 
+      return (
+        <div className="backdrop-blur-sm rounded-2xl p-8 border border-white/20 bg-black/40 text-center">
+          <div className="flex items-center justify-center mb-4">
+            <Icon className="w-12 h-12" style={{ color }} />
+          </div>
+          <div className="text-4xl font-bold text-white mb-2">
+            {value}
+          </div>
+          <div className="text-lg text-gray-300">
+            {title}
+          </div>
+          {subtitle && (
+            <div className="text-sm text-gray-400 mt-2">
+              {subtitle}
+            </div>
+          )}
+        </div>
+      );
+    }
   };
 
   return (
@@ -284,7 +306,7 @@ export default function TournamentStats() {
 
         {/* Progress Bar */}
         {isBroadcastMode && (
-          <div className="bg-black p-6 mb-8">
+          <div className={`p-6 mb-8 ${sceneSettings.transparentBackground ? 'bg-black' : 'bg-black border-4 border-white'}`}>
             <div 
               className="text-2xl font-black text-white mb-4 text-center"
               style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
@@ -292,7 +314,7 @@ export default function TournamentStats() {
               TOURNAMENT PROGRESS
             </div>
             
-            <div className="bg-gray-800 h-12 relative">
+            <div className={`bg-gray-800 h-12 relative ${sceneSettings.transparentBackground ? '' : 'border-2 border-white'}`}>
               <div 
                 className="h-full transition-all duration-1000 flex items-center justify-center"
                 style={{ 
@@ -314,7 +336,7 @@ export default function TournamentStats() {
         {/* Tournament Status Footer */}
         <div className="text-center mt-auto">
           <div 
-            className="inline-flex items-center px-8 py-4 font-black text-2xl"
+            className={`inline-flex items-center px-8 py-4 font-black text-2xl ${sceneSettings.transparentBackground ? '' : 'border-4 border-white'}`}
             style={{
               backgroundColor: tournament.status === 'live' 
                 ? BROADCAST_DEFAULTS.errorColor

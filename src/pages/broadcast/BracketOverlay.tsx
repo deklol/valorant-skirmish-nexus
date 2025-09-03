@@ -93,31 +93,52 @@ export default function BracketOverlay() {
     <div className={BROADCAST_CONTAINER_CLASSES + " overflow-hidden p-8"} style={containerStyle}>
       {/* Tournament Header */}
       <div className="text-center mb-8">
-        {/* Tournament Name Block */}
-        <div 
-          className="inline-block px-8 py-4 mb-4"
-          style={{ backgroundColor: '#FF6B35' }}
-        >
-          <div 
-            className="text-4xl font-black text-white"
-            style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
-          >
-            {tournament.name}
-          </div>
-        </div>
-        
-        {/* Subtitle Block */}
-        <div 
-          className="inline-block px-6 py-2"
-          style={{ backgroundColor: 'rgba(0, 0, 0, 0.8)' }}
-        >
-          <div 
-            className="text-2xl font-bold text-white"
-            style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
-          >
-            TOURNAMENT BRACKET
-          </div>
-        </div>
+        {sceneSettings.transparentBackground ? (
+          // Blocky design for transparent background
+          <>
+            {/* Tournament Name Block */}
+            <div 
+              className="inline-block px-8 py-4 mb-4"
+              style={{ backgroundColor: '#FF6B35' }}
+            >
+              <div 
+                className="text-4xl font-black text-white"
+                style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
+              >
+                {tournament.name}
+              </div>
+            </div>
+            
+            {/* Subtitle Block */}
+            <div 
+              className="inline-block px-6 py-2"
+              style={{ backgroundColor: 'rgba(0, 0, 0, 0.8)' }}
+            >
+              <div 
+                className="text-2xl font-bold text-white"
+                style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
+              >
+                TOURNAMENT BRACKET
+              </div>
+            </div>
+          </>
+        ) : (
+          // Original design for non-transparent background
+          <>
+            <div 
+              className="font-bold mb-2"
+              style={getBroadcastHeaderStyle(sceneSettings, settings, 'large')}
+            >
+              {tournament.name}
+            </div>
+            <div 
+              className="text-xl"
+              style={getBroadcastTextStyle(sceneSettings, settings, '70')}
+            >
+              Tournament Bracket
+            </div>
+          </>
+        )}
       </div>
 
       {/* Bracket */}
@@ -127,138 +148,261 @@ export default function BracketOverlay() {
           .map(([roundNum, roundMatches]) => (
           <div key={roundNum} className="flex flex-col space-y-8 min-w-[300px]">
             <div className="text-center">
-              {/* Round Header Block */}
-              <div 
-                className="inline-block px-6 py-3 mb-6"
-                style={{ backgroundColor: 'rgba(0, 0, 0, 0.9)' }}
-              >
+              {sceneSettings.transparentBackground ? (
+                // Blocky design for transparent background
                 <div 
-                  className="text-xl font-black text-white"
-                  style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
+                  className="inline-block px-6 py-3 mb-6"
+                  style={{ backgroundColor: 'rgba(0, 0, 0, 0.9)' }}
+                >
+                  <div 
+                    className="text-xl font-black text-white"
+                    style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
+                  >
+                    {Number(roundNum) === maxRound 
+                      ? 'FINAL' 
+                      : Number(roundNum) === maxRound - 1 
+                        ? 'SEMIFINALS'
+                        : `ROUND ${roundNum}`
+                    }
+                  </div>
+                </div>
+              ) : (
+                // Original design for non-transparent background
+                <div 
+                  className="text-lg font-semibold mb-4"
+                  style={{ 
+                    color: sceneSettings.headerTextColor || settings.headerTextColor,
+                    fontFamily: sceneSettings.fontFamily || 'inherit'
+                  }}
                 >
                   {Number(roundNum) === maxRound 
-                    ? 'FINAL' 
+                    ? 'Final' 
                     : Number(roundNum) === maxRound - 1 
-                      ? 'SEMIFINALS'
-                      : `ROUND ${roundNum}`
+                      ? 'Semifinals'
+                      : `Round ${roundNum}`
                   }
                 </div>
-              </div>
+              )}
             </div>
             
             <div className="space-y-6">
               {roundMatches.map((match) => (
                 <div 
                   key={match.id}
-                  className="bg-black overflow-hidden"
-                  style={{ minWidth: '280px' }}
+                  className={sceneSettings.transparentBackground ? "bg-black overflow-hidden" : "backdrop-blur-sm rounded-lg border overflow-hidden"}
+                  style={sceneSettings.transparentBackground ? 
+                    { minWidth: '280px' } : 
+                    { 
+                      backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                      borderColor: sceneSettings.borderColor || '#ffffff20',
+                      borderRadius: sceneSettings.borderRadius || 8,
+                      borderWidth: sceneSettings.borderWidth || 1,
+                    }
+                  }
                 >
-                  {/* Team 1 */}
-                  <div 
-                    className={`p-4 ${
-                      match.winner?.name === match.team1?.name 
-                        ? 'border-l-8' 
-                        : match.status === 'completed' 
-                          ? 'border-l-8 border-l-red-500' 
-                          : ''
-                    }`}
-                    style={{ 
-                      backgroundColor: match.winner?.name === match.team1?.name 
-                        ? '#22c55e' 
-                        : match.status === 'completed' 
-                          ? 'rgba(239, 68, 68, 0.3)' 
-                          : 'rgba(0, 0, 0, 0.8)',
-                      borderLeftColor: match.winner?.name === match.team1?.name ? '#16a34a' : '#ef4444'
-                    }}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span 
-                        className="font-black text-white"
-                        style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
+                  {sceneSettings.transparentBackground ? (
+                    // Blocky design for transparent background
+                    <>
+                      {/* Team 1 */}
+                      <div 
+                        className={`p-4 ${
+                          match.winner?.name === match.team1?.name 
+                            ? 'border-l-8' 
+                            : match.status === 'completed' 
+                              ? 'border-l-8 border-l-red-500' 
+                              : ''
+                        }`}
+                        style={{ 
+                          backgroundColor: match.winner?.name === match.team1?.name 
+                            ? '#22c55e' 
+                            : match.status === 'completed' 
+                              ? 'rgba(239, 68, 68, 0.3)' 
+                              : 'rgba(0, 0, 0, 0.8)',
+                          borderLeftColor: match.winner?.name === match.team1?.name ? '#16a34a' : '#ef4444'
+                        }}
                       >
-                        {match.team1?.name || 'TBD'}
-                      </span>
-                      {match.score_team1 !== undefined && (
-                        <div 
-                          className="px-3 py-1 font-black text-lg"
+                        <div className="flex items-center justify-between">
+                          <span 
+                            className="font-black text-white"
+                            style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
+                          >
+                            {match.team1?.name || 'TBD'}
+                          </span>
+                          {match.score_team1 !== undefined && (
+                            <div 
+                              className="px-3 py-1 font-black text-lg"
+                              style={{ 
+                                backgroundColor: '#FF6B35',
+                                color: '#000000',
+                                fontFamily: BROADCAST_DEFAULTS.fontFamily
+                              }}
+                            >
+                              {match.score_team1}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Team 2 */}
+                      <div 
+                        className={`p-4 ${
+                          match.winner?.name === match.team2?.name 
+                            ? 'border-l-8' 
+                            : match.status === 'completed' 
+                              ? 'border-l-8 border-l-red-500' 
+                              : ''
+                        }`}
+                        style={{ 
+                          backgroundColor: match.winner?.name === match.team2?.name 
+                            ? '#22c55e' 
+                            : match.status === 'completed' 
+                              ? 'rgba(239, 68, 68, 0.3)' 
+                              : 'rgba(0, 0, 0, 0.8)',
+                          borderLeftColor: match.winner?.name === match.team2?.name ? '#16a34a' : '#ef4444'
+                        }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span 
+                            className="font-black text-white"
+                            style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
+                          >
+                            {match.team2?.name || 'TBD'}
+                          </span>
+                          {match.score_team2 !== undefined && (
+                            <div 
+                              className="px-3 py-1 font-black text-lg"
+                              style={{ 
+                                backgroundColor: '#FF6B35',
+                                color: '#000000',
+                                fontFamily: BROADCAST_DEFAULTS.fontFamily
+                              }}
+                            >
+                              {match.score_team2}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Match Status */}
+                      <div 
+                        className="px-4 py-3 text-center"
+                        style={{ 
+                          backgroundColor: match.status === 'completed' 
+                            ? '#16a34a' 
+                            : match.status === 'live' 
+                              ? '#ef4444' 
+                              : '#6b7280'
+                        }}
+                      >
+                        <span 
+                          className="font-black text-sm"
                           style={{ 
-                            backgroundColor: '#FF6B35',
                             color: '#000000',
                             fontFamily: BROADCAST_DEFAULTS.fontFamily
                           }}
                         >
-                          {match.score_team1}
+                          {match.status === 'completed' 
+                            ? 'COMPLETED' 
+                            : match.status === 'live' 
+                              ? 'LIVE' 
+                              : 'UPCOMING'
+                          }
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    // Original design for non-transparent background
+                    <>
+                      {/* Team 1 */}
+                      <div className={`p-4 border-b border-white/10 ${
+                        match.winner?.name === match.team1?.name 
+                          ? 'bg-green-500/20 border-l-4 border-l-green-500' 
+                          : match.status === 'completed' 
+                            ? 'bg-red-500/10' 
+                            : 'bg-black/20'
+                      }`}>
+                        <div className="flex items-center justify-between">
+                          <span 
+                            className="font-medium"
+                            style={{ 
+                              color: sceneSettings.textColor || settings.textColor,
+                              fontFamily: sceneSettings.fontFamily || 'inherit'
+                            }}
+                          >
+                            {match.team1?.name || 'TBD'}
+                          </span>
+                          {match.score_team1 !== undefined && (
+                            <span 
+                              className="font-bold text-lg"
+                              style={{ 
+                                color: sceneSettings.headerTextColor || settings.headerTextColor,
+                                fontFamily: sceneSettings.fontFamily || 'inherit'
+                              }}
+                            >
+                              {match.score_team1}
+                            </span>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  </div>
-                  
-                  {/* Team 2 */}
-                  <div 
-                    className={`p-4 ${
-                      match.winner?.name === match.team2?.name 
-                        ? 'border-l-8' 
-                        : match.status === 'completed' 
-                          ? 'border-l-8 border-l-red-500' 
-                          : ''
-                    }`}
-                    style={{ 
-                      backgroundColor: match.winner?.name === match.team2?.name 
-                        ? '#22c55e' 
-                        : match.status === 'completed' 
-                          ? 'rgba(239, 68, 68, 0.3)' 
-                          : 'rgba(0, 0, 0, 0.8)',
-                      borderLeftColor: match.winner?.name === match.team2?.name ? '#16a34a' : '#ef4444'
-                    }}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span 
-                        className="font-black text-white"
-                        style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
+                      </div>
+                      
+                      {/* Team 2 */}
+                      <div className={`p-4 ${
+                        match.winner?.name === match.team2?.name 
+                          ? 'bg-green-500/20 border-l-4 border-l-green-500' 
+                          : match.status === 'completed' 
+                            ? 'bg-red-500/10' 
+                            : 'bg-black/20'
+                      }`}>
+                        <div className="flex items-center justify-between">
+                          <span 
+                            className="font-medium"
+                            style={{ 
+                              color: sceneSettings.textColor || settings.textColor,
+                              fontFamily: sceneSettings.fontFamily || 'inherit'
+                            }}
+                          >
+                            {match.team2?.name || 'TBD'}
+                          </span>
+                          {match.score_team2 !== undefined && (
+                            <span 
+                              className="font-bold text-lg"
+                              style={{ 
+                                color: sceneSettings.headerTextColor || settings.headerTextColor,
+                                fontFamily: sceneSettings.fontFamily || 'inherit'
+                              }}
+                            >
+                              {match.score_team2}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Match Status */}
+                      <div 
+                        className="px-4 py-2 text-center"
+                        style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}
                       >
-                        {match.team2?.name || 'TBD'}
-                      </span>
-                      {match.score_team2 !== undefined && (
-                        <div 
-                          className="px-3 py-1 font-black text-lg"
+                        <span 
+                          className={`text-sm font-medium`}
                           style={{ 
-                            backgroundColor: '#FF6B35',
-                            color: '#000000',
-                            fontFamily: BROADCAST_DEFAULTS.fontFamily
+                            color: match.status === 'completed' 
+                              ? '#10B981' 
+                              : match.status === 'live' 
+                                ? '#EF4444' 
+                                : (sceneSettings.textColor || settings.textColor) + '60',
+                            fontFamily: sceneSettings.fontFamily || 'inherit'
                           }}
                         >
-                          {match.score_team2}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  
-                  {/* Match Status */}
-                  <div 
-                    className="px-4 py-3 text-center"
-                    style={{ 
-                      backgroundColor: match.status === 'completed' 
-                        ? '#16a34a' 
-                        : match.status === 'live' 
-                          ? '#ef4444' 
-                          : '#6b7280'
-                    }}
-                  >
-                    <span 
-                      className="font-black text-sm"
-                      style={{ 
-                        color: '#000000',
-                        fontFamily: BROADCAST_DEFAULTS.fontFamily
-                      }}
-                    >
-                      {match.status === 'completed' 
-                        ? 'COMPLETED' 
-                        : match.status === 'live' 
-                          ? 'LIVE' 
-                          : 'UPCOMING'
-                      }
-                    </span>
-                  </div>
+                          {match.status === 'completed' 
+                            ? 'Completed' 
+                            : match.status === 'live' 
+                              ? 'LIVE' 
+                              : 'Upcoming'
+                          }
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </div>
               ))}
             </div>
@@ -269,7 +413,7 @@ export default function BracketOverlay() {
       {/* Tournament Status Footer */}
       <div className="text-center mt-8 pt-4">
         <div 
-          className="inline-flex items-center px-8 py-4 font-black text-2xl"
+          className={`inline-flex items-center px-8 py-4 font-black text-2xl ${sceneSettings.transparentBackground ? '' : 'border-4 border-white'}`}
           style={{
             backgroundColor: tournament.status === 'live' 
               ? BROADCAST_DEFAULTS.errorColor

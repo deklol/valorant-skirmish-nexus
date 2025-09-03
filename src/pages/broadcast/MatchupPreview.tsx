@@ -188,89 +188,177 @@ export default function MatchupPreview() {
       radiantPlayers: team2.team_members.filter(m => m.users?.current_rank?.toLowerCase().includes('radiant')).length,
     };
 
-    const StatRow = ({ label, value1, value2 }: { label: string; value1: string | number; value2: string | number }) => (
-      <div className="grid grid-cols-3 gap-0 py-2">
-        <div className="bg-black text-center font-bold text-white text-lg p-2">
-          {value1}
-        </div>
-        <div className="bg-gray-800 text-center text-white uppercase tracking-wider text-sm font-bold p-2">
-          {label}
-        </div>
-        <div className="bg-black text-center font-bold text-white text-lg p-2">
-          {value2}
-        </div>
-      </div>
-    );
-
-    return (
-      <div className="w-80">
-        {/* Header */}
-        <div className="bg-gray-700 text-center p-3">
-          <h3 className="text-xl font-black uppercase tracking-wider text-white">
-            TALE OF THE TAPE
-          </h3>
-        </div>
-        
-        {/* Stats */}
-        <div className="space-y-0">
-          <StatRow 
-            label="AVG POINTS" 
-            value1={team1Stats.avgRankPoints} 
-            value2={team2Stats.avgRankPoints} 
-          />
-          
-          <StatRow 
-            label="IMMORTAL" 
-            value1={team1Stats.immortalPlayers} 
-            value2={team2Stats.immortalPlayers} 
-          />
-          
-          <StatRow 
-            label="SEED" 
-            value1={`#${team1.seed || '4'}`} 
-            value2={`#${team2.seed || '3'}`} 
-          />
-        </div>
-        
-        {/* Footer */}
-        <div className="bg-green-600 text-center p-2">
-          <div className="text-black font-black text-sm">
-            VERY BALANCED
+    // Use blocky design ONLY when transparentBackground is true
+    if (sceneSettings.transparentBackground) {
+      const StatRow = ({ label, value1, value2 }: { label: string; value1: string | number; value2: string | number }) => (
+        <div className="grid grid-cols-3 gap-0 py-2">
+          <div className="bg-black text-center font-bold text-white text-lg p-2">
+            {value1}
+          </div>
+          <div className="bg-gray-800 text-center text-white uppercase tracking-wider text-sm font-bold p-2">
+            {label}
+          </div>
+          <div className="bg-black text-center font-bold text-white text-lg p-2">
+            {value2}
           </div>
         </div>
-      </div>
-    );
+      );
+
+      return (
+        <div className="w-80">
+          {/* Header */}
+          <div className="bg-gray-700 text-center p-3">
+            <h3 className="text-xl font-black uppercase tracking-wider text-white">
+              TALE OF THE TAPE
+            </h3>
+          </div>
+          
+          {/* Stats */}
+          <div className="space-y-0">
+            <StatRow 
+              label="AVG POINTS" 
+              value1={team1Stats.avgRankPoints} 
+              value2={team2Stats.avgRankPoints} 
+            />
+            
+            <StatRow 
+              label="IMMORTAL" 
+              value1={team1Stats.immortalPlayers} 
+              value2={team2Stats.immortalPlayers} 
+            />
+            
+            <StatRow 
+              label="SEED" 
+              value1={`#${team1.seed || '4'}`} 
+              value2={`#${team2.seed || '3'}`} 
+            />
+          </div>
+          
+          {/* Footer */}
+          <div className="bg-green-600 text-center p-2">
+            <div className="text-black font-black text-sm">
+              VERY BALANCED
+            </div>
+          </div>
+        </div>
+      );
+    } else {
+      // Original design when transparentBackground is false
+      const StatRow = ({ label, value1, value2 }: { label: string; value1: string | number; value2: string | number }) => (
+        <div className="grid grid-cols-3 gap-4 py-1">
+          <div className="text-right font-medium text-white text-sm">
+            {value1}
+          </div>
+          <div className="text-center text-white/60 uppercase tracking-wide text-xs font-medium">
+            {label}
+          </div>
+          <div className="text-left font-medium text-white text-sm">
+            {value2}
+          </div>
+        </div>
+      );
+
+      return (
+        <div 
+          className="backdrop-blur-sm rounded-lg border border-white/20 p-4 w-64"
+          style={{
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+          }}
+        >
+          <div className="text-center mb-3">
+            <h3 className="text-lg font-bold uppercase tracking-wider text-white">
+              Tale of the Tape
+            </h3>
+          </div>
+          
+          <div className="space-y-1">
+            <StatRow 
+              label="Avg Points" 
+              value1={team1Stats.avgRankPoints} 
+              value2={team2Stats.avgRankPoints} 
+            />
+            
+            {(team1Stats.radiantPlayers > 0 || team2Stats.radiantPlayers > 0) && (
+              <StatRow 
+                label="Radiant" 
+                value1={team1Stats.radiantPlayers} 
+                value2={team2Stats.radiantPlayers}
+              />
+            )}
+            
+            <StatRow 
+              label="Immortal" 
+              value1={team1Stats.immortalPlayers} 
+              value2={team2Stats.immortalPlayers} 
+            />
+            
+            <StatRow 
+              label="Seed" 
+              value1={`#${team1.seed || '4'}`} 
+              value2={`#${team2.seed || '3'}`} 
+            />
+          </div>
+          
+          <div className="mt-3 text-center">
+            <div className="text-green-400 font-bold text-xs">
+              VERY BALANCED
+            </div>
+          </div>
+        </div>
+      );
+    }
   };
 
   const PlayerLineup = ({ team, side }: { team: Team; side: 'left' | 'right' }) => (
     <div className="space-y-0">
-      {/* Team Header Block */}
-      <div 
-        className="px-6 py-4 mb-0"
-        style={{ backgroundColor: '#FF6B35' }}
-      >
-        <div className="text-2xl font-bold uppercase tracking-wide text-white">
-          {team.name}
-        </div>
-      </div>
-      
-      {/* Team Stats Block */}
-      <div className="bg-black px-6 py-3 mb-0">
-        <div className="flex items-center justify-between">
-          <div className="bg-cyan-600 px-3 py-1">
-            <span className="text-black text-sm font-bold">
+      {sceneSettings.transparentBackground ? (
+        // Blocky design for transparent background
+        <>
+          {/* Team Header Block */}
+          <div 
+            className="px-6 py-4 mb-0"
+            style={{ backgroundColor: '#FF6B35' }}
+          >
+            <div className="text-2xl font-bold uppercase tracking-wide text-white">
+              {team.name}
+            </div>
+          </div>
+          
+          {/* Team Stats Block */}
+          <div className="bg-black px-6 py-3 mb-0">
+            <div className="flex items-center justify-between">
+              <div className="bg-cyan-600 px-3 py-1">
+                <span className="text-black text-sm font-bold">
+                  AVG: {side === 'left' ? team1Avg : team2Avg}
+                </span>
+              </div>
+              <div className="bg-gray-600 px-3 py-1">
+                <span className="text-white text-sm font-bold">
+                  SEED #{team.seed || 'TBD'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </>
+      ) : (
+        // Original design for non-transparent background
+        <div className="mb-6">
+          <div className="text-2xl font-bold mb-2 uppercase tracking-wide text-white">
+            {team.name}
+          </div>
+          <div className="flex items-center space-x-2" style={{ justifyContent: side === 'right' ? 'flex-end' : 'flex-start' }}>
+            <div className="text-cyan-400 text-sm font-bold">
               AVG: {side === 'left' ? team1Avg : team2Avg}
-            </span>
-          </div>
-          <div className="bg-gray-600 px-3 py-1">
-            <span className="text-white text-sm font-bold">
+            </div>
+            <div className="text-white/50 text-xs">
               SEED #{team.seed || 'TBD'}
-            </span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
       
-      <div className="space-y-0">
+      {/* Players List */}
+      <div className={sceneSettings.transparentBackground ? "space-y-0" : "space-y-1"}>
         {team.team_members
           .sort((a, b) => (b.is_captain ? 1 : 0) - (a.is_captain ? 1 : 0))
           .map((member, index) => {
@@ -280,80 +368,124 @@ export default function MatchupPreview() {
             const displayWeight = (user as any).display_weight || (user as any).atlas_weight || (user as any).adaptive_weight || 150;
             const { emoji, color } = formatRank(user.current_rank);
 
-            return (
-              <div key={member.user_id}>
-                {/* Player Name Block */}
-                <div 
-                  className="px-4 py-3 text-white flex items-center justify-between"
-                  style={{ 
-                    backgroundColor: sceneSettings.teamAccentColor || '#FF6B35'
-                  }}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-lg font-bold">
-                      {user.discord_username || 'Unknown Player'}
-                    </span>
-                    {member.is_captain && sceneSettings.showCaptainBadges && (
-                      <div className="bg-yellow-400 text-black px-2 py-1 text-xs font-bold">
-                        CAPTAIN
+            if (sceneSettings.transparentBackground) {
+              // Blocky player cards for transparent background
+              return (
+                <div key={member.user_id}>
+                  {/* Player Name Block */}
+                  <div 
+                    className="px-4 py-3 text-white flex items-center justify-between"
+                    style={{ 
+                      backgroundColor: sceneSettings.teamAccentColor || '#FF6B35'
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-lg font-bold">
+                        {user.discord_username || 'Unknown Player'}
+                      </span>
+                      {member.is_captain && sceneSettings.showCaptainBadges && (
+                        <div className="bg-yellow-400 text-black px-2 py-1 text-xs font-bold">
+                          CAPTAIN
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Player Info Horizontal Cards */}
+                  <div className="grid grid-cols-4">
+                    {/* Avatar Card */}
+                    <div className="bg-black/90 p-3 flex flex-col items-center">
+                      <div className="w-12 h-12 bg-gray-600 mb-1">
+                        <img
+                          src={user.discord_avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.discord_username}`}
+                          alt={user.discord_username}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="text-white text-xs text-center">Avatar</div>
+                    </div>
+
+                    {/* Rank Card */}
+                    {sceneSettings.showCurrentRank && user.current_rank && (
+                      <div className="bg-black/90 p-3 flex flex-col items-center">
+                        <div 
+                          className="w-12 h-12 flex items-center justify-center text-lg mb-1"
+                          style={{ backgroundColor: getRankColor(user.current_rank) }}
+                        >
+                          {emoji}
+                        </div>
+                        <div className="text-white text-xs text-center truncate w-full">
+                          {user.current_rank}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Weight Card */}
+                    {sceneSettings.showAdaptiveWeight && (
+                      <div className="bg-black/90 p-3 flex flex-col items-center">
+                        <div className="w-12 h-12 bg-blue-600 flex items-center justify-center text-sm font-bold text-white mb-1">
+                          {displayWeight}
+                        </div>
+                        <div className="text-white text-xs text-center">Weight</div>
+                      </div>
+                    )}
+
+                    {/* Riot ID Card */}
+                    {sceneSettings.showRiotId && user.riot_id && (
+                      <div className="bg-black/90 p-3 flex flex-col items-center">
+                        <div className="w-12 h-12 bg-red-600 flex items-center justify-center text-white mb-1 text-xs text-center font-bold">
+                          RIOT
+                        </div>
+                        <div className="text-white text-xs text-center truncate w-full">
+                          {user.riot_id}
+                        </div>
                       </div>
                     )}
                   </div>
                 </div>
-
-                {/* Player Info Horizontal Cards */}
-                <div className="grid grid-cols-4">
-                  {/* Avatar Card */}
-                  <div className="bg-black/90 p-3 flex flex-col items-center">
-                    <div className="w-12 h-12 bg-gray-600 mb-1">
-                      <img
-                        src={user.discord_avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.discord_username}`}
-                        alt={user.discord_username}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="text-white text-xs text-center">Avatar</div>
+              );
+            } else {
+              // Original player cards for non-transparent background
+              return (
+                <div 
+                  key={member.user_id} 
+                  className={`flex items-center space-x-2 backdrop-blur-sm rounded px-3 py-2 border border-white/10 ${
+                    side === 'right' ? 'flex-row-reverse space-x-reverse' : ''
+                  }`}
+                  style={{
+                    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                  }}
+                >
+                  <div className="text-sm font-medium text-white/40 w-4 text-center">
+                    {index + 1}
                   </div>
-
-                  {/* Rank Card */}
-                  {sceneSettings.showCurrentRank && user.current_rank && (
-                    <div className="bg-black/90 p-3 flex flex-col items-center">
-                      <div 
-                        className="w-12 h-12 flex items-center justify-center text-lg mb-1"
-                        style={{ backgroundColor: getRankColor(user.current_rank) }}
-                      >
-                        {emoji}
-                      </div>
-                      <div className="text-white text-xs text-center truncate w-full">
+                  
+                  {member.is_captain && sceneSettings.showCaptainBadges && (
+                    <Badge variant="outline" className="border-yellow-400 text-yellow-400 text-xs px-1 py-0">
+                      C
+                    </Badge>
+                  )}
+                  
+                  <Avatar className="w-6 h-6">
+                    <AvatarImage src={user.discord_avatar_url || undefined} />
+                    <AvatarFallback className="bg-slate-700 text-white text-xs">
+                      {user.discord_username?.slice(0, 2).toUpperCase() || '??'}
+                    </AvatarFallback>
+                  </Avatar>
+                  
+                  <div className={`flex-1 min-w-0 ${side === 'right' ? 'text-right' : 'text-left'}`}>
+                    <div className="text-white font-medium text-xs truncate">
+                      {user.discord_username || 'Unknown'}
+                    </div>
+                    {sceneSettings.showCurrentRank && (
+                      <div className={`text-xs ${getRankColor(user.current_rank)} truncate`}>
                         {user.current_rank}
                       </div>
-                    </div>
-                  )}
-
-                  {/* Weight Card */}
-                  {sceneSettings.showAdaptiveWeight && (
-                    <div className="bg-black/90 p-3 flex flex-col items-center">
-                      <div className="w-12 h-12 bg-blue-600 flex items-center justify-center text-sm font-bold text-white mb-1">
-                        {displayWeight}
-                      </div>
-                      <div className="text-white text-xs text-center">Weight</div>
-                    </div>
-                  )}
-
-                  {/* Riot ID Card */}
-                  {sceneSettings.showRiotId && user.riot_id && (
-                    <div className="bg-black/90 p-3 flex flex-col items-center">
-                      <div className="w-12 h-12 bg-red-600 flex items-center justify-center text-white mb-1 text-xs text-center font-bold">
-                        RIOT
-                      </div>
-                      <div className="text-white text-xs text-center truncate w-full">
-                        {user.riot_id}
-                      </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
+              );
+            }
           })}
       </div>
     </div>
@@ -397,41 +529,67 @@ export default function MatchupPreview() {
         {/* Main Header */}
         {sceneSettings.showVsHeader && (
           <div className="text-center mb-8">
-            <div className="flex items-center justify-center space-x-8 mb-4">
-              {/* Team 1 Header Block */}
-              <div 
-                className="bg-black px-8 py-4"
-                style={{ backgroundColor: '#FF6B35' }}
-              >
-                <div className="text-4xl font-black uppercase tracking-wider text-white">
-                  {team1.name}
+            {sceneSettings.transparentBackground ? (
+              // Blocky design for transparent background
+              <>
+                <div className="flex items-center justify-center space-x-8 mb-4">
+                  {/* Team 1 Header Block */}
+                  <div 
+                    className="bg-black px-8 py-4"
+                    style={{ backgroundColor: '#FF6B35' }}
+                  >
+                    <div className="text-4xl font-black uppercase tracking-wider text-white">
+                      {team1.name}
+                    </div>
+                  </div>
+                  
+                  {/* VS Section */}
+                  <div className="flex flex-col items-center">
+                    <Swords className="w-12 h-12 text-red-500 mb-2" />
+                    <div className="text-white text-lg uppercase tracking-wide font-bold">
+                      VS
+                    </div>
+                  </div>
+                  
+                  {/* Team 2 Header Block */}
+                  <div 
+                    className="bg-black px-8 py-4"
+                    style={{ backgroundColor: '#FF6B35' }}
+                  >
+                    <div className="text-4xl font-black uppercase tracking-wider text-white">
+                      {team2.name}
+                    </div>
+                  </div>
                 </div>
-              </div>
-              
-              {/* VS Section */}
-              <div className="flex flex-col items-center">
-                <Swords className="w-12 h-12 text-red-500 mb-2" />
-                <div className="text-white text-lg uppercase tracking-wide font-bold">
-                  VS
+                
+                <div className="bg-gray-700 inline-block px-6 py-2">
+                  <div className="text-lg text-white uppercase tracking-wider font-bold">
+                    UPCOMING MATCH
+                  </div>
                 </div>
-              </div>
-              
-              {/* Team 2 Header Block */}
-              <div 
-                className="bg-black px-8 py-4"
-                style={{ backgroundColor: '#FF6B35' }}
-              >
-                <div className="text-4xl font-black uppercase tracking-wider text-white">
-                  {team2.name}
+              </>
+            ) : (
+              // Original design for non-transparent background
+              <>
+                <div className="flex items-center justify-center space-x-6 mb-3">
+                  <div className="text-4xl font-black uppercase tracking-wider text-white">
+                    {team1.name}
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <Swords className="w-10 h-10 text-red-500 mb-1" />
+                    <div className="text-white/70 text-xs uppercase tracking-wide font-bold">
+                      VS
+                    </div>
+                  </div>
+                  <div className="text-4xl font-black uppercase tracking-wider text-white">
+                    {team2.name}
+                  </div>
                 </div>
-              </div>
-            </div>
-            
-            <div className="bg-gray-700 inline-block px-6 py-2">
-              <div className="text-lg text-white uppercase tracking-wider font-bold">
-                UPCOMING MATCH
-              </div>
-            </div>
+                <div className="text-sm text-white/80 uppercase tracking-wider font-bold">
+                  Upcoming Match
+                </div>
+              </>
+            )}
           </div>
         )}
 
