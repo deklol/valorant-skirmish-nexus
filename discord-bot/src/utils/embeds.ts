@@ -51,7 +51,7 @@ export function createTournamentEmbed(tournament: any, signupsData: any) {
     .addFields([
       {
         name: '📅 Start Time',
-        value: tournament.start_time ? `<t:${Math.floor(new Date(tournament.start_time).getTime() / 1000)}:F>` : 'TBD',
+        value: tournament.start_time ? `<t:${Math.floor((new Date(tournament.start_time).getTime() - 3600000) / 1000)}:F>` : 'TBD',
         inline: true
       },
       {
@@ -72,7 +72,7 @@ export function createTournamentEmbed(tournament: any, signupsData: any) {
       {
         name: '📝 Registration',
         value: tournament.registration_opens_at && tournament.registration_closes_at 
-          ? `<t:${Math.floor(new Date(tournament.registration_opens_at).getTime() / 1000)}:f> - <t:${Math.floor(new Date(tournament.registration_closes_at).getTime() / 1000)}:f>`
+          ? `<t:${Math.floor((new Date(tournament.registration_opens_at).getTime() - 3600000) / 1000)}:f> - <t:${Math.floor((new Date(tournament.registration_closes_at).getTime() - 3600000) / 1000)}:f>`
           : 'Open Now',
         inline: false
       }
