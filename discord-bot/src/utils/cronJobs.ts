@@ -1,7 +1,7 @@
 import cron from 'node-cron';
 import { Client, TextChannel } from 'discord.js';
-import { getSupabase } from './supabase';
-import { createTournamentEmbed } from './embeds';
+import { getSupabase } from './supabase.js';
+import { createTournamentEmbed } from './embeds.js';
 
 export function startCronJobs(client: Client) {
   console.log('⏰ Starting scheduled jobs...');

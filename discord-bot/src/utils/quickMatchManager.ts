@@ -1,4 +1,4 @@
-import { getSupabase } from './supabase';
+import { getSupabase } from './supabase.js';
 
 export class QuickMatchManager {
   static async createSession(channelId: string, createdBy: string) {

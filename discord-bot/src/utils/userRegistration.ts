@@ -1,5 +1,5 @@
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { getSupabase } from './supabase';
+import { getSupabase } from './supabase.js';
 
 export async function handleUserRegistration(interaction: any) {
   // Check if user already exists
