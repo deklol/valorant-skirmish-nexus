@@ -55,6 +55,9 @@ export interface BroadcastSceneSettings extends BroadcastDisplaySettings {
   showTournamentStatus?: boolean;
   showMemberCount?: boolean;
   gridColumns?: 1 | 2 | 3;
+  teamAccentColor?: string;
+  playerAccentColor?: string;
+  weightBlockColor?: string;
   
   // Player Spotlight specific
   showPerformanceRating?: boolean;
@@ -252,6 +255,9 @@ const DEFAULT_SETTINGS: BroadcastSettings = {
       showTournamentStatus: true,
       showMemberCount: true,
       gridColumns: 2,
+      teamAccentColor: '#ff6b35',
+      playerAccentColor: '#ff6b35', 
+      weightBlockColor: '#333333',
     },
   }
 };

@@ -315,52 +315,86 @@ export default function BroadcastSettingsPanel() {
             </div>
           );
 
-        case 'teamsOverview':
-          return (
-            <div className="space-y-4">
-              <h4 className="font-medium text-lg">Teams Overview Options</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    checked={sceneSettings.showActiveEliminated ?? true}
-                    onCheckedChange={(checked) => updateSceneSettings(scene, { showActiveEliminated: checked })}
-                  />
-                  <Label>Active/Eliminated Sections</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    checked={sceneSettings.showTeamStatusBadges ?? true}
-                    onCheckedChange={(checked) => updateSceneSettings(scene, { showTeamStatusBadges: checked })}
-                  />
-                  <Label>Team Status Badges</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    checked={sceneSettings.showTournamentStatus ?? true}
-                    onCheckedChange={(checked) => updateSceneSettings(scene, { showTournamentStatus: checked })}
-                  />
-                  <Label>Tournament Status Indicator</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    checked={sceneSettings.showMemberCount ?? true}
-                    onCheckedChange={(checked) => updateSceneSettings(scene, { showMemberCount: checked })}
-                  />
-                  <Label>Member Count Display</Label>
-                </div>
-                <div className="space-y-2 col-span-2">
-                  <Label>Grid Columns: {sceneSettings.gridColumns || 2}</Label>
-                  <Slider
-                    value={[sceneSettings.gridColumns || 2]}
-                    onValueChange={([value]) => updateSceneSettings(scene, { gridColumns: value as 1 | 2 | 3 })}
-                    max={3}
-                    min={1}
-                    step={1}
-                  />
-                </div>
-              </div>
-            </div>
-          );
+         case 'teamsOverview':
+           return (
+             <div className="space-y-4">
+               <h4 className="font-medium text-lg">Teams Overview Options</h4>
+               <div className="grid grid-cols-2 gap-4">
+                 <div className="flex items-center space-x-2">
+                   <Switch
+                     checked={sceneSettings.showActiveEliminated ?? true}
+                     onCheckedChange={(checked) => updateSceneSettings(scene, { showActiveEliminated: checked })}
+                   />
+                   <Label>Active/Eliminated Sections</Label>
+                 </div>
+                 <div className="flex items-center space-x-2">
+                   <Switch
+                     checked={sceneSettings.showTeamStatusBadges ?? true}
+                     onCheckedChange={(checked) => updateSceneSettings(scene, { showTeamStatusBadges: checked })}
+                   />
+                   <Label>Team Status Badges</Label>
+                 </div>
+                 <div className="flex items-center space-x-2">
+                   <Switch
+                     checked={sceneSettings.showTournamentStatus ?? true}
+                     onCheckedChange={(checked) => updateSceneSettings(scene, { showTournamentStatus: checked })}
+                   />
+                   <Label>Tournament Status Indicator</Label>
+                 </div>
+                 <div className="flex items-center space-x-2">
+                   <Switch
+                     checked={sceneSettings.showMemberCount ?? true}
+                     onCheckedChange={(checked) => updateSceneSettings(scene, { showMemberCount: checked })}
+                   />
+                   <Label>Member Count Display</Label>
+                 </div>
+                 <div className="space-y-2 col-span-2">
+                   <Label>Grid Columns: {sceneSettings.gridColumns || 2}</Label>
+                   <Slider
+                     value={[sceneSettings.gridColumns || 2]}
+                     onValueChange={([value]) => updateSceneSettings(scene, { gridColumns: value as 1 | 2 | 3 })}
+                     max={3}
+                     min={1}
+                     step={1}
+                   />
+                 </div>
+                 
+                 {/* Block Color Controls */}
+                 <div className="space-y-2 col-span-2">
+                   <h5 className="font-medium">Block Colors</h5>
+                   <div className="grid grid-cols-3 gap-4">
+                     <div className="space-y-2">
+                       <Label>Team Accent Color</Label>
+                       <input
+                         type="color"
+                         value={sceneSettings.teamAccentColor || '#ff6b35'}
+                         onChange={(e) => updateSceneSettings(scene, { teamAccentColor: e.target.value })}
+                         className="w-full h-8 rounded border"
+                       />
+                     </div>
+                     <div className="space-y-2">
+                       <Label>Player Accent Color</Label>
+                       <input
+                         type="color"
+                         value={sceneSettings.playerAccentColor || '#ff6b35'}
+                         onChange={(e) => updateSceneSettings(scene, { playerAccentColor: e.target.value })}
+                         className="w-full h-8 rounded border"
+                       />
+                     </div>
+                     <div className="space-y-2">
+                       <Label>Weight Block Color</Label>
+                       <input
+                         type="color"
+                         value={sceneSettings.weightBlockColor || '#333333'}
+                         onChange={(e) => updateSceneSettings(scene, { weightBlockColor: e.target.value })}
+                         className="w-full h-8 rounded border"
+                       />
+                     </div>
+                   </div>
+                 </div>
+               </div>
+             </div>
+           );
 
         case 'playerSpotlight':
           return (

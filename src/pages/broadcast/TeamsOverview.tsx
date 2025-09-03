@@ -159,117 +159,186 @@ export default function TeamsOverview() {
 
     // New broadcast-optimized design
     return (
-      <div className="space-y-2">
-        {/* Team Header Strip */}
-        <div 
-          style={getBroadcastTeamStripStyle(
-            isEliminated ? BROADCAST_DEFAULTS.errorColor : BROADCAST_DEFAULTS.accentColor
-          )}
-        >
-          <div className="flex-1 flex items-center justify-between">
+      <div className="space-y-3">
+        {/* Team Header Block */}
+        <div className="flex items-center gap-0">
+          {/* Team Color Block */}
+          <div 
+            className="w-16 h-16 border-2 border-white"
+            style={{ 
+              backgroundColor: isEliminated ? BROADCAST_DEFAULTS.errorColor : sceneSettings.teamAccentColor || BROADCAST_DEFAULTS.primaryColor 
+            }}
+          />
+          
+          {/* Team Info Block */}
+          <div 
+            className="flex-1 bg-black border-2 border-white border-l-0 p-3 flex items-center justify-between"
+            style={{ minHeight: '64px' }}
+          >
             <div className="flex items-center gap-4">
               <div 
-                className="text-3xl font-black text-white"
+                className="text-2xl font-black text-white"
                 style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
               >
                 {team.name}
               </div>
               {isEliminated && (
-                <div style={getBroadcastBadgeStyle(BROADCAST_DEFAULTS.errorColor)}>
-                  ELIMINATED R{team.eliminated_round}
+                <div 
+                  className="px-2 py-1 border border-white text-xs font-bold"
+                  style={{
+                    backgroundColor: BROADCAST_DEFAULTS.errorColor,
+                    color: '#000000',
+                    fontFamily: BROADCAST_DEFAULTS.fontFamily
+                  }}
+                >
+                  ELIMINATED
                 </div>
               )}
             </div>
             
             <div className="flex items-center gap-4">
               <div 
-                className="text-white font-bold text-xl"
+                className="text-white font-bold text-lg"
                 style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
               >
                 SEED #{(team as any).calculatedSeed || 'TBD'}
-              </div>
-              <div 
-                className="text-white font-bold text-xl"
-                style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
-              >
-                AVG: {getTeamAverageWeight(team)}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Player List - Horizontal Cards */}
+        {/* Player Cards */}
         <div className="space-y-1">
-          {team.team_members.slice(0, 5).map((member) => (
-            <div
-              key={member.user_id}
-              className="bg-black border-2 border-white p-2 flex items-center gap-3"
-              style={{ minHeight: '60px' }}
-            >
-              {/* Avatar */}
-              <div className="w-12 h-12 bg-gray-600 border-2 border-white flex-shrink-0">
-                <img
-                  src={member.users.discord_avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.users.discord_username}`}
-                  alt={member.users.discord_username}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-
-              {/* Username */}
-              <div className="flex-1 min-w-0">
-                <div 
-                  className="text-white font-bold text-lg truncate"
-                  style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
-                >
-                  {member.users.discord_username}
+          {team.team_members.slice(0, 5).map((member, index) => (
+            <div key={member.user_id} className="flex items-center gap-0">
+              {/* Player Color Block */}
+              <div 
+                className="w-16 h-14 border-2 border-white"
+                style={{ 
+                  backgroundColor: sceneSettings.playerAccentColor || BROADCAST_DEFAULTS.primaryColor 
+                }}
+              />
+              
+              {/* Player Info Block */}
+              <div 
+                className="flex-1 bg-black border-2 border-white border-l-0 p-2 flex items-center gap-3"
+                style={{ minHeight: '56px' }}
+              >
+                {/* Avatar */}
+                <div className="w-10 h-10 bg-gray-600 border border-white flex-shrink-0">
+                  <img
+                    src={member.users.discord_avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.users.discord_username}`}
+                    alt={member.users.discord_username}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
-                {member.users.riot_id && (
+
+                {/* Username */}
+                <div className="flex-1 min-w-0">
                   <div 
-                    className="text-gray-400 text-sm truncate"
+                    className="text-white font-bold text-base truncate"
                     style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
                   >
-                    {member.users.riot_id}
+                    {member.users.discord_username}
                   </div>
-                )}
-              </div>
-
-              {/* Captain Badge */}
-              {member.is_captain && (
-                <div 
-                  className="px-2 py-1 border border-white text-xs font-bold"
-                  style={{
-                    backgroundColor: BROADCAST_DEFAULTS.warningColor,
-                    color: '#000000',
-                    fontFamily: BROADCAST_DEFAULTS.fontFamily
-                  }}
-                >
-                  CAPT
+                  {member.users.riot_id && (
+                    <div 
+                      className="text-gray-400 text-xs truncate"
+                      style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
+                    >
+                      {member.users.riot_id}
+                    </div>
+                  )}
                 </div>
-              )}
 
-              {/* Rank Badge */}
-              {member.users.current_rank && (
-                <div 
-                  className="px-2 py-1 border border-white text-xs font-bold"
-                  style={{ 
-                    backgroundColor: getRankColor(member.users.current_rank),
-                    color: '#000000',
-                    fontFamily: BROADCAST_DEFAULTS.fontFamily
-                  }}
-                >
-                  {member.users.current_rank.split(' ')[0].toUpperCase()}
+                {/* Badges */}
+                <div className="flex items-center gap-2">
+                  {/* Captain Badge */}
+                  {member.is_captain && (
+                    <div 
+                      className="px-2 py-1 border border-white text-xs font-bold"
+                      style={{
+                        backgroundColor: BROADCAST_DEFAULTS.warningColor,
+                        color: '#000000',
+                        fontFamily: BROADCAST_DEFAULTS.fontFamily
+                      }}
+                    >
+                      CAPTAIN
+                    </div>
+                  )}
+
+                  {/* Rank Badge */}
+                  {member.users.current_rank && (
+                    <div 
+                      className="px-2 py-1 border border-white text-xs font-bold"
+                      style={{ 
+                        backgroundColor: getRankColor(member.users.current_rank),
+                        color: '#000000',
+                        fontFamily: BROADCAST_DEFAULTS.fontFamily
+                      }}
+                    >
+                      {member.users.current_rank.split(' ')[0].toUpperCase()}
+                    </div>
+                  )}
+
+                  {/* Weight */}
+                  <div 
+                    className="px-3 py-1 border border-white text-sm font-bold text-center min-w-[60px]"
+                    style={{ 
+                      backgroundColor: sceneSettings.weightBlockColor || '#333333',
+                      color: '#ffffff',
+                      fontFamily: BROADCAST_DEFAULTS.fontFamily 
+                    }}
+                  >
+                    {getDisplayWeight(member)}
+                  </div>
                 </div>
-              )}
-
-              {/* Weight */}
-              <div 
-                className="text-white font-bold text-sm bg-gray-800 px-2 py-1 border border-white min-w-[60px] text-center"
-                style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
-              >
-                {getDisplayWeight(member)}
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Team Stats Footer */}
+        <div className="flex gap-2">
+          <div 
+            className="bg-black border-2 border-white p-3 text-center flex-1"
+          >
+            <div 
+              className="text-2xl font-black"
+              style={{ 
+                color: sceneSettings.teamAccentColor || BROADCAST_DEFAULTS.primaryColor,
+                fontFamily: BROADCAST_DEFAULTS.fontFamily 
+              }}
+            >
+              {getTeamAverageWeight(team)}
+            </div>
+            <div 
+              className="text-white text-sm font-bold"
+              style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
+            >
+              TOTAL WEIGHT
+            </div>
+          </div>
+          
+          <div 
+            className="bg-black border-2 border-white p-3 text-center flex-1"
+          >
+            <div 
+              className="text-2xl font-black"
+              style={{ 
+                color: sceneSettings.teamAccentColor || BROADCAST_DEFAULTS.primaryColor,
+                fontFamily: BROADCAST_DEFAULTS.fontFamily 
+              }}
+            >
+              #{(team as any).calculatedSeed || 'TBD'}
+            </div>
+            <div 
+              className="text-white text-sm font-bold"
+              style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
+            >
+              SEED
+            </div>
+          </div>
         </div>
       </div>
     );
