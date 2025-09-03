@@ -144,7 +144,7 @@ export class QuickMatchManager {
     
     // Count votes for each map
     const voteCounts: Record<string, number> = {};
-    votes.forEach(vote => {
+    votes.forEach((vote: any) => {
       voteCounts[vote.map_id] = (voteCounts[vote.map_id] || 0) + 1;
     });
     
