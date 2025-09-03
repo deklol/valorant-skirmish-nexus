@@ -162,7 +162,7 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
               const displayWeight = (user as any).display_weight || (user as any).atlas_weight || (user as any).adaptive_weight || 150;
 
               return (
-                <div key={member.user_id} className="space-y-3">
+                <div key={member.user_id}>
                   {/* Player Name Block */}
                   <div 
                     className="px-6 py-4 text-white flex items-center justify-between"
@@ -183,7 +183,7 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
                   </div>
 
                   {/* Player Info Horizontal Cards */}
-                  <div className="grid grid-cols-4 gap-3">
+                  <div className="grid grid-cols-4">
                     {/* Avatar Card */}
                     <div className="bg-black/60 p-4 flex flex-col items-center">
                       <div className="w-16 h-16 bg-gray-600 mb-2">
