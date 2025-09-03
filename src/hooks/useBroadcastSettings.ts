@@ -123,7 +123,7 @@ const DEFAULT_SCENE_SETTINGS: BroadcastSceneSettings = {
   showTeamSeed: true,
   
   // Visual customization
-  transparentBackground: false,
+  transparentBackground: true,
   broadcastFriendlyMode: false,
   
   // Layout & Design
