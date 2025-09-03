@@ -21,3 +21,29 @@ export function getSupabase() {
   }
   return supabaseClient;
 }
+
+// Database helper object for legacy compatibility
+export const db = {
+  async getQuickMatchQueue() {
+    return await getSupabase()
+      .from('quick_match_queue')
+      .select(`
+        *,
+        users!inner(
+          id,
+          discord_username, 
+          discord_id, 
+          current_rank, 
+          peak_rank,
+          weight_rating,
+          manual_rank_override,
+          manual_weight_override,
+          use_manual_override,
+          tournaments_won,
+          last_tournament_win
+        )
+      `)
+      .eq('is_active', true)
+      .order('joined_at', { ascending: true });
+  }
+};
