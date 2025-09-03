@@ -67,7 +67,7 @@ async function handleTournamentSignup(interaction: any, tournamentId: string, us
   }
 
   // Check if registration is open
-  if (tournament.status !== 'open_registration') {
+  if (tournament.status !== 'open') {
     await interaction.editReply('❌ Registration is not currently open for this tournament.');
     return;
   }
