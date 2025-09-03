@@ -1,25 +1,43 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+let supabase: any = null;
 
-if (!supabaseUrl || !supabaseServiceKey) {
-  throw new Error('Missing required Supabase environment variables');
+export async function initializeSupabase() {
+  if (supabase) return supabase; // Return existing client if already initialized
+  
+  const supabaseUrl = process.env.SUPABASE_URL!;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Missing required Supabase environment variables');
+  }
+
+  // Create Supabase client with service role key for full access
+  supabase = createClient(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  });
+  
+  return supabase;
 }
 
-// Create Supabase client with service role key for full access
-export const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
+export function getSupabaseClient() {
+  if (!supabase) {
+    throw new Error('Supabase not initialized. Call initializeSupabase() first.');
   }
-});
+  return supabase;
+}
+
+// Export for backward compatibility with files that import { supabase }
+export { getSupabaseClient as supabase };
 
 // Database utility functions
 export const db = {
   // User management
   async findUserByDiscordId(discordId: string) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
       .from('users')
       .select('*')
       .eq('discord_id', discordId)
@@ -36,7 +54,7 @@ export const db = {
     current_rank?: string;
     peak_rank?: string;
   }) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
       .from('users')
       .insert(userData)
       .select()
@@ -46,7 +64,7 @@ export const db = {
   },
 
   async updateUser(discordId: string, updates: any) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
       .from('users')
       .update(updates)
       .eq('discord_id', discordId)
@@ -58,7 +76,7 @@ export const db = {
 
   // Tournament management
   async getActiveTournaments() {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
       .from('tournaments')
       .select('*')
       .in('status', ['open', 'live', 'balancing'])
@@ -68,7 +86,7 @@ export const db = {
   },
 
   async getTournamentById(id: string) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
       .from('tournaments')
       .select('*')
       .eq('id', id)
@@ -78,7 +96,7 @@ export const db = {
   },
 
   async getTournamentSignups(tournamentId: string) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
       .from('tournament_signups')
       .select(`
         *,
@@ -90,7 +108,7 @@ export const db = {
   },
 
   async signupUserForTournament(userId: string, tournamentId: string) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
       .from('tournament_signups')
       .insert({
         user_id: userId,
@@ -104,7 +122,7 @@ export const db = {
   },
 
   async removeSignup(userId: string, tournamentId: string) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
       .from('tournament_signups')
       .delete()
       .eq('user_id', userId)
@@ -115,7 +133,7 @@ export const db = {
 
   // Quick match queue
   async addToQuickMatchQueue(userId: string) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
       .from('quick_match_queue')
       .upsert({
         user_id: userId,
@@ -129,7 +147,7 @@ export const db = {
   },
 
   async getQuickMatchQueue() {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
       .from('quick_match_queue')
       .select(`
         *,
@@ -154,7 +172,7 @@ export const db = {
   },
 
   async removeFromQuickMatchQueue(userId: string) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
       .from('quick_match_queue')
       .update({ is_active: false })
       .eq('user_id', userId);
@@ -163,7 +181,7 @@ export const db = {
   },
 
   async clearQuickMatchQueue() {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
       .from('quick_match_queue')
       .update({ is_active: false })
       .eq('is_active', true);
@@ -173,7 +191,7 @@ export const db = {
 
   // Map management
   async getActiveMaps() {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
       .from('maps')
       .select('*')
       .eq('is_active', true)
@@ -184,7 +202,7 @@ export const db = {
 
   // Statistics
   async getUserStats(userId: string) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
       .from('users')
       .select('wins, losses, tournaments_played, tournaments_won, current_rank, peak_rank, weight_rating')
       .eq('id', userId)
@@ -194,7 +212,7 @@ export const db = {
   },
 
   async getLeaderboard(limit: number = 10) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
       .from('users')
       .select('discord_username, tournaments_won, wins, losses, current_rank, weight_rating')
       .order('tournaments_won', { ascending: false })

@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import { Client, Collection, GatewayIntentBits, Partials } from 'discord.js';
-import { supabase } from './utils/supabase.js';
+import { initializeSupabase } from './utils/supabase.js';
 import { loadCommands } from './handlers/commandHandler.js';
 import { loadEvents } from './handlers/eventHandler.js';
 import { startCronJobs } from './utils/cronJobs.js';
@@ -38,6 +38,10 @@ client.commands = new Collection();
 async function startBot() {
   try {
     console.log('🤖 Starting Tournament Discord Bot...');
+    
+    // Initialize Supabase after environment variables are loaded
+    const supabase = await initializeSupabase();
+    console.log('✅ Supabase initialized successfully');
     
     // Test Supabase connection
     const { data, error } = await supabase.from('tournaments').select('count').limit(1);
