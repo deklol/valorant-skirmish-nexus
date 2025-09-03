@@ -1,4 +1,4 @@
-import { Client } from 'discord.js';  
+import { Client, MessageFlags } from 'discord.js';  
 import { readdirSync } from 'fs';
 import { join } from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
