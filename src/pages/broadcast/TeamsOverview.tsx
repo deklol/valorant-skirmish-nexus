@@ -127,25 +127,27 @@ export default function TeamsOverview() {
             >
               {team.name}
             </div>
-            {isEliminated && (
+            {isEliminated && sceneSettings.showTeamStatusBadges && (
               <Badge variant="outline" className="text-xs">
                 Eliminated R{team.eliminated_round}
               </Badge>
             )}
           </div>
-          <div className="flex items-center space-x-2">
-            <Users className="w-4 h-4" style={{ color: sceneSettings.textColor || settings.textColor }} />
-            <span 
-              className="text-lg font-medium"
-              style={{ 
-                color: sceneSettings.textColor || settings.textColor,
-                fontFamily: sceneSettings.fontFamily || 'inherit',
-                fontSize: '18px'
-              }}
-            >
-              {team.team_members.length}
-            </span>
-          </div>
+            {sceneSettings.showMemberCount && (
+              <div className="flex items-center space-x-2">
+                <Users className="w-4 h-4" style={{ color: sceneSettings.textColor || settings.textColor }} />
+                <span 
+                  className="text-lg font-medium"
+                  style={{ 
+                    color: sceneSettings.textColor || settings.textColor,
+                    fontFamily: sceneSettings.fontFamily || 'inherit',
+                    fontSize: '18px'
+                  }}
+                >
+                  {team.team_members.length}
+                </span>
+              </div>
+            )}
         </div>
         <div 
           className="text-lg mt-2 font-medium"
@@ -245,7 +247,7 @@ export default function TeamsOverview() {
         </div>
 
         {/* Active Teams */}
-        {activeTeams.length > 0 && (
+        {sceneSettings.showActiveEliminated && activeTeams.length > 0 && (
           <div className="mb-8">
             <div 
               className="text-4xl font-bold mb-6 flex items-center space-x-3"
@@ -258,7 +260,9 @@ export default function TeamsOverview() {
               <Trophy className="w-8 h-8" style={{ color: '#10B981' }} />
               <span>Active Teams ({activeTeams.length})</span>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div 
+              className={`grid grid-cols-${sceneSettings.gridColumns || 2} gap-6`}
+            >
               {activeTeams.map((team) => (
                 <TeamCard key={team.id} team={team} />
               ))}
@@ -267,7 +271,7 @@ export default function TeamsOverview() {
         )}
 
         {/* Eliminated Teams */}
-        {eliminatedTeams.length > 0 && (
+        {sceneSettings.showActiveEliminated && eliminatedTeams.length > 0 && (
           <div>
             <div 
               className="text-4xl font-bold mb-6 flex items-center space-x-3"
@@ -280,7 +284,9 @@ export default function TeamsOverview() {
               <Users className="w-8 h-8" style={{ color: '#6B7280' }} />
               <span>Eliminated Teams ({eliminatedTeams.length})</span>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div 
+              className={`grid grid-cols-${sceneSettings.gridColumns || 2} gap-6`}
+            >
               {eliminatedTeams.map((team) => (
                 <TeamCard key={team.id} team={team} isEliminated />
               ))}
@@ -289,7 +295,8 @@ export default function TeamsOverview() {
         )}
 
         {/* Tournament Status */}
-        <div className="mt-8 text-center">
+        {sceneSettings.showTournamentStatus && (
+          <div className="mt-8 text-center">
           <div 
             className={`inline-block px-6 py-3 rounded-full font-bold text-lg ${
               tournament.status === 'live' 
@@ -305,7 +312,8 @@ export default function TeamsOverview() {
             {tournament.status === 'balancing' && '✋ TEAM BALANCING'}
             {tournament.status === 'draft' && '📋 DRAFT'}
           </div>
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

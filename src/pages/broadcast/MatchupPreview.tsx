@@ -90,24 +90,26 @@ export default function MatchupPreview() {
     <div className={BROADCAST_CONTAINER_CLASSES + " flex items-center justify-center p-8"} style={containerStyle}>
       <div className="max-w-7xl w-full">
         {/* Header */}
-        <div className="text-center mb-12">
-          <div 
-            className="text-5xl font-bold mb-4 flex items-center justify-center space-x-4" 
-            style={getBroadcastHeaderStyle(sceneSettings, settings, 'large')}
-          >
-            <span>{team1.name}</span>
-            <Swords className="w-12 h-12 text-red-500" />
-            <span>{team2.name}</span>
+        {sceneSettings.showVsHeader && (
+          <div className="text-center mb-12">
+            <div 
+              className="text-5xl font-bold mb-4 flex items-center justify-center space-x-4" 
+              style={getBroadcastHeaderStyle(sceneSettings, settings, 'large')}
+            >
+              <span>{team1.name}</span>
+              <Swords className="w-12 h-12 text-red-500" />
+              <span>{team2.name}</span>
+            </div>
+            <div 
+              className="text-xl" 
+              style={getBroadcastTextStyle(sceneSettings, settings, '70')}
+            >
+              Upcoming Match
+            </div>
           </div>
-          <div 
-            className="text-xl" 
-            style={getBroadcastTextStyle(sceneSettings, settings, '70')}
-          >
-            Upcoming Match
-          </div>
-        </div>
+        )}
 
-        <div className="grid grid-cols-2 gap-16">
+        <div className={`${sceneSettings.matchupLayout === 'stacked' ? 'space-y-12' : 'grid grid-cols-2 gap-16'}`}>
           {/* Team 1 */}
           <div className="space-y-6">
             <div className="text-center">
@@ -240,7 +242,7 @@ export default function MatchupPreview() {
         </div>
 
         {/* Stats Comparison */}
-        {sceneSettings.showAdaptiveWeight && (
+        {sceneSettings.showAdaptiveWeight && sceneSettings.showWeightDifference && (
           <div className="mt-12 text-center">
             <div 
               className="bg-black/30 backdrop-blur-sm rounded-xl p-6 border border-white/10 inline-block"
@@ -255,12 +257,14 @@ export default function MatchupPreview() {
               <div className={`text-2xl font-bold ${weightDiff < 10 ? 'text-green-400' : weightDiff < 25 ? 'text-yellow-400' : 'text-red-400'}`}>
                 {weightDiff} points
               </div>
-              <div 
-                className="text-sm mt-1" 
-                style={getBroadcastTextStyle(sceneSettings, settings, '50')}
-              >
-                {weightDiff < 10 ? 'Very Balanced' : weightDiff < 25 ? 'Balanced' : 'Favored Match'}
-              </div>
+              {sceneSettings.showBalanceAssessment && (
+                <div 
+                  className="text-sm mt-1" 
+                  style={getBroadcastTextStyle(sceneSettings, settings, '50')}
+                >
+                  {weightDiff < 10 ? 'Very Balanced' : weightDiff < 25 ? 'Balanced' : 'Favored Match'}
+                </div>
+              )}
             </div>
           </div>
         )}

@@ -184,7 +184,8 @@ export default function TournamentStats() {
         </div>
 
         {/* Stats Grid - Complete remaining cards */}
-        <div className="grid grid-cols-2 gap-8 mb-12">
+        {sceneSettings.showIndividualStatCards && (
+          <div className="grid grid-cols-2 gap-8 mb-12">
           {/* Participants */}
           <div 
             className="backdrop-blur-sm rounded-2xl p-8 border text-center"
@@ -356,83 +357,88 @@ export default function TournamentStats() {
               In Tournament
             </div>
           </div>
-        </div>
+          </div>
+        )}
 
         {/* Progress Bar */}
-        <div 
-          className="backdrop-blur-sm rounded-2xl p-8 border"
-          style={{ 
-            backgroundColor: 'rgba(0, 0, 0, 0.4)',
-            borderColor: sceneSettings.borderColor || '#ffffff20',
-            borderRadius: sceneSettings.borderRadius || 16,
-            borderWidth: sceneSettings.borderWidth || 1,
-            padding: sceneSettings.padding || 32
-          }}
-        >
-          <div className="text-center mb-6">
-            <div 
-              className="text-2xl font-bold mb-2"
-              style={{ 
-                color: sceneSettings.headerTextColor || settings.headerTextColor,
-                fontFamily: sceneSettings.fontFamily || 'inherit'
-              }}
-            >
-              Tournament Progress
-            </div>
-            <div 
-              style={{ 
-                color: (sceneSettings.textColor || settings.textColor) + '70',
-                fontFamily: sceneSettings.fontFamily || 'inherit'
-              }}
-            >
-              {stats.completedMatches} of {stats.totalMatches} matches completed
-            </div>
-          </div>
-          
-          <div className="relative">
-            <div 
-              className="w-full rounded-full h-6 border"
-              style={{ 
-                backgroundColor: 'rgba(0, 0, 0, 0.3)',
-                borderColor: sceneSettings.borderColor || '#ffffff10'
-              }}
-            >
+        {sceneSettings.showProgressBar && (
+          <div
+            className="backdrop-blur-sm rounded-2xl p-8 border"
+            style={{ 
+              backgroundColor: 'rgba(0, 0, 0, 0.4)',
+              borderColor: sceneSettings.borderColor || '#ffffff20',
+              borderRadius: sceneSettings.borderRadius || 16,
+              borderWidth: sceneSettings.borderWidth || 1,
+              padding: sceneSettings.padding || 32
+            }}
+          >
+            <div className="text-center mb-6">
               <div 
-                className="bg-gradient-to-r from-green-500 to-blue-500 h-6 rounded-full flex items-center justify-center transition-all duration-1000"
-                style={{ width: `${stats.tournamentProgress}%` }}
+                className="text-2xl font-bold mb-2"
+                style={{ 
+                  color: sceneSettings.headerTextColor || settings.headerTextColor,
+                  fontFamily: sceneSettings.fontFamily || 'inherit'
+                }}
               >
-                <span 
-                  className="text-sm font-bold"
-                  style={{ 
-                    color: sceneSettings.headerTextColor || settings.headerTextColor,
-                    fontFamily: sceneSettings.fontFamily || 'inherit'
-                  }}
+                Tournament Progress
+              </div>
+              <div 
+                style={{ 
+                  color: (sceneSettings.textColor || settings.textColor) + '70',
+                  fontFamily: sceneSettings.fontFamily || 'inherit'
+                }}
+              >
+                {stats.completedMatches} of {stats.totalMatches} matches completed
+              </div>
+            </div>
+            
+            <div className="relative">
+              <div 
+                className="w-full rounded-full h-6 border"
+                style={{ 
+                  backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                  borderColor: sceneSettings.borderColor || '#ffffff10'
+                }}
+              >
+                <div 
+                  className="bg-gradient-to-r from-green-500 to-blue-500 h-6 rounded-full flex items-center justify-center transition-all duration-1000"
+                  style={{ width: `${stats.tournamentProgress}%` }}
                 >
-                  {Math.round(stats.tournamentProgress)}%
-                </span>
+                  <span 
+                    className="text-sm font-bold"
+                    style={{ 
+                      color: sceneSettings.headerTextColor || settings.headerTextColor,
+                      fontFamily: sceneSettings.fontFamily || 'inherit'
+                    }}
+                  >
+                    {Math.round(stats.tournamentProgress)}%
+                  </span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Tournament Status */}
-        <div className="mt-8 text-center">
-          <div 
-            className={`inline-block px-6 py-3 rounded-full font-bold text-lg ${
-              tournament.status === 'live' 
-                ? 'bg-red-500/20 text-red-400 border border-red-500/30' 
-                : tournament.status === 'completed' 
-                  ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                  : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-            }`}
-          >
-            {tournament.status === 'live' && '🔴 LIVE'}
-            {tournament.status === 'completed' && '✅ COMPLETED'}
-            {tournament.status === 'open' && '📝 REGISTRATION OPEN'}
-            {tournament.status === 'balancing' && '✋ TEAM BALANCING'}
-            {tournament.status === 'draft' && '📋 DRAFT'}
+        {sceneSettings.showTournamentStatusHeader && (
+          <div className="mt-8 text-center">
+            <div 
+              className={`inline-block px-6 py-3 rounded-full font-bold text-lg ${
+                tournament.status === 'live' 
+                  ? 'bg-red-500/20 text-red-400 border border-red-500/30' 
+                  : tournament.status === 'completed' 
+                    ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                    : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+              }`}
+            >
+              {tournament.status === 'live' && '🔴 LIVE'}
+              {tournament.status === 'completed' && '✅ COMPLETED'}
+              {tournament.status === 'open' && '📝 REGISTRATION OPEN'}
+              {tournament.status === 'balancing' && '✋ TEAM BALANCING'}
+              {tournament.status === 'draft' && '📋 DRAFT'}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
