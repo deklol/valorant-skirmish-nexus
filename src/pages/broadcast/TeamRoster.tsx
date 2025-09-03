@@ -163,72 +163,142 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
 
               return (
                 <div key={member.user_id}>
-                  {/* Player Name Block */}
-                  <div 
-                    className="px-6 py-4 text-white flex items-center justify-between"
-                    style={{ 
-                      backgroundColor: sceneSettings.teamAccentColor || BROADCAST_DEFAULTS.primaryColor 
-                    }}
-                  >
-                    <div className="flex items-center gap-4">
-                      <span className="text-2xl font-bold">
-                        {user.discord_username || 'Unknown Player'}
-                      </span>
-                      {member.is_captain && (
-                        <div className="bg-yellow-400 text-black px-3 py-1 text-sm font-bold">
-                          CAPTAIN
+                  {sceneSettings.transparentBackground ? (
+                    // Blocky design for OBS/vMix
+                    <>
+                      {/* Player Name Block */}
+                      <div 
+                        className="px-6 py-4 text-white flex items-center justify-between"
+                        style={{ 
+                          backgroundColor: sceneSettings.teamAccentColor || BROADCAST_DEFAULTS.primaryColor 
+                        }}
+                      >
+                        <div className="flex items-center gap-4">
+                          <span className="text-2xl font-bold">
+                            {user.discord_username || 'Unknown Player'}
+                          </span>
+                          {member.is_captain && (
+                            <div className="bg-yellow-400 text-black px-3 py-1 text-sm font-bold">
+                              CAPTAIN
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Player Info Horizontal Cards */}
-                  <div className="grid grid-cols-4">
-                    {/* Avatar Card */}
-                    <div className="bg-black/60 p-4 flex flex-col items-center">
-                      <div className="w-16 h-16 bg-gray-600 mb-2">
-                        <img
-                          src={user.discord_avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.discord_username}`}
-                          alt={user.discord_username}
-                          className="w-full h-full object-cover"
-                        />
                       </div>
-                      <div className="text-white text-sm text-center">Avatar</div>
-                    </div>
 
-                    {/* Rank Card */}
-                    {sceneSettings.showCurrentRank && user.current_rank && (
-                      <div className="bg-black/60 p-4 flex flex-col items-center">
-                        <div 
-                          className="w-16 h-16 flex items-center justify-center text-2xl mb-2"
-                          style={{ backgroundColor: getRankColor(user.current_rank) }}
-                        >
-                          {formatRank(user.current_rank).emoji}
+                      {/* Player Info Horizontal Cards */}
+                      <div className="grid grid-cols-4">
+                        {/* Avatar Card */}
+                        <div className="bg-black/60 p-4 flex flex-col items-center">
+                          <div className="w-16 h-16 bg-gray-600 mb-2">
+                            <img
+                              src={user.discord_avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.discord_username}`}
+                              alt={user.discord_username}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
                         </div>
-                        <div className="text-white text-sm text-center">{user.current_rank}</div>
-                      </div>
-                    )}
 
-                    {/* Weight Card */}
-                    {sceneSettings.showAdaptiveWeight && (
-                      <div className="bg-black/60 p-4 flex flex-col items-center">
-                        <div className="w-16 h-16 bg-blue-600 flex items-center justify-center text-xl font-bold text-white mb-2">
-                          {displayWeight}
-                        </div>
-                        <div className="text-white text-sm text-center">Weight</div>
-                      </div>
-                    )}
+                        {/* Rank Card */}
+                        {sceneSettings.showCurrentRank && user.current_rank && (
+                          <div className="bg-black/60 p-4 flex flex-col items-center">
+                            <div 
+                              className="w-16 h-16 flex items-center justify-center text-2xl mb-2"
+                              style={{ backgroundColor: getRankColor(user.current_rank) }}
+                            >
+                              {formatRank(user.current_rank).emoji}
+                            </div>
+                            <div className="text-white text-sm text-center">{user.current_rank}</div>
+                          </div>
+                        )}
 
-                    {/* Riot ID Card */}
-                    {sceneSettings.showRiotId && user.riot_id && (
-                      <div className="bg-black/60 p-4 flex flex-col items-center">
-                        <div className="w-16 h-16 bg-red-600 flex items-center justify-center text-white mb-2 text-xs text-center font-bold">
-                          RIOT
-                        </div>
-                        <div className="text-white text-sm text-center truncate w-full">{user.riot_id}</div>
+                        {/* Weight Card */}
+                        {sceneSettings.showAdaptiveWeight && (
+                          <div className="bg-black/60 p-4 flex flex-col items-center">
+                            <div className="w-16 h-16 bg-blue-600 flex items-center justify-center text-xl font-bold text-white mb-2">
+                              {displayWeight}
+                            </div>
+                            <div className="text-white text-sm text-center">Weight</div>
+                          </div>
+                        )}
+
+                        {/* Riot ID Card */}
+                        {sceneSettings.showRiotId && user.riot_id && (
+                          <div className="bg-black/60 p-4 flex flex-col items-center">
+                            <div className="w-16 h-16 bg-red-600 flex items-center justify-center text-white mb-2 text-xs text-center font-bold">
+                              RIOT
+                            </div>
+                            <div className="text-white text-sm text-center truncate w-full">{user.riot_id}</div>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
+                    </>
+                  ) : (
+                    // Original design for non-transparent background
+                    <>
+                      {/* Player Name Block */}
+                      <div 
+                        className="px-6 py-4 text-white flex items-center justify-between rounded-t-lg"
+                        style={{ 
+                          backgroundColor: sceneSettings.teamAccentColor || BROADCAST_DEFAULTS.primaryColor 
+                        }}
+                      >
+                        <div className="flex items-center gap-4">
+                          <span className="text-2xl font-bold">
+                            {user.discord_username || 'Unknown Player'}
+                          </span>
+                          {member.is_captain && (
+                            <Badge variant="secondary" className="bg-yellow-400 text-black font-bold">
+                              <Crown className="w-3 h-3 mr-1" />
+                              CAPTAIN
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Player Info Cards */}
+                      <div className="grid grid-cols-4 rounded-b-lg overflow-hidden">
+                        {/* Avatar Card */}
+                        <div className="backdrop-blur-sm bg-white/10 p-4 flex flex-col items-center">
+                          <Avatar className="w-16 h-16 mb-2">
+                            <AvatarImage 
+                              src={user.discord_avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.discord_username}`} 
+                              alt={user.discord_username} 
+                            />
+                            <AvatarFallback className="bg-gray-600 text-white font-bold">
+                              {(user.discord_username || 'U').charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                        </div>
+
+                        {/* Rank Card */}
+                        {sceneSettings.showCurrentRank && user.current_rank && (
+                          <div className="backdrop-blur-sm bg-white/10 p-4 flex flex-col items-center">
+                            {renderRank(user.current_rank)}
+                          </div>
+                        )}
+
+                        {/* Weight Card */}
+                        {sceneSettings.showAdaptiveWeight && (
+                          <div className="backdrop-blur-sm bg-white/10 p-4 flex flex-col items-center">
+                            <Badge variant="secondary" className="text-lg font-bold bg-blue-600 text-white">
+                              {displayWeight}
+                            </Badge>
+                            <div className="text-white text-sm mt-1 text-center">Weight</div>
+                          </div>
+                        )}
+
+                        {/* Riot ID Card */}
+                        {sceneSettings.showRiotId && user.riot_id && (
+                          <div className="backdrop-blur-sm bg-white/10 p-4 flex flex-col items-center">
+                            <Badge variant="destructive" className="text-sm font-bold">
+                              RIOT
+                            </Badge>
+                            <div className="text-white text-sm mt-1 text-center truncate w-full">{user.riot_id}</div>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
               );
             })}
