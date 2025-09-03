@@ -197,15 +197,87 @@ export default function MatchupPreview() {
   const TaleOfTapeStats = () => {
     const team1Stats = {
       avgWeight: Math.round(team1.team_members.reduce((sum, m) => sum + ((m.users as any)?.display_weight || (m.users as any)?.atlas_weight || (m.users as any)?.adaptive_weight || m.users?.weight_rating || 150), 0) / team1.team_members.length),
+      totalTournamentWins: team1.team_members.reduce((sum, m) => sum + ((m.users as any)?.tournaments_won || 0), 0),
+      totalTournamentsPlayed: team1.team_members.reduce((sum, m) => sum + ((m.users as any)?.tournaments_played || 0), 0),
+      avgPeakRankPoints: Math.round(team1.team_members.reduce((sum, m) => sum + ((m.users as any)?.peak_rank_points || m.users?.rank_points || 150), 0) / team1.team_members.length),
+      experienceLevel: Math.round(team1.team_members.reduce((sum, m) => sum + ((m.users as any)?.tournaments_played || 0), 0) / team1.team_members.length),
       highestRank: getHighestRank(team1.team_members),
-      avgTournamentWins: Math.round(team1.team_members.reduce((sum, m) => sum + ((m.users as any)?.tournaments_won || 0), 0) / team1.team_members.length * 10) / 10,
+      teamWinRate: team1.team_members.reduce((sum, m) => sum + ((m.users as any)?.tournaments_played || 0), 0) > 0 ? 
+        Math.round((team1.team_members.reduce((sum, m) => sum + ((m.users as any)?.tournaments_won || 0), 0) / 
+        team1.team_members.reduce((sum, m) => sum + ((m.users as any)?.tournaments_played || 0), 0)) * 100) : 0
     };
 
     const team2Stats = {
       avgWeight: Math.round(team2.team_members.reduce((sum, m) => sum + ((m.users as any)?.display_weight || (m.users as any)?.atlas_weight || (m.users as any)?.adaptive_weight || m.users?.weight_rating || 150), 0) / team2.team_members.length),
+      totalTournamentWins: team2.team_members.reduce((sum, m) => sum + ((m.users as any)?.tournaments_won || 0), 0),
+      totalTournamentsPlayed: team2.team_members.reduce((sum, m) => sum + ((m.users as any)?.tournaments_played || 0), 0),
+      avgPeakRankPoints: Math.round(team2.team_members.reduce((sum, m) => sum + ((m.users as any)?.peak_rank_points || m.users?.rank_points || 150), 0) / team2.team_members.length),
+      experienceLevel: Math.round(team2.team_members.reduce((sum, m) => sum + ((m.users as any)?.tournaments_played || 0), 0) / team2.team_members.length),
       highestRank: getHighestRank(team2.team_members),
-      avgTournamentWins: Math.round(team2.team_members.reduce((sum, m) => sum + ((m.users as any)?.tournaments_won || 0), 0) / team2.team_members.length * 10) / 10,
+      teamWinRate: team2.team_members.reduce((sum, m) => sum + ((m.users as any)?.tournaments_played || 0), 0) > 0 ? 
+        Math.round((team2.team_members.reduce((sum, m) => sum + ((m.users as any)?.tournaments_won || 0), 0) / 
+        team2.team_members.reduce((sum, m) => sum + ((m.users as any)?.tournaments_played || 0), 0)) * 100) : 0
     };
+
+    // Win prediction calculation
+    const calculateWinPrediction = () => {
+      let team1Score = 0;
+      let team2Score = 0;
+
+      // Weight advantage (40% of prediction)
+      if (team1Stats.avgWeight > team2Stats.avgWeight) {
+        team1Score += 40;
+      } else if (team2Stats.avgWeight > team1Stats.avgWeight) {
+        team2Score += 40;
+      } else {
+        team1Score += 20;
+        team2Score += 20;
+      }
+
+      // Seed advantage (30% of prediction) - lower seed is better
+      const team1Seed = team1.seed || 99;
+      const team2Seed = team2.seed || 99;
+      if (team1Seed < team2Seed) {
+        team1Score += 30;
+      } else if (team2Seed < team1Seed) {
+        team2Score += 30;
+      } else {
+        team1Score += 15;
+        team2Score += 15;
+      }
+
+      // Experience advantage (20% of prediction)
+      if (team1Stats.experienceLevel > team2Stats.experienceLevel) {
+        team1Score += 20;
+      } else if (team2Stats.experienceLevel > team1Stats.experienceLevel) {
+        team2Score += 20;
+      } else {
+        team1Score += 10;
+        team2Score += 10;
+      }
+
+      // Win rate advantage (10% of prediction)
+      const team1WinRate = team1Stats.totalTournamentsPlayed > 0 ? team1Stats.totalTournamentWins / team1Stats.totalTournamentsPlayed : 0;
+      const team2WinRate = team2Stats.totalTournamentsPlayed > 0 ? team2Stats.totalTournamentWins / team2Stats.totalTournamentsPlayed : 0;
+      
+      if (team1WinRate > team2WinRate) {
+        team1Score += 10;
+      } else if (team2WinRate > team1WinRate) {
+        team2Score += 10;
+      } else {
+        team1Score += 5;
+        team2Score += 5;
+      }
+
+      // Normalize to percentages
+      const total = team1Score + team2Score;
+      const team1Percentage = Math.round((team1Score / total) * 100);
+      const team2Percentage = 100 - team1Percentage;
+
+      return { team1: team1Percentage, team2: team2Percentage };
+    };
+
+    const winPrediction = calculateWinPrediction();
 
     // Use blocky design ONLY when transparentBackground is true
     if (sceneSettings.transparentBackground) {
@@ -242,15 +314,21 @@ export default function MatchupPreview() {
             
             <div className="grid grid-cols-3 gap-0 py-2">
               <div className="bg-black text-center font-bold text-white text-lg p-2">
-                {team1Stats.highestRank}
+                {winPrediction.team1}%
               </div>
               <div className="bg-[#FF6B35] text-center text-white uppercase tracking-wider text-sm font-bold p-2">
-                HIGHEST RANK
+                WIN PREDICTION
               </div>
               <div className="bg-black text-center font-bold text-white text-lg p-2">
-                {team2Stats.highestRank}
+                {winPrediction.team2}%
               </div>
             </div>
+            
+            <StatRow 
+              label="EXPERIENCE" 
+              value1={team1Stats.experienceLevel} 
+              value2={team2Stats.experienceLevel} 
+            />
             
             <StatRow 
               label="SEED" 
@@ -304,15 +382,21 @@ export default function MatchupPreview() {
             />
             
             <StatRow 
-              label="Highest Rank" 
-              value1={team1Stats.highestRank} 
-              value2={team2Stats.highestRank} 
+              label="Win Prediction" 
+              value1={`${winPrediction.team1}%`} 
+              value2={`${winPrediction.team2}%`} 
             />
             
             <StatRow 
-              label="Avg Wins" 
-              value1={team1Stats.avgTournamentWins} 
-              value2={team2Stats.avgTournamentWins} 
+              label="Experience" 
+              value1={team1Stats.experienceLevel} 
+              value2={team2Stats.experienceLevel} 
+            />
+            
+            <StatRow 
+              label="Team Win Rate" 
+              value1={`${team1Stats.teamWinRate}%`} 
+              value2={`${team2Stats.teamWinRate}%`} 
             />
             
             <StatRow 
