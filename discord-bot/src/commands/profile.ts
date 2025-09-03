@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { db } from '../utils/supabase.js';
+import { getSupabase } from '../utils/supabase.js';
 import { createUserProfileEmbed } from '../utils/embeds.js';
 import { handleUserRegistration } from '../utils/userRegistration.js';
 
@@ -20,7 +20,11 @@ export default {
     
     try {
       // Find user in database
-      const { data: user, error } = await db.findUserByDiscordId(targetUser.id);
+      const { data: user, error } = await getSupabase()
+        .from('users')
+        .select('*')
+        .eq('discord_id', targetUser.id)
+        .maybeSingle();
       
       if (error || !user) {
         if (isOwnProfile) {
@@ -34,7 +38,11 @@ export default {
       }
       
       // Get user statistics
-      const stats = await db.getUserStats(user.id);
+      const { data: stats } = await getSupabase()
+        .from('users')
+        .select('wins, losses, tournaments_played, tournaments_won, current_rank, peak_rank, weight_rating')
+        .eq('id', user.id)
+        .single();
       
       // Create and send profile embed
       const embed = createUserProfileEmbed(user, stats);

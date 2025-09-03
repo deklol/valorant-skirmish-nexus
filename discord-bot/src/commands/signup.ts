@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
-import { db, getSupabase } from '../utils/supabase.js';
+import { getSupabase } from '../utils/supabase.js';
 import { handleUserRegistration } from '../utils/userRegistration.js';
 
 export default {
@@ -17,7 +17,11 @@ export default {
     
     try {
       // Check if user is registered
-      const { data: user } = await db.findUserByDiscordId(interaction.user.id);
+      const { data: user } = await getSupabase()
+        .from('users')
+        .select('*')
+        .eq('discord_id', interaction.user.id)
+        .maybeSingle();
       
       if (!user) {
         await interaction.deleteReply();
@@ -32,13 +36,21 @@ export default {
       
       // First try by ID
       if (tournamentInput.length === 36) { // UUID length
-        const { data } = await db.getTournamentById(tournamentInput);
+        const { data } = await getSupabase()
+          .from('tournaments')
+          .select('*')
+          .eq('id', tournamentInput)
+          .maybeSingle();
         tournament = data;
       }
       
       // If not found, try by name
       if (!tournament) {
-        const { data: tournaments } = await db.getActiveTournaments();
+        const { data: tournaments } = await getSupabase()
+          .from('tournaments')
+          .select('*')
+          .in('status', ['open', 'live', 'balancing'])
+          .order('start_time', { ascending: true });
         if (tournaments) {
           tournament = tournaments.find((t: any) => 
             t.name.toLowerCase().includes(tournamentInput.toLowerCase())
@@ -71,14 +83,28 @@ export default {
       }
       
       // Check if tournament is full
-      const { data: signups } = await db.getTournamentSignups(tournament.id);
+      const { data: signups } = await getSupabase()
+        .from('tournament_signups')
+        .select(`
+          *,
+          users!inner(discord_username, current_rank, riot_id)
+        `)
+        .eq('tournament_id', tournament.id);
       if (signups && signups.length >= tournament.max_players) {
         await interaction.editReply('❌ This tournament is full.');
         return;
       }
       
       // Sign up user
-      const { error } = await db.signupUserForTournament(user.id, tournament.id);
+      const { error } = await getSupabase()
+        .from('tournament_signups')
+        .insert({
+          user_id: user.id,
+          tournament_id: tournament.id,
+          signed_up_at: new Date().toISOString()
+        })
+        .select()
+        .single();
       
       if (error) {
         await interaction.editReply('❌ Failed to sign up for tournament. Please try again.');
@@ -124,7 +150,11 @@ export default {
     const focusedValue = interaction.options.getFocused();
     
     try {
-      const { data: tournaments } = await db.getActiveTournaments();
+      const { data: tournaments } = await getSupabase()
+        .from('tournaments')
+        .select('*')
+        .in('status', ['open', 'live', 'balancing'])
+        .order('start_time', { ascending: true });
       
       if (!tournaments) {
         await interaction.respond([]);

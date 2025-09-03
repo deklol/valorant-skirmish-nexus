@@ -1,5 +1,5 @@
 import { Events, Interaction, EmbedBuilder } from 'discord.js';
-import { db, getSupabase } from '../utils/supabase';
+import { getSupabase } from '../utils/supabase';
 import { createTournamentEmbed, createQuickMatchEmbed } from '../utils/embeds';
 import { handleUserRegistration } from '../utils/userRegistration';
 
@@ -39,7 +39,11 @@ export default {
       
       try {
         // Check if user is registered
-        const { data: user } = await db.findUserByDiscordId(interaction.user.id);
+        const { data: user } = await getSupabase()
+          .from('users')
+          .select('*')
+          .eq('discord_id', interaction.user.id)
+          .maybeSingle();
         
         // If user not registered and not registering, start registration
         if (!user && action !== 'register') {
@@ -101,7 +105,11 @@ async function handleTournamentSignup(interaction: any, tournamentId: string, us
   }
   
   // Check if tournament exists and is open for registration
-  const { data: tournament, error: tournamentError } = await db.getTournamentById(tournamentId);
+  const { data: tournament, error: tournamentError } = await getSupabase()
+    .from('tournaments')
+    .select('*')
+    .eq('id', tournamentId)
+    .maybeSingle();
   
   if (tournamentError || !tournament) {
     await interaction.reply({
@@ -136,7 +144,13 @@ async function handleTournamentSignup(interaction: any, tournamentId: string, us
   }
   
   // Check if tournament is full
-  const { data: signups } = await db.getTournamentSignups(tournamentId);
+  const { data: signups } = await getSupabase()
+    .from('tournament_signups')
+    .select(`
+      *,
+      users!inner(discord_username, current_rank, riot_id)
+    `)
+    .eq('tournament_id', tournamentId);
   if (signups && signups.length >= tournament.max_players) {
     await interaction.reply({
       content: '❌ This tournament is full.',
@@ -146,7 +160,15 @@ async function handleTournamentSignup(interaction: any, tournamentId: string, us
   }
   
   // Sign up user
-  const { error } = await db.signupUserForTournament(user.id, tournamentId);
+  const { error } = await getSupabase()
+    .from('tournament_signups')
+    .insert({
+      user_id: user.id,
+      tournament_id: tournamentId,
+      signed_up_at: new Date().toISOString()
+    })
+    .select()
+    .single();
   
   if (error) {
     await interaction.reply({
@@ -157,7 +179,13 @@ async function handleTournamentSignup(interaction: any, tournamentId: string, us
   }
   
   // Update the embed with new signup count
-  const updatedSignups = await db.getTournamentSignups(tournamentId);
+  const { data: updatedSignups } = await getSupabase()
+    .from('tournament_signups')
+    .select(`
+      *,
+      users!inner(discord_username, current_rank, riot_id)
+    `)
+    .eq('tournament_id', tournamentId);
   const { embed, components } = createTournamentEmbed(tournament, updatedSignups);
   
   await interaction.update({
@@ -181,7 +209,11 @@ async function handleTournamentWithdraw(interaction: any, tournamentId: string, 
     return;
   }
   
-  const { error } = await db.removeSignup(user.id, tournamentId);
+  const { error } = await getSupabase()
+    .from('tournament_signups')
+    .delete()
+    .eq('user_id', user.id)
+    .eq('tournament_id', tournamentId);
   
   if (error) {
     await interaction.reply({
@@ -192,8 +224,18 @@ async function handleTournamentWithdraw(interaction: any, tournamentId: string, 
   }
   
   // Update the embed
-  const { data: tournament } = await db.getTournamentById(tournamentId);
-  const updatedSignups = await db.getTournamentSignups(tournamentId);
+  const { data: tournament } = await getSupabase()
+    .from('tournaments')
+    .select('*')
+    .eq('id', tournamentId)
+    .maybeSingle();
+  const { data: updatedSignups } = await getSupabase()
+    .from('tournament_signups')
+    .select(`
+      *,
+      users!inner(discord_username, current_rank, riot_id)
+    `)
+    .eq('tournament_id', tournamentId);
   const { embed, components } = createTournamentEmbed(tournament, updatedSignups);
   
   await interaction.update({
@@ -208,8 +250,18 @@ async function handleTournamentWithdraw(interaction: any, tournamentId: string, 
 }
 
 async function handleTournamentInfo(interaction: any, tournamentId: string) {
-  const { data: tournament } = await db.getTournamentById(tournamentId);
-  const { data: signups } = await db.getTournamentSignups(tournamentId);
+  const { data: tournament } = await getSupabase()
+    .from('tournaments')
+    .select('*')
+    .eq('id', tournamentId)
+    .maybeSingle();
+  const { data: signups } = await getSupabase()
+    .from('tournament_signups')
+    .select(`
+      *,
+      users!inner(discord_username, current_rank, riot_id)
+    `)
+    .eq('tournament_id', tournamentId);
   
   if (!tournament) {
     await interaction.reply({
@@ -248,7 +300,15 @@ async function handleQueueJoin(interaction: any, user: any) {
   }
   
   // Add to queue
-  const { error } = await db.addToQuickMatchQueue(user.id);
+  const { error } = await getSupabase()
+    .from('quick_match_queue')
+    .upsert({
+      user_id: user.id,
+      joined_at: new Date().toISOString(),
+      is_active: true
+    })
+    .select()
+    .single();
   
   if (error) {
     await interaction.reply({
@@ -259,8 +319,27 @@ async function handleQueueJoin(interaction: any, user: any) {
   }
   
   // Update queue display
-  const queueData = await db.getQuickMatchQueue();
-  const { embed, components } = createQuickMatchEmbed(queueData);
+  const { data: queueData } = await getSupabase()
+    .from('quick_match_queue')
+    .select(`
+      *,
+      users!inner(
+        id,
+        discord_username, 
+        discord_id, 
+        current_rank, 
+        peak_rank,
+        weight_rating,
+        manual_rank_override,
+        manual_weight_override,
+        use_manual_override,
+        tournaments_won,
+        last_tournament_win
+      )
+    `)
+    .eq('is_active', true)
+    .order('joined_at', { ascending: true });
+  const { embed, components } = createQuickMatchEmbed({ data: queueData });
   
   await interaction.update({
     embeds: [embed],
@@ -273,7 +352,7 @@ async function handleQueueJoin(interaction: any, user: any) {
   });
   
   // Check if we have 10 players for auto-match creation
-  if (queueData.data && queueData.data.length >= 10) {
+  if (queueData && queueData.length >= 10) {
     // TODO: Implement auto-match creation with team balancing
     console.log('🎮 Ready to create 10-man match!');
   }
@@ -288,11 +367,33 @@ async function handleQueueLeave(interaction: any, user: any) {
     return;
   }
   
-  await db.removeFromQuickMatchQueue(user.id);
+  await getSupabase()
+    .from('quick_match_queue')
+    .update({ is_active: false })
+    .eq('user_id', user.id);
   
   // Update queue display
-  const queueData = await db.getQuickMatchQueue();
-  const { embed, components } = createQuickMatchEmbed(queueData);
+  const { data: queueData } = await getSupabase()
+    .from('quick_match_queue')
+    .select(`
+      *,
+      users!inner(
+        id,
+        discord_username, 
+        discord_id, 
+        current_rank, 
+        peak_rank,
+        weight_rating,
+        manual_rank_override,
+        manual_weight_override,
+        use_manual_override,
+        tournaments_won,
+        last_tournament_win
+      )
+    `)
+    .eq('is_active', true)
+    .order('joined_at', { ascending: true });
+  const { embed, components } = createQuickMatchEmbed({ data: queueData });
   
   await interaction.update({
     embeds: [embed],
@@ -306,8 +407,27 @@ async function handleQueueLeave(interaction: any, user: any) {
 }
 
 async function handleQueueRefresh(interaction: any) {
-  const queueData = await db.getQuickMatchQueue();
-  const { embed, components } = createQuickMatchEmbed(queueData);
+  const { data: queueData } = await getSupabase()
+    .from('quick_match_queue')
+    .select(`
+      *,
+      users!inner(
+        id,
+        discord_username, 
+        discord_id, 
+        current_rank, 
+        peak_rank,
+        weight_rating,
+        manual_rank_override,
+        manual_weight_override,
+        use_manual_override,
+        tournaments_won,
+        last_tournament_win
+      )
+    `)
+    .eq('is_active', true)
+    .order('joined_at', { ascending: true });
+  const { embed, components } = createQuickMatchEmbed({ data: queueData });
   
   await interaction.update({
     embeds: [embed],

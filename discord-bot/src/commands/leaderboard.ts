@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { db } from '../utils/supabase.js';
+import { getSupabase } from '../utils/supabase.js';
 import { createLeaderboardEmbed } from '../utils/embeds.js';
 
 export default {
@@ -19,7 +19,15 @@ export default {
     try {
       const limit = interaction.options.getInteger('limit') || 10;
       
-      const leaderboardData = await db.getLeaderboard(limit);
+      const { data, error } = await getSupabase()
+        .from('users')
+        .select('id, discord_username, current_rank, rank_points, tournaments_won, tournaments_played, wins, losses')
+        .eq('is_phantom', false)
+        .order('tournaments_won', { ascending: false })
+        .order('wins', { ascending: false })
+        .limit(limit);
+      
+      const leaderboardData = { data, error };
       
       if (!leaderboardData.data || leaderboardData.data.length === 0) {
         await interaction.editReply('❌ No players found in the leaderboard.');

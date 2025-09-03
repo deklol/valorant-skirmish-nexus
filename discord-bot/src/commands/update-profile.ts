@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
-import { db, getSupabase } from '../utils/supabase.js';
+import { getSupabase } from '../utils/supabase.js';
 import { handleUserRegistration } from '../utils/userRegistration.js';
 
 export default {
@@ -78,7 +78,11 @@ export default {
     
     try {
       // Check if user is registered
-      const { data: user } = await db.findUserByDiscordId(interaction.user.id);
+      const { data: user } = await getSupabase()
+        .from('users')
+        .select('*')
+        .eq('discord_id', interaction.user.id)
+        .maybeSingle();
       
       if (!user) {
         await interaction.deleteReply();
@@ -108,7 +112,12 @@ export default {
       }
       
       // Update user profile
-      const { data: updatedUser, error } = await db.updateUser(interaction.user.id, updates);
+      const { data: updatedUser, error } = await getSupabase()
+        .from('users')
+        .update(updates)
+        .eq('discord_id', interaction.user.id)
+        .select()
+        .single();
       
       if (error) {
         await interaction.editReply('❌ Failed to update profile. Please try again.');

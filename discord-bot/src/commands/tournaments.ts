@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
-import { db } from '../utils/supabase.js';
+import { getSupabase } from '../utils/supabase.js';
 import { createTournamentEmbed } from '../utils/embeds.js';
 
 export default {
@@ -23,7 +23,11 @@ export default {
     try {
       const statusFilter = interaction.options.getString('status') || 'all';
       
-      const { data: tournaments, error } = await db.getActiveTournaments();
+      const { data: tournaments, error } = await getSupabase()
+        .from('tournaments')
+        .select('*')
+        .in('status', ['open', 'live', 'balancing'])
+        .order('start_time', { ascending: true });
       
       if (error) {
         await interaction.editReply('❌ Failed to fetch tournaments.');
@@ -60,7 +64,13 @@ export default {
       const tournamentsToShow = filteredTournaments.slice(0, 5);
       
       for (const tournament of tournamentsToShow) {
-        const signupsData = await db.getTournamentSignups(tournament.id);
+        const { data: signupsData } = await getSupabase()
+          .from('tournament_signups')
+          .select(`
+            *,
+            users!inner(discord_username, current_rank, riot_id)
+          `)
+          .eq('tournament_id', tournament.id);
         const { embed, components } = createTournamentEmbed(tournament, signupsData);
         
         await interaction.followUp({
