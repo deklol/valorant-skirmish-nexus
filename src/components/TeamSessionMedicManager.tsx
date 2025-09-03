@@ -382,24 +382,22 @@ export const TeamSessionMedicManager: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-      <div className="max-w-7xl mx-auto p-6 space-y-8">
-        {/* Enhanced Header */}
-        <div className="relative">
-          <div className="absolute inset-0 bg-gradient-to-r from-red-500/20 to-orange-500/20 rounded-2xl blur-xl"></div>
-          <Card className="relative bg-slate-900/90 border-slate-700/50 backdrop-blur-sm">
-            <CardContent className="p-8">
+    <div className="min-h-screen bg-background">
+      <div className="max-w-7xl mx-auto p-4 space-y-6">
+        {/* Header */}
+        <Card className="border">
+          <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-2">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 bg-gradient-to-br from-red-500 to-orange-600 rounded-xl shadow-lg shadow-red-500/25">
-                      <Shield className="h-7 w-7 text-white" />
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-primary rounded-lg">
+                      <Shield className="h-6 w-6 text-primary-foreground" />
                     </div>
                     <div>
-                      <h1 className="text-4xl font-bold bg-gradient-to-r from-white via-slate-200 to-slate-300 bg-clip-text text-transparent">
+                      <h1 className="text-3xl font-bold">
                         Team Session Medic
                       </h1>
-                      <p className="text-slate-400 text-lg mt-1">
+                      <p className="text-muted-foreground">
                         Manage team rosters, player assignments, and maintain stat integrity across all tournaments
                       </p>
                     </div>
@@ -410,11 +408,9 @@ export const TeamSessionMedicManager: React.FC = () => {
                     <Button 
                       onClick={refreshTournamentData}
                       disabled={refreshing}
-                      size="lg"
                       variant="outline"
-                      className="border-slate-600 hover:bg-slate-800 text-slate-300 hover:text-white shadow-lg transition-all duration-200"
                     >
-                      <RefreshCw className={`h-5 w-5 mr-2 ${refreshing ? "animate-spin" : ""}`} />
+                      <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
                       Refresh Data
                     </Button>
                   )}
@@ -422,37 +418,36 @@ export const TeamSessionMedicManager: React.FC = () => {
               </div>
             </CardContent>
           </Card>
-        </div>
 
-        {/* Enhanced Tournament Selection & Filters */}
-        <Card className="bg-slate-900/70 border-slate-700/50 backdrop-blur-sm">
-          <CardContent className="p-8">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        {/* Tournament Selection & Filters */}
+        <Card className="border">
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
               <div className="lg:col-span-2 space-y-2">
-                <label className="text-sm font-semibold text-slate-300 uppercase tracking-wide">Search Tournaments</label>
+                <label className="text-sm font-medium">Search Tournaments</label>
                 <div className="relative">
-                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search by tournament name or ID..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-12 bg-slate-800/70 border-slate-600 text-white placeholder:text-slate-500 h-14 text-base rounded-xl focus:ring-2 focus:ring-blue-500/50 transition-all duration-200"
+                    className="pl-10"
                   />
                 </div>
               </div>
               
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-300 uppercase tracking-wide">Filter by Status</label>
+                <label className="text-sm font-medium">Filter by Status</label>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="bg-slate-800/70 border-slate-600 text-white h-14 rounded-xl">
+                  <SelectTrigger>
                     <div className="flex items-center">
-                      <Filter className="h-4 w-4 mr-2 text-slate-400" />
+                      <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
                       <SelectValue placeholder="All Status" />
                     </div>
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-700 rounded-xl">
+                  <SelectContent>
                     {TOURNAMENT_STATUS_FILTERS.map(filter => (
-                      <SelectItem key={filter.value} value={filter.value} className="text-white hover:bg-slate-700">
+                      <SelectItem key={filter.value} value={filter.value}>
                         {filter.label}
                       </SelectItem>
                     ))}
@@ -462,51 +457,47 @@ export const TeamSessionMedicManager: React.FC = () => {
             </div>
 
             {/* Results Summary */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                <span className="text-slate-300 font-medium">
+                <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                <span className="text-sm font-medium">
                   {filteredTournaments.length} tournament{filteredTournaments.length !== 1 ? 's' : ''} found
                 </span>
               </div>
               {loading && (
-                <div className="flex items-center gap-2 text-blue-400">
+                <div className="flex items-center gap-2 text-muted-foreground">
                   <RefreshCw className="h-4 w-4 animate-spin" />
                   <span className="text-sm">Loading tournaments...</span>
                 </div>
               )}
             </div>
 
-            {/* Enhanced Tournament List */}
-            <div className="space-y-4">
+            {/* Tournament List */}
+            <div className="space-y-3">
               {filteredTournaments.map(tournament => {
                 const isExpanded = expandedTournaments.has(tournament.id);
-                const statusColor = getStatusColor(tournament.status);
                 
                 return (
-                  <div key={tournament.id} className="group">
-                    <div className="relative">
-                      <div className={`absolute inset-0 ${statusColor.gradient} rounded-2xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity duration-300`}></div>
-                      <Card className="relative bg-slate-800/80 border-slate-700/50 backdrop-blur-sm hover:bg-slate-800/90 transition-all duration-300 group-hover:border-slate-600">
-                        <Collapsible>
+                  <Card key={tournament.id} className="border hover:bg-muted/50 transition-colors">
+                    <Collapsible>
                           <CollapsibleTrigger
-                            className="w-full p-6 flex items-center justify-between hover:bg-slate-700/30 rounded-t-xl transition-colors duration-200"
+                            className="w-full p-4 flex items-center justify-between hover:bg-muted/30 rounded-t-lg transition-colors"
                             onClick={() => toggleTournamentExpansion(tournament.id)}
                           >
-                            <div className="flex items-center gap-4">
-                              <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-2">
                                 {isExpanded ? (
-                                  <ChevronDown className="h-5 w-5 text-slate-400 transition-transform duration-200" />
+                                  <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform" />
                                 ) : (
-                                  <ChevronRight className="h-5 w-5 text-slate-400 transition-transform duration-200" />
+                                  <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform" />
                                 )}
-                                <div className={`p-3 ${statusColor.bg} rounded-xl shadow-lg ${statusColor.shadow}`}>
-                                  <Trophy className={`h-6 w-6 ${statusColor.text}`} />
+                                <div className="p-2 bg-primary rounded-lg">
+                                  <Trophy className="h-5 w-5 text-primary-foreground" />
                                 </div>
                               </div>
                               <div className="text-left">
-                                <div className="font-bold text-white text-xl mb-1">{tournament.name}</div>
-                                <div className="flex items-center gap-4 text-sm text-slate-400">
+                                <div className="font-bold text-lg mb-1">{tournament.name}</div>
+                                <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                   <span className="flex items-center gap-1">
                                     <Target className="h-3 w-3" />
                                     ID: {tournament.id.slice(0, 8)}...
@@ -525,7 +516,7 @@ export const TeamSessionMedicManager: React.FC = () => {
                               </div>
                             </div>
                             <div className="flex items-center gap-3">
-                              <Badge variant="secondary" className={`${statusColor.badgeBg} ${statusColor.badgeText} border-0 px-3 py-1`}>
+                              <Badge variant={getStatusBadgeVariant(tournament.status)}>
                                 {tournament.status}
                               </Badge>
                               <Button
@@ -533,8 +524,6 @@ export const TeamSessionMedicManager: React.FC = () => {
                                   e.stopPropagation();
                                   handleTournamentSelect(tournament.id);
                                 }}
-                                size="lg"
-                                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/25 transition-all duration-200 px-6"
                               >
                                 <Zap className="h-4 w-4 mr-2" />
                                 Manage Teams
@@ -542,50 +531,45 @@ export const TeamSessionMedicManager: React.FC = () => {
                             </div>
                           </CollapsibleTrigger>
                           
-                          <CollapsibleContent className="border-t border-slate-700/50">
-                            <div className="p-6 bg-slate-900/50 rounded-b-xl">
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                          <CollapsibleContent className="border-t">
+                            <div className="p-4 bg-muted/30">
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 <div className="text-center">
-                                  <div className="text-slate-500 text-xs uppercase tracking-wide mb-1">Max Teams</div>
-                                  <div className="text-white font-bold text-lg">{tournament.max_teams}</div>
+                                  <div className="text-muted-foreground text-xs uppercase tracking-wide mb-1">Max Teams</div>
+                                  <div className="font-bold">{tournament.max_teams}</div>
                                 </div>
                                 <div className="text-center">
-                                  <div className="text-slate-500 text-xs uppercase tracking-wide mb-1">Start Time</div>
-                                  <div className="text-white font-bold text-lg">
+                                  <div className="text-muted-foreground text-xs uppercase tracking-wide mb-1">Start Time</div>
+                                  <div className="font-bold">
                                     {tournament.start_time ? new Date(tournament.start_time).toLocaleDateString() : "TBD"}
                                   </div>
                                 </div>
                                 <div className="text-center">
-                                  <div className="text-slate-500 text-xs uppercase tracking-wide mb-1">Created</div>
-                                  <div className="text-white font-bold text-lg">
+                                  <div className="text-muted-foreground text-xs uppercase tracking-wide mb-1">Created</div>
+                                  <div className="font-bold">
                                     {new Date(tournament.created_at).toLocaleDateString()}
                                   </div>
                                 </div>
                                 <div className="text-center">
-                                  <div className="text-slate-500 text-xs uppercase tracking-wide mb-1">Registration</div>
-                                  <div className="text-white font-bold text-lg">{tournament.team_count || 0} registered</div>
+                                  <div className="text-muted-foreground text-xs uppercase tracking-wide mb-1">Registration</div>
+                                  <div className="font-bold">{tournament.team_count || 0} registered</div>
                                 </div>
                               </div>
                             </div>
                           </CollapsibleContent>
                         </Collapsible>
                       </Card>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                    );
+                  })}
+                </div>
 
             {!loading && filteredTournaments.length === 0 && (
-              <div className="text-center py-16">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-r from-slate-600/20 to-slate-500/20 rounded-2xl blur-xl"></div>
-                  <Card className="relative bg-slate-800/50 border-slate-700/50 backdrop-blur-sm p-8">
-                    <Trophy className="h-16 w-16 text-slate-500 mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-slate-300 mb-2">No tournaments found</h3>
-                    <p className="text-slate-500">Try adjusting your search criteria or create a new tournament.</p>
-                  </Card>
-                </div>
+              <div className="text-center py-12">
+                <Card className="border p-8">
+                  <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No tournaments found</h3>
+                  <p className="text-muted-foreground">Try adjusting your search criteria or create a new tournament.</p>
+                </Card>
               </div>
             )}
           </CardContent>
