@@ -107,7 +107,7 @@ export default function TeamsOverview() {
         isEliminated ? 'opacity-50 grayscale' : 'opacity-100'
       }`}
       style={{ 
-        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+        backgroundColor: sceneSettings.transparentBackground ? 'transparent' : 'rgba(0, 0, 0, 0.4)',
         borderColor: sceneSettings.borderColor || '#ffffff20',
         borderRadius: sceneSettings.borderRadius || 12,
         borderWidth: sceneSettings.borderWidth || 1,

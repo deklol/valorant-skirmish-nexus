@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Crown } from "lucide-react";
 import { useBroadcastSettings } from "@/hooks/useBroadcastSettings";
+import { getBroadcastContainerStyle } from "@/utils/broadcastLayoutUtils";
 
 interface PlayerData {
   discord_username?: string;
@@ -100,21 +101,20 @@ export default function PlayerSpotlightCard() {
   }
 
   const sceneSettings = settings.sceneSettings.playerSpotlight;
-  const containerStyle = {
-    backgroundColor: sceneSettings.backgroundColor || settings.backgroundColor,
-    backgroundImage: sceneSettings.backgroundImage || settings.backgroundImage ? `url(${sceneSettings.backgroundImage || settings.backgroundImage})` : undefined,
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    fontFamily: sceneSettings.fontFamily || settings.fontFamily || 'inherit',
-  };
+  const containerStyle = getBroadcastContainerStyle(sceneSettings, settings);
 
   const displayWeight = player.display_weight || player.atlas_weight || player.adaptive_weight || 150;
 
   return (
-    <div className="w-screen h-screen bg-transparent flex items-center justify-center p-8" style={containerStyle}>
+    <div className="w-screen h-screen flex items-center justify-center p-8" style={containerStyle}>
       <div className="max-w-4xl w-full">
         {/* Player Spotlight Card */}
-        <div className="bg-black/40 backdrop-blur-md rounded-3xl border border-white/10 shadow-2xl overflow-hidden">
+        <div 
+          className="backdrop-blur-md rounded-3xl border border-white/10 shadow-2xl overflow-hidden"
+          style={{
+            backgroundColor: sceneSettings.transparentBackground ? 'transparent' : 'rgba(0, 0, 0, 0.4)',
+          }}
+        >
           {/* Header */}
           <div 
             className="p-8 text-center border-b border-white/10"

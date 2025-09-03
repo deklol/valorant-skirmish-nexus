@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Swords } from "lucide-react";
 import { useBroadcastSettings } from "@/hooks/useBroadcastSettings";
 import { extractATLASWeightsFromBalanceAnalysis } from "@/utils/broadcastWeightUtils";
+import { getBroadcastContainerStyle } from "@/utils/broadcastLayoutUtils";
 
 interface Match {
   id: string;
@@ -202,7 +203,12 @@ export default function MatchupPreview() {
     );
 
     return (
-      <div className="bg-black/60 backdrop-blur-sm rounded-lg border border-white/20 p-4 w-64">
+      <div 
+        className="backdrop-blur-sm rounded-lg border border-white/20 p-4 w-64"
+        style={{
+          backgroundColor: sceneSettings.transparentBackground ? 'transparent' : 'rgba(0, 0, 0, 0.6)',
+        }}
+      >
         <div className="text-center mb-3">
           <h3 className="text-lg font-bold uppercase tracking-wider text-white">
             Tale of the Tape
@@ -268,9 +274,12 @@ export default function MatchupPreview() {
           .map((member, index) => (
             <div 
               key={member.user_id} 
-              className={`flex items-center space-x-2 bg-black/20 backdrop-blur-sm rounded px-3 py-2 border border-white/10 ${
+              className={`flex items-center space-x-2 backdrop-blur-sm rounded px-3 py-2 border border-white/10 ${
                 side === 'right' ? 'flex-row-reverse space-x-reverse' : ''
               }`}
+              style={{
+                backgroundColor: sceneSettings.transparentBackground ? 'transparent' : 'rgba(0, 0, 0, 0.2)',
+              }}
             >
               <div className="text-sm font-medium text-white/40 w-4 text-center">
                 {index + 1}
@@ -305,23 +314,17 @@ export default function MatchupPreview() {
     </div>
   );
 
-  const containerStyle = {
-    backgroundColor: settings.backgroundColor === 'transparent' ? 'transparent' : settings.backgroundColor,
-    color: settings.textColor,
-  };
+  const containerStyle = getBroadcastContainerStyle(sceneSettings, settings);
 
   return (
     <div 
       className="w-screen h-screen flex items-center justify-center p-8 relative overflow-hidden" 
-      style={{
-        ...containerStyle,
-        backgroundImage: sceneSettings.backgroundImage ? `url(${sceneSettings.backgroundImage})` : undefined,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-      }}
+      style={containerStyle}
     >
-      {/* Background overlay for better text readability */}
-      <div className="absolute inset-0 bg-black/40" />
+      {/* Background overlay for better text readability when not transparent */}
+      {!sceneSettings.transparentBackground && (
+        <div className="absolute inset-0 bg-black/40" />
+      )}
       
       <div className="relative z-10 max-w-7xl w-full">
         {/* Main Header */}

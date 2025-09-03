@@ -139,13 +139,7 @@ export default function TournamentStats() {
   }
 
   const sceneSettings = settings.sceneSettings.tournamentStats;
-  const containerStyle = {
-    backgroundColor: sceneSettings.backgroundColor || settings.backgroundColor,
-    backgroundImage: sceneSettings.backgroundImage || settings.backgroundImage ? `url(${sceneSettings.backgroundImage || settings.backgroundImage})` : undefined,
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    fontFamily: sceneSettings.fontFamily || settings.fontFamily || 'inherit',
-  };
+  const containerStyle = getBroadcastContainerStyle(sceneSettings, settings);
 
   const getRankColor = (rank: string) => {
     const rankLower = rank.toLowerCase();
@@ -190,7 +184,7 @@ export default function TournamentStats() {
           <div 
             className="backdrop-blur-sm rounded-2xl p-8 border text-center"
             style={{ 
-              backgroundColor: 'rgba(0, 0, 0, 0.4)',
+              backgroundColor: sceneSettings.transparentBackground ? 'transparent' : 'rgba(0, 0, 0, 0.4)',
               borderColor: sceneSettings.borderColor || '#ffffff20',
               borderRadius: sceneSettings.borderRadius || 16,
               borderWidth: sceneSettings.borderWidth || 1,
@@ -233,7 +227,7 @@ export default function TournamentStats() {
           <div 
             className="backdrop-blur-sm rounded-2xl p-8 border text-center"
             style={{ 
-              backgroundColor: 'rgba(0, 0, 0, 0.4)',
+              backgroundColor: sceneSettings.transparentBackground ? 'transparent' : 'rgba(0, 0, 0, 0.4)',
               borderColor: sceneSettings.borderColor || '#ffffff20',
               borderRadius: sceneSettings.borderRadius || 16,
               borderWidth: sceneSettings.borderWidth || 1,
@@ -276,7 +270,7 @@ export default function TournamentStats() {
           <div 
             className="backdrop-blur-sm rounded-2xl p-8 border text-center"
             style={{ 
-              backgroundColor: 'rgba(0, 0, 0, 0.4)',
+              backgroundColor: sceneSettings.transparentBackground ? 'transparent' : 'rgba(0, 0, 0, 0.4)',
               borderColor: sceneSettings.borderColor || '#ffffff20',
               borderRadius: sceneSettings.borderRadius || 16,
               borderWidth: sceneSettings.borderWidth || 1,
@@ -319,7 +313,7 @@ export default function TournamentStats() {
           <div 
             className="backdrop-blur-sm rounded-2xl p-8 border text-center"
             style={{ 
-              backgroundColor: 'rgba(0, 0, 0, 0.4)',
+              backgroundColor: sceneSettings.transparentBackground ? 'transparent' : 'rgba(0, 0, 0, 0.4)',
               borderColor: sceneSettings.borderColor || '#ffffff20',
               borderRadius: sceneSettings.borderRadius || 16,
               borderWidth: sceneSettings.borderWidth || 1,
@@ -365,7 +359,7 @@ export default function TournamentStats() {
           <div
             className="backdrop-blur-sm rounded-2xl p-8 border"
             style={{ 
-              backgroundColor: 'rgba(0, 0, 0, 0.4)',
+              backgroundColor: sceneSettings.transparentBackground ? 'transparent' : 'rgba(0, 0, 0, 0.4)',
               borderColor: sceneSettings.borderColor || '#ffffff20',
               borderRadius: sceneSettings.borderRadius || 16,
               borderWidth: sceneSettings.borderWidth || 1,
