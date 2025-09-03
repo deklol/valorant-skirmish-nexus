@@ -189,62 +189,52 @@ export default function MatchupPreview() {
     };
 
     const StatRow = ({ label, value1, value2 }: { label: string; value1: string | number; value2: string | number }) => (
-      <div className="grid grid-cols-3 gap-4 py-1">
-        <div className="text-right font-medium text-white text-sm">
+      <div className="grid grid-cols-3 gap-0 py-2">
+        <div className="bg-black text-center font-bold text-white text-lg p-2">
           {value1}
         </div>
-        <div className="text-center text-white/60 uppercase tracking-wide text-xs font-medium">
+        <div className="bg-gray-800 text-center text-white uppercase tracking-wider text-sm font-bold p-2">
           {label}
         </div>
-        <div className="text-left font-medium text-white text-sm">
+        <div className="bg-black text-center font-bold text-white text-lg p-2">
           {value2}
         </div>
       </div>
     );
 
     return (
-      <div 
-        className="backdrop-blur-sm rounded-lg border border-white/20 p-4 w-64"
-        style={{
-          backgroundColor: sceneSettings.transparentBackground ? 'transparent' : 'rgba(0, 0, 0, 0.6)',
-        }}
-      >
-        <div className="text-center mb-3">
-          <h3 className="text-lg font-bold uppercase tracking-wider text-white">
-            Tale of the Tape
+      <div className="w-80">
+        {/* Header */}
+        <div className="bg-gray-700 text-center p-3">
+          <h3 className="text-xl font-black uppercase tracking-wider text-white">
+            TALE OF THE TAPE
           </h3>
         </div>
         
-        <div className="space-y-1">
+        {/* Stats */}
+        <div className="space-y-0">
           <StatRow 
-            label="Avg Points" 
+            label="AVG POINTS" 
             value1={team1Stats.avgRankPoints} 
             value2={team2Stats.avgRankPoints} 
           />
           
-          {(team1Stats.radiantPlayers > 0 || team2Stats.radiantPlayers > 0) && (
-            <StatRow 
-              label="Radiant" 
-              value1={team1Stats.radiantPlayers} 
-              value2={team2Stats.radiantPlayers}
-            />
-          )}
-          
           <StatRow 
-            label="Immortal" 
+            label="IMMORTAL" 
             value1={team1Stats.immortalPlayers} 
             value2={team2Stats.immortalPlayers} 
           />
           
           <StatRow 
-            label="Seed" 
+            label="SEED" 
             value1={`#${team1.seed || '4'}`} 
             value2={`#${team2.seed || '3'}`} 
           />
         </div>
         
-        <div className="mt-3 text-center">
-          <div className="text-green-400 font-bold text-xs">
+        {/* Footer */}
+        <div className="bg-green-600 text-center p-2">
+          <div className="text-black font-black text-sm">
             VERY BALANCED
           </div>
         </div>
@@ -253,17 +243,29 @@ export default function MatchupPreview() {
   };
 
   const PlayerLineup = ({ team, side }: { team: Team; side: 'left' | 'right' }) => (
-    <div className={`space-y-0 ${side === 'right' ? 'text-right' : 'text-left'}`}>
-      <div className="mb-6">
-        <div className="text-2xl font-bold mb-2 uppercase tracking-wide text-white">
+    <div className="space-y-0">
+      {/* Team Header Block */}
+      <div 
+        className="px-6 py-4 mb-0"
+        style={{ backgroundColor: '#FF6B35' }}
+      >
+        <div className="text-2xl font-bold uppercase tracking-wide text-white">
           {team.name}
         </div>
-        <div className="flex items-center space-x-2" style={{ justifyContent: side === 'right' ? 'flex-end' : 'flex-start' }}>
-          <div className="text-cyan-400 text-sm font-bold">
-            AVG: {side === 'left' ? team1Avg : team2Avg}
+      </div>
+      
+      {/* Team Stats Block */}
+      <div className="bg-black px-6 py-3 mb-0">
+        <div className="flex items-center justify-between">
+          <div className="bg-cyan-600 px-3 py-1">
+            <span className="text-black text-sm font-bold">
+              AVG: {side === 'left' ? team1Avg : team2Avg}
+            </span>
           </div>
-          <div className="text-white/50 text-xs">
-            SEED #{team.seed || 'TBD'}
+          <div className="bg-gray-600 px-3 py-1">
+            <span className="text-white text-sm font-bold">
+              SEED #{team.seed || 'TBD'}
+            </span>
           </div>
         </div>
       </div>
@@ -394,23 +396,41 @@ export default function MatchupPreview() {
       <div className="relative z-10 max-w-7xl w-full">
         {/* Main Header */}
         {sceneSettings.showVsHeader && (
-          <div className="text-center mb-6">
-            <div className="flex items-center justify-center space-x-6 mb-3">
-              <div className="text-4xl font-black uppercase tracking-wider text-white">
-                {team1.name}
+          <div className="text-center mb-8">
+            <div className="flex items-center justify-center space-x-8 mb-4">
+              {/* Team 1 Header Block */}
+              <div 
+                className="bg-black px-8 py-4"
+                style={{ backgroundColor: '#FF6B35' }}
+              >
+                <div className="text-4xl font-black uppercase tracking-wider text-white">
+                  {team1.name}
+                </div>
               </div>
+              
+              {/* VS Section */}
               <div className="flex flex-col items-center">
-                <Swords className="w-10 h-10 text-red-500 mb-1" />
-                <div className="text-white/70 text-xs uppercase tracking-wide font-bold">
+                <Swords className="w-12 h-12 text-red-500 mb-2" />
+                <div className="text-white text-lg uppercase tracking-wide font-bold">
                   VS
                 </div>
               </div>
-              <div className="text-4xl font-black uppercase tracking-wider text-white">
-                {team2.name}
+              
+              {/* Team 2 Header Block */}
+              <div 
+                className="bg-black px-8 py-4"
+                style={{ backgroundColor: '#FF6B35' }}
+              >
+                <div className="text-4xl font-black uppercase tracking-wider text-white">
+                  {team2.name}
+                </div>
               </div>
             </div>
-            <div className="text-sm text-white/80 uppercase tracking-wider font-bold">
-              Upcoming Match
+            
+            <div className="bg-gray-700 inline-block px-6 py-2">
+              <div className="text-lg text-white uppercase tracking-wider font-bold">
+                UPCOMING MATCH
+              </div>
             </div>
           </div>
         )}
