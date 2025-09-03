@@ -4,36 +4,42 @@
 
 import type { CSSProperties } from 'react';
 
-// Standard broadcast default values - consistent across all scenes
+// Broadcast-optimized defaults for OBS/vMix compatibility
 export const BROADCAST_DEFAULTS = {
-  // Font sizes (in pixels)
-  headerFontSize: 48,
-  subHeaderFontSize: 24,
-  bodyFontSize: 16,
-  largeFontSize: 20,
+  // Typography - High contrast, readable
+  headerFontSize: 56,
+  subHeaderFontSize: 28,
+  bodyFontSize: 18,
+  largeFontSize: 24,
+  fontFamily: '"Segoe UI", system-ui, -apple-system, sans-serif',
+  fontWeight: '700',
   
-  // Colors (default semantic values)
+  // Colors - High contrast broadcast palette
   backgroundColor: 'transparent',
   headerTextColor: '#ffffff',
   textColor: '#ffffff',
-  accentColor: '#3b82f6',
+  accentColor: '#00d4ff',
+  primaryColor: '#ff6b35',
+  successColor: '#00ff88',
+  warningColor: '#ffaa00',
+  errorColor: '#ff3366',
   
-  // Layout
-  padding: 32,
-  borderRadius: 16,
-  borderWidth: 1,
-  borderColor: '#ffffff20',
-  spacing: 24,
-  shadowIntensity: 3,
+  // Layout - Block-based, no curves
+  padding: 24,
+  borderRadius: 0,
+  borderWidth: 3,
+  borderColor: '#ffffff',
+  spacing: 16,
   
   // Container
-  maxWidth: '1280px', // max-w-7xl equivalent
-  backdropBlur: 'backdrop-blur-sm',
-  cardBackground: 'rgba(0, 0, 0, 0.4)',
+  maxWidth: '1920px',
+  cardBackground: '#000000',
+  overlayBackground: 'rgba(0, 0, 0, 0.85)',
   
-  // Font
-  fontFamily: 'inherit',
-  fontWeight: '600',
+  // Broadcast-specific
+  blockSpacing: 8,
+  stripHeight: 80,
+  badgeHeight: 32,
 } as const;
 
 // Standard loading component props
@@ -64,28 +70,77 @@ export function getBroadcastContainerStyle(
   };
 }
 
-// Standard card style generator
+// Broadcast card style - optimized for streaming
 export function getBroadcastCardStyle(
   sceneSettings: any,
   globalSettings?: any
 ): CSSProperties {
-  if (sceneSettings?.broadcastFriendlyMode) {
+  if (sceneSettings?.broadcastFriendlyMode || sceneSettings?.transparentBackground) {
     return {
-      backgroundColor: sceneSettings?.visuals?.cardBackgroundColor || 'rgba(20, 20, 20, 0.9)',
+      backgroundColor: sceneSettings?.transparentBackground ? 'transparent' : BROADCAST_DEFAULTS.cardBackground,
+      border: sceneSettings?.transparentBackground ? 'none' : `${BROADCAST_DEFAULTS.borderWidth}px solid ${BROADCAST_DEFAULTS.borderColor}`,
       borderRadius: '0',
-      border: 'none',
       boxShadow: 'none',
-      padding: `${sceneSettings.padding || BROADCAST_DEFAULTS.padding}px`,
+      padding: `${BROADCAST_DEFAULTS.padding}px`,
     };
   }
 
   return {
-    backgroundColor: BROADCAST_DEFAULTS.cardBackground,
+    backgroundColor: BROADCAST_DEFAULTS.overlayBackground,
     borderColor: sceneSettings.borderColor || BROADCAST_DEFAULTS.borderColor,
     borderRadius: `${sceneSettings.borderRadius || BROADCAST_DEFAULTS.borderRadius}px`,
     borderWidth: `${sceneSettings.borderWidth || BROADCAST_DEFAULTS.borderWidth}px`,
     padding: `${sceneSettings.padding || BROADCAST_DEFAULTS.padding}px`,
-    boxShadow: `0 ${(sceneSettings.shadowIntensity || BROADCAST_DEFAULTS.shadowIntensity) * 2}px ${(sceneSettings.shadowIntensity || BROADCAST_DEFAULTS.shadowIntensity) * 6}px rgba(0,0,0,0.3)`,
+    boxShadow: `0 ${(sceneSettings.shadowIntensity || 3) * 2}px ${(sceneSettings.shadowIntensity || 3) * 6}px rgba(0,0,0,0.3)`,
+  };
+}
+
+// Broadcast-optimized block style
+export function getBroadcastBlockStyle(
+  backgroundColor = BROADCAST_DEFAULTS.cardBackground,
+  borderColor = BROADCAST_DEFAULTS.borderColor
+): CSSProperties {
+  return {
+    backgroundColor,
+    border: `${BROADCAST_DEFAULTS.borderWidth}px solid ${borderColor}`,
+    borderRadius: '0',
+    boxShadow: 'none',
+    padding: `${BROADCAST_DEFAULTS.padding}px`,
+  };
+}
+
+// Team strip style for broadcast
+export function getBroadcastTeamStripStyle(
+  teamColor: string = BROADCAST_DEFAULTS.accentColor,
+  isEliminated = false
+): CSSProperties {
+  return {
+    backgroundColor: teamColor,
+    height: `${BROADCAST_DEFAULTS.stripHeight}px`,
+    border: `${BROADCAST_DEFAULTS.borderWidth}px solid ${BROADCAST_DEFAULTS.borderColor}`,
+    borderRadius: '0',
+    padding: `${BROADCAST_DEFAULTS.blockSpacing}px ${BROADCAST_DEFAULTS.padding}px`,
+    display: 'flex',
+    alignItems: 'center',
+    gap: `${BROADCAST_DEFAULTS.spacing}px`,
+  };
+}
+
+// Badge style for broadcast
+export function getBroadcastBadgeStyle(
+  color: string = BROADCAST_DEFAULTS.accentColor
+): CSSProperties {
+  return {
+    backgroundColor: color,
+    color: '#000000',
+    height: `${BROADCAST_DEFAULTS.badgeHeight}px`,
+    padding: `0 ${BROADCAST_DEFAULTS.spacing}px`,
+    border: `${BROADCAST_DEFAULTS.borderWidth}px solid ${BROADCAST_DEFAULTS.borderColor}`,
+    borderRadius: '0',
+    fontWeight: BROADCAST_DEFAULTS.fontWeight,
+    fontSize: `${BROADCAST_DEFAULTS.bodyFontSize}px`,
+    display: 'inline-flex',
+    alignItems: 'center',
   };
 }
 
@@ -153,12 +208,17 @@ export const BROADCAST_CONTAINER_CLASSES = "w-screen h-screen overflow-hidden re
 export const BROADCAST_CONTENT_CLASSES = "relative z-10 max-w-7xl mx-auto h-full flex flex-col";
 export const BROADCAST_PADDING_CLASSES = "p-8";
 
-// Standard card classes with backdrop blur
+// Broadcast-optimized classes
 export const BROADCAST_CARD_CLASSES = "backdrop-blur-sm border shadow-lg";
+export const BROADCAST_BLOCK_CLASSES = "";
+export const BROADCAST_STRIP_CLASSES = "flex items-center";
+export const BROADCAST_TEXT_CLASSES = "font-bold antialiased";
 
-// Broadcast friendly card classes
-export const getBroadcastCardClasses = (broadcastFriendlyMode?: boolean) => 
-  broadcastFriendlyMode ? "" : "backdrop-blur-sm border shadow-lg";
+// Dynamic classes based on mode
+export const getBroadcastCardClasses = (broadcastFriendlyMode?: boolean, transparentBackground?: boolean) => {
+  if (broadcastFriendlyMode || transparentBackground) return BROADCAST_BLOCK_CLASSES;
+  return BROADCAST_CARD_CLASSES;
+};
 
 // Rank color utility (consistent across all scenes)
 export function getRankColor(rank?: string): string {

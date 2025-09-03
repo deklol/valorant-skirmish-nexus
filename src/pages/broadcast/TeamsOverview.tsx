@@ -5,20 +5,18 @@ import { useBroadcastData } from "@/hooks/useBroadcastData";
 import type { Tournament } from "@/types/tournament";
 import type { Team as BroadcastTeam } from "@/types/tournamentDetail";
 import { useBroadcastSettings } from "@/hooks/useBroadcastSettings";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Users, Trophy, Crown } from "lucide-react";
-import { formatSeedDisplay } from "@/utils/broadcastSeedingUtils";
+import { Users, Trophy, Crown, Star } from "lucide-react";
 import { BroadcastLoading } from "@/components/broadcast/BroadcastLoading";
 import { 
   getBroadcastContainerStyle, 
   getBroadcastHeaderStyle, 
   getBroadcastTextStyle,
-  getBroadcastCardStyle,
-  getBroadcastCardClasses,
+  getBroadcastTeamStripStyle,
+  getBroadcastBadgeStyle,
   BROADCAST_CONTAINER_CLASSES,
-  getRankColor,
-  BROADCAST_DEFAULTS
+  BROADCAST_DEFAULTS,
+  getRankColor
 } from "@/utils/broadcastLayoutUtils";
 
 interface Team extends BroadcastTeam {
@@ -32,14 +30,12 @@ export default function TeamsOverview() {
   const [teams, setTeams] = useState<Team[]>([]);
   const { settings } = useBroadcastSettings();
   
-  // Use broadcast data hook with proper ATLAS weights
   const { tournament, teams: broadcastTeams, loading } = useBroadcastData(id);
 
   useEffect(() => {
     if (!broadcastTeams.length) return;
 
     const fetchMatchData = async () => {
-      // Fetch matches to determine eliminated teams
       const { data: matchesData } = await supabase
         .from('matches')
         .select(`
@@ -49,7 +45,6 @@ export default function TeamsOverview() {
         .eq('tournament_id', id)
         .eq('status', 'completed');
 
-      // Determine which teams are eliminated using broadcast teams data
       const teamsWithStatus = broadcastTeams.map(team => {
         const lostMatch = matchesData?.find(match => 
           (match.team1_id === team.id || match.team2_id === team.id) && 
@@ -75,14 +70,12 @@ export default function TeamsOverview() {
 
   const sceneSettings = settings.sceneSettings.teamsOverview;
   const containerStyle = getBroadcastContainerStyle(sceneSettings, settings);
-  const cardStyle = getBroadcastCardStyle(sceneSettings, settings);
-  const cardClasses = getBroadcastCardClasses(sceneSettings.broadcastFriendlyMode);
+  const isBroadcastMode = sceneSettings.broadcastFriendlyMode || sceneSettings.transparentBackground;
 
   const activeTeams = teams.filter(team => team.status === 'active');
   const eliminatedTeams = teams.filter(team => team.status === 'eliminated');
 
   const getDisplayWeight = (member: Team['team_members'][0]) => {
-    // Use enhanced user data from broadcast hook
     const enhancedUser = member.users as any;
     return enhancedUser?.display_weight || enhancedUser?.atlas_weight || enhancedUser?.adaptive_weight || 150;
   };
@@ -92,235 +85,275 @@ export default function TeamsOverview() {
     return Math.round(weights.reduce((a, b) => a + b, 0) / weights.length);
   };
 
-  const getRankColor = (rank?: string) => {
-    if (!rank) return '#9CA3AF';
-    const rankLower = rank.toLowerCase();
-    if (rankLower.includes('radiant')) return '#FFF176';
-    if (rankLower.includes('immortal')) return '#A52834';
-    if (rankLower.includes('ascendant')) return '#84FF6F';
-    if (rankLower.includes('diamond')) return '#8d64e2';
-    if (rankLower.includes('platinum')) return '#5CA3E4';
-    if (rankLower.includes('gold')) return '#FFD700';
-    return '#9CA3AF';
-  };
-
-  const TeamCard = ({ team, isEliminated = false }: { team: Team; isEliminated?: boolean }) => (
-    <div 
-      className={`${cardClasses} ${sceneSettings.broadcastFriendlyMode ? '' : 'rounded-xl'} overflow-hidden transition-all duration-300 ${
-        isEliminated ? 'opacity-50 grayscale' : 'opacity-100'
-      }`}
-      style={{ 
-        ...cardStyle,
-        backgroundColor: isEliminated && !sceneSettings.broadcastFriendlyMode 
-          ? 'rgba(239, 68, 68, 0.1)' 
-          : isEliminated 
-            ? '#dc2626'
-            : cardStyle.backgroundColor,
-      }}
-    >
-      {/* Team Header */}
-      <div className="p-4 border-b border-white/10">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div 
-              className="text-2xl font-bold"
-              style={{ 
-                color: sceneSettings.headerTextColor || settings.headerTextColor,
-                fontFamily: sceneSettings.fontFamily || 'inherit',
-                fontSize: '28px'
-              }}
-            >
-              {team.name}
+  const TeamBlock = ({ team, isEliminated = false }: { team: Team; isEliminated?: boolean }) => {
+    if (!isBroadcastMode) {
+      // Legacy mode - keep existing design
+      return (
+        <div className="backdrop-blur-sm rounded-xl border border-white/20 overflow-hidden bg-black/40 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <h3 className="text-2xl font-bold text-white">{team.name}</h3>
+              {isEliminated && (
+                <Badge variant="destructive" className="text-xs">
+                  Eliminated R{team.eliminated_round}
+                </Badge>
+              )}
             </div>
-            {isEliminated && sceneSettings.showTeamStatusBadges && (
-              <Badge variant="outline" className="text-xs">
-                Eliminated R{team.eliminated_round}
-              </Badge>
-            )}
+            <div className="flex items-center gap-4 text-sm text-gray-300">
+              <div className="flex items-center gap-1">
+                <Trophy className="w-4 h-4" />
+                <span>Seed #{(team as any).calculatedSeed || 'TBD'}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Users className="w-4 h-4" />
+                <span>Avg: {getTeamAverageWeight(team)}</span>
+              </div>
+            </div>
           </div>
-            {sceneSettings.showMemberCount && (
-              <div className="flex items-center space-x-2">
-                <Users className="w-4 h-4" style={{ color: sceneSettings.textColor || settings.textColor }} />
-                <span 
-                  className="text-lg font-medium"
-                  style={{ 
-                    color: sceneSettings.textColor || settings.textColor,
-                    fontFamily: sceneSettings.fontFamily || 'inherit',
-                    fontSize: '18px'
-                  }}
-                >
-                  {team.team_members.length}
-                </span>
-              </div>
-            )}
-        </div>
-        <div 
-          className="text-lg mt-2 font-medium"
-          style={{ 
-            color: (sceneSettings.textColor || settings.textColor) + '90',
-            fontFamily: sceneSettings.fontFamily || 'inherit',
-            fontSize: '16px'
-          }}
-        >
-          {formatSeedDisplay((team as any).calculatedSeed || 1)} • Avg Weight: {getTeamAverageWeight(team)}
-        </div>
-      </div>
 
-      {/* Team Members */}
-      <div className="p-6 space-y-4">
-        {team.team_members.map((member) => (
-          <div key={member.user_id} className="flex items-center space-x-4">
-            <Avatar className={`w-12 h-12 ${sceneSettings.broadcastFriendlyMode ? 'rounded-none' : ''}`}>
-              <AvatarImage 
-                src={member.users.discord_avatar_url || undefined} 
-                alt={member.users.discord_username}
-                className={sceneSettings.broadcastFriendlyMode ? 'rounded-none' : ''}
-              />
-              <AvatarFallback className={`bg-slate-700 text-white text-sm ${sceneSettings.broadcastFriendlyMode ? 'rounded-none' : ''}`}>
-                {member.users.discord_username?.slice(0, 2).toUpperCase() || '??'}
-              </AvatarFallback>
-            </Avatar>
-            
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center space-x-3">
-                <span 
-                  className="text-lg font-semibold truncate"
-                  style={{ 
-                    color: sceneSettings.textColor || settings.textColor,
-                    fontFamily: sceneSettings.fontFamily || 'inherit',
-                    fontSize: '18px'
-                  }}
-                >
+          <div className="grid grid-cols-5 gap-3">
+            {team.team_members.slice(0, 5).map((member) => (
+              <div
+                key={member.user_id}
+                className="bg-white/5 rounded-lg p-3 flex flex-col items-center text-center border border-white/10"
+              >
+                <div className="w-12 h-12 rounded-full overflow-hidden mb-2 border-2 border-white/20">
+                  <img
+                    src={member.users.discord_avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.users.discord_username}`}
+                    alt={member.users.discord_username}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+
+                <div className="text-white font-medium text-sm mb-1 truncate w-full">
                   {member.users.discord_username}
-                </span>
+                </div>
+
                 {member.is_captain && (
-                  <Crown className="w-5 h-5" style={{ color: sceneSettings.headerTextColor || settings.headerTextColor }} />
+                  <div className="flex items-center mb-1">
+                    <Crown className="w-4 h-4 text-yellow-400" />
+                  </div>
                 )}
-              </div>
-              
-              <div className="flex items-center space-x-3 mt-2">
-                {sceneSettings.showCurrentRank && member.users.current_rank && (
+
+                {member.users.current_rank && (
                   <Badge 
-                    variant="outline" 
-                    className={`text-sm px-3 py-1 ${sceneSettings.broadcastFriendlyMode ? 'rounded-none border-2' : ''}`}
+                    className="text-xs mb-1" 
                     style={{ 
-                      borderColor: getRankColor(member.users.current_rank) + (sceneSettings.broadcastFriendlyMode ? '' : '50'),
-                      color: getRankColor(member.users.current_rank),
-                      fontSize: '14px',
-                      backgroundColor: sceneSettings.broadcastFriendlyMode ? getRankColor(member.users.current_rank) + '20' : 'transparent'
+                      backgroundColor: getRankColor(member.users.current_rank),
+                      color: '#000000'
                     }}
                   >
-                    {member.users.current_rank}
+                    {member.users.current_rank.replace(/\s+/g, ' ').toUpperCase()}
                   </Badge>
                 )}
-                
-                {sceneSettings.showAdaptiveWeight && (
-                  <span 
-                    className="text-sm font-medium"
-                    style={{ 
-                      color: (sceneSettings.textColor || settings.textColor) + '90',
-                      fontFamily: sceneSettings.fontFamily || 'inherit',
-                      fontSize: '14px'
-                    }}
-                  >
-                    {getDisplayWeight(member)} pts
-                  </span>
-                )}
+
+                <div className="text-gray-300 text-xs">
+                  {getDisplayWeight(member)}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // New broadcast-optimized design
+    return (
+      <div className="space-y-2">
+        {/* Team Header Strip */}
+        <div 
+          style={getBroadcastTeamStripStyle(
+            isEliminated ? BROADCAST_DEFAULTS.errorColor : BROADCAST_DEFAULTS.accentColor
+          )}
+        >
+          <div className="flex-1 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div 
+                className="text-3xl font-black text-white"
+                style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
+              >
+                {team.name}
+              </div>
+              {isEliminated && (
+                <div style={getBroadcastBadgeStyle(BROADCAST_DEFAULTS.errorColor)}>
+                  ELIMINATED R{team.eliminated_round}
+                </div>
+              )}
+            </div>
+            
+            <div className="flex items-center gap-4">
+              <div 
+                className="text-white font-bold text-xl"
+                style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
+              >
+                SEED #{(team as any).calculatedSeed || 'TBD'}
+              </div>
+              <div 
+                className="text-white font-bold text-xl"
+                style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
+              >
+                AVG: {getTeamAverageWeight(team)}
               </div>
             </div>
           </div>
-        ))}
+        </div>
+
+        {/* Player Grid */}
+        <div className="grid grid-cols-5 gap-2">
+          {team.team_members.slice(0, 5).map((member) => (
+            <div
+              key={member.user_id}
+              className="bg-black border-2 border-white p-3 flex flex-col items-center text-center"
+              style={{ minHeight: '120px' }}
+            >
+              {/* Avatar */}
+              <div className="w-12 h-12 bg-gray-600 border-2 border-white mb-2">
+                <img
+                  src={member.users.discord_avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.users.discord_username}`}
+                  alt={member.users.discord_username}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+
+              {/* Username */}
+              <div 
+                className="text-white font-bold text-sm mb-1 truncate w-full"
+                style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
+              >
+                {member.users.discord_username}
+              </div>
+
+              {/* Captain Badge */}
+              {member.is_captain && (
+                <div className="flex items-center mb-1">
+                  <Crown className="w-4 h-4 text-yellow-400" />
+                </div>
+              )}
+
+              {/* Rank */}
+              {member.users.current_rank && (
+                <div 
+                  className="text-xs font-bold px-2 py-1 border border-white"
+                  style={{ 
+                    backgroundColor: getRankColor(member.users.current_rank),
+                    color: '#000000'
+                  }}
+                >
+                  {member.users.current_rank.replace(/\s+/g, ' ').toUpperCase()}
+                </div>
+              )}
+
+              {/* Weight */}
+              <div 
+                className="text-white font-bold text-xs mt-1"
+                style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
+              >
+                {getDisplayWeight(member)}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
-    <div className={BROADCAST_CONTAINER_CLASSES + " overflow-y-auto p-8"} style={containerStyle}>
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 
-            className="font-bold mb-4"
-            style={getBroadcastHeaderStyle(sceneSettings, settings, 'xl')}
+    <div className={BROADCAST_CONTAINER_CLASSES} style={containerStyle}>
+      <div className="max-w-full h-full flex flex-col p-8">
+        {/* Tournament Header */}
+        <div className="text-center mb-8">
+          <div 
+            className="text-6xl font-black text-white mb-4"
+            style={{ 
+              fontFamily: BROADCAST_DEFAULTS.fontFamily,
+              textShadow: '2px 2px 0px #000000'
+            }}
           >
             {tournament.name}
-          </h1>
+          </div>
           <div 
-            className="text-3xl font-medium"
-            style={getBroadcastTextStyle(sceneSettings, settings, '80')}
+            className="text-3xl font-bold"
+            style={{ 
+              color: BROADCAST_DEFAULTS.accentColor,
+              fontFamily: BROADCAST_DEFAULTS.fontFamily,
+              textShadow: '1px 1px 0px #000000'
+            }}
           >
-            Teams Overview
+            TEAMS OVERVIEW
           </div>
         </div>
 
-        {/* Active Teams */}
-        {sceneSettings.showActiveEliminated && activeTeams.length > 0 && (
-          <div className="mb-8">
-            <div 
-              className="text-4xl font-bold mb-6 flex items-center space-x-3"
-              style={{ 
-                color: sceneSettings.headerTextColor || settings.headerTextColor,
-                fontFamily: sceneSettings.fontFamily || 'inherit',
-                fontSize: '36px'
-              }}
-            >
-              <Trophy className="w-8 h-8" style={{ color: '#10B981' }} />
-              <span>Active Teams ({activeTeams.length})</span>
+        <div className="flex-1 overflow-y-auto">
+          {/* Active Teams */}
+          {activeTeams.length > 0 && (
+            <div className="mb-8">
+              <div 
+                className="flex items-center gap-4 mb-6"
+                style={getBroadcastTeamStripStyle(BROADCAST_DEFAULTS.successColor)}
+              >
+                <Trophy className="w-8 h-8 text-black" />
+                <div 
+                  className="text-2xl font-black text-black"
+                  style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
+                >
+                  ACTIVE TEAMS ({activeTeams.length})
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                {activeTeams.map((team) => (
+                  <TeamBlock key={team.id} team={team} />
+                ))}
+              </div>
             </div>
-            <div 
-              className={`grid grid-cols-${sceneSettings.gridColumns || 2} gap-6`}
-            >
-              {activeTeams.map((team) => (
-                <TeamCard key={team.id} team={team} />
-              ))}
-            </div>
-          </div>
-        )}
+          )}
 
-        {/* Eliminated Teams */}
-        {sceneSettings.showActiveEliminated && eliminatedTeams.length > 0 && (
-          <div>
-            <div 
-              className="text-4xl font-bold mb-6 flex items-center space-x-3"
-              style={{ 
-                color: sceneSettings.headerTextColor || settings.headerTextColor,
-                fontFamily: sceneSettings.fontFamily || 'inherit',
-                fontSize: '36px'
-              }}
-            >
-              <Users className="w-8 h-8" style={{ color: '#6B7280' }} />
-              <span>Eliminated Teams ({eliminatedTeams.length})</span>
+          {/* Eliminated Teams */}
+          {eliminatedTeams.length > 0 && (
+            <div>
+              <div 
+                className="flex items-center gap-4 mb-6"
+                style={getBroadcastTeamStripStyle(BROADCAST_DEFAULTS.errorColor)}
+              >
+                <Users className="w-8 h-8 text-black" />
+                <div 
+                  className="text-2xl font-black text-black"
+                  style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
+                >
+                  ELIMINATED TEAMS ({eliminatedTeams.length})
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                {eliminatedTeams.map((team) => (
+                  <TeamBlock key={team.id} team={team} isEliminated />
+                ))}
+              </div>
             </div>
-            <div 
-              className={`grid grid-cols-${sceneSettings.gridColumns || 2} gap-6`}
-            >
-              {eliminatedTeams.map((team) => (
-                <TeamCard key={team.id} team={team} isEliminated />
-              ))}
-            </div>
-          </div>
-        )}
+          )}
+        </div>
 
-        {/* Tournament Status */}
-        {sceneSettings.showTournamentStatus && (
-          <div className="mt-8 text-center">
+        {/* Tournament Status Footer */}
+        <div className="text-center pt-4">
           <div 
-            className={`inline-block px-6 py-3 ${sceneSettings.broadcastFriendlyMode ? 'rounded-none border-4' : 'rounded-full border'} font-bold text-lg ${
-              tournament.status === 'live' 
-                ? 'bg-red-500/20 text-red-400 border-red-500/30' 
+            className="inline-flex items-center px-8 py-4 border-4 border-white font-black text-2xl"
+            style={{
+              backgroundColor: tournament.status === 'live' 
+                ? BROADCAST_DEFAULTS.errorColor
                 : tournament.status === 'completed' 
-                  ? 'bg-green-500/20 text-green-400 border-green-500/30'
-                  : 'bg-blue-500/20 text-blue-400 border-blue-500/30'
-            }`}
+                  ? BROADCAST_DEFAULTS.successColor
+                  : BROADCAST_DEFAULTS.accentColor,
+              color: '#000000',
+              fontFamily: BROADCAST_DEFAULTS.fontFamily
+            }}
           >
-            {tournament.status === 'live' && '🔴 LIVE'}
-            {tournament.status === 'completed' && '✅ COMPLETED'}
+            {tournament.status === 'live' && '🔴 LIVE TOURNAMENT'}
+            {tournament.status === 'completed' && '✅ TOURNAMENT COMPLETE'}
             {tournament.status === 'open' && '📝 REGISTRATION OPEN'}
-            {tournament.status === 'balancing' && '✋ TEAM BALANCING'}
-            {tournament.status === 'draft' && '📋 DRAFT'}
+            {tournament.status === 'balancing' && '⚖️ TEAM BALANCING'}
+            {tournament.status === 'draft' && '📋 DRAFT MODE'}
           </div>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );

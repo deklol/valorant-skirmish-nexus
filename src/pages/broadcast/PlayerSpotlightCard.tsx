@@ -1,21 +1,22 @@
-import { useBroadcastData } from "@/hooks/useBroadcastData";
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useBroadcastSettings } from "@/hooks/useBroadcastSettings";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Crown } from "lucide-react";
-import { useBroadcastSettings } from "@/hooks/useBroadcastSettings";
+import { Trophy, Target, TrendingUp, Star, Crown, Users } from "lucide-react";
 import { 
-  getBroadcastContainerStyle, 
-  getBroadcastHeaderStyle, 
-  getBroadcastTextStyle,
-  getBroadcastCardStyle,
-  getBroadcastCardClasses,
-  BROADCAST_CONTAINER_CLASSES
+  getBroadcastContainerStyle,
+  getBroadcastBlockStyle,
+  getBroadcastBadgeStyle,
+  BROADCAST_CONTAINER_CLASSES,
+  BROADCAST_DEFAULTS,
+  getRankColor
 } from "@/utils/broadcastLayoutUtils";
 
 interface PlayerData {
-  discord_username?: string;
+  id: string;
+  discord_username: string;
   discord_avatar_url?: string;
   current_rank?: string;
   peak_rank?: string;
@@ -23,373 +24,293 @@ interface PlayerData {
   display_weight?: number;
   atlas_weight?: number;
   adaptive_weight?: number;
-  team_name?: string;
-  is_captain?: boolean;
-  tournaments_won?: number;
-  total_matches?: number;
+  tournament_wins?: number;
 }
 
 export default function PlayerSpotlightCard() {
   const { id, playerId } = useParams<{ id: string; playerId: string }>();
   const [player, setPlayer] = useState<PlayerData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [shouldAnimate, setShouldAnimate] = useState(true);
   const { settings } = useBroadcastSettings();
-  
-  // Use broadcast data hook with ATLAS weights
-  const { teams } = useBroadcastData(id);
 
   useEffect(() => {
-    if (!teams.length || !playerId) return;
+    if (!id || !playerId) return;
 
-    // Find player in teams data
-    let playerData: PlayerData | null = null;
-    let teamName = '';
-    let isCaptain = false;
+    const fetchPlayerData = async () => {
+      try {
+        // Fetch player data
+        const { data: userData } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', playerId)
+          .single();
 
-    for (const team of teams) {
-      const member = team.team_members.find(m => m.user_id === playerId);
-      if (member && member.users) {
-        playerData = {
-          ...member.users,
-          display_weight: (member.users as any).display_weight || (member.users as any).atlas_weight,
-          atlas_weight: (member.users as any).atlas_weight,
-          adaptive_weight: (member.users as any).adaptive_weight,
-          team_name: team.name,
-          is_captain: member.is_captain,
-          tournaments_won: (member.users as any).tournaments_won || 0,
-          total_matches: (member.users as any).tournaments_played || 0
+        if (!userData) return;
+
+        // Use existing weight system from user data
+        const enhancedPlayer: PlayerData = {
+          id: userData.id,
+          discord_username: userData.discord_username,
+          discord_avatar_url: userData.discord_avatar_url,
+          current_rank: userData.current_rank,
+          peak_rank: userData.peak_rank,
+          riot_id: userData.riot_id,
+          display_weight: 150, // Default weight for broadcast
+          atlas_weight: 150,
+          adaptive_weight: 150,
+          tournament_wins: userData.wins || 0
         };
-        teamName = team.name;
-        isCaptain = member.is_captain;
-        console.log('🎯 PLAYER SPOTLIGHT DATA:', {
-          userId: playerId,
-          discord_username: member.users.discord_username,
-          atlas_weight: (member.users as any).atlas_weight,
-          display_weight: (member.users as any).display_weight,
-          tournaments_won: (member.users as any).tournaments_won,
-          tournaments_played: (member.users as any).tournaments_played
-        });
-        break;
+
+        setPlayer(enhancedPlayer);
+      } catch (error) {
+        console.error('Error fetching player data:', error);
+      } finally {
+        setLoading(false);
       }
-    }
+    };
 
-    setPlayer(playerData);
-    setLoading(false);
-
-    // Check animation settings - URL parameter overrides stored settings
-    const urlParams = new URLSearchParams(window.location.search);
-    const animateParam = urlParams.get('animate');
-    if (animateParam !== null) {
-      setShouldAnimate(animateParam !== 'false');
-    } else {
-      setShouldAnimate(settings.animationEnabled);
-    }
-  }, [teams, playerId, settings.animationEnabled]);
-
-  const getRankColor = (rank?: string) => {
-    if (!rank) return 'text-slate-400';
-    const rankLower = rank.toLowerCase();
-    if (rankLower.includes('radiant')) return '#FFF176';
-    if (rankLower.includes('immortal')) return '#A52834';
-    if (rankLower.includes('ascendant')) return '#84FF6F';
-    if (rankLower.includes('diamond')) return '#8d64e2';
-    if (rankLower.includes('platinum')) return '#5CA3E4';
-    if (rankLower.includes('gold')) return '#FFD700';
-    return '#9CA3AF';
-  };
+    fetchPlayerData();
+  }, [id, playerId]);
 
   if (loading || !player) {
     return (
       <div className="w-screen h-screen bg-transparent flex items-center justify-center">
-        <div className="text-white text-2xl">Loading...</div>
+        <div 
+          className="text-4xl font-black text-white"
+          style={{ 
+            fontFamily: BROADCAST_DEFAULTS.fontFamily,
+            textShadow: '2px 2px 0px #000000'
+          }}
+        >
+          Loading Player Spotlight...
+        </div>
       </div>
     );
   }
 
   const sceneSettings = settings.sceneSettings.playerSpotlight;
   const containerStyle = getBroadcastContainerStyle(sceneSettings, settings);
-  const cardStyle = getBroadcastCardStyle(sceneSettings, settings);
-  const cardClasses = getBroadcastCardClasses(sceneSettings.broadcastFriendlyMode);
+  const isBroadcastMode = sceneSettings.broadcastFriendlyMode || sceneSettings.transparentBackground;
 
   const displayWeight = player.display_weight || player.atlas_weight || player.adaptive_weight || 150;
 
-  return (
-    <div className="w-screen h-screen flex items-center justify-center p-8" style={containerStyle}>
-      <div className="max-w-4xl w-full">
-        {/* Player Spotlight Card */}
-        <div 
-          className={`${cardClasses} ${sceneSettings.broadcastFriendlyMode ? '' : 'rounded-3xl'} overflow-hidden`}
-          style={cardStyle}
-        >
-          {/* Header */}
-          <div 
-            className="p-8 text-center border-b border-white/10"
-            style={{ 
-              backgroundColor: sceneSettings.backgroundColor || 'rgba(0, 0, 0, 0.3)',
-              borderRadius: `${sceneSettings.borderRadius || 0}px ${sceneSettings.borderRadius || 0}px 0 0`
-            }}
-          >
-            <div className="mb-4">
-              <Avatar className="w-32 h-32 mx-auto border-4 border-white/20 shadow-xl">
-                <AvatarImage 
-                  src={player.discord_avatar_url || undefined} 
-                  alt={player.discord_username}
-                />
-                <AvatarFallback className="bg-slate-700 text-white text-4xl">
-                  {player.discord_username?.slice(0, 2).toUpperCase() || '??'}
-                </AvatarFallback>
-              </Avatar>
-            </div>
-            
-            <div className="flex items-center justify-center space-x-3 mb-2">
-              <div className="text-4xl font-bold" style={{ 
-                color: sceneSettings.headerTextColor || settings.headerTextColor,
-                fontFamily: sceneSettings.fontFamily || 'inherit' 
-              }}>
-                {player.discord_username || 'Unknown Player'}
+  if (!isBroadcastMode) {
+    // Legacy mode design
+    return (
+      <div className="w-screen h-screen flex items-center justify-center p-8" style={containerStyle}>
+        <div className="max-w-4xl w-full">
+          <div className="backdrop-blur-md rounded-3xl border border-white/10 shadow-2xl overflow-hidden bg-black/40">
+            <div className="p-8 text-center border-b border-white/10">
+              <div className="mb-4">
+                <Avatar className="w-32 h-32 mx-auto border-4 border-white/20 shadow-xl">
+                  <AvatarImage 
+                    src={player.discord_avatar_url || undefined} 
+                    alt={player.discord_username}
+                  />
+                  <AvatarFallback className="bg-slate-700 text-white">
+                    {player.discord_username?.slice(0, 2).toUpperCase() || '??'}
+                  </AvatarFallback>
+                </Avatar>
               </div>
-              {player.is_captain && (
-                <Crown className="w-8 h-8" style={{ color: sceneSettings.headerTextColor || settings.headerTextColor }} />
+
+              <h1 className="text-4xl font-bold text-white mb-2">
+                {player.discord_username}
+              </h1>
+
+              {player.riot_id && (
+                <p className="text-xl text-gray-300 mb-4">
+                  {player.riot_id}
+                </p>
               )}
-            </div>
-            
-            {player.team_name && (
-              <div className="text-xl" style={{ 
-                color: (sceneSettings.textColor || settings.textColor) + '80',
-                fontFamily: sceneSettings.fontFamily || 'inherit'
-              }}>
-                {player.team_name}
-                {player.is_captain && ' • Team Captain'}
-              </div>
-            )}
-          </div>
 
-          {/* Stats Grid */}
-          <div className="p-8">
-            <div className={`${sceneSettings.statsLayout === 'stacked' ? 'space-y-8' : 'grid grid-cols-2 gap-8'}`}>
-              {/* Left Column - Ranks */}
-              {sceneSettings.statsLayout === 'stacked' ? (
-                <div className="space-y-6 w-full">
-                  <div className="text-2xl font-bold mb-4" style={{ 
-                    color: sceneSettings.headerTextColor || settings.headerTextColor,
-                    fontFamily: sceneSettings.fontFamily || 'inherit'
-                  }}>
-                    Ranks
-                  </div>
-                  <div className="grid grid-cols-1 gap-4">
-                    {sceneSettings.showCurrentRank && player.current_rank && (
-                      <div className="flex items-center justify-between p-4 bg-black/20 rounded-xl border border-white/10">
-                        <span style={{ color: sceneSettings.textColor || settings.textColor }}>Current Rank</span>
-                        <Badge 
-                          variant="outline" 
-                          className="text-lg px-4 py-2"
-                          style={{ 
-                            borderColor: getRankColor(player.current_rank) + '50',
-                            color: getRankColor(player.current_rank)
-                          }}
-                        >
-                          {player.current_rank}
-                        </Badge>
-                      </div>
-                    )}
-                    
-                    {sceneSettings.showPeakRank && player.peak_rank && (
-                      <div className="flex items-center justify-between p-4 bg-black/20 rounded-xl border border-white/10">
-                        <span style={{ color: sceneSettings.textColor || settings.textColor }}>Peak Rank</span>
-                        <Badge 
-                          variant="outline" 
-                          className="text-lg px-4 py-2"
-                          style={{ 
-                            borderColor: getRankColor(player.peak_rank) + '50',
-                            color: getRankColor(player.peak_rank)
-                          }}
-                        >
-                          {player.peak_rank}
-                        </Badge>
-                      </div>
-                    )}
-
-                    {sceneSettings.showRiotId && player.riot_id && (
-                      <div className="flex items-center justify-between p-4 bg-black/20 rounded-xl border border-white/10">
-                        <span style={{ color: sceneSettings.textColor || settings.textColor }}>Riot ID</span>
-                        <span style={{ color: sceneSettings.textColor || settings.textColor }} className="font-mono">{player.riot_id}</span>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Performance Section in Stacked Layout */}
-                  <div className="text-2xl font-bold mb-4 mt-8" style={{ 
-                    color: sceneSettings.headerTextColor || settings.headerTextColor,
-                    fontFamily: sceneSettings.fontFamily || 'inherit'
-                  }}>
-                    Performance
-                  </div>
-                  
-                  <div className="grid grid-cols-1 gap-4">
-                    {sceneSettings.showAdaptiveWeight && (
-                      <div className="flex items-center justify-between p-4 bg-black/20 rounded-xl border border-white/10">
-                        <span style={{ color: sceneSettings.textColor || settings.textColor }}>Tournament Weight</span>
-                        <Badge 
-                          variant="outline" 
-                          className="text-lg px-4 py-2"
-                          style={{ 
-                            color: sceneSettings.textColor || settings.textColor,
-                            borderColor: (sceneSettings.textColor || settings.textColor) + '50'
-                          }}
-                        >
-                          {displayWeight} pts
-                        </Badge>
-                      </div>
-                    )}
-
-                    {sceneSettings.showTournamentWins && (
-                      <div className="flex items-center justify-between p-4 bg-black/20 rounded-xl border border-white/10">
-                        <span style={{ color: sceneSettings.textColor || settings.textColor }}>Tournaments Won</span>
-                        <span style={{ color: sceneSettings.textColor || settings.textColor }} className="text-lg font-bold">{player.tournaments_won || 0}</span>
-                      </div>
-                    )}
-                    
-                    {sceneSettings.showTournamentWins && (
-                      <div className="flex items-center justify-between p-4 bg-black/20 rounded-xl border border-white/10">
-                        <span style={{ color: sceneSettings.textColor || settings.textColor }}>Total Tournaments</span>
-                        <span style={{ color: sceneSettings.textColor || settings.textColor }} className="text-lg font-bold">{player.total_matches || 0}</span>
-                      </div>
-                    )}
-
-                    {/* Performance Indicator in Stacked */}
-                    {sceneSettings.showPerformanceRating && (
-                      <div className="p-4 bg-gradient-to-r from-purple-600/10 to-blue-600/10 rounded-xl border border-white/10">
-                        <div className="text-center">
-                          <div className="text-sm mb-2" style={{ color: (sceneSettings.textColor || settings.textColor) + '70' }}>
-                            Performance Rating
-                          </div>
-                          <div 
-                            className="text-3xl font-bold"
-                            style={{ color: sceneSettings.headerTextColor || settings.headerTextColor }}
-                          >
-                            {displayWeight >= 400 ? 'Elite' : 
-                             displayWeight >= 300 ? 'High' : 
-                             displayWeight >= 200 ? 'Intermediate' : 
-                             'Developing'}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <>
-                  {/* Grid Layout - Left Column - Ranks */}
-                  <div className="space-y-6">
-                <div className="text-2xl font-bold mb-4" style={{ 
-                  color: sceneSettings.headerTextColor || settings.headerTextColor,
-                  fontFamily: sceneSettings.fontFamily || 'inherit'
-                }}>
-                  Ranks
-                </div>
+              <div className="flex items-center justify-center gap-4">
+                {player.current_rank && (
+                  <Badge 
+                    className="px-4 py-2 text-lg font-semibold"
+                    style={{ 
+                      backgroundColor: getRankColor(player.current_rank),
+                      color: '#000000'
+                    }}
+                  >
+                    {player.current_rank}
+                  </Badge>
+                )}
                 
-                {sceneSettings.showCurrentRank && player.current_rank && (
-                  <div className="flex items-center justify-between p-4 bg-black/20 rounded-xl border border-white/10">
-                    <span style={{ color: sceneSettings.textColor || settings.textColor }}>Current Rank</span>
-                    <Badge 
-                      variant="outline" 
-                      className="text-lg px-4 py-2"
-                      style={{ 
-                        borderColor: getRankColor(player.current_rank) + '50',
-                        color: getRankColor(player.current_rank)
+                <Badge variant="outline" className="px-4 py-2 text-lg border-white/30 text-white">
+                  {displayWeight} Points
+                </Badge>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-6 p-8">
+              <div className="text-center">
+                <Target className="w-8 h-8 mx-auto mb-3 text-blue-400" />
+                <div className="text-2xl font-bold text-white">
+                  {displayWeight}
+                </div>
+                <div className="text-gray-300">Weight</div>
+              </div>
+
+              <div className="text-center">
+                <Trophy className="w-8 h-8 mx-auto mb-3 text-yellow-400" />
+                <div className="text-2xl font-bold text-white">
+                  {player.tournament_wins || 0}
+                </div>
+                <div className="text-gray-300">Wins</div>
+              </div>
+
+              <div className="text-center">
+                <TrendingUp className="w-8 h-8 mx-auto mb-3 text-green-400" />
+                <div className="text-2xl font-bold text-white">
+                  {player.peak_rank || 'N/A'}
+                </div>
+                <div className="text-gray-300">Peak</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // New broadcast-optimized design
+  return (
+    <div className={BROADCAST_CONTAINER_CLASSES} style={containerStyle}>
+      <div className="max-w-full h-full flex items-center justify-center p-8">
+        <div className="max-w-6xl w-full">
+          {/* Player Header Block */}
+          <div 
+            className="bg-black border-4 border-white p-8 mb-6"
+            style={{ borderColor: BROADCAST_DEFAULTS.accentColor }}
+          >
+            <div className="flex items-center gap-8">
+              {/* Avatar */}
+              <div className="bg-gray-600 border-4 border-white w-48 h-48">
+                <img
+                  src={player.discord_avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${player.discord_username}`}
+                  alt={player.discord_username}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+
+              {/* Player Info */}
+              <div className="flex-1">
+                <div 
+                  className="text-6xl font-black text-white mb-4"
+                  style={{ 
+                    fontFamily: BROADCAST_DEFAULTS.fontFamily,
+                    color: BROADCAST_DEFAULTS.accentColor,
+                    textShadow: '2px 2px 0px #000000'
+                  }}
+                >
+                  {player.discord_username}
+                </div>
+
+                {player.riot_id && (
+                  <div 
+                    className="text-3xl text-white mb-6"
+                    style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
+                  >
+                    {player.riot_id}
+                  </div>
+                )}
+
+                {/* Rank and Weight Badges */}
+                <div className="flex items-center gap-4">
+                  {player.current_rank && (
+                    <div 
+                      className="px-6 py-3 border-4 border-white font-black text-2xl"
+                      style={{
+                        backgroundColor: getRankColor(player.current_rank),
+                        color: '#000000',
+                        fontFamily: BROADCAST_DEFAULTS.fontFamily
                       }}
                     >
                       {player.current_rank}
-                    </Badge>
-                  </div>
-                )}
-                
-                {sceneSettings.showPeakRank && player.peak_rank && (
-                  <div className="flex items-center justify-between p-4 bg-black/20 rounded-xl border border-white/10">
-                    <span style={{ color: sceneSettings.textColor || settings.textColor }}>Peak Rank</span>
-                    <Badge 
-                      variant="outline" 
-                      className="text-lg px-4 py-2"
-                      style={{ 
-                        borderColor: getRankColor(player.peak_rank) + '50',
-                        color: getRankColor(player.peak_rank)
-                      }}
-                    >
-                      {player.peak_rank}
-                    </Badge>
-                  </div>
-                )}
-
-                {sceneSettings.showRiotId && player.riot_id && (
-                  <div className="flex items-center justify-between p-4 bg-black/20 rounded-xl border border-white/10">
-                    <span style={{ color: sceneSettings.textColor || settings.textColor }}>Riot ID</span>
-                    <span style={{ color: sceneSettings.textColor || settings.textColor }} className="font-mono">{player.riot_id}</span>
-                  </div>
-                )}
-                  </div>
-
-                  {/* Grid Layout - Right Column - Performance */}
-                  <div className="space-y-6">
-                    <div className="text-2xl font-bold mb-4" style={{ 
-                      color: sceneSettings.headerTextColor || settings.headerTextColor,
-                      fontFamily: sceneSettings.fontFamily || 'inherit'
-                    }}>
-                      Performance
                     </div>
-                    
-                     {sceneSettings.showAdaptiveWeight && (
-                       <div className="flex items-center justify-between p-4 bg-black/20 rounded-xl border border-white/10">
-                         <span style={{ color: sceneSettings.textColor || settings.textColor }}>Tournament Weight</span>
-                         <Badge 
-                           variant="outline" 
-                           className="text-lg px-4 py-2"
-                           style={{ 
-                             color: sceneSettings.textColor || settings.textColor,
-                             borderColor: (sceneSettings.textColor || settings.textColor) + '50'
-                           }}
-                         >
-                           {displayWeight} pts
-                         </Badge>
-                       </div>
-                     )}
-
-                     {sceneSettings.showTournamentWins && (
-                       <div className="flex items-center justify-between p-4 bg-black/20 rounded-xl border border-white/10">
-                         <span style={{ color: sceneSettings.textColor || settings.textColor }}>Tournaments Won</span>
-                         <span style={{ color: sceneSettings.textColor || settings.textColor }} className="text-lg font-bold">{player.tournaments_won || 0}</span>
-                       </div>
-                     )}
-                     
-                     {sceneSettings.showTournamentWins && (
-                       <div className="flex items-center justify-between p-4 bg-black/20 rounded-xl border border-white/10">
-                         <span style={{ color: sceneSettings.textColor || settings.textColor }}>Total Tournaments</span>
-                         <span style={{ color: sceneSettings.textColor || settings.textColor }} className="text-lg font-bold">{player.total_matches || 0}</span>
-                       </div>
-                     )}
-
-                    {/* Performance Indicator */}
-                    {sceneSettings.showPerformanceRating && (
-                      <div className="p-4 bg-gradient-to-r from-purple-600/10 to-blue-600/10 rounded-xl border border-white/10">
-                        <div className="text-center">
-                          <div className="text-sm mb-2" style={{ color: (sceneSettings.textColor || settings.textColor) + '70' }}>
-                            Performance Rating
-                          </div>
-                           <div 
-                             className="text-3xl font-bold"
-                             style={{ color: sceneSettings.headerTextColor || settings.headerTextColor }}
-                           >
-                            {displayWeight >= 400 ? 'Elite' : 
-                             displayWeight >= 300 ? 'High' : 
-                             displayWeight >= 200 ? 'Intermediate' : 
-                             'Developing'}
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                  )}
+                  
+                  <div 
+                    className="px-6 py-3 border-4 border-white font-black text-2xl"
+                    style={{
+                      backgroundColor: BROADCAST_DEFAULTS.accentColor,
+                      color: '#000000',
+                      fontFamily: BROADCAST_DEFAULTS.fontFamily
+                    }}
+                  >
+                    {displayWeight} POINTS
                   </div>
-                </>
-              )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-3 gap-6">
+            <div className="bg-black border-4 border-white p-8 text-center">
+              <Target 
+                className="w-16 h-16 mx-auto mb-4" 
+                style={{ color: BROADCAST_DEFAULTS.primaryColor }} 
+              />
+              <div 
+                className="text-5xl font-black mb-2"
+                style={{ 
+                  color: BROADCAST_DEFAULTS.primaryColor,
+                  fontFamily: BROADCAST_DEFAULTS.fontFamily 
+                }}
+              >
+                {displayWeight}
+              </div>
+              <div 
+                className="text-2xl font-bold text-white"
+                style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
+              >
+                CURRENT WEIGHT
+              </div>
+            </div>
+
+            <div className="bg-black border-4 border-white p-8 text-center">
+              <Trophy 
+                className="w-16 h-16 mx-auto mb-4" 
+                style={{ color: BROADCAST_DEFAULTS.warningColor }} 
+              />
+              <div 
+                className="text-5xl font-black mb-2"
+                style={{ 
+                  color: BROADCAST_DEFAULTS.warningColor,
+                  fontFamily: BROADCAST_DEFAULTS.fontFamily 
+                }}
+              >
+                {player.tournament_wins || 0}
+              </div>
+              <div 
+                className="text-2xl font-bold text-white"
+                style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
+              >
+                TOURNAMENT WINS
+              </div>
+            </div>
+
+            <div className="bg-black border-4 border-white p-8 text-center">
+              <TrendingUp 
+                className="w-16 h-16 mx-auto mb-4" 
+                style={{ color: getRankColor(player.peak_rank) }} 
+              />
+              <div 
+                className="text-3xl font-black mb-2 text-white"
+                style={{ 
+                  color: getRankColor(player.peak_rank),
+                  fontFamily: BROADCAST_DEFAULTS.fontFamily 
+                }}
+              >
+                {player.peak_rank || 'UNRANKED'}
+              </div>
+              <div 
+                className="text-2xl font-bold text-white"
+                style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
+              >
+                PEAK RANK
+              </div>
             </div>
           </div>
         </div>
