@@ -124,9 +124,9 @@ export function createTournamentEmbed(tournament: any, signupsData: any) {
         .setStyle(ButtonStyle.Success)
         .setEmoji('🔄'),
       new ButtonBuilder()
-        .setCustomId(`info_${tournament.id}`)
+        .setURL(`https://tlrhub.pro/tournament/${tournament.id}`)
         .setLabel('More Info')
-        .setStyle(ButtonStyle.Secondary)
+        .setStyle(ButtonStyle.Link)
         .setEmoji('ℹ️')
     ]);
 

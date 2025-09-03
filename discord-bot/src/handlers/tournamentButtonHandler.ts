@@ -24,10 +24,6 @@ export async function handleTournamentButton(interaction: any, customId: string,
       case 'refresh':
         await handleTournamentRefresh(interaction, tournamentId);
         break;
-        
-      case 'info':
-        await handleTournamentInfo(interaction, tournamentId);
-        break;
     }
   } catch (error) {
     console.error('Tournament button interaction error:', error);
@@ -197,56 +193,6 @@ async function handleTournamentRefresh(interaction: any, tournamentId: string) {
 
   // Update the tournament message
   await updateTournamentMessage(interaction, tournament);
-}
-
-async function handleTournamentInfo(interaction: any, tournamentId: string) {
-  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-
-  // Get tournament info with more details
-  const { data: tournament } = await getSupabase()
-    .from('tournaments')
-    .select('*')
-    .eq('id', tournamentId)
-    .maybeSingle();
-    
-  if (!tournament) {
-    await interaction.editReply('❌ Tournament not found.');
-    return;
-  }
-
-  const embed = new EmbedBuilder()
-    .setTitle(`ℹ️ ${tournament.name} - Information`)
-    .setColor(0x0099FF)
-    .addFields([
-      {
-        name: '📋 Description',
-        value: tournament.description || 'No description provided',
-        inline: false
-      },
-      {
-        name: '⚙️ Settings',
-        value: [
-          `**Team Size:** ${tournament.team_size} players`,
-          `**Max Players:** ${tournament.max_players}`,
-          `**Check-in Required:** ${tournament.check_in_required ? 'Yes' : 'No'}`,
-          `**Map Veto:** ${tournament.enable_map_veto ? 'Enabled' : 'Disabled'}`,
-          `**Match Format:** ${tournament.match_format}`
-        ].join('\n'),
-        inline: false
-      }
-    ]);
-
-  if (tournament.check_in_required && tournament.check_in_starts_at) {
-    embed.addFields([
-      {
-        name: '⏰ Check-in Information',
-        value: `Check-in opens: <t:${Math.floor(new Date(tournament.check_in_starts_at).getTime() / 1000)}:F>`,
-        inline: false
-      }
-    ]);
-  }
-
-  await interaction.editReply({ embeds: [embed] });
 }
 
 async function updateTournamentMessage(interaction: any, tournament: any) {
