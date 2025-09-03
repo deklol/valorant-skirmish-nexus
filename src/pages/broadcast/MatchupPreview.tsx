@@ -188,42 +188,44 @@ export default function MatchupPreview() {
     };
 
     const StatRow = ({ label, value1, value2 }: { label: string; value1: string | number; value2: string | number }) => (
-      <div className="grid grid-cols-3 gap-4 py-2">
-        <div className="text-right font-medium text-white">
+      <div className="grid grid-cols-3 gap-4 py-1">
+        <div className="text-right font-medium text-white text-sm">
           {value1}
         </div>
-        <div className="text-center text-white/70 uppercase tracking-wide text-xs font-bold">
+        <div className="text-center text-white/60 uppercase tracking-wide text-xs font-medium">
           {label}
         </div>
-        <div className="text-left font-medium text-white">
+        <div className="text-left font-medium text-white text-sm">
           {value2}
         </div>
       </div>
     );
 
     return (
-      <div className="bg-black/60 backdrop-blur-sm rounded-lg border border-white/20 p-6 w-80">
-        <div className="text-center mb-4">
-          <h3 className="text-xl font-bold uppercase tracking-wider text-white">
+      <div className="bg-black/60 backdrop-blur-sm rounded-lg border border-white/20 p-4 w-64">
+        <div className="text-center mb-3">
+          <h3 className="text-lg font-bold uppercase tracking-wider text-white">
             Tale of the Tape
           </h3>
         </div>
         
         <div className="space-y-1">
           <StatRow 
-            label="Avg Rank Points" 
+            label="Avg Points" 
             value1={team1Stats.avgRankPoints} 
             value2={team2Stats.avgRankPoints} 
           />
           
-          <StatRow 
-            label="Radiant Players" 
-            value1={team1Stats.radiantPlayers} 
-            value2={team2Stats.radiantPlayers}
-          />
+          {(team1Stats.radiantPlayers > 0 || team2Stats.radiantPlayers > 0) && (
+            <StatRow 
+              label="Radiant" 
+              value1={team1Stats.radiantPlayers} 
+              value2={team2Stats.radiantPlayers}
+            />
+          )}
           
           <StatRow 
-            label="Immortal Players" 
+            label="Immortal" 
             value1={team1Stats.immortalPlayers} 
             value2={team2Stats.immortalPlayers} 
           />
@@ -235,12 +237,9 @@ export default function MatchupPreview() {
           />
         </div>
         
-        <div className="mt-4 text-center">
-          <div className="text-green-400 font-bold text-sm">
+        <div className="mt-3 text-center">
+          <div className="text-green-400 font-bold text-xs">
             VERY BALANCED
-          </div>
-          <div className="text-white/50 text-xs mt-1">
-            Weight Difference: 3 points
           </div>
         </div>
       </div>
@@ -248,32 +247,32 @@ export default function MatchupPreview() {
   };
 
   const PlayerLineup = ({ team, side }: { team: Team; side: 'left' | 'right' }) => (
-    <div className={`space-y-3 ${side === 'right' ? 'text-right' : 'text-left'}`}>
-      <div className="mb-6">
-        <div className="text-2xl font-bold mb-1 uppercase tracking-wide text-white">
+    <div className={`space-y-2 ${side === 'right' ? 'text-right' : 'text-left'}`}>
+      <div className="mb-4">
+        <div className="text-xl font-bold mb-1 uppercase tracking-wide text-white">
           {team.name}
         </div>
-        <div className="flex items-center space-x-3" style={{ justifyContent: side === 'right' ? 'flex-end' : 'flex-start' }}>
-          <div className="text-cyan-400 text-lg font-bold">
+        <div className="flex items-center space-x-2" style={{ justifyContent: side === 'right' ? 'flex-end' : 'flex-start' }}>
+          <div className="text-cyan-400 text-sm font-bold">
             AVG: {side === 'left' ? team1Avg : team2Avg}
           </div>
-          <div className="text-white/50 text-sm">
+          <div className="text-white/50 text-xs">
             SEED #{team.seed || 'TBD'}
           </div>
         </div>
       </div>
       
-      <div className="space-y-2">
+      <div className="space-y-1">
         {team.team_members
           .sort((a, b) => (b.is_captain ? 1 : 0) - (a.is_captain ? 1 : 0))
           .map((member, index) => (
             <div 
               key={member.user_id} 
-              className={`flex items-center space-x-3 bg-black/30 backdrop-blur-sm rounded p-3 border border-white/10 ${
+              className={`flex items-center space-x-2 bg-black/20 backdrop-blur-sm rounded px-3 py-2 border border-white/10 ${
                 side === 'right' ? 'flex-row-reverse space-x-reverse' : ''
               }`}
             >
-              <div className="text-lg font-bold text-white/40 w-6 text-center">
+              <div className="text-sm font-medium text-white/40 w-4 text-center">
                 {index + 1}
               </div>
               
@@ -283,19 +282,19 @@ export default function MatchupPreview() {
                 </Badge>
               )}
               
-              <Avatar className="w-8 h-8">
+              <Avatar className="w-6 h-6">
                 <AvatarImage src={member.users?.discord_avatar_url || undefined} />
                 <AvatarFallback className="bg-slate-700 text-white text-xs">
                   {member.users?.discord_username?.slice(0, 2).toUpperCase() || '??'}
                 </AvatarFallback>
               </Avatar>
               
-              <div className={`flex-1 ${side === 'right' ? 'text-right' : 'text-left'}`}>
-                <div className="text-white font-medium text-sm">
+              <div className={`flex-1 min-w-0 ${side === 'right' ? 'text-right' : 'text-left'}`}>
+                <div className="text-white font-medium text-xs truncate">
                   {member.users?.discord_username || 'Unknown'}
                 </div>
                 {sceneSettings.showCurrentRank && (
-                  <div className={`text-xs ${getRankColor(member.users?.current_rank)}`}>
+                  <div className={`text-xs ${getRankColor(member.users?.current_rank)} truncate`}>
                     {member.users?.current_rank}
                   </div>
                 )}
@@ -327,22 +326,22 @@ export default function MatchupPreview() {
       <div className="relative z-10 max-w-7xl w-full">
         {/* Main Header */}
         {sceneSettings.showVsHeader && (
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center space-x-6 mb-4">
-              <div className="text-5xl font-black uppercase tracking-wider text-white">
+          <div className="text-center mb-6">
+            <div className="flex items-center justify-center space-x-6 mb-3">
+              <div className="text-4xl font-black uppercase tracking-wider text-white">
                 {team1.name}
               </div>
               <div className="flex flex-col items-center">
-                <Swords className="w-12 h-12 text-red-500 mb-1" />
-                <div className="text-white/70 text-sm uppercase tracking-wide font-bold">
+                <Swords className="w-10 h-10 text-red-500 mb-1" />
+                <div className="text-white/70 text-xs uppercase tracking-wide font-bold">
                   VS
                 </div>
               </div>
-              <div className="text-5xl font-black uppercase tracking-wider text-white">
+              <div className="text-4xl font-black uppercase tracking-wider text-white">
                 {team2.name}
               </div>
             </div>
-            <div className="text-lg text-white/80 uppercase tracking-wider font-bold">
+            <div className="text-sm text-white/80 uppercase tracking-wider font-bold">
               Upcoming Match
             </div>
           </div>

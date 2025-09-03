@@ -259,12 +259,11 @@ export default function BroadcastSettingsPanel() {
                   <Select 
                     value="standard"
                     onValueChange={(value) => {
-                      // Presets for the simplified matchup view
                       if (value === 'minimal') {
                         updateSceneSettings(scene, { 
                           showCaptainBadges: false,
                           showCurrentRank: false,
-                          showVsHeader: true
+                          showVsHeader: false
                         });
                       } else if (value === 'standard') {
                         updateSceneSettings(scene, { 
@@ -272,9 +271,9 @@ export default function BroadcastSettingsPanel() {
                           showCurrentRank: true,
                           showVsHeader: true
                         });
-                      } else if (value === 'broadcast') {
+                      } else if (value === 'clean') {
                         updateSceneSettings(scene, { 
-                          showCaptainBadges: true,
+                          showCaptainBadges: false,
                           showCurrentRank: true,
                           showVsHeader: true
                         });
@@ -285,9 +284,9 @@ export default function BroadcastSettingsPanel() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="minimal">Minimal - Names Only</SelectItem>
-                      <SelectItem value="standard">Standard - Full Info</SelectItem>
-                      <SelectItem value="broadcast">Broadcast Ready</SelectItem>
+                      <SelectItem value="minimal">Names Only</SelectItem>
+                      <SelectItem value="clean">Clean</SelectItem>
+                      <SelectItem value="standard">Standard</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
