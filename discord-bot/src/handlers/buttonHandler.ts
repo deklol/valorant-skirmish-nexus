@@ -6,7 +6,7 @@ import { getSupabase } from '../utils/supabase.js';
 import { createQuickMatchEmbed, createMapVotingEmbed } from '../utils/embeds.js';
 import { handleUserRegistration } from '../utils/userRegistration.js';
 import { handleTournamentButton } from './tournamentButtonHandler.js';
-import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
+import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, MessageFlags } from 'discord.js';
 
 export async function handleButtonInteraction(interaction: any) {
   const customId = interaction.customId;
