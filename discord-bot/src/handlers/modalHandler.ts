@@ -5,7 +5,7 @@ import { QuickMatchManager } from '../utils/quickMatchManager.js';
 import { EmbedBuilder } from 'discord.js';
 import { getSupabase } from '../utils/supabase.js';
 
-export async function handleModalInteraction(interaction: any) {
+export async function handleModalSubmit(interaction: any) {
   const customId = interaction.customId;
   
   console.log(`📝 Modal interaction: ${customId} from user ${interaction.user.id}`);
