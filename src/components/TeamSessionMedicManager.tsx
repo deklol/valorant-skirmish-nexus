@@ -20,7 +20,11 @@ import {
   AlertTriangle,
   Trophy,
   Clock,
-  Target
+  Target,
+  Settings,
+  Filter,
+  Calendar,
+  Zap
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -286,6 +290,74 @@ export const TeamSessionMedicManager: React.FC = () => {
     return matchesSearch && matchesStatus;
   });
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "draft": 
+        return {
+          gradient: "bg-gradient-to-r from-gray-600/30 to-gray-500/30",
+          bg: "bg-gradient-to-br from-gray-600 to-gray-700",
+          text: "text-white",
+          shadow: "shadow-gray-500/25",
+          badgeBg: "bg-gray-600/20",
+          badgeText: "text-gray-300"
+        };
+      case "open": 
+        return {
+          gradient: "bg-gradient-to-r from-green-600/30 to-emerald-500/30",
+          bg: "bg-gradient-to-br from-green-600 to-emerald-700",
+          text: "text-white",
+          shadow: "shadow-green-500/25",
+          badgeBg: "bg-green-600/20",
+          badgeText: "text-green-300"
+        };
+      case "balancing": 
+        return {
+          gradient: "bg-gradient-to-r from-yellow-600/30 to-orange-500/30",
+          bg: "bg-gradient-to-br from-yellow-600 to-orange-700",
+          text: "text-white",
+          shadow: "shadow-yellow-500/25",
+          badgeBg: "bg-yellow-600/20",
+          badgeText: "text-yellow-300"
+        };
+      case "live": 
+        return {
+          gradient: "bg-gradient-to-r from-red-600/30 to-red-500/30",
+          bg: "bg-gradient-to-br from-red-600 to-red-700",
+          text: "text-white",
+          shadow: "shadow-red-500/25",
+          badgeBg: "bg-red-600/20",
+          badgeText: "text-red-300"
+        };
+      case "completed": 
+        return {
+          gradient: "bg-gradient-to-r from-blue-600/30 to-indigo-500/30",
+          bg: "bg-gradient-to-br from-blue-600 to-indigo-700",
+          text: "text-white",
+          shadow: "shadow-blue-500/25",
+          badgeBg: "bg-blue-600/20",
+          badgeText: "text-blue-300"
+        };
+      case "archived": 
+        return {
+          gradient: "bg-gradient-to-r from-purple-600/30 to-violet-500/30",
+          bg: "bg-gradient-to-br from-purple-600 to-violet-700",
+          text: "text-white",
+          shadow: "shadow-purple-500/25",
+          badgeBg: "bg-purple-600/20",
+          badgeText: "text-purple-300"
+        };
+      default: 
+        return {
+          gradient: "bg-gradient-to-r from-slate-600/30 to-slate-500/30",
+          bg: "bg-gradient-to-br from-slate-600 to-slate-700",
+          text: "text-white",
+          shadow: "shadow-slate-500/25",
+          badgeBg: "bg-slate-600/20",
+          badgeText: "text-slate-300"
+        };
+    }
+  };
+
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
       case "draft": return "outline";
@@ -310,193 +382,244 @@ export const TeamSessionMedicManager: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <Card className="bg-slate-800 border-slate-700">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Shield className="h-6 w-6 text-red-400" />
-              <div>
-                <CardTitle className="text-white">Team Session Medic</CardTitle>
-                <p className="text-slate-400 text-sm mt-1">
-                  Manage team rosters, player assignments, and maintain stat integrity across all tournaments
-                </p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+      <div className="max-w-7xl mx-auto p-6 space-y-8">
+        {/* Enhanced Header */}
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-red-500/20 to-orange-500/20 rounded-2xl blur-xl"></div>
+          <Card className="relative bg-slate-900/90 border-slate-700/50 backdrop-blur-sm">
+            <CardContent className="p-8">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-gradient-to-br from-red-500 to-orange-600 rounded-xl shadow-lg shadow-red-500/25">
+                      <Shield className="h-7 w-7 text-white" />
+                    </div>
+                    <div>
+                      <h1 className="text-4xl font-bold bg-gradient-to-r from-white via-slate-200 to-slate-300 bg-clip-text text-transparent">
+                        Team Session Medic
+                      </h1>
+                      <p className="text-slate-400 text-lg mt-1">
+                        Manage team rosters, player assignments, and maintain stat integrity across all tournaments
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  {selectedTournament && (
+                    <Button 
+                      onClick={refreshTournamentData}
+                      disabled={refreshing}
+                      size="lg"
+                      variant="outline"
+                      className="border-slate-600 hover:bg-slate-800 text-slate-300 hover:text-white shadow-lg transition-all duration-200"
+                    >
+                      <RefreshCw className={`h-5 w-5 mr-2 ${refreshing ? "animate-spin" : ""}`} />
+                      Refresh Data
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Enhanced Tournament Selection & Filters */}
+        <Card className="bg-slate-900/70 border-slate-700/50 backdrop-blur-sm">
+          <CardContent className="p-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+              <div className="lg:col-span-2 space-y-2">
+                <label className="text-sm font-semibold text-slate-300 uppercase tracking-wide">Search Tournaments</label>
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
+                  <Input
+                    placeholder="Search by tournament name or ID..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-12 bg-slate-800/70 border-slate-600 text-white placeholder:text-slate-500 h-14 text-base rounded-xl focus:ring-2 focus:ring-blue-500/50 transition-all duration-200"
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-slate-300 uppercase tracking-wide">Filter by Status</label>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="bg-slate-800/70 border-slate-600 text-white h-14 rounded-xl">
+                    <div className="flex items-center">
+                      <Filter className="h-4 w-4 mr-2 text-slate-400" />
+                      <SelectValue placeholder="All Status" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-800 border-slate-700 rounded-xl">
+                    {TOURNAMENT_STATUS_FILTERS.map(filter => (
+                      <SelectItem key={filter.value} value={filter.value} className="text-white hover:bg-slate-700">
+                        {filter.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              {selectedTournament && (
-                <Button 
-                  onClick={refreshTournamentData}
-                  disabled={refreshing}
-                  size="sm"
-                  variant="outline"
-                  className="text-slate-300 border-slate-600"
-                >
-                  <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
-                  Refresh
-                </Button>
+
+            {/* Results Summary */}
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                <span className="text-slate-300 font-medium">
+                  {filteredTournaments.length} tournament{filteredTournaments.length !== 1 ? 's' : ''} found
+                </span>
+              </div>
+              {loading && (
+                <div className="flex items-center gap-2 text-blue-400">
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                  <span className="text-sm">Loading tournaments...</span>
+                </div>
               )}
             </div>
-          </div>
-        </CardHeader>
-      </Card>
 
-      {/* Tournament Selection & Filters */}
-      <Card className="bg-slate-800 border-slate-700">
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300">Search Tournaments</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input
-                  placeholder="Search by tournament name..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-                />
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300">Filter by Status</label>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-slate-700 border-slate-600">
-                  {TOURNAMENT_STATUS_FILTERS.map(filter => (
-                    <SelectItem key={filter.value} value={filter.value} className="text-white">
-                      {filter.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300">Tournament Sessions</label>
-              <div className="text-slate-400 text-sm">
-                {filteredTournaments.length} tournaments found
-              </div>
-            </div>
-          </div>
-
-          {loading && (
-            <div className="flex items-center justify-center py-8">
-              <RefreshCw className="h-6 w-6 animate-spin text-slate-400 mr-2" />
-              <span className="text-slate-400">Loading tournaments...</span>
-            </div>
-          )}
-
-          {/* Tournament List */}
-          <div className="space-y-3">
-            {filteredTournaments.map(tournament => (
-              <Collapsible key={tournament.id}>
-                <div className="border border-slate-600 rounded-lg bg-slate-750">
-                  <CollapsibleTrigger
-                    className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-700 rounded-lg transition-colors"
-                    onClick={() => toggleTournamentExpansion(tournament.id)}
-                  >
-                    <div className="flex items-center gap-3">
-                      {expandedTournaments.has(tournament.id) ? (
-                        <ChevronDown className="h-4 w-4 text-slate-400" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4 text-slate-400" />
-                      )}
-                      <Trophy className="h-4 w-4 text-blue-400" />
-                      <div className="text-left">
-                        <div className="font-medium text-white">{tournament.name}</div>
-                        <div className="text-sm text-slate-400">
-                          ID: {tournament.id.slice(0, 8)}... • {tournament.team_count || 0} teams
-                        </div>
-                      </div>
+            {/* Enhanced Tournament List */}
+            <div className="space-y-4">
+              {filteredTournaments.map(tournament => {
+                const isExpanded = expandedTournaments.has(tournament.id);
+                const statusColor = getStatusColor(tournament.status);
+                
+                return (
+                  <div key={tournament.id} className="group">
+                    <div className="relative">
+                      <div className={`absolute inset-0 ${statusColor.gradient} rounded-2xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity duration-300`}></div>
+                      <Card className="relative bg-slate-800/80 border-slate-700/50 backdrop-blur-sm hover:bg-slate-800/90 transition-all duration-300 group-hover:border-slate-600">
+                        <Collapsible>
+                          <CollapsibleTrigger
+                            className="w-full p-6 flex items-center justify-between hover:bg-slate-700/30 rounded-t-xl transition-colors duration-200"
+                            onClick={() => toggleTournamentExpansion(tournament.id)}
+                          >
+                            <div className="flex items-center gap-4">
+                              <div className="flex items-center gap-3">
+                                {isExpanded ? (
+                                  <ChevronDown className="h-5 w-5 text-slate-400 transition-transform duration-200" />
+                                ) : (
+                                  <ChevronRight className="h-5 w-5 text-slate-400 transition-transform duration-200" />
+                                )}
+                                <div className={`p-3 ${statusColor.bg} rounded-xl shadow-lg ${statusColor.shadow}`}>
+                                  <Trophy className={`h-6 w-6 ${statusColor.text}`} />
+                                </div>
+                              </div>
+                              <div className="text-left">
+                                <div className="font-bold text-white text-xl mb-1">{tournament.name}</div>
+                                <div className="flex items-center gap-4 text-sm text-slate-400">
+                                  <span className="flex items-center gap-1">
+                                    <Target className="h-3 w-3" />
+                                    ID: {tournament.id.slice(0, 8)}...
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <Users className="h-3 w-3" />
+                                    {tournament.team_count || 0} teams
+                                  </span>
+                                  {tournament.start_time && (
+                                    <span className="flex items-center gap-1">
+                                      <Calendar className="h-3 w-3" />
+                                      {new Date(tournament.start_time).toLocaleDateString()}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <Badge variant="secondary" className={`${statusColor.badgeBg} ${statusColor.badgeText} border-0 px-3 py-1`}>
+                                {tournament.status}
+                              </Badge>
+                              <Button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleTournamentSelect(tournament.id);
+                                }}
+                                size="lg"
+                                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/25 transition-all duration-200 px-6"
+                              >
+                                <Zap className="h-4 w-4 mr-2" />
+                                Manage Teams
+                              </Button>
+                            </div>
+                          </CollapsibleTrigger>
+                          
+                          <CollapsibleContent className="border-t border-slate-700/50">
+                            <div className="p-6 bg-slate-900/50 rounded-b-xl">
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                                <div className="text-center">
+                                  <div className="text-slate-500 text-xs uppercase tracking-wide mb-1">Max Teams</div>
+                                  <div className="text-white font-bold text-lg">{tournament.max_teams}</div>
+                                </div>
+                                <div className="text-center">
+                                  <div className="text-slate-500 text-xs uppercase tracking-wide mb-1">Start Time</div>
+                                  <div className="text-white font-bold text-lg">
+                                    {tournament.start_time ? new Date(tournament.start_time).toLocaleDateString() : "TBD"}
+                                  </div>
+                                </div>
+                                <div className="text-center">
+                                  <div className="text-slate-500 text-xs uppercase tracking-wide mb-1">Created</div>
+                                  <div className="text-white font-bold text-lg">
+                                    {new Date(tournament.created_at).toLocaleDateString()}
+                                  </div>
+                                </div>
+                                <div className="text-center">
+                                  <div className="text-slate-500 text-xs uppercase tracking-wide mb-1">Registration</div>
+                                  <div className="text-white font-bold text-lg">{tournament.team_count || 0} registered</div>
+                                </div>
+                              </div>
+                            </div>
+                          </CollapsibleContent>
+                        </Collapsible>
+                      </Card>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={getStatusBadgeVariant(tournament.status)} className="text-xs">
-                        {tournament.status}
-                      </Badge>
-                      <Button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleTournamentSelect(tournament.id);
-                        }}
-                        size="sm"
-                        className="bg-blue-600 hover:bg-blue-700"
-                      >
-                        Manage Teams
-                      </Button>
-                    </div>
-                  </CollapsibleTrigger>
-                  
-                  <CollapsibleContent>
-                    <div className="px-4 pb-3 pt-0 border-t border-slate-600 mt-2">
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                        <div>
-                          <span className="text-slate-400">Max Teams:</span>
-                          <div className="text-white">{tournament.max_teams}</div>
-                        </div>
-                        <div>
-                          <span className="text-slate-400">Start Time:</span>
-                          <div className="text-white">
-                            {tournament.start_time ? new Date(tournament.start_time).toLocaleDateString() : "TBD"}
-                          </div>
-                        </div>
-                        <div>
-                          <span className="text-slate-400">Created:</span>
-                          <div className="text-white">
-                            {new Date(tournament.created_at).toLocaleDateString()}
-                          </div>
-                        </div>
-                        <div>
-                          <span className="text-slate-400">Teams:</span>
-                          <div className="text-white">{tournament.team_count || 0} registered</div>
-                        </div>
-                      </div>
-                    </div>
-                  </CollapsibleContent>
+                  </div>
+                );
+              })}
+            </div>
+
+            {!loading && filteredTournaments.length === 0 && (
+              <div className="text-center py-16">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-r from-slate-600/20 to-slate-500/20 rounded-2xl blur-xl"></div>
+                  <Card className="relative bg-slate-800/50 border-slate-700/50 backdrop-blur-sm p-8">
+                    <Trophy className="h-16 w-16 text-slate-500 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-slate-300 mb-2">No tournaments found</h3>
+                    <p className="text-slate-500">Try adjusting your search criteria or create a new tournament.</p>
+                  </Card>
                 </div>
-              </Collapsible>
-            ))}
-          </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-          {!loading && filteredTournaments.length === 0 && (
-            <div className="text-center py-8 text-slate-400">
-              No tournaments found matching your criteria
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        {/* Selected Tournament Team Management */}
+        {selectedTournament && (
+          <TeamSessionEditor
+            tournament={selectedTournament}
+            teams={teams}
+            modifications={modifications}
+            loading={loading}
+            onRemovePlayer={handleRemovePlayer}
+            onAddPlayer={handleAddPlayer}
+            onRefresh={refreshTournamentData}
+          />
+        )}
 
-      {/* Selected Tournament Team Management */}
-      {selectedTournament && (
-        <TeamSessionEditor
-          tournament={selectedTournament}
-          teams={teams}
-          modifications={modifications}
-          loading={loading}
-          onRemovePlayer={handleRemovePlayer}
-          onAddPlayer={handleAddPlayer}
-          onRefresh={refreshTournamentData}
+        {/* Player Removal Dialog */}
+        <PlayerRemovalDialog
+          open={showRemovalDialog}
+          onOpenChange={setShowRemovalDialog}
+          playerToRemove={playerToRemove}
+          onSuccess={refreshTournamentData}
         />
-      )}
 
-      {/* Player Removal Dialog */}
-      <PlayerRemovalDialog
-        open={showRemovalDialog}
-        onOpenChange={setShowRemovalDialog}
-        playerToRemove={playerToRemove}
-        onSuccess={refreshTournamentData}
-      />
-
-      {/* Player Addition Dialog */}
-      <PlayerAdditionDialog
-        open={showAdditionDialog}
-        onOpenChange={setShowAdditionDialog}
-        teamToAddPlayer={teamToAddPlayer}
-        onSuccess={refreshTournamentData}
-      />
+        {/* Player Addition Dialog */}
+        <PlayerAdditionDialog
+          open={showAdditionDialog}
+          onOpenChange={setShowAdditionDialog}
+          teamToAddPlayer={teamToAddPlayer}
+          onSuccess={refreshTournamentData}
+        />
+      </div>
     </div>
   );
 };

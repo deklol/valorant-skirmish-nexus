@@ -15,7 +15,11 @@ import {
   History,
   Weight,
   Trophy,
-  Clock
+  Clock,
+  Zap,
+  Gamepad2,
+  Star,
+  Award
 } from "lucide-react";
 
 interface Tournament {
@@ -101,6 +105,65 @@ export const TeamSessionEditor: React.FC<TeamSessionEditorProps> = ({
     setExpandedTeams(newExpanded);
   };
 
+  const getTeamStatusColor = (status: string) => {
+    switch (status) {
+      case "pending": 
+        return {
+          gradient: "bg-gradient-to-r from-yellow-600/30 to-orange-500/30",
+          bg: "bg-gradient-to-br from-yellow-600 to-orange-700",
+          text: "text-white",
+          shadow: "shadow-yellow-500/25",
+          badgeBg: "bg-yellow-600/20",
+          badgeText: "text-yellow-300"
+        };
+      case "active": 
+        return {
+          gradient: "bg-gradient-to-r from-green-600/30 to-emerald-500/30",
+          bg: "bg-gradient-to-br from-green-600 to-emerald-700",
+          text: "text-white",
+          shadow: "shadow-green-500/25",
+          badgeBg: "bg-green-600/20",
+          badgeText: "text-green-300"
+        };
+      case "eliminated": 
+        return {
+          gradient: "bg-gradient-to-r from-red-600/30 to-red-500/30",
+          bg: "bg-gradient-to-br from-red-600 to-red-700",
+          text: "text-white",
+          shadow: "shadow-red-500/25",
+          badgeBg: "bg-red-600/20",
+          badgeText: "text-red-300"
+        };
+      case "winner": 
+        return {
+          gradient: "bg-gradient-to-r from-purple-600/30 to-violet-500/30",
+          bg: "bg-gradient-to-br from-purple-600 to-violet-700",
+          text: "text-white",
+          shadow: "shadow-purple-500/25",
+          badgeBg: "bg-purple-600/20",
+          badgeText: "text-purple-300"
+        };
+      case "disqualified": 
+        return {
+          gradient: "bg-gradient-to-r from-gray-600/30 to-gray-500/30",
+          bg: "bg-gradient-to-br from-gray-600 to-gray-700",
+          text: "text-white",
+          shadow: "shadow-gray-500/25",
+          badgeBg: "bg-gray-600/20",
+          badgeText: "text-gray-300"
+        };
+      default: 
+        return {
+          gradient: "bg-gradient-to-r from-slate-600/30 to-slate-500/30",
+          bg: "bg-gradient-to-br from-slate-600 to-slate-700",
+          text: "text-white",
+          shadow: "shadow-slate-500/25",
+          badgeBg: "bg-slate-600/20",
+          badgeText: "text-slate-300"
+        };
+    }
+  };
+
   const getTeamStatusBadgeVariant = (status: string) => {
     switch (status) {
       case "pending": return "outline";
@@ -147,254 +210,308 @@ export const TeamSessionEditor: React.FC<TeamSessionEditorProps> = ({
   };
 
   return (
-    <div className="space-y-6">
-      {/* Tournament Header */}
-      <Card className="bg-slate-800 border-slate-700">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Trophy className="h-5 w-5 text-yellow-400" />
-                {tournament.name}
-              </CardTitle>
-              <div className="flex items-center gap-4 mt-2 text-sm text-slate-400">
-                <span>ID: {tournament.id.slice(0, 8)}...</span>
-                <Badge variant={getTeamStatusBadgeVariant(tournament.status)}>
-                  {tournament.status}
-                </Badge>
-                <span>{teams.length} teams</span>
-                {tournament.start_time && (
-                  <span>
-                    <Clock className="inline h-4 w-4 mr-1" />
-                    {new Date(tournament.start_time).toLocaleDateString()}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-        </CardHeader>
-      </Card>
-
-      {/* Teams Grid */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {teams.map(team => {
-          const teamMods = getTeamModifications(team.id);
-          const isExpanded = expandedTeams.has(team.id);
-          
-          return (
-            <Card key={team.id} className="bg-slate-800 border-slate-700">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Users className="h-5 w-5 text-blue-400" />
-                    <div>
-                      <CardTitle className="text-white text-lg">{team.name}</CardTitle>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge variant={getTeamStatusBadgeVariant(team.status)} className="text-xs">
-                          {team.status}
-                        </Badge>
-                        <span className="text-slate-400 text-sm">
-                          <Weight className="inline h-3 w-3 mr-1" />
-                          {team.total_rank_points || 0} weight
-                        </span>
-                        <span className="text-slate-400 text-sm">
-                          {team.members.length} players
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      onClick={() => onAddPlayer(team.id)}
-                      size="sm"
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      <UserPlus className="h-4 w-4 mr-1" />
-                      Add Player
-                    </Button>
-                    {(teamMods.length > 0) && (
-                      <Button
-                        onClick={() => toggleTeamExpansion(team.id)}
-                        size="sm"
-                        variant="outline"
-                        className="text-slate-300 border-slate-600"
-                      >
-                        {isExpanded ? "Hide Details" : "Show Details"}
-                      </Button>
+    <div className="space-y-8">
+      {/* Enhanced Tournament Header */}
+      <div className="relative">
+        <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/20 to-amber-500/20 rounded-2xl blur-xl"></div>
+        <Card className="relative bg-slate-900/90 border-slate-700/50 backdrop-blur-sm">
+          <CardContent className="p-8">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="p-4 bg-gradient-to-br from-yellow-500 to-amber-600 rounded-xl shadow-lg shadow-yellow-500/25">
+                  <Trophy className="h-8 w-8 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
+                    {tournament.name}
+                  </h2>
+                  <div className="flex items-center gap-6 mt-2 text-slate-400">
+                    <span className="flex items-center gap-1">
+                      <Target className="h-4 w-4" />
+                      ID: {tournament.id.slice(0, 8)}...
+                    </span>
+                    <Badge variant="secondary" className="bg-slate-700/50 text-slate-300 border-slate-600">
+                      {tournament.status}
+                    </Badge>
+                    <span className="flex items-center gap-1">
+                      <Users className="h-4 w-4" />
+                      {teams.length} teams
+                    </span>
+                    {tournament.start_time && (
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-4 w-4" />
+                        {new Date(tournament.start_time).toLocaleDateString()}
+                      </span>
                     )}
                   </div>
                 </div>
-              </CardHeader>
-              
-              <CardContent className="pt-0">
-                {/* Team Members */}
-                <div className="space-y-2 mb-4">
-                  {team.members.map(member => (
-                    <div 
-                      key={member.id} 
-                      className="flex items-center justify-between p-3 bg-slate-750 rounded border border-slate-600"
-                    >
-                      <div className="flex items-center gap-3">
-                        {member.is_captain && (
-                          <Crown className="h-4 w-4 text-yellow-400" />
-                        )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Enhanced Teams Grid */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+        {teams.map(team => {
+          const teamMods = getTeamModifications(team.id);
+          const isExpanded = expandedTeams.has(team.id);
+          const teamStatusColor = getTeamStatusColor(team.status);
+          
+          return (
+            <div key={team.id} className="group">
+              <div className="relative">
+                <div className={`absolute inset-0 ${teamStatusColor.gradient} rounded-2xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity duration-300`}></div>
+                <Card className="relative bg-slate-800/80 border-slate-700/50 backdrop-blur-sm hover:bg-slate-800/90 transition-all duration-300 group-hover:border-slate-600">
+                  <CardHeader className="pb-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className={`p-3 ${teamStatusColor.bg} rounded-xl shadow-lg ${teamStatusColor.shadow}`}>
+                          <Users className={`h-6 w-6 ${teamStatusColor.text}`} />
+                        </div>
                         <div>
-                          <div className="font-medium text-white flex items-center gap-2">
-                            {member.users.discord_username}
-                            {member.is_captain && (
-                              <Badge variant="outline" className="text-xs text-yellow-400 border-yellow-400">
-                                Captain
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="text-sm text-slate-400">
-                            {member.users.riot_id || "No Riot ID"}
+                          <CardTitle className="text-white text-xl font-bold">{team.name}</CardTitle>
+                          <div className="flex items-center gap-3 mt-2">
+                            <Badge variant="secondary" className={`${teamStatusColor.badgeBg} ${teamStatusColor.badgeText} border-0 text-xs px-2 py-1`}>
+                              {team.status}
+                            </Badge>
+                            <span className="text-slate-400 text-sm flex items-center gap-1">
+                              <Weight className="h-3 w-3" />
+                              {team.total_rank_points || 0} weight
+                            </span>
+                            <span className="text-slate-400 text-sm flex items-center gap-1">
+                              <Users className="h-3 w-3" />
+                              {team.members.length} players
+                            </span>
                           </div>
                         </div>
                       </div>
-                      
                       <div className="flex items-center gap-3">
-                        <div className="text-right text-sm">
-                          <Badge className={`text-xs ${getRankBadgeColor(member.users.current_rank)}`}>
-                            {member.users.current_rank || "Unranked"}
-                          </Badge>
-                          <div className="text-slate-400 mt-1">
-                            Weight: {getPlayerWeight(member)}
-                          </div>
-                        </div>
-                        
-                        <div className="text-right text-xs text-slate-400">
-                          <div>W: {member.users.wins || 0} L: {member.users.losses || 0}</div>
-                          <div>Tournaments: {member.users.tournaments_won || 0}</div>
-                        </div>
-                        
                         <Button
-                          onClick={() => onRemovePlayer(member.users.id, team.id)}
-                          size="sm"
-                          variant="destructive"
-                          className="bg-red-600 hover:bg-red-700"
+                          onClick={() => onAddPlayer(team.id)}
+                          size="lg"
+                          className="bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800 shadow-lg shadow-green-500/25 transition-all duration-200"
                         >
-                          <UserMinus className="h-4 w-4" />
+                          <UserPlus className="h-4 w-4 mr-2" />
+                          Add Player
                         </Button>
+                        {(teamMods.length > 0) && (
+                          <Button
+                            onClick={() => toggleTeamExpansion(team.id)}
+                            size="lg"
+                            variant="outline"
+                            className="border-slate-600 hover:bg-slate-700 text-slate-300 hover:text-white shadow-lg transition-all duration-200"
+                          >
+                            <History className="h-4 w-4 mr-2" />
+                            {isExpanded ? "Hide Details" : "Show Details"}
+                          </Button>
+                        )}
                       </div>
                     </div>
-                  ))}
-                </div>
-
-                {/* Team Modifications History */}
-                {isExpanded && teamMods.length > 0 && (
-                  <>
-                    <Separator className="bg-slate-600 my-4" />
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2 text-sm font-medium text-slate-300">
-                        <History className="h-4 w-4" />
-                        Recent Modifications ({teamMods.length})
-                      </div>
-                      <div className="space-y-2 max-h-40 overflow-y-auto">
-                        {teamMods.slice(0, 5).map(mod => {
-                          const modType = formatModificationType(mod.modification_type);
-                          return (
-                            <div key={mod.id} className="flex items-center justify-between p-2 bg-slate-700 rounded text-xs">
-                              <div className="flex items-center gap-2">
-                                <Activity className={`h-3 w-3 ${modType.color}`} />
-                                <span className={modType.color}>{modType.text}</span>
-                                {mod.reason && (
-                                  <span className="text-slate-400">- {mod.reason}</span>
-                                )}
-                              </div>
-                              <div className="text-slate-400">
-                                {new Date(mod.created_at).toLocaleDateString()}
+                  </CardHeader>
+                  
+                  <CardContent className="pt-0">
+                    {/* Enhanced Team Members */}
+                    <div className="space-y-3 mb-6">
+                      {team.members.map(member => (
+                        <div 
+                          key={member.id} 
+                          className="relative group/member"
+                        >
+                          <div className="absolute inset-0 bg-gradient-to-r from-slate-700/20 to-slate-600/20 rounded-xl blur opacity-0 group-hover/member:opacity-100 transition-opacity duration-300"></div>
+                          <div className="relative flex items-center justify-between p-4 bg-slate-800/60 rounded-xl border border-slate-700/50 hover:bg-slate-800/80 hover:border-slate-600/50 transition-all duration-200">
+                            <div className="flex items-center gap-4">
+                              {member.is_captain && (
+                                <div className="p-2 bg-gradient-to-br from-yellow-500 to-amber-600 rounded-lg shadow-lg shadow-yellow-500/25">
+                                  <Crown className="h-4 w-4 text-white" />
+                                </div>
+                              )}
+                              <div className="flex flex-col">
+                                <div className="flex items-center gap-3">
+                                  <span className="font-semibold text-white text-lg">{member.users.discord_username}</span>
+                                  {member.is_captain && (
+                                    <Badge variant="outline" className="text-xs text-yellow-400 border-yellow-400 bg-yellow-400/10">
+                                      Captain
+                                    </Badge>
+                                  )}
+                                </div>
+                                <span className="text-slate-400 text-sm">
+                                  {member.users.riot_id || "No Riot ID"}
+                                </span>
                               </div>
                             </div>
-                          );
-                        })}
-                      </div>
+                            
+                            <div className="flex items-center gap-6">
+                              <div className="text-right">
+                                <Badge className={`text-xs font-medium ${getRankBadgeColor(member.users.current_rank)} shadow-sm`}>
+                                  {member.users.current_rank || "Unranked"}
+                                </Badge>
+                                <div className="text-slate-400 mt-1 text-sm">
+                                  Weight: <span className="text-white font-medium">{getPlayerWeight(member)}</span>
+                                </div>
+                              </div>
+                              
+                              <div className="text-right text-sm text-slate-400 space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <Gamepad2 className="h-3 w-3" />
+                                  <span>W: {member.users.wins || 0} L: {member.users.losses || 0}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Award className="h-3 w-3" />
+                                  <span>Tournaments: {member.users.tournaments_won || 0}</span>
+                                </div>
+                              </div>
+                              
+                              <Button
+                                onClick={() => onRemovePlayer(member.users.id, team.id)}
+                                size="lg"
+                                variant="destructive"
+                                className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 shadow-lg shadow-red-500/25 transition-all duration-200"
+                              >
+                                <UserMinus className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  </>
-                )}
-                
-                {/* Team Statistics */}
-                {isExpanded && (
-                  <>
-                    <Separator className="bg-slate-600 my-4" />
-                    <div className="grid grid-cols-3 gap-4 text-sm">
-                      <div className="text-center">
-                        <div className="text-slate-400">Team Weight</div>
-                        <div className="text-white font-medium">{team.total_rank_points || 0}</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-slate-400">Members</div>
-                        <div className="text-white font-medium">{team.members.length}</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-slate-400">Status</div>
-                        <Badge variant={getTeamStatusBadgeVariant(team.status)} className="text-xs">
-                          {team.status}
-                        </Badge>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
+
+                    {/* Enhanced Team Modifications History */}
+                    {isExpanded && teamMods.length > 0 && (
+                      <>
+                        <Separator className="bg-slate-600/50 my-6" />
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-gradient-to-br from-purple-600 to-violet-700 rounded-lg shadow-lg shadow-purple-500/25">
+                              <History className="h-4 w-4 text-white" />
+                            </div>
+                            <div>
+                              <h4 className="text-lg font-semibold text-white">Recent Modifications</h4>
+                              <p className="text-slate-400 text-sm">{teamMods.length} modification{teamMods.length !== 1 ? 's' : ''} recorded</p>
+                            </div>
+                          </div>
+                          <div className="space-y-3 max-h-48 overflow-y-auto">
+                            {teamMods.slice(0, 5).map(mod => {
+                              const modType = formatModificationType(mod.modification_type);
+                              return (
+                                <div key={mod.id} className="flex items-center justify-between p-4 bg-slate-900/50 rounded-xl border border-slate-700/50">
+                                  <div className="flex items-center gap-3">
+                                    <Activity className={`h-4 w-4 ${modType.color}`} />
+                                    <div>
+                                      <span className={`font-medium ${modType.color}`}>{modType.text}</span>
+                                      {mod.reason && (
+                                        <div className="text-slate-400 text-sm mt-1">{mod.reason}</div>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="text-right text-sm text-slate-400">
+                                    {new Date(mod.created_at).toLocaleDateString()}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                    
+                    {/* Enhanced Team Statistics */}
+                    {isExpanded && (
+                      <>
+                        <Separator className="bg-slate-600/50 my-6" />
+                        <div className="grid grid-cols-3 gap-6">
+                          <div className="text-center p-4 bg-slate-900/50 rounded-xl border border-slate-700/50">
+                            <div className="text-slate-400 text-sm font-medium mb-1">Team Weight</div>
+                            <div className="text-white font-bold text-2xl">{team.total_rank_points || 0}</div>
+                          </div>
+                          <div className="text-center p-4 bg-slate-900/50 rounded-xl border border-slate-700/50">
+                            <div className="text-slate-400 text-sm font-medium mb-1">Members</div>
+                            <div className="text-white font-bold text-2xl">{team.members.length}</div>
+                          </div>
+                          <div className="text-center p-4 bg-slate-900/50 rounded-xl border border-slate-700/50">
+                            <div className="text-slate-400 text-sm font-medium mb-1">Status</div>
+                            <Badge variant="secondary" className={`${getTeamStatusColor(team.status).badgeBg} ${getTeamStatusColor(team.status).badgeText} border-0 font-bold`}>
+                              {team.status}
+                            </Badge>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
           );
         })}
       </div>
 
       {teams.length === 0 && !loading && (
-        <Card className="bg-slate-800 border-slate-700">
-          <CardContent className="py-12 text-center">
-            <Users className="h-12 w-12 text-slate-500 mx-auto mb-4" />
-            <p className="text-slate-400 text-lg">No teams found</p>
-            <p className="text-slate-500 text-sm mt-2">
-              This tournament doesn't have any teams yet.
-            </p>
-          </CardContent>
-        </Card>
+        <div className="text-center py-16">
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-slate-600/20 to-slate-500/20 rounded-2xl blur-xl"></div>
+            <Card className="relative bg-slate-800/50 border-slate-700/50 backdrop-blur-sm p-12">
+              <Users className="h-20 w-20 text-slate-500 mx-auto mb-6" />
+              <h3 className="text-2xl font-bold text-slate-300 mb-3">No teams found</h3>
+              <p className="text-slate-500 text-lg">
+                This tournament doesn't have any teams yet.
+              </p>
+            </Card>
+          </div>
+        </div>
       )}
 
-      {/* Tournament Modifications Summary */}
+      {/* Enhanced Tournament Modifications Summary */}
       {modifications.length > 0 && (
-        <Card className="bg-slate-800 border-slate-700">
-          <CardHeader>
-            <CardTitle className="text-white text-lg flex items-center gap-2">
-              <History className="h-5 w-5 text-purple-400" />
-              Tournament Modification History
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2 max-h-60 overflow-y-auto">
-              {modifications.slice(0, 10).map(mod => {
-                const team = teams.find(t => t.id === mod.team_id);
-                const modType = formatModificationType(mod.modification_type);
-                
-                return (
-                  <div key={mod.id} className="flex items-center justify-between p-3 bg-slate-750 rounded border border-slate-600">
-                    <div className="flex items-center gap-3">
-                      <Activity className={`h-4 w-4 ${modType.color}`} />
-                      <div>
-                        <div className="text-white font-medium">
-                          {modType.text} - {team?.name || "Unknown Team"}
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 to-indigo-500/20 rounded-2xl blur-xl"></div>
+          <Card className="relative bg-slate-900/90 border-slate-700/50 backdrop-blur-sm">
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-gradient-to-br from-purple-600 to-indigo-700 rounded-xl shadow-lg shadow-purple-500/25">
+                  <History className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <CardTitle className="text-white text-2xl font-bold">Tournament Modification History</CardTitle>
+                  <p className="text-slate-400 mt-1">Complete audit trail of all team modifications</p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4 max-h-80 overflow-y-auto">
+                {modifications.slice(0, 10).map(mod => {
+                  const team = teams.find(t => t.id === mod.team_id);
+                  const modType = formatModificationType(mod.modification_type);
+                  
+                  return (
+                    <div key={mod.id} className="flex items-center justify-between p-4 bg-slate-800/60 rounded-xl border border-slate-700/50 hover:bg-slate-800/80 transition-all duration-200">
+                      <div className="flex items-center gap-4">
+                        <div className={`p-2 ${modType.color === 'text-green-400' ? 'bg-green-600/20' : 'bg-red-600/20'} rounded-lg`}>
+                          <Activity className={`h-4 w-4 ${modType.color}`} />
                         </div>
-                        <div className="text-slate-400 text-sm">
-                          {mod.reason || "No reason provided"}
+                        <div>
+                          <div className="text-white font-semibold text-lg">
+                            {modType.text} - {team?.name || "Unknown Team"}
+                          </div>
+                          <div className="text-slate-400">
+                            {mod.reason || "No reason provided"}
+                          </div>
                         </div>
                       </div>
+                      <div className="text-right">
+                        <div className="text-slate-300 font-medium">{new Date(mod.created_at).toLocaleDateString()}</div>
+                        {mod.original_team_weight !== null && mod.new_team_weight !== null && (
+                          <div className="text-sm text-slate-400 mt-1">
+                            Weight: <span className="text-red-400">{mod.original_team_weight}</span> → <span className="text-green-400">{mod.new_team_weight}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-right text-sm text-slate-400">
-                      <div>{new Date(mod.created_at).toLocaleDateString()}</div>
-                      {mod.original_team_weight !== null && mod.new_team_weight !== null && (
-                        <div className="text-xs">
-                          Weight: {mod.original_team_weight} → {mod.new_team_weight}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   );
