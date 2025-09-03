@@ -1682,6 +1682,7 @@ export type Database = {
           check_in_starts_at: string | null
           created_at: string | null
           created_by: string | null
+          day_of_reminder_sent: boolean | null
           description: string | null
           enable_adaptive_weights: boolean | null
           enable_map_veto: boolean | null
@@ -1716,6 +1717,7 @@ export type Database = {
           check_in_starts_at?: string | null
           created_at?: string | null
           created_by?: string | null
+          day_of_reminder_sent?: boolean | null
           description?: string | null
           enable_adaptive_weights?: boolean | null
           enable_map_veto?: boolean | null
@@ -1752,6 +1754,7 @@ export type Database = {
           check_in_starts_at?: string | null
           created_at?: string | null
           created_by?: string | null
+          day_of_reminder_sent?: boolean | null
           description?: string | null
           enable_adaptive_weights?: boolean | null
           enable_map_veto?: boolean | null

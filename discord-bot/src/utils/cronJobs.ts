@@ -20,6 +20,11 @@ export function startCronJobs(client: Client) {
   cron.schedule('0 * * * *', async () => {
     await cleanupQuickMatchQueue();
   });
+  
+  // Check for day-of tournament reminders every minute
+  cron.schedule('* * * * *', async () => {
+    await checkDayOfTournamentReminders(client);
+  });
 }
 
 async function checkTournamentRegistrationOpening(client: Client) {
@@ -122,6 +127,113 @@ async function checkTournamentCheckInReminders(client: Client) {
     }
   } catch (error) {
     console.error('Error checking check-in reminders:', error);
+  }
+}
+
+async function checkDayOfTournamentReminders(client: Client) {
+  try {
+    const now = new Date();
+    const today = new Date(now);
+    today.setHours(0, 0, 0, 0);
+    
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    // Get tournaments scheduled for today that haven't sent day-of reminders
+    const { data: tournaments } = await getSupabase()
+      .from('tournaments')
+      .select('*')
+      .gte('start_time', today.toISOString())
+      .lt('start_time', tomorrow.toISOString())
+      .eq('day_of_reminder_sent', false)
+      .in('status', ['open', 'check_in', 'live', 'balancing']);
+
+    if (!tournaments || tournaments.length === 0) return;
+
+    for (const tournament of tournaments) {
+      const tournamentDate = new Date(tournament.start_time);
+      
+      // Calculate reminder time: 2:00 PM on tournament day
+      const reminderTime = new Date(tournamentDate);
+      reminderTime.setHours(14, 0, 0, 0); // 2:00 PM exact
+      
+      // Account for the -1 hour adjustment (same as in embeds.ts)
+      const adjustedReminderTime = new Date(reminderTime.getTime() - 3600000); // -1 hour
+      
+      // Check if current time is within 1 minute of reminder time
+      const timeDiff = Math.abs(now.getTime() - adjustedReminderTime.getTime());
+      const isReminderTime = timeDiff < 60000; // Within 1 minute
+      
+      if (isReminderTime) {
+        console.log(`🎮 Sending day-of reminders for tournament: ${tournament.name}`);
+        
+        // Get registered users with Discord IDs
+        const { data: signedUpUsers } = await getSupabase()
+          .from('tournament_signups')
+          .select(`
+            *,
+            users!inner(discord_id, discord_username)
+          `)
+          .eq('tournament_id', tournament.id)
+          .not('users.discord_id', 'is', null);
+
+        if (signedUpUsers && signedUpUsers.length > 0) {
+          let sentCount = 0;
+          
+          for (const signup of signedUpUsers) {
+            try {
+              const user = client.users.cache.get(signup.users.discord_id);
+              if (user) {
+                await user.send({
+                  embeds: [{
+                    title: '🎮 Tournament Day Reminder',
+                    description: `Tournament check-in is happening TODAY!\n\n` +
+                                `🌐 **Check in here:** https://tlrhub.pro/tournament/${tournament.id}\n\n` +
+                                `⏰ **Important:** Make sure to check in on the website before the tournament starts.\n\n` +
+                                `❓ **Need help?** Contact the tournament admins (do not reply to this bot).`,
+                    color: 0xFF9500,
+                    fields: [
+                      {
+                        name: '🏆 Tournament',
+                        value: tournament.name,
+                        inline: false
+                      }
+                    ],
+                    footer: {
+                      text: 'TLR Hub Tournament System'
+                    },
+                    timestamp: new Date().toISOString()
+                  }]
+                });
+                
+                sentCount++;
+                console.log(`✅ Sent day-of reminder to ${signup.users.discord_username}`);
+                
+                // 10-second delay between DMs to avoid rate limits
+                if (sentCount < signedUpUsers.length) {
+                  await new Promise(resolve => setTimeout(resolve, 10000));
+                }
+              }
+            } catch (error) {
+              // User might have DMs disabled
+              console.log(`❌ Could not send day-of reminder to ${signup.users.discord_username}: ${error.message}`);
+            }
+          }
+          
+          console.log(`📊 Day-of reminders sent: ${sentCount}/${signedUpUsers.length} for tournament ${tournament.name}`);
+        }
+        
+        // Mark reminder as sent
+        await getSupabase()
+          .from('tournaments')
+          .update({ day_of_reminder_sent: true })
+          .eq('id', tournament.id);
+          
+        console.log(`✅ Marked day-of reminder as sent for tournament: ${tournament.name}`);
+      }
+    }
+  } catch (error) {
+    console.error('Error checking day-of tournament reminders:', error);
   }
 }
 
