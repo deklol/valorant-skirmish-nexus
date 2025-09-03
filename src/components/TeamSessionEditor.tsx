@@ -212,22 +212,24 @@ export const TeamSessionEditor: React.FC<TeamSessionEditorProps> = ({
                       <UserPlus className="h-4 w-4 mr-1" />
                       Add Player
                     </Button>
-                    <Button
-                      onClick={() => toggleTeamExpansion(team.id)}
-                      size="sm"
-                      variant="outline"
-                      className="text-slate-300 border-slate-600"
-                    >
-                      {isExpanded ? "Collapse" : "Expand"}
-                    </Button>
+                    {(teamMods.length > 0) && (
+                      <Button
+                        onClick={() => toggleTeamExpansion(team.id)}
+                        size="sm"
+                        variant="outline"
+                        className="text-slate-300 border-slate-600"
+                      >
+                        {isExpanded ? "Hide Details" : "Show Details"}
+                      </Button>
+                    )}
                   </div>
                 </div>
               </CardHeader>
               
               <CardContent className="pt-0">
-                {/* Team Members Summary */}
+                {/* Team Members */}
                 <div className="space-y-2 mb-4">
-                  {team.members.slice(0, isExpanded ? team.members.length : 3).map(member => (
+                  {team.members.map(member => (
                     <div 
                       key={member.id} 
                       className="flex items-center justify-between p-3 bg-slate-750 rounded border border-slate-600"
@@ -261,12 +263,10 @@ export const TeamSessionEditor: React.FC<TeamSessionEditorProps> = ({
                           </div>
                         </div>
                         
-                        {isExpanded && (
-                          <div className="text-right text-xs text-slate-400">
-                            <div>W: {member.users.wins || 0} L: {member.users.losses || 0}</div>
-                            <div>Tournaments: {member.users.tournaments_won || 0}</div>
-                          </div>
-                        )}
+                        <div className="text-right text-xs text-slate-400">
+                          <div>W: {member.users.wins || 0} L: {member.users.losses || 0}</div>
+                          <div>Tournaments: {member.users.tournaments_won || 0}</div>
+                        </div>
                         
                         <Button
                           onClick={() => onRemovePlayer(member.users.id, team.id)}
@@ -279,12 +279,6 @@ export const TeamSessionEditor: React.FC<TeamSessionEditorProps> = ({
                       </div>
                     </div>
                   ))}
-                  
-                  {!isExpanded && team.members.length > 3 && (
-                    <div className="text-center py-2 text-slate-400 text-sm">
-                      +{team.members.length - 3} more players...
-                    </div>
-                  )}
                 </div>
 
                 {/* Team Modifications History */}
