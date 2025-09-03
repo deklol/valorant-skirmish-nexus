@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Team } from "@/types/tournamentDetail";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Swords } from "lucide-react";
+
 import { useBroadcastSettings } from "@/hooks/useBroadcastSettings";
 import { extractATLASWeightsFromBalanceAnalysis } from "@/utils/broadcastWeightUtils";
 import { getBroadcastContainerStyle } from "@/utils/broadcastLayoutUtils";
@@ -173,19 +173,38 @@ export default function MatchupPreview() {
     return 'text-slate-400';
   };
 
+  const getHighestRank = (members: any[]) => {
+    const ranks = ['radiant', 'immortal', 'ascendant', 'diamond', 'platinum', 'gold', 'silver', 'bronze', 'iron'];
+    let highestRank = 'Iron';
+    let highestRankIndex = ranks.length;
+    
+    members.forEach(member => {
+      const rank = member.users?.current_rank?.toLowerCase();
+      if (rank) {
+        const rankIndex = ranks.findIndex(r => rank.includes(r));
+        if (rankIndex !== -1 && rankIndex < highestRankIndex) {
+          highestRankIndex = rankIndex;
+          highestRank = rank.charAt(0).toUpperCase() + rank.slice(1);
+        }
+      }
+    });
+    
+    return highestRank;
+  };
+
   const sceneSettings = settings.sceneSettings.matchupPreview;
 
   const TaleOfTapeStats = () => {
     const team1Stats = {
-      avgRankPoints: Math.round(team1.team_members.reduce((sum, m) => sum + (m.users?.rank_points || 150), 0) / team1.team_members.length),
-      immortalPlayers: team1.team_members.filter(m => m.users?.current_rank?.toLowerCase().includes('immortal')).length,
-      radiantPlayers: team1.team_members.filter(m => m.users?.current_rank?.toLowerCase().includes('radiant')).length,
+      avgWeight: Math.round(team1.team_members.reduce((sum, m) => sum + ((m.users as any)?.display_weight || (m.users as any)?.atlas_weight || (m.users as any)?.adaptive_weight || m.users?.weight_rating || 150), 0) / team1.team_members.length),
+      highestRank: getHighestRank(team1.team_members),
+      avgTournamentWins: Math.round(team1.team_members.reduce((sum, m) => sum + ((m.users as any)?.tournaments_won || 0), 0) / team1.team_members.length * 10) / 10,
     };
 
     const team2Stats = {
-      avgRankPoints: Math.round(team2.team_members.reduce((sum, m) => sum + (m.users?.rank_points || 150), 0) / team2.team_members.length),
-      immortalPlayers: team2.team_members.filter(m => m.users?.current_rank?.toLowerCase().includes('immortal')).length,
-      radiantPlayers: team2.team_members.filter(m => m.users?.current_rank?.toLowerCase().includes('radiant')).length,
+      avgWeight: Math.round(team2.team_members.reduce((sum, m) => sum + ((m.users as any)?.display_weight || (m.users as any)?.atlas_weight || (m.users as any)?.adaptive_weight || m.users?.weight_rating || 150), 0) / team2.team_members.length),
+      highestRank: getHighestRank(team2.team_members),
+      avgTournamentWins: Math.round(team2.team_members.reduce((sum, m) => sum + ((m.users as any)?.tournaments_won || 0), 0) / team2.team_members.length * 10) / 10,
     };
 
     // Use blocky design ONLY when transparentBackground is true
@@ -209,23 +228,29 @@ export default function MatchupPreview() {
           {/* Header - Black instead of grey */}
           <div className="bg-black text-center p-3">
             <h3 className="text-xl font-black uppercase tracking-wider text-white">
-              TALE OF THE TAPE
+              UPCOMING MATCH
             </h3>
           </div>
           
           {/* Stats */}
           <div className="space-y-0">
             <StatRow 
-              label="AVG POINTS" 
-              value1={team1Stats.avgRankPoints} 
-              value2={team2Stats.avgRankPoints} 
+              label="AVG WEIGHT" 
+              value1={team1Stats.avgWeight} 
+              value2={team2Stats.avgWeight} 
             />
             
-            <StatRow 
-              label="IMMORTAL" 
-              value1={team1Stats.immortalPlayers} 
-              value2={team2Stats.immortalPlayers} 
-            />
+            <div className="grid grid-cols-3 gap-0 py-2">
+              <div className="bg-black text-center font-bold text-white text-lg p-2">
+                {team1Stats.highestRank}
+              </div>
+              <div className="bg-[#FF6B35] text-center text-white uppercase tracking-wider text-sm font-bold p-2">
+                HIGHEST RANK
+              </div>
+              <div className="bg-black text-center font-bold text-white text-lg p-2">
+                {team2Stats.highestRank}
+              </div>
+            </div>
             
             <StatRow 
               label="SEED" 
@@ -273,23 +298,21 @@ export default function MatchupPreview() {
           
           <div className="space-y-1">
             <StatRow 
-              label="Avg Points" 
-              value1={team1Stats.avgRankPoints} 
-              value2={team2Stats.avgRankPoints} 
+              label="Avg Weight" 
+              value1={team1Stats.avgWeight} 
+              value2={team2Stats.avgWeight} 
             />
             
-            {(team1Stats.radiantPlayers > 0 || team2Stats.radiantPlayers > 0) && (
-              <StatRow 
-                label="Radiant" 
-                value1={team1Stats.radiantPlayers} 
-                value2={team2Stats.radiantPlayers}
-              />
-            )}
+            <StatRow 
+              label="Highest Rank" 
+              value1={team1Stats.highestRank} 
+              value2={team2Stats.highestRank} 
+            />
             
             <StatRow 
-              label="Immortal" 
-              value1={team1Stats.immortalPlayers} 
-              value2={team2Stats.immortalPlayers} 
+              label="Avg Wins" 
+              value1={team1Stats.avgTournamentWins} 
+              value2={team2Stats.avgTournamentWins} 
             />
             
             <StatRow 
@@ -402,7 +425,7 @@ export default function MatchupPreview() {
                           className="w-full h-full object-cover"
                         />
                       </div>
-                      <div className="text-white text-xs text-center">Avatar</div>
+                      
                     </div>
 
                     {/* Rank Card */}
@@ -544,7 +567,6 @@ export default function MatchupPreview() {
                   
                   {/* VS Section */}
                   <div className="flex flex-col items-center">
-                    <Swords className="w-12 h-12 text-red-500 mb-2" />
                     <div className="text-white text-lg uppercase tracking-wide font-bold">
                       VS
                     </div>
@@ -570,20 +592,19 @@ export default function MatchupPreview() {
             ) : (
               // Original design for non-transparent background
               <>
-                <div className="flex items-center justify-center space-x-6 mb-3">
-                  <div className="text-4xl font-black uppercase tracking-wider text-white">
-                    {team1.name}
-                  </div>
-                  <div className="flex flex-col items-center">
-                    <Swords className="w-10 h-10 text-red-500 mb-1" />
-                    <div className="text-white/70 text-xs uppercase tracking-wide font-bold">
-                      VS
+                  <div className="flex items-center justify-center space-x-6 mb-3">
+                    <div className="text-4xl font-black uppercase tracking-wider text-white">
+                      {team1.name}
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <div className="text-white/70 text-xs uppercase tracking-wide font-bold">
+                        VS
+                      </div>
+                    </div>
+                    <div className="text-4xl font-black uppercase tracking-wider text-white">
+                      {team2.name}
                     </div>
                   </div>
-                  <div className="text-4xl font-black uppercase tracking-wider text-white">
-                    {team2.name}
-                  </div>
-                </div>
                 <div className="text-sm text-white/80 uppercase tracking-wider font-bold">
                   Upcoming Match
                 </div>

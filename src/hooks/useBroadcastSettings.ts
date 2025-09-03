@@ -59,6 +59,12 @@ export interface BroadcastSceneSettings extends BroadcastDisplaySettings {
   playerAccentColor?: string;
   weightBlockColor?: string;
   
+  // OBS/vMix Color Settings
+  obsHeaderColor?: string;
+  obsBackgroundColor?: string;
+  obsTextColor?: string;
+  obsAccentColor?: string;
+  
   // Player Spotlight specific
   showPerformanceRating?: boolean;
   showLargeAvatar?: boolean;
@@ -258,6 +264,10 @@ const DEFAULT_SETTINGS: BroadcastSettings = {
       teamAccentColor: '#ff6b35',
       playerAccentColor: '#ff6b35', 
       weightBlockColor: '#333333',
+      obsHeaderColor: '#FF6B35',
+      obsBackgroundColor: '#000000',
+      obsTextColor: '#FFFFFF',
+      obsAccentColor: '#FF6B35',
     },
   }
 };
