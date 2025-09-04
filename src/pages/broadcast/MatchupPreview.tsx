@@ -233,11 +233,27 @@ export default function MatchupPreview() {
     return (
       <div className="w-80">
         {effectiveSceneSettings.transparentBackground ? (
-          // Blocky design for transparent background
-          <div className="bg-black border-4 border-[#FF6B35]">
+          // Blocky design for transparent background with OBS colors
+          <div 
+            className="border-4"
+            style={{
+              backgroundColor: sceneSettings.obsBackgroundColor || '#000000',
+              borderColor: sceneSettings.obsAccentColor || '#FF6B35'
+            }}
+          >
             {/* Header */}
-            <div className="bg-[#FF6B35] text-center p-3">
-              <h3 className="text-xl font-black uppercase tracking-wider text-white">
+            <div 
+              className="text-center p-3"
+              style={{
+                backgroundColor: sceneSettings.obsAccentColor || '#FF6B35'
+              }}
+            >
+              <h3 
+                className="text-xl font-black uppercase tracking-wider"
+                style={{
+                  color: sceneSettings.obsHeaderColor || '#FFFFFF'
+                }}
+              >
                 PLAYER SPOTLIGHT
               </h3>
             </div>
@@ -245,38 +261,79 @@ export default function MatchupPreview() {
             {/* Player Info */}
             <div className="p-6 text-center">
               <div className="mb-4">
-                <Avatar className="w-20 h-20 mx-auto border-4 border-[#FF6B35]">
+                <Avatar 
+                  className="w-20 h-20 mx-auto border-4"
+                  style={{
+                    borderColor: sceneSettings.obsAccentColor || '#FF6B35'
+                  }}
+                >
                   <AvatarImage 
                     src={highestWeightPlayer.users?.discord_avatar_url || ''} 
                     alt={highestWeightPlayer.users?.discord_username || 'Player'}
                   />
-                  <AvatarFallback className="bg-gray-600 text-white text-xl font-bold">
+                  <AvatarFallback 
+                    className="text-xl font-bold"
+                    style={{
+                      backgroundColor: '#6B7280',
+                      color: sceneSettings.obsTextColor || '#FFFFFF'
+                    }}
+                  >
                     {(highestWeightPlayer.users?.discord_username || 'P').charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
               </div>
               
               <div className="space-y-2">
-                <div className="text-white font-bold text-xl">
+                <div 
+                  className="font-bold text-xl"
+                  style={{
+                    color: sceneSettings.obsTextColor || '#FFFFFF'
+                  }}
+                >
                   {highestWeightPlayer.users?.discord_username || 'Unknown Player'}
                 </div>
                 
-                <div className="text-gray-300 text-sm">
+                <div 
+                  className="text-sm"
+                  style={{
+                    color: sceneSettings.obsTextColor || '#D1D5DB'
+                  }}
+                >
                   {playerTeam.name}
                 </div>
                 
-                <div className="bg-[#FF6B35] px-3 py-1 inline-block">
-                  <span className="text-white font-bold text-lg">
+                <div 
+                  className="px-3 py-1 inline-block"
+                  style={{
+                    backgroundColor: sceneSettings.obsAccentColor || '#FF6B35'
+                  }}
+                >
+                  <span 
+                    className="font-bold text-lg"
+                    style={{
+                      color: sceneSettings.obsHeaderColor || '#FFFFFF'
+                    }}
+                  >
                     {playerWeight} Weight
                   </span>
                 </div>
                 
                 <div className="space-y-1 pt-2">
-                  <div className="text-white text-sm">
-                    <span className="text-gray-400">Current:</span> <span className={getRankColor(highestWeightPlayer.users?.current_rank)}>{highestWeightPlayer.users?.current_rank || 'Unranked'}</span>
+                  <div 
+                    className="text-sm"
+                    style={{
+                      color: sceneSettings.obsTextColor || '#FFFFFF'
+                    }}
+                  >
+                    <span className="opacity-70">Current:</span> <span style={{ color: getRankColor(highestWeightPlayer.users?.current_rank) }}>{highestWeightPlayer.users?.current_rank || 'Unranked'}</span>
                   </div>
-                  <div className="text-white text-sm">
-                    <span className="text-gray-400">Peak:</span> <span className={getRankColor(highestWeightPlayer.users?.peak_rank)}>{highestWeightPlayer.users?.peak_rank || highestWeightPlayer.users?.current_rank || 'Unranked'}</span>
+                  <div 
+                    className="text-sm"
+                    style={{
+                      color: sceneSettings.obsTextColor || '#FFFFFF'
+                    }}
+                  >
+                    <span className="opacity-70">Peak:</span> <span style={{ color: getRankColor(highestWeightPlayer.users?.peak_rank) }}>{highestWeightPlayer.users?.peak_rank || highestWeightPlayer.users?.current_rank || 'Unranked'}</span>
                   </div>
                 </div>
               </div>
@@ -341,31 +398,59 @@ export default function MatchupPreview() {
       {effectiveSceneSettings.transparentBackground ? (
         // Blocky design for transparent background
         <>
-          {/* Team Header Block */}
-          <div 
-            className="px-6 py-4 mb-0"
-            style={{ backgroundColor: '#FF6B35' }}
-          >
-            <div className="text-2xl font-bold uppercase tracking-wide text-white">
-              {team.name}
-            </div>
-          </div>
-          
-          {/* Team Stats Block */}
-          <div className="bg-black px-6 py-3 mb-0">
-            <div className="flex items-center justify-between">
-              <div className="bg-cyan-600 px-3 py-1">
-                <span className="text-black text-sm font-bold">
-                  AVG: {side === 'left' ? team1Avg : team2Avg}
-                </span>
-              </div>
-              <div className="bg-white px-3 py-1">
-                <span className="text-black text-sm font-bold">
-                  SEED #{team.seed || 'TBD'}
-                </span>
-              </div>
-            </div>
-          </div>
+           {/* Team Header Block */}
+           <div 
+             className="px-6 py-4 mb-0"
+             style={{ 
+               backgroundColor: sceneSettings.obsAccentColor || '#FF6B35' 
+             }}
+           >
+             <div 
+               className="text-2xl font-bold uppercase tracking-wide"
+               style={{
+                 color: sceneSettings.obsHeaderColor || '#FFFFFF'
+               }}
+             >
+               {team.name}
+             </div>
+           </div>
+           
+           {/* Team Stats Block */}
+           <div 
+             className="px-6 py-3 mb-0"
+             style={{
+               backgroundColor: sceneSettings.obsBackgroundColor || '#000000'
+             }}
+           >
+             <div className="flex items-center justify-between">
+               <div 
+                 className="px-3 py-1"
+                 style={{
+                   backgroundColor: sceneSettings.obsAccentColor || '#00BFFF'
+                 }}
+               >
+                 <span 
+                   className="text-sm font-bold"
+                   style={{
+                     color: sceneSettings.obsHeaderColor || '#000000'
+                   }}
+                 >
+                   AVG: {side === 'left' ? team1Avg : team2Avg}
+                 </span>
+               </div>
+               <div 
+                 className="px-3 py-1"
+                 style={{
+                   backgroundColor: '#FFFFFF',
+                   color: '#000000'
+                 }}
+               >
+                 <span className="text-sm font-bold">
+                   SEED #{team.seed || 'TBD'}
+                 </span>
+               </div>
+             </div>
+           </div>
         </>
       ) : (
         // Original design for non-transparent background
@@ -399,70 +484,120 @@ export default function MatchupPreview() {
               // Blocky player cards for transparent background
               return (
                 <div key={member.user_id}>
-                  {/* Player Name Block */}
-                  <div 
-                    className="px-4 py-3 text-white flex items-center justify-between"
-                    style={{ 
-                      backgroundColor: '#FF6B35'
-                    }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-lg font-bold">
-                        {user.discord_username || 'Unknown Player'}
-                      </span>
-                      {member.is_captain && effectiveSceneSettings.showCaptainBadges && (
-                        <div className="bg-yellow-400 text-black px-2 py-1 text-xs font-bold">
-                          CAPTAIN
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                   {/* Player Name Block */}
+                   <div 
+                     className="px-4 py-3 flex items-center justify-between"
+                     style={{ 
+                       backgroundColor: sceneSettings.obsAccentColor || '#FF6B35',
+                       color: sceneSettings.obsHeaderColor || '#FFFFFF'
+                     }}
+                   >
+                     <div className="flex items-center gap-3">
+                       <span className="text-lg font-bold">
+                         {user.discord_username || 'Unknown Player'}
+                       </span>
+                       {member.is_captain && effectiveSceneSettings.showCaptainBadges && (
+                         <div 
+                           className="px-2 py-1 text-xs font-bold"
+                           style={{
+                             backgroundColor: '#FFD700',
+                             color: '#000000'
+                           }}
+                         >
+                           CAPTAIN
+                         </div>
+                       )}
+                     </div>
+                   </div>
 
-                  {/* Player Info Horizontal Cards - No gaps, all black */}
-                  <div className="grid grid-cols-4">
-                    {/* Avatar Card */}
-                    <div className="bg-black p-3 flex flex-col items-center">
-                      <div className="w-12 h-12 bg-gray-600 mb-1">
-                        <img
-                          src={user.discord_avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.discord_username}`}
-                          alt={user.discord_username}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      
-                    </div>
+                   {/* Player Info Horizontal Cards - No gaps, using OBS colors */}
+                   <div className="grid grid-cols-4">
+                     {/* Avatar Card */}
+                     <div 
+                       className="p-3 flex flex-col items-center"
+                       style={{
+                         backgroundColor: sceneSettings.obsBackgroundColor || '#000000'
+                       }}
+                     >
+                       <div className="w-12 h-12 bg-gray-600 mb-1">
+                         <img
+                           src={user.discord_avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.discord_username}`}
+                           alt={user.discord_username}
+                           className="w-full h-full object-cover"
+                         />
+                       </div>
+                       
+                     </div>
 
-                    {/* Rank Card */}
-                    <div className="bg-black p-3 flex flex-col items-center">
-                      <div 
-                        className="w-12 h-12 flex items-center justify-center text-lg mb-1"
-                        style={{ backgroundColor: getRankColor(user.current_rank) }}
-                      >
-                        {emoji}
-                      </div>
-                      <div className="text-white text-xs text-center truncate w-full">
-                        {user.current_rank || 'Unranked'}
-                      </div>
-                    </div>
+                     {/* Rank Card */}
+                     <div 
+                       className="p-3 flex flex-col items-center"
+                       style={{
+                         backgroundColor: sceneSettings.obsBackgroundColor || '#000000'
+                       }}
+                     >
+                       <div 
+                         className="w-12 h-12 flex items-center justify-center text-lg mb-1"
+                         style={{ backgroundColor: getRankColor(user.current_rank) }}
+                       >
+                         {emoji}
+                       </div>
+                       <div 
+                         className="text-xs text-center truncate w-full"
+                         style={{
+                           color: sceneSettings.obsTextColor || '#FFFFFF'
+                         }}
+                       >{user.current_rank || 'Unranked'}</div>
+                     </div>
 
-                    {/* Weight Card */}
-                    <div className="bg-black p-3 flex flex-col items-center">
-                      <div className="w-12 h-12 bg-blue-600 flex items-center justify-center text-sm font-bold text-white mb-1">
-                        {displayWeight}
-                      </div>
-                      <div className="text-white text-xs text-center">Weight</div>
-                    </div>
+                     {/* Weight Card */}
+                     <div 
+                       className="p-3 flex flex-col items-center"
+                       style={{
+                         backgroundColor: sceneSettings.obsBackgroundColor || '#000000'
+                       }}
+                     >
+                       <div 
+                         className="w-12 h-12 flex items-center justify-center text-sm font-bold mb-1"
+                         style={{
+                           backgroundColor: sceneSettings.obsAccentColor || '#0066CC',
+                           color: sceneSettings.obsHeaderColor || '#FFFFFF'
+                         }}
+                       >
+                         {displayWeight}
+                       </div>
+                       <div 
+                         className="text-xs text-center"
+                         style={{
+                           color: sceneSettings.obsTextColor || '#FFFFFF'
+                         }}
+                       >Weight</div>
+                     </div>
 
-                    {/* Riot ID Card */}
-                    <div className="bg-black p-3 flex flex-col items-center">
-                      <div className="w-12 h-12 bg-red-600 flex items-center justify-center text-white mb-1 text-xs text-center font-bold">
-                        RIOT
-                      </div>
-                      <div className="text-white text-xs text-center truncate w-full">
-                        {user.riot_id || 'N/A'}
-                      </div>
-                    </div>
-                  </div>
+                     {/* Riot ID Card */}
+                     <div 
+                       className="p-3 flex flex-col items-center"
+                       style={{
+                         backgroundColor: sceneSettings.obsBackgroundColor || '#000000'
+                       }}
+                     >
+                       <div 
+                         className="w-12 h-12 flex items-center justify-center mb-1 text-xs text-center font-bold"
+                         style={{
+                           backgroundColor: sceneSettings.obsAccentColor || '#DC2626',
+                           color: sceneSettings.obsHeaderColor || '#FFFFFF'
+                         }}
+                       >
+                         RIOT
+                       </div>
+                       <div 
+                         className="text-xs text-center truncate w-full"
+                         style={{
+                           color: sceneSettings.obsTextColor || '#FFFFFF'
+                         }}
+                       >{user.riot_id || 'N/A'}</div>
+                     </div>
+                   </div>
                 </div>
               );
             } else {

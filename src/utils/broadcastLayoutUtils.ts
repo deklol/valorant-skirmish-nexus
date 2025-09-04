@@ -220,6 +220,16 @@ export const getBroadcastCardClasses = (broadcastFriendlyMode?: boolean, transpa
   return BROADCAST_CARD_CLASSES;
 };
 
+// OBS/vMix specific color utilities
+export function getObsBroadcastColors(sceneSettings: any) {
+  return {
+    background: sceneSettings.obsBackgroundColor || BROADCAST_DEFAULTS.cardBackground,
+    accent: sceneSettings.obsAccentColor || BROADCAST_DEFAULTS.accentColor,
+    header: sceneSettings.obsHeaderColor || BROADCAST_DEFAULTS.headerTextColor,
+    text: sceneSettings.obsTextColor || BROADCAST_DEFAULTS.textColor,
+  };
+}
+
 // Rank color utility (consistent across all scenes)
 export function getRankColor(rank?: string): string {
   if (!rank) return '#9CA3AF';
