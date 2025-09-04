@@ -245,6 +245,49 @@ export default function BroadcastSettingsPanel() {
                     </SelectContent>
                   </Select>
                 </div>
+                
+                {/* OBS/vMix Block Color Controls */}
+                <div className="space-y-2 col-span-2">
+                  <h5 className="font-medium">OBS/vMix Block Colors</h5>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Player Block Color</Label>
+                      <input
+                        type="color"
+                        value={sceneSettings.obsBackgroundColor || '#000000'}
+                        onChange={(e) => updateSceneSettings(scene, { obsBackgroundColor: e.target.value })}
+                        className="w-full h-8 rounded border"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Accent Color</Label>
+                      <input
+                        type="color"
+                        value={sceneSettings.obsAccentColor || '#ff6b35'}
+                        onChange={(e) => updateSceneSettings(scene, { obsAccentColor: e.target.value })}
+                        className="w-full h-8 rounded border"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Header Color</Label>
+                      <input
+                        type="color"
+                        value={sceneSettings.obsHeaderColor || '#ffffff'}
+                        onChange={(e) => updateSceneSettings(scene, { obsHeaderColor: e.target.value })}
+                        className="w-full h-8 rounded border"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Text Color</Label>
+                      <input
+                        type="color"
+                        value={sceneSettings.obsTextColor || '#ffffff'}
+                        onChange={(e) => updateSceneSettings(scene, { obsTextColor: e.target.value })}
+                        className="w-full h-8 rounded border"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           );
@@ -310,6 +353,49 @@ export default function BroadcastSettingsPanel() {
                     onCheckedChange={(checked) => updateSceneSettings(scene, { showCurrentRank: checked })}
                   />
                   <Label>Player Ranks</Label>
+                </div>
+                
+                {/* OBS/vMix Block Color Controls */}
+                <div className="space-y-2 col-span-2">
+                  <h5 className="font-medium">OBS/vMix Block Colors</h5>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Team Block Color</Label>
+                      <input
+                        type="color"
+                        value={sceneSettings.obsBackgroundColor || '#000000'}
+                        onChange={(e) => updateSceneSettings(scene, { obsBackgroundColor: e.target.value })}
+                        className="w-full h-8 rounded border"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>VS Block Color</Label>
+                      <input
+                        type="color"
+                        value={sceneSettings.obsAccentColor || '#ff6b35'}
+                        onChange={(e) => updateSceneSettings(scene, { obsAccentColor: e.target.value })}
+                        className="w-full h-8 rounded border"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Header Color</Label>
+                      <input
+                        type="color"
+                        value={sceneSettings.obsHeaderColor || '#ffffff'}
+                        onChange={(e) => updateSceneSettings(scene, { obsHeaderColor: e.target.value })}
+                        className="w-full h-8 rounded border"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Text Color</Label>
+                      <input
+                        type="color"
+                        value={sceneSettings.obsTextColor || '#ffffff'}
+                        onChange={(e) => updateSceneSettings(scene, { obsTextColor: e.target.value })}
+                        className="w-full h-8 rounded border"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -470,6 +556,49 @@ export default function BroadcastSettingsPanel() {
                     </SelectContent>
                   </Select>
                 </div>
+                
+                {/* OBS/vMix Block Color Controls */}
+                <div className="space-y-2 col-span-2">
+                  <h5 className="font-medium">OBS/vMix Block Colors</h5>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Spotlight Block Color</Label>
+                      <input
+                        type="color"
+                        value={sceneSettings.obsBackgroundColor || '#000000'}
+                        onChange={(e) => updateSceneSettings(scene, { obsBackgroundColor: e.target.value })}
+                        className="w-full h-8 rounded border"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Stats Block Color</Label>
+                      <input
+                        type="color"
+                        value={sceneSettings.obsAccentColor || '#ff6b35'}
+                        onChange={(e) => updateSceneSettings(scene, { obsAccentColor: e.target.value })}
+                        className="w-full h-8 rounded border"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Header Color</Label>
+                      <input
+                        type="color"
+                        value={sceneSettings.obsHeaderColor || '#ffffff'}
+                        onChange={(e) => updateSceneSettings(scene, { obsHeaderColor: e.target.value })}
+                        className="w-full h-8 rounded border"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Text Color</Label>
+                      <input
+                        type="color"
+                        value={sceneSettings.obsTextColor || '#ffffff'}
+                        onChange={(e) => updateSceneSettings(scene, { obsTextColor: e.target.value })}
+                        className="w-full h-8 rounded border"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           );
@@ -554,6 +683,49 @@ export default function BroadcastSettingsPanel() {
                     </SelectContent>
                   </Select>
                 </div>
+                
+                {/* OBS/vMix Block Color Controls */}
+                <div className="space-y-2 col-span-2">
+                  <h5 className="font-medium">OBS/vMix Block Colors</h5>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Stats Block Color</Label>
+                      <input
+                        type="color"
+                        value={sceneSettings.obsBackgroundColor || '#000000'}
+                        onChange={(e) => updateSceneSettings(scene, { obsBackgroundColor: e.target.value })}
+                        className="w-full h-8 rounded border"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Progress Block Color</Label>
+                      <input
+                        type="color"
+                        value={sceneSettings.obsAccentColor || '#ff6b35'}
+                        onChange={(e) => updateSceneSettings(scene, { obsAccentColor: e.target.value })}
+                        className="w-full h-8 rounded border"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Header Color</Label>
+                      <input
+                        type="color"
+                        value={sceneSettings.obsHeaderColor || '#ffffff'}
+                        onChange={(e) => updateSceneSettings(scene, { obsHeaderColor: e.target.value })}
+                        className="w-full h-8 rounded border"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Text Color</Label>
+                      <input
+                        type="color"
+                        value={sceneSettings.obsTextColor || '#ffffff'}
+                        onChange={(e) => updateSceneSettings(scene, { obsTextColor: e.target.value })}
+                        className="w-full h-8 rounded border"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           );
@@ -598,6 +770,49 @@ export default function BroadcastSettingsPanel() {
                       <SelectItem value="double">Double Elimination</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+                
+                {/* OBS/vMix Block Color Controls */}
+                <div className="space-y-2 col-span-2">
+                  <h5 className="font-medium">OBS/vMix Block Colors</h5>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Match Block Color</Label>
+                      <input
+                        type="color"
+                        value={sceneSettings.obsBackgroundColor || '#000000'}
+                        onChange={(e) => updateSceneSettings(scene, { obsBackgroundColor: e.target.value })}
+                        className="w-full h-8 rounded border"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Bracket Line Color</Label>
+                      <input
+                        type="color"
+                        value={sceneSettings.obsAccentColor || '#ff6b35'}
+                        onChange={(e) => updateSceneSettings(scene, { obsAccentColor: e.target.value })}
+                        className="w-full h-8 rounded border"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Header Color</Label>
+                      <input
+                        type="color"
+                        value={sceneSettings.obsHeaderColor || '#ffffff'}
+                        onChange={(e) => updateSceneSettings(scene, { obsHeaderColor: e.target.value })}
+                        className="w-full h-8 rounded border"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Text Color</Label>
+                      <input
+                        type="color"
+                        value={sceneSettings.obsTextColor || '#ffffff'}
+                        onChange={(e) => updateSceneSettings(scene, { obsTextColor: e.target.value })}
+                        className="w-full h-8 rounded border"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
