@@ -187,38 +187,38 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
                      <div 
                        className="px-6 py-4 flex items-center justify-between"
                        style={{ 
-                         backgroundColor: sceneSettings.obsBackgroundColor || BROADCAST_DEFAULTS.cardBackground,
-                         color: sceneSettings.obsTextColor || BROADCAST_DEFAULTS.textColor
+                         backgroundColor: effectiveSceneSettings.obsBackgroundColor || BROADCAST_DEFAULTS.cardBackground,
+                         color: effectiveSceneSettings.obsHeaderColor || BROADCAST_DEFAULTS.textColor
                        }}
                      >
                        <div className="flex items-center gap-4">
                          <span className="text-2xl font-bold">
                            {user.discord_username || 'Unknown Player'}
                          </span>
-                         {member.is_captain && (
-                           <div 
-                             className="px-3 py-1 text-sm font-bold"
-                             style={{
-                               backgroundColor: sceneSettings.obsAccentColor || BROADCAST_DEFAULTS.accentColor,
-                               color: '#000000'
-                             }}
-                           >
-                             CAPTAIN
-                           </div>
-                         )}
+                          {member.is_captain && (
+                            <div 
+                              className="px-3 py-1 text-sm font-bold"
+                              style={{
+                                backgroundColor: effectiveSceneSettings.obsAccentColor || BROADCAST_DEFAULTS.accentColor,
+                                color: '#000000'
+                              }}
+                            >
+                              CAPTAIN
+                            </div>
+                          )}
                        </div>
                      </div>
 
                      {/* Player Info Horizontal Cards */}
                      <div className="grid grid-cols-4">
                        {/* Avatar Card */}
-                       <div 
-                         className="p-4 flex flex-col items-center"
-                         style={{
-                           backgroundColor: sceneSettings.obsBackgroundColor || BROADCAST_DEFAULTS.cardBackground,
-                           opacity: 0.8
-                         }}
-                       >
+                        <div 
+                          className="p-4 flex flex-col items-center"
+                          style={{
+                            backgroundColor: effectiveSceneSettings.obsBackgroundColor || BROADCAST_DEFAULTS.cardBackground,
+                            opacity: 0.8
+                          }}
+                        >
                          <div className="w-16 h-16 bg-gray-600 mb-2">
                            <img
                              src={user.discord_avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.discord_username}`}
@@ -230,73 +230,73 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
 
                        {/* Rank Card */}
                        {effectiveSceneSettings.showCurrentRank && user.current_rank && (
-                         <div 
-                           className="p-4 flex flex-col items-center"
-                           style={{
-                             backgroundColor: sceneSettings.obsBackgroundColor || BROADCAST_DEFAULTS.cardBackground,
-                             opacity: 0.8
-                           }}
-                         >
+                          <div 
+                            className="p-4 flex flex-col items-center"
+                            style={{
+                              backgroundColor: effectiveSceneSettings.obsBackgroundColor || BROADCAST_DEFAULTS.cardBackground,
+                              opacity: 0.8
+                            }}
+                          >
                            <div 
                              className="w-16 h-16 flex items-center justify-center text-2xl mb-2"
                              style={{ backgroundColor: getRankColor(user.current_rank) }}
                            >
                              {formatRank(user.current_rank).emoji}
                            </div>
-                           <div 
-                             className="text-sm text-center"
-                             style={{ color: sceneSettings.obsTextColor || BROADCAST_DEFAULTS.textColor }}
-                           >{user.current_rank}</div>
+                            <div 
+                              className="text-sm text-center"
+                              style={{ color: effectiveSceneSettings.obsTextColor || BROADCAST_DEFAULTS.textColor }}
+                            >{user.current_rank}</div>
                          </div>
                        )}
 
                        {/* Weight Card */}
                        {effectiveSceneSettings.showAdaptiveWeight && (
-                         <div 
-                           className="p-4 flex flex-col items-center"
-                           style={{
-                             backgroundColor: sceneSettings.obsBackgroundColor || BROADCAST_DEFAULTS.cardBackground,
-                             opacity: 0.8
-                           }}
-                         >
-                           <div 
-                             className="w-16 h-16 flex items-center justify-center text-xl font-bold mb-2"
-                             style={{
-                               backgroundColor: sceneSettings.obsAccentColor || BROADCAST_DEFAULTS.accentColor,
-                               color: sceneSettings.obsTextColor || BROADCAST_DEFAULTS.textColor
-                             }}
-                           >
+                          <div 
+                            className="p-4 flex flex-col items-center"
+                            style={{
+                              backgroundColor: effectiveSceneSettings.obsBackgroundColor || BROADCAST_DEFAULTS.cardBackground,
+                              opacity: 0.8
+                            }}
+                          >
+                            <div 
+                              className="w-16 h-16 flex items-center justify-center text-xl font-bold mb-2"
+                              style={{
+                                backgroundColor: effectiveSceneSettings.obsAccentColor || BROADCAST_DEFAULTS.accentColor,
+                                color: effectiveSceneSettings.obsTextColor || BROADCAST_DEFAULTS.textColor
+                              }}
+                            >
                              {displayWeight}
                            </div>
-                           <div 
-                             className="text-sm text-center"
-                             style={{ color: sceneSettings.obsTextColor || BROADCAST_DEFAULTS.textColor }}
-                           >Weight</div>
+                            <div 
+                              className="text-sm text-center"
+                              style={{ color: effectiveSceneSettings.obsTextColor || BROADCAST_DEFAULTS.textColor }}
+                            >Weight</div>
                          </div>
                        )}
 
                        {/* Riot ID Card */}
                        {effectiveSceneSettings.showRiotId && user.riot_id && (
-                         <div 
-                           className="p-4 flex flex-col items-center"
-                           style={{
-                             backgroundColor: sceneSettings.obsBackgroundColor || BROADCAST_DEFAULTS.cardBackground,
-                             opacity: 0.8
-                           }}
-                         >
-                           <div 
-                             className="w-16 h-16 flex items-center justify-center mb-2 text-xs text-center font-bold"
-                             style={{
-                               backgroundColor: sceneSettings.obsAccentColor || BROADCAST_DEFAULTS.accentColor,
-                               color: sceneSettings.obsTextColor || BROADCAST_DEFAULTS.textColor
-                             }}
-                           >
+                          <div 
+                            className="p-4 flex flex-col items-center"
+                            style={{
+                              backgroundColor: effectiveSceneSettings.obsBackgroundColor || BROADCAST_DEFAULTS.cardBackground,
+                              opacity: 0.8
+                            }}
+                          >
+                            <div 
+                              className="w-16 h-16 flex items-center justify-center mb-2 text-xs text-center font-bold"
+                              style={{
+                                backgroundColor: effectiveSceneSettings.obsAccentColor || BROADCAST_DEFAULTS.accentColor,
+                                color: effectiveSceneSettings.obsTextColor || BROADCAST_DEFAULTS.textColor
+                              }}
+                            >
                              RIOT
                            </div>
-                           <div 
-                             className="text-sm text-center truncate w-full"
-                             style={{ color: sceneSettings.obsTextColor || BROADCAST_DEFAULTS.textColor }}
-                           >{user.riot_id}</div>
+                            <div 
+                              className="text-sm text-center truncate w-full"
+                              style={{ color: effectiveSceneSettings.obsTextColor || BROADCAST_DEFAULTS.textColor }}
+                            >{user.riot_id}</div>
                          </div>
                        )}
                     </div>
