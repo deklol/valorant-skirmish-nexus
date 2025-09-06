@@ -286,10 +286,10 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
                           >
                             <div 
                               className="w-16 h-16 flex items-center justify-center mb-2 text-xs text-center font-bold"
-                              style={{
-                                backgroundColor: effectiveSceneSettings.obsAccentColor || BROADCAST_DEFAULTS.accentColor,
-                                color: effectiveSceneSettings.obsTextColor || BROADCAST_DEFAULTS.textColor
-                              }}
+                               style={{
+                                 backgroundColor: '#DC2626',
+                                 color: effectiveSceneSettings.obsTextColor || '#FFFFFF'
+                               }}
                             >
                              RIOT
                            </div>

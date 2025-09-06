@@ -237,21 +237,21 @@ export default function MatchupPreview() {
           <div 
             className="border-4"
             style={{
-              backgroundColor: sceneSettings.obsBackgroundColor || '#000000',
-              borderColor: sceneSettings.obsAccentColor || '#FF6B35'
+              backgroundColor: effectiveSceneSettings.obsBackgroundColor || '#000000',
+              borderColor: effectiveSceneSettings.obsAccentColor || '#FF6B35'
             }}
           >
             {/* Header */}
             <div 
               className="text-center p-3"
               style={{
-                backgroundColor: sceneSettings.obsAccentColor || '#FF6B35'
+                backgroundColor: effectiveSceneSettings.obsAccentColor || '#FF6B35'
               }}
             >
               <h3 
                 className="text-xl font-black uppercase tracking-wider"
                 style={{
-                  color: sceneSettings.obsHeaderColor || '#FFFFFF'
+                  color: effectiveSceneSettings.obsHeaderColor || '#FFFFFF'
                 }}
               >
                 PLAYER SPOTLIGHT
@@ -264,7 +264,7 @@ export default function MatchupPreview() {
                 <Avatar 
                   className="w-20 h-20 mx-auto border-4"
                   style={{
-                    borderColor: sceneSettings.obsAccentColor || '#FF6B35'
+                    borderColor: effectiveSceneSettings.obsAccentColor || '#FF6B35'
                   }}
                 >
                   <AvatarImage 
@@ -275,7 +275,7 @@ export default function MatchupPreview() {
                     className="text-xl font-bold"
                     style={{
                       backgroundColor: '#6B7280',
-                      color: sceneSettings.obsTextColor || '#FFFFFF'
+                      color: effectiveSceneSettings.obsTextColor || '#FFFFFF'
                     }}
                   >
                     {(highestWeightPlayer.users?.discord_username || 'P').charAt(0).toUpperCase()}
@@ -286,8 +286,8 @@ export default function MatchupPreview() {
               <div className="space-y-2">
                 <div 
                   className="font-bold text-xl"
-                  style={{
-                    color: sceneSettings.obsTextColor || '#FFFFFF'
+                 style={{
+                    color: effectiveSceneSettings.obsTextColor || '#FFFFFF'
                   }}
                 >
                   {highestWeightPlayer.users?.discord_username || 'Unknown Player'}
@@ -295,8 +295,8 @@ export default function MatchupPreview() {
                 
                 <div 
                   className="text-sm"
-                  style={{
-                    color: sceneSettings.obsTextColor || '#D1D5DB'
+                 style={{
+                    color: effectiveSceneSettings.obsTextColor || '#D1D5DB'
                   }}
                 >
                   {playerTeam.name}
@@ -304,14 +304,14 @@ export default function MatchupPreview() {
                 
                 <div 
                   className="px-3 py-1 inline-block"
-                  style={{
-                    backgroundColor: sceneSettings.obsAccentColor || '#FF6B35'
+                 style={{
+                    backgroundColor: effectiveSceneSettings.obsAccentColor || '#FF6B35'
                   }}
                 >
                   <span 
                     className="font-bold text-lg"
-                    style={{
-                      color: sceneSettings.obsHeaderColor || '#FFFFFF'
+                   style={{
+                      color: effectiveSceneSettings.obsHeaderColor || '#FFFFFF'
                     }}
                   >
                     {playerWeight} Weight
@@ -321,16 +321,16 @@ export default function MatchupPreview() {
                 <div className="space-y-1 pt-2">
                   <div 
                     className="text-sm"
-                    style={{
-                      color: sceneSettings.obsTextColor || '#FFFFFF'
+                   style={{
+                      color: effectiveSceneSettings.obsTextColor || '#FFFFFF'
                     }}
                   >
                     <span className="opacity-70">Current:</span> <span style={{ color: getRankColor(highestWeightPlayer.users?.current_rank) }}>{highestWeightPlayer.users?.current_rank || 'Unranked'}</span>
                   </div>
                   <div 
                     className="text-sm"
-                    style={{
-                      color: sceneSettings.obsTextColor || '#FFFFFF'
+                   style={{
+                      color: effectiveSceneSettings.obsTextColor || '#FFFFFF'
                     }}
                   >
                     <span className="opacity-70">Peak:</span> <span style={{ color: getRankColor(highestWeightPlayer.users?.peak_rank) }}>{highestWeightPlayer.users?.peak_rank || highestWeightPlayer.users?.current_rank || 'Unranked'}</span>
@@ -402,14 +402,14 @@ export default function MatchupPreview() {
            <div 
              className="px-6 py-4 mb-0"
              style={{ 
-               backgroundColor: sceneSettings.obsAccentColor || '#FF6B35' 
-             }}
+                backgroundColor: effectiveSceneSettings.obsAccentColor || '#FF6B35' 
+              }}
            >
              <div 
                className="text-2xl font-bold uppercase tracking-wide"
-               style={{
-                 color: sceneSettings.obsHeaderColor || '#FFFFFF'
-               }}
+                style={{
+                  color: effectiveSceneSettings.obsHeaderColor || '#FFFFFF'
+                }}
              >
                {team.name}
              </div>
@@ -418,22 +418,22 @@ export default function MatchupPreview() {
            {/* Team Stats Block */}
            <div 
              className="px-6 py-3 mb-0"
-             style={{
-               backgroundColor: sceneSettings.obsBackgroundColor || '#000000'
-             }}
+              style={{
+                backgroundColor: effectiveSceneSettings.obsBackgroundColor || '#000000'
+              }}
            >
              <div className="flex items-center justify-between">
                <div 
                  className="px-3 py-1"
-                 style={{
-                   backgroundColor: sceneSettings.obsAccentColor || '#00BFFF'
-                 }}
+                  style={{
+                    backgroundColor: effectiveSceneSettings.obsAccentColor || '#00BFFF'
+                  }}
                >
                  <span 
                    className="text-sm font-bold"
-                   style={{
-                     color: sceneSettings.obsHeaderColor || '#000000'
-                   }}
+                    style={{
+                      color: effectiveSceneSettings.obsHeaderColor || '#000000'
+                    }}
                  >
                    AVG: {side === 'left' ? team1Avg : team2Avg}
                  </span>
@@ -568,33 +568,33 @@ export default function MatchupPreview() {
                        </div>
                        <div 
                          className="text-xs text-center"
-                         style={{
-                           color: sceneSettings.obsTextColor || '#FFFFFF'
-                         }}
+                        style={{
+                          color: effectiveSceneSettings.obsTextColor || '#FFFFFF'
+                        }}
                        >Weight</div>
                      </div>
 
                      {/* Riot ID Card */}
                      <div 
                        className="p-3 flex flex-col items-center"
-                       style={{
-                         backgroundColor: sceneSettings.obsBackgroundColor || '#000000'
-                       }}
+                        style={{
+                          backgroundColor: effectiveSceneSettings.obsBackgroundColor || '#000000'
+                        }}
                      >
                        <div 
                          className="w-12 h-12 flex items-center justify-center mb-1 text-xs text-center font-bold"
-                         style={{
-                           backgroundColor: sceneSettings.obsAccentColor || '#DC2626',
-                           color: sceneSettings.obsHeaderColor || '#FFFFFF'
-                         }}
+                          style={{
+                            backgroundColor: '#DC2626',
+                            color: effectiveSceneSettings.obsHeaderColor || '#FFFFFF'
+                          }}
                        >
                          RIOT
                        </div>
                        <div 
                          className="text-xs text-center truncate w-full"
-                         style={{
-                           color: sceneSettings.obsTextColor || '#FFFFFF'
-                         }}
+                          style={{
+                            color: effectiveSceneSettings.obsTextColor || '#FFFFFF'
+                          }}
                        >{user.riot_id || 'N/A'}</div>
                      </div>
                    </div>
