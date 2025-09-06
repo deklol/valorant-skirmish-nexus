@@ -184,12 +184,12 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
                   {effectiveSceneSettings.transparentBackground ? (
                     // Blocky design for OBS/vMix
                      <>
-                     <div 
-                       className="px-6 py-4 flex items-center justify-between"
-                       style={{ 
-                         backgroundColor: effectiveSceneSettings.obsBackgroundColor || BROADCAST_DEFAULTS.cardBackground,
-                         color: effectiveSceneSettings.obsHeaderColor || BROADCAST_DEFAULTS.textColor
-                       }}
+                      <div 
+                        className="px-6 py-4 flex items-center justify-between"
+                        style={{ 
+                          backgroundColor: effectiveSceneSettings.obsAccentColor || BROADCAST_DEFAULTS.accentColor,
+                          color: effectiveSceneSettings.obsHeaderColor || BROADCAST_DEFAULTS.textColor
+                        }}
                      >
                        <div className="flex items-center gap-4">
                          <span className="text-2xl font-bold">
