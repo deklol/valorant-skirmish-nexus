@@ -205,7 +205,7 @@ export default function PlayerSpotlightCard() {
           <div 
             className="px-6 py-4 text-white flex items-center justify-between mb-0"
             style={{ 
-              backgroundColor: '#FF6B35'
+              backgroundColor: sceneSettings.obsAccentColor || '#FF6B35'
             }}
           >
             <div className="flex items-center gap-4">
@@ -219,14 +219,29 @@ export default function PlayerSpotlightCard() {
           <div className="grid grid-cols-4 mb-8">
             {/* Avatar Card */}
             <div className="bg-black p-6 flex flex-col items-center">
-              <div className="w-20 h-20 bg-gray-600 mb-3">
-                <img
-                  src={player.discord_avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${player.discord_username}`}
-                  alt={player.discord_username}
-                  className="w-full h-full object-cover"
-                />
+              {sceneSettings.showLargeAvatar ? (
+                <div className="w-32 h-32 bg-gray-600 mb-3">
+                  <img
+                    src={player.discord_avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${player.discord_username}`}
+                    alt={player.discord_username}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="w-20 h-20 bg-gray-600 mb-3">
+                  <img
+                    src={player.discord_avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${player.discord_username}`}
+                    alt={player.discord_username}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+              <div 
+                className="text-white text-sm text-center"
+                style={{ color: sceneSettings.obsTextColor || '#FFFFFF' }}
+              >
+                Avatar
               </div>
-              <div className="text-white text-sm text-center">Avatar</div>
             </div>
 
             {/* Rank Card */}
@@ -262,8 +277,11 @@ export default function PlayerSpotlightCard() {
           </div>
 
           {/* Stats Blocks */}
-          <div className="grid grid-cols-3 gap-4">
-            <div className="bg-black p-6 text-center">
+          <div className={`grid gap-4 ${sceneSettings.statsLayout === 'stacked' ? 'grid-cols-1' : 'grid-cols-3'}`}>
+            <div 
+              className="bg-black p-6 text-center"
+              style={{ backgroundColor: sceneSettings.obsBackgroundColor || '#000000' }}
+            >
               <div 
                 className="text-4xl font-black mb-2"
                 style={{ 
@@ -274,14 +292,20 @@ export default function PlayerSpotlightCard() {
                 {displayWeight}
               </div>
               <div 
-                className="text-xl font-bold text-white"
-                style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
+                className="text-xl font-bold"
+                style={{ 
+                  fontFamily: BROADCAST_DEFAULTS.fontFamily,
+                  color: sceneSettings.obsTextColor || '#FFFFFF'
+                }}
               >
                 CURRENT WEIGHT
               </div>
             </div>
 
-            <div className="bg-black p-6 text-center">
+            <div 
+              className="bg-black p-6 text-center"
+              style={{ backgroundColor: sceneSettings.obsBackgroundColor || '#000000' }}
+            >
               <div 
                 className="text-4xl font-black mb-2"
                 style={{ 
@@ -292,16 +316,22 @@ export default function PlayerSpotlightCard() {
                 {player.tournament_wins || 0}
               </div>
               <div 
-                className="text-xl font-bold text-white"
-                style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
+                className="text-xl font-bold"
+                style={{ 
+                  fontFamily: BROADCAST_DEFAULTS.fontFamily,
+                  color: sceneSettings.obsTextColor || '#FFFFFF'
+                }}
               >
                 TOURNAMENT WINS
               </div>
             </div>
 
-            <div className="bg-black p-6 text-center">
+            <div 
+              className="bg-black p-6 text-center"
+              style={{ backgroundColor: sceneSettings.obsBackgroundColor || '#000000' }}
+            >
               <div 
-                className="text-2xl font-black mb-2 text-white"
+                className="text-2xl font-black mb-2"
                 style={{ 
                   color: getRankColor(player.peak_rank),
                   fontFamily: BROADCAST_DEFAULTS.fontFamily 
@@ -310,8 +340,11 @@ export default function PlayerSpotlightCard() {
                 {player.peak_rank || 'UNRANKED'}
               </div>
               <div 
-                className="text-xl font-bold text-white"
-                style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
+                className="text-xl font-bold"
+                style={{ 
+                  fontFamily: BROADCAST_DEFAULTS.fontFamily,
+                  color: sceneSettings.obsTextColor || '#FFFFFF'
+                }}
               >
                 PEAK RANK
               </div>

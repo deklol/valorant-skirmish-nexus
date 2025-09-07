@@ -185,17 +185,46 @@ export default function BroadcastSettingsPanel() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex items-center space-x-2">
                   <Switch
-                    checked={sceneSettings.showCaptainBadges ?? true}
+                    checked={sceneSettings.showTeamName !== false}
+                    onCheckedChange={(checked) => updateSceneSettings(scene, { showTeamName: checked })}
+                  />
+                  <Label>Team Name Display</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={sceneSettings.showAvatars !== false}
+                    onCheckedChange={(checked) => updateSceneSettings(scene, { showAvatars: checked })}
+                  />
+                  <Label>Player Avatars</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={sceneSettings.showCaptainBadges !== false}
                     onCheckedChange={(checked) => updateSceneSettings(scene, { showCaptainBadges: checked })}
                   />
                   <Label>Captain Badges</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Switch
-                    checked={sceneSettings.showRankEmojis ?? true}
+                    checked={sceneSettings.showRankEmojis !== false}
                     onCheckedChange={(checked) => updateSceneSettings(scene, { showRankEmojis: checked })}
                   />
                   <Label>Rank Emojis</Label>
+                </div>
+                <div className="space-y-2">
+                  <Label>Player Card Layout</Label>
+                  <Select 
+                    value={sceneSettings.playerCardLayout || 'detailed'}
+                    onValueChange={(value) => updateSceneSettings(scene, { playerCardLayout: value as 'compact' | 'detailed' })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="compact">Compact</SelectItem>
+                      <SelectItem value="detailed">Detailed</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2 col-span-2">
                   <Label>Roster Preset</Label>
@@ -210,7 +239,9 @@ export default function BroadcastSettingsPanel() {
                           showTeamTotalWeight: false,
                           showTeamSeed: true,
                           showCaptainBadges: true,
-                          playerCardLayout: 'compact'
+                          playerCardLayout: 'compact',
+                          showAvatars: false,
+                          showTeamName: true
                         });
                       } else if (value === 'broadcast') {
                         updateSceneSettings(scene, { 
@@ -220,7 +251,9 @@ export default function BroadcastSettingsPanel() {
                           showTeamTotalWeight: true,
                           showTeamSeed: true,
                           showCaptainBadges: true,
-                          playerCardLayout: 'detailed'
+                          playerCardLayout: 'detailed',
+                          showAvatars: true,
+                          showTeamName: true
                         });
                       } else if (value === 'complete') {
                         updateSceneSettings(scene, { 
@@ -230,7 +263,9 @@ export default function BroadcastSettingsPanel() {
                           showTeamTotalWeight: true,
                           showTeamSeed: true,
                           showCaptainBadges: true,
-                          playerCardLayout: 'detailed'
+                          playerCardLayout: 'detailed',
+                          showAvatars: true,
+                          showTeamName: true
                         });
                       }
                     }}
@@ -297,62 +332,62 @@ export default function BroadcastSettingsPanel() {
             <div className="space-y-4">
               <h4 className="font-medium text-lg">Matchup Preview Options</h4>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Layout Style</Label>
-                  <Select 
-                    value="standard"
-                    onValueChange={(value) => {
-                      if (value === 'minimal') {
-                        updateSceneSettings(scene, { 
-                          showCaptainBadges: false,
-                          showCurrentRank: false,
-                          showVsHeader: false
-                        });
-                      } else if (value === 'standard') {
-                        updateSceneSettings(scene, { 
-                          showCaptainBadges: true,
-                          showCurrentRank: true,
-                          showVsHeader: true
-                        });
-                      } else if (value === 'clean') {
-                        updateSceneSettings(scene, { 
-                          showCaptainBadges: false,
-                          showCurrentRank: true,
-                          showVsHeader: true
-                        });
-                      }
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="minimal">Names Only</SelectItem>
-                      <SelectItem value="clean">Clean</SelectItem>
-                      <SelectItem value="standard">Standard</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={sceneSettings.showPlayerSpotlight !== false}
+                    onCheckedChange={(checked) => updateSceneSettings(scene, { showPlayerSpotlight: checked })}
+                  />
+                  <Label>Player Spotlight Panel</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Switch
-                    checked={sceneSettings.showVsHeader ?? true}
+                    checked={sceneSettings.showTeamStats !== false}
+                    onCheckedChange={(checked) => updateSceneSettings(scene, { showTeamStats: checked })}
+                  />
+                  <Label>Team Stats Section</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={sceneSettings.showVsHeader !== false}
                     onCheckedChange={(checked) => updateSceneSettings(scene, { showVsHeader: checked })}
                   />
                   <Label>VS Header</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Switch
-                    checked={sceneSettings.showCaptainBadges ?? true}
+                    checked={sceneSettings.showCaptainBadges !== false}
                     onCheckedChange={(checked) => updateSceneSettings(scene, { showCaptainBadges: checked })}
                   />
                   <Label>Captain Badges</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Switch
-                    checked={sceneSettings.showCurrentRank ?? true}
+                    checked={sceneSettings.showCurrentRank !== false}
                     onCheckedChange={(checked) => updateSceneSettings(scene, { showCurrentRank: checked })}
                   />
                   <Label>Player Ranks</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={sceneSettings.showWeightDifference !== false}
+                    onCheckedChange={(checked) => updateSceneSettings(scene, { showWeightDifference: checked })}
+                  />
+                  <Label>Weight Difference</Label>
+                </div>
+                <div className="space-y-2">
+                  <Label>Matchup Layout</Label>
+                  <Select 
+                    value={sceneSettings.matchupLayout || 'side-by-side'}
+                    onValueChange={(value) => updateSceneSettings(scene, { matchupLayout: value as 'side-by-side' | 'stacked' })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="side-by-side">Side by Side</SelectItem>
+                      <SelectItem value="stacked">Stacked</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 
                 {/* OBS/vMix Block Color Controls */}

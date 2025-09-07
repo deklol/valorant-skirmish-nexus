@@ -41,13 +41,33 @@ export interface BroadcastSceneSettings extends BroadcastDisplaySettings {
   // Team Roster specific
   showCaptainBadges?: boolean;
   showRankEmojis?: boolean;
+  showTeamName?: boolean;
+  showAvatars?: boolean;
+  showStatsSection?: boolean;
   playerCardLayout?: 'compact' | 'detailed';
   
   // Matchup Preview specific
   showVsHeader?: boolean;
+  showPlayerSpotlight?: boolean;
+  showTeamStats?: boolean;
   showWeightDifference?: boolean;
   showBalanceAssessment?: boolean;
   matchupLayout?: 'side-by-side' | 'stacked';
+  
+  // Player Spotlight specific
+  showLargeAvatar?: boolean;
+  showPerformanceRating?: boolean;
+  showTournamentHistory?: boolean;
+  statsLayout?: 'grid' | 'stacked';
+  
+  // Bracket Overlay specific
+  showTournamentHeader?: boolean;
+  showMatchStatusBadges?: boolean;
+  showRoundLabels?: boolean;
+  showMatchCards?: boolean;
+  showRoundIndicators?: boolean;
+  showWinnerHighlight?: boolean;
+  bracketStructure?: 'single' | 'double';
   
   // Teams Overview specific
   showActiveEliminated?: boolean;
@@ -59,30 +79,18 @@ export interface BroadcastSceneSettings extends BroadcastDisplaySettings {
   playerAccentColor?: string;
   weightBlockColor?: string;
   
-  // OBS/vMix Color Settings
-  obsHeaderColor?: string;
-  obsBackgroundColor?: string;
-  obsTextColor?: string;
-  obsAccentColor?: string;
-  
-  // Player Spotlight specific
-  showPerformanceRating?: boolean;
-  showLargeAvatar?: boolean;
-  statsLayout?: 'grid' | 'stacked';
-  showTournamentHistory?: boolean;
-  
   // Tournament Stats specific
   showIndividualStatCards?: boolean;
   showProgressBar?: boolean;
   showTournamentStatusHeader?: boolean;
   statIconStyle?: 'filled' | 'outline';
-  statCardLayout?: 'grid' | 'row';
+  statCardLayout?: 'row' | 'grid';
   
-  // Bracket Overlay specific
-  showMatchCards?: boolean;
-  showRoundIndicators?: boolean;
-  showWinnerHighlight?: boolean;
-  bracketStructure?: 'single' | 'double';
+  // OBS/vMix Color Settings
+  obsHeaderColor?: string;
+  obsBackgroundColor?: string;
+  obsTextColor?: string;
+  obsAccentColor?: string;
 }
 
 export interface BroadcastSettings {

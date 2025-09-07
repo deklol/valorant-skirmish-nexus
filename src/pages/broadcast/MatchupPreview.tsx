@@ -415,42 +415,44 @@ export default function MatchupPreview() {
              </div>
            </div>
            
-           {/* Team Stats Block */}
-           <div 
-             className="px-6 py-3 mb-0"
-              style={{
-                backgroundColor: effectiveSceneSettings.obsBackgroundColor || '#000000'
-              }}
-           >
-             <div className="flex items-center justify-between">
-               <div 
-                 className="px-3 py-1"
+            {/* Team Stats Block */}
+            {effectiveSceneSettings.showTeamStats !== false && (
+            <div 
+              className="px-6 py-3 mb-0"
+               style={{
+                 backgroundColor: effectiveSceneSettings.obsBackgroundColor || '#000000'
+               }}
+            >
+              <div className="flex items-center justify-between">
+                <div 
+                  className="px-3 py-1"
+                   style={{
+                     backgroundColor: effectiveSceneSettings.obsAccentColor || '#00BFFF'
+                   }}
+                >
+                  <span 
+                    className="text-sm font-bold"
+                     style={{
+                       color: effectiveSceneSettings.obsHeaderColor || '#000000'
+                     }}
+                  >
+                    AVG: {side === 'left' ? team1Avg : team2Avg}
+                  </span>
+                </div>
+                <div 
+                  className="px-3 py-1"
                   style={{
-                    backgroundColor: effectiveSceneSettings.obsAccentColor || '#00BFFF'
+                    backgroundColor: '#FFFFFF',
+                    color: '#000000'
                   }}
-               >
-                 <span 
-                   className="text-sm font-bold"
-                    style={{
-                      color: effectiveSceneSettings.obsHeaderColor || '#000000'
-                    }}
-                 >
-                   AVG: {side === 'left' ? team1Avg : team2Avg}
-                 </span>
-               </div>
-               <div 
-                 className="px-3 py-1"
-                 style={{
-                   backgroundColor: '#FFFFFF',
-                   color: '#000000'
-                 }}
-               >
-                 <span className="text-sm font-bold">
-                   SEED #{team.seed || 'TBD'}
-                 </span>
-               </div>
-             </div>
-           </div>
+                >
+                  <span className="text-sm font-bold">
+                    SEED #{team.seed || 'TBD'}
+                  </span>
+                </div>
+              </div>
+            </div>
+            )}
         </>
       ) : (
         // Original design for non-transparent background
@@ -757,9 +759,11 @@ export default function MatchupPreview() {
           <PlayerLineup team={team1} side="left" />
           
           {/* Center - Player Spotlight */}
+          {effectiveSceneSettings.showPlayerSpotlight !== false && (
           <div className="flex justify-center">
             <PlayerSpotlight />
           </div>
+          )}
           
           {/* Team 2 Lineup */}
           <PlayerLineup team={team2} side="right" />

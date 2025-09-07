@@ -166,7 +166,7 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
           className="text-4xl font-bold mb-8 text-center" 
           style={getBroadcastHeaderStyle(sceneSettings, settings, 'large')}
         >
-          {currentTeam.name}
+          {effectiveSceneSettings.showTeamName !== false && currentTeam.name}
         </div>
         
         <div className="space-y-3">
@@ -195,38 +195,40 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
                          <span className="text-2xl font-bold">
                            {user.discord_username || 'Unknown Player'}
                          </span>
-                          {member.is_captain && (
-                            <div 
-                              className="px-3 py-1 text-sm font-bold"
-                              style={{
-                                backgroundColor: effectiveSceneSettings.obsAccentColor || BROADCAST_DEFAULTS.accentColor,
-                                color: '#000000'
-                              }}
-                            >
-                              CAPTAIN
-                            </div>
-                          )}
+                           {member.is_captain && effectiveSceneSettings.showCaptainBadges !== false && (
+                             <div 
+                               className="px-3 py-1 text-sm font-bold"
+                               style={{
+                                 backgroundColor: effectiveSceneSettings.obsAccentColor || BROADCAST_DEFAULTS.accentColor,
+                                 color: '#000000'
+                               }}
+                             >
+                               CAPTAIN
+                             </div>
+                           )}
                        </div>
                      </div>
 
                      {/* Player Info Horizontal Cards */}
                      <div className="grid grid-cols-4">
-                       {/* Avatar Card */}
-                        <div 
-                          className="p-4 flex flex-col items-center"
-                          style={{
-                            backgroundColor: effectiveSceneSettings.obsBackgroundColor || BROADCAST_DEFAULTS.cardBackground,
-                            opacity: 0.8
-                          }}
-                        >
-                         <div className="w-16 h-16 bg-gray-600 mb-2">
-                           <img
-                             src={user.discord_avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.discord_username}`}
-                             alt={user.discord_username}
-                             className="w-full h-full object-cover"
-                           />
-                         </div>
-                       </div>
+                        {/* Avatar Card */}
+                        {effectiveSceneSettings.showAvatars !== false && (
+                         <div 
+                           className="p-4 flex flex-col items-center"
+                           style={{
+                             backgroundColor: effectiveSceneSettings.obsBackgroundColor || BROADCAST_DEFAULTS.cardBackground,
+                             opacity: 0.8
+                           }}
+                         >
+                          <div className="w-16 h-16 bg-gray-600 mb-2">
+                            <img
+                              src={user.discord_avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.discord_username}`}
+                              alt={user.discord_username}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        </div>
+                        )}
 
                        {/* Rank Card */}
                        {effectiveSceneSettings.showCurrentRank && user.current_rank && (
@@ -314,29 +316,31 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
                             <span className="text-2xl font-bold">
                               {user.discord_username || 'Unknown Player'}
                             </span>
-                            {member.is_captain && (
-                              <Badge variant="secondary" className="bg-yellow-400 text-black font-bold">
-                                <Crown className="w-3 h-3 mr-1" />
-                                CAPTAIN
-                              </Badge>
-                            )}
+                             {member.is_captain && effectiveSceneSettings.showCaptainBadges !== false && (
+                               <Badge variant="secondary" className="bg-yellow-400 text-black font-bold">
+                                 <Crown className="w-3 h-3 mr-1" />
+                                 CAPTAIN
+                               </Badge>
+                             )}
                           </div>
                         </div>
 
                         {/* Player Info Cards */}
                         <div className="grid grid-cols-4 rounded-b-lg overflow-hidden">
-                          {/* Avatar Card */}
-                          <div className="backdrop-blur-sm bg-white/10 p-4 flex flex-col items-center">
-                            <Avatar className="w-16 h-16 mb-2">
-                              <AvatarImage 
-                                src={user.discord_avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.discord_username}`} 
-                                alt={user.discord_username} 
-                              />
-                              <AvatarFallback className="bg-gray-600 text-white font-bold">
-                                {(user.discord_username || 'U').charAt(0).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                          </div>
+                           {/* Avatar Card */}
+                           {effectiveSceneSettings.showAvatars !== false && (
+                           <div className="backdrop-blur-sm bg-white/10 p-4 flex flex-col items-center">
+                             <Avatar className="w-16 h-16 mb-2">
+                               <AvatarImage 
+                                 src={user.discord_avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.discord_username}`} 
+                                 alt={user.discord_username} 
+                               />
+                               <AvatarFallback className="bg-gray-600 text-white font-bold">
+                                 {(user.discord_username || 'U').charAt(0).toUpperCase()}
+                               </AvatarFallback>
+                             </Avatar>
+                           </div>
+                           )}
 
                           {/* Rank Card */}
                           {effectiveSceneSettings.showCurrentRank && user.current_rank && (
