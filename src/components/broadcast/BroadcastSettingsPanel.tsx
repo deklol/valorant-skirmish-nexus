@@ -7,6 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Slider } from '@/components/ui/slider';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Eye, EyeOff, RotateCcw, Save, Upload, Copy, ExternalLink } from 'lucide-react';
 import { useBroadcastSettings, type BroadcastSceneSettings } from '@/hooks/useBroadcastSettings';
 import { useToast } from '@/hooks/use-toast';
@@ -972,8 +973,8 @@ export default function BroadcastSettingsPanel() {
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader>
+    <Card className="w-full max-h-[85vh] flex flex-col">
+      <CardHeader className="flex-shrink-0">
         <CardTitle className="flex items-center justify-between">
           <span>🎬 Broadcast Settings Panel</span>
           <div className="flex space-x-2">
@@ -991,81 +992,86 @@ export default function BroadcastSettingsPanel() {
           </div>
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <Tabs defaultValue="general" className="w-full">
-          <TabsList className="grid w-full grid-cols-7">
-            <TabsTrigger value="general">General</TabsTrigger>
-            <TabsTrigger value="teamRoster">Team Roster</TabsTrigger>
-            <TabsTrigger value="matchupPreview">Matchup</TabsTrigger>
-            <TabsTrigger value="playerSpotlight">Spotlight</TabsTrigger>
-            <TabsTrigger value="tournamentStats">Stats</TabsTrigger>
-            <TabsTrigger value="bracketOverlay">Bracket</TabsTrigger>
-            <TabsTrigger value="teamsOverview">Teams</TabsTrigger>
-          </TabsList>
+      <CardContent className="flex-1 overflow-hidden p-0">
+        <Tabs defaultValue="general" className="w-full h-full flex flex-col">
+          <div className="px-6 pt-6 pb-2">
+            <TabsList className="grid w-full grid-cols-7">
+              <TabsTrigger value="general">General</TabsTrigger>
+              <TabsTrigger value="teamRoster">Team Roster</TabsTrigger>
+              <TabsTrigger value="matchupPreview">Matchup</TabsTrigger>
+              <TabsTrigger value="playerSpotlight">Spotlight</TabsTrigger>
+              <TabsTrigger value="tournamentStats">Stats</TabsTrigger>
+              <TabsTrigger value="bracketOverlay">Bracket</TabsTrigger>
+              <TabsTrigger value="teamsOverview">Teams</TabsTrigger>
+            </TabsList>
+          </div>
 
-          <TabsContent value="general" className="space-y-6 mt-6">
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Global Settings</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Default Background Color</Label>
-                  <Input
-                    type="color"
-                    value={settings.backgroundColor}
-                    onChange={(e) => updateSettings({ backgroundColor: e.target.value })}
-                  />
+          <div className="flex-1 overflow-hidden">
+            <ScrollArea className="h-full px-6">
+              <TabsContent value="general" className="space-y-6 mt-6">
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Global Settings</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Default Background Color</Label>
+                      <Input
+                        type="color"
+                        value={settings.backgroundColor}
+                        onChange={(e) => updateSettings({ backgroundColor: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Default Text Color</Label>
+                      <Input
+                        type="color"
+                        value={settings.textColor}
+                        onChange={(e) => updateSettings({ textColor: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Default Header Color</Label>
+                      <Input
+                        type="color"
+                        value={settings.headerTextColor}
+                        onChange={(e) => updateSettings({ headerTextColor: e.target.value })}
+                      />
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        checked={settings.animationEnabled}
+                        onCheckedChange={(checked) => updateSettings({ animationEnabled: checked })}
+                      />
+                      <Label>Enable Animations</Label>
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>Default Text Color</Label>
-                  <Input
-                    type="color"
-                    value={settings.textColor}
-                    onChange={(e) => updateSettings({ textColor: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Default Header Color</Label>
-                  <Input
-                    type="color"
-                    value={settings.headerTextColor}
-                    onChange={(e) => updateSettings({ headerTextColor: e.target.value })}
-                  />
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    checked={settings.animationEnabled}
-                    onCheckedChange={(checked) => updateSettings({ animationEnabled: checked })}
-                  />
-                  <Label>Enable Animations</Label>
-                </div>
-              </div>
-            </div>
+              </TabsContent>
 
-          </TabsContent>
+              <TabsContent value="teamRoster" className="mt-6">
+                <SceneCustomization scene="teamRoster" sceneSettings={settings.sceneSettings.teamRoster} />
+              </TabsContent>
 
-          <TabsContent value="teamRoster" className="mt-6">
-            <SceneCustomization scene="teamRoster" sceneSettings={settings.sceneSettings.teamRoster} />
-          </TabsContent>
+              <TabsContent value="matchupPreview" className="mt-6">
+                <SceneCustomization scene="matchupPreview" sceneSettings={settings.sceneSettings.matchupPreview} />
+              </TabsContent>
 
-          <TabsContent value="matchupPreview" className="mt-6">
-            <SceneCustomization scene="matchupPreview" sceneSettings={settings.sceneSettings.matchupPreview} />
-          </TabsContent>
+              <TabsContent value="playerSpotlight" className="mt-6">
+                <SceneCustomization scene="playerSpotlight" sceneSettings={settings.sceneSettings.playerSpotlight} />
+              </TabsContent>
 
-          <TabsContent value="playerSpotlight" className="mt-6">
-            <SceneCustomization scene="playerSpotlight" sceneSettings={settings.sceneSettings.playerSpotlight} />
-          </TabsContent>
+              <TabsContent value="tournamentStats" className="mt-6">
+                <SceneCustomization scene="tournamentStats" sceneSettings={settings.sceneSettings.tournamentStats} />
+              </TabsContent>
 
-          <TabsContent value="tournamentStats" className="mt-6">
-            <SceneCustomization scene="tournamentStats" sceneSettings={settings.sceneSettings.tournamentStats} />
-          </TabsContent>
+              <TabsContent value="bracketOverlay" className="mt-6">
+                <SceneCustomization scene="bracketOverlay" sceneSettings={settings.sceneSettings.bracketOverlay} />
+              </TabsContent>
 
-          <TabsContent value="bracketOverlay" className="mt-6">
-            <SceneCustomization scene="bracketOverlay" sceneSettings={settings.sceneSettings.bracketOverlay} />
-          </TabsContent>
-
-          <TabsContent value="teamsOverview" className="mt-6">
-            <SceneCustomization scene="teamsOverview" sceneSettings={settings.sceneSettings.teamsOverview} />
-          </TabsContent>
+              <TabsContent value="teamsOverview" className="mt-6">
+                <SceneCustomization scene="teamsOverview" sceneSettings={settings.sceneSettings.teamsOverview} />
+              </TabsContent>
+            </ScrollArea>
+          </div>
         </Tabs>
       </CardContent>
     </Card>
