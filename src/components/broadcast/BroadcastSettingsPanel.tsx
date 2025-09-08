@@ -211,6 +211,13 @@ export default function BroadcastSettingsPanel() {
                   />
                   <Label>Rank Emojis</Label>
                 </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={sceneSettings.showStatsSection !== false}
+                    onCheckedChange={(checked) => updateSceneSettings(scene, { showStatsSection: checked })}
+                  />
+                  <Label>Team Stats Section</Label>
+                </div>
                 <div className="space-y-2">
                   <Label>Player Card Layout</Label>
                   <Select 
@@ -765,32 +772,53 @@ export default function BroadcastSettingsPanel() {
             </div>
           );
 
-        case 'bracketOverlay':
-          return (
-            <div className="space-y-4">
-              <h4 className="font-medium text-lg">Bracket Overlay Options</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    checked={sceneSettings.showMatchCards ?? true}
-                    onCheckedChange={(checked) => updateSceneSettings(scene, { showMatchCards: checked })}
-                  />
-                  <Label>Match Cards</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    checked={sceneSettings.showRoundIndicators ?? true}
-                    onCheckedChange={(checked) => updateSceneSettings(scene, { showRoundIndicators: checked })}
-                  />
-                  <Label>Round Indicators</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    checked={sceneSettings.showWinnerHighlight ?? true}
-                    onCheckedChange={(checked) => updateSceneSettings(scene, { showWinnerHighlight: checked })}
-                  />
-                  <Label>Winner Highlight</Label>
-                </div>
+         case 'bracketOverlay':
+           return (
+             <div className="space-y-4">
+               <h4 className="font-medium text-lg">Bracket Overlay Options</h4>
+               <div className="grid grid-cols-2 gap-4">
+                 <div className="flex items-center space-x-2">
+                   <Switch
+                     checked={sceneSettings.showTournamentHeader !== false}
+                     onCheckedChange={(checked) => updateSceneSettings(scene, { showTournamentHeader: checked })}
+                   />
+                   <Label>Tournament Header</Label>
+                 </div>
+                 <div className="flex items-center space-x-2">
+                   <Switch
+                     checked={sceneSettings.showMatchStatusBadges !== false}
+                     onCheckedChange={(checked) => updateSceneSettings(scene, { showMatchStatusBadges: checked })}
+                   />
+                   <Label>Match Status Badges</Label>
+                 </div>
+                 <div className="flex items-center space-x-2">
+                   <Switch
+                     checked={sceneSettings.showMatchCards ?? true}
+                     onCheckedChange={(checked) => updateSceneSettings(scene, { showMatchCards: checked })}
+                   />
+                   <Label>Match Cards</Label>
+                 </div>
+                 <div className="flex items-center space-x-2">
+                   <Switch
+                     checked={sceneSettings.showRoundIndicators ?? true}
+                     onCheckedChange={(checked) => updateSceneSettings(scene, { showRoundIndicators: checked })}
+                   />
+                   <Label>Round Indicators</Label>
+                 </div>
+                 <div className="flex items-center space-x-2">
+                   <Switch
+                     checked={sceneSettings.showWinnerHighlight ?? true}
+                     onCheckedChange={(checked) => updateSceneSettings(scene, { showWinnerHighlight: checked })}
+                   />
+                   <Label>Winner Highlight</Label>
+                 </div>
+                 <div className="flex items-center space-x-2">
+                   <Switch
+                     checked={sceneSettings.showTournamentStatusFooter !== false}
+                     onCheckedChange={(checked) => updateSceneSettings(scene, { showTournamentStatusFooter: checked })}
+                   />
+                   <Label>Tournament Status Footer</Label>
+                 </div>
                 <div className="space-y-2">
                   <Label>Bracket Structure</Label>
                   <Select 

@@ -108,54 +108,62 @@ export default function BracketOverlay() {
   return (
     <div className={BROADCAST_CONTAINER_CLASSES + " overflow-hidden p-8"} style={containerStyle}>
       {/* Tournament Header */}
-      <div className="text-center mb-8">
-        {sceneSettings.transparentBackground ? (
-          // Blocky design for transparent background
-          <>
-            {/* Tournament Name Block */}
-            <div 
-              className="inline-block px-8 py-4 mb-4"
-              style={{ backgroundColor: '#FF6B35' }}
-            >
+      {sceneSettings.showTournamentHeader !== false && (
+        <div className="text-center mb-8">
+          {sceneSettings.transparentBackground ? (
+            // Blocky design for transparent background
+            <>
+              {/* Tournament Name Block */}
               <div 
-                className="text-4xl font-black text-white"
-                style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
+                className="inline-block px-8 py-4 mb-4"
+                style={{ backgroundColor: sceneSettings.obsAccentColor || '#FF6B35' }}
+              >
+                <div 
+                  className="text-4xl font-black text-white"
+                  style={{ 
+                    fontFamily: BROADCAST_DEFAULTS.fontFamily,
+                    color: sceneSettings.obsHeaderColor || '#FFFFFF'
+                  }}
+                >
+                  {tournament.name}
+                </div>
+              </div>
+              
+              {/* Subtitle Block */}
+              <div 
+                className="inline-block px-6 py-2"
+                style={{ backgroundColor: sceneSettings.obsBackgroundColor || 'rgba(0, 0, 0, 0.8)' }}
+              >
+                <div 
+                  className="text-2xl font-bold text-white"
+                  style={{ 
+                    fontFamily: BROADCAST_DEFAULTS.fontFamily,
+                    color: sceneSettings.obsTextColor || '#FFFFFF'
+                  }}
+                >
+                  TOURNAMENT BRACKET
+                </div>
+              </div>
+            </>
+          ) : (
+            // Original design for non-transparent background
+            <>
+              <div 
+                className="font-bold mb-2"
+                style={getBroadcastHeaderStyle(sceneSettings, settings, 'large')}
               >
                 {tournament.name}
               </div>
-            </div>
-            
-            {/* Subtitle Block */}
-            <div 
-              className="inline-block px-6 py-2"
-              style={{ backgroundColor: 'rgba(0, 0, 0, 0.8)' }}
-            >
               <div 
-                className="text-2xl font-bold text-white"
-                style={{ fontFamily: BROADCAST_DEFAULTS.fontFamily }}
+                className="text-xl"
+                style={getBroadcastTextStyle(sceneSettings, settings, '70')}
               >
-                TOURNAMENT BRACKET
+                Tournament Bracket
               </div>
-            </div>
-          </>
-        ) : (
-          // Original design for non-transparent background
-          <>
-            <div 
-              className="font-bold mb-2"
-              style={getBroadcastHeaderStyle(sceneSettings, settings, 'large')}
-            >
-              {tournament.name}
-            </div>
-            <div 
-              className="text-xl"
-              style={getBroadcastTextStyle(sceneSettings, settings, '70')}
-            >
-              Tournament Bracket
-            </div>
-          </>
-        )}
-      </div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Bracket */}
       <div className="flex justify-center space-x-12 overflow-x-auto">
@@ -300,31 +308,33 @@ export default function BracketOverlay() {
                       </div>
                       
                       {/* Match Status */}
-                      <div 
-                        className="px-4 py-3 text-center"
-                        style={{ 
-                          backgroundColor: match.status === 'completed' 
-                            ? '#16a34a' 
-                            : match.status === 'live' 
-                              ? '#ef4444' 
-                              : '#6b7280'
-                        }}
-                      >
-                        <span 
-                          className="font-black text-sm"
+                      {sceneSettings.showMatchStatusBadges !== false && (
+                        <div 
+                          className="px-4 py-3 text-center"
                           style={{ 
-                            color: '#000000',
-                            fontFamily: BROADCAST_DEFAULTS.fontFamily
+                            backgroundColor: match.status === 'completed' 
+                              ? '#16a34a' 
+                              : match.status === 'live' 
+                                ? '#ef4444' 
+                                : '#6b7280'
                           }}
                         >
-                          {match.status === 'completed' 
-                            ? 'COMPLETED' 
-                            : match.status === 'live' 
-                              ? 'LIVE' 
-                              : 'UPCOMING'
-                          }
-                        </span>
-                      </div>
+                          <span 
+                            className="font-black text-sm"
+                            style={{ 
+                              color: '#000000',
+                              fontFamily: BROADCAST_DEFAULTS.fontFamily
+                            }}
+                          >
+                            {match.status === 'completed' 
+                              ? 'COMPLETED' 
+                              : match.status === 'live' 
+                                ? 'LIVE' 
+                                : 'UPCOMING'
+                            }
+                          </span>
+                        </div>
+                      )}
                     </>
                   ) : (
                     // Original design for non-transparent background
@@ -427,26 +437,28 @@ export default function BracketOverlay() {
       </div>
 
       {/* Tournament Status Footer */}
-      <div className="text-center mt-8 pt-4">
-        <div 
-          className={`inline-flex items-center px-8 py-4 font-black text-2xl ${sceneSettings.transparentBackground ? '' : 'border-4 border-white'}`}
-          style={{
-            backgroundColor: tournament.status === 'live' 
-              ? BROADCAST_DEFAULTS.errorColor
-              : tournament.status === 'completed' 
-                ? BROADCAST_DEFAULTS.successColor
-                : BROADCAST_DEFAULTS.accentColor,
-            color: '#000000',
-            fontFamily: BROADCAST_DEFAULTS.fontFamily
-          }}
-        >
-          {tournament.status === 'live' && '🔴 LIVE TOURNAMENT'}
-          {tournament.status === 'completed' && '✅ TOURNAMENT COMPLETE'}
-          {tournament.status === 'open' && '📝 REGISTRATION OPEN'}
-          {tournament.status === 'balancing' && '⚖️ TEAM BALANCING'}
-          {tournament.status === 'draft' && '📋 DRAFT MODE'}
-        </div>
+      {sceneSettings.showTournamentStatusFooter !== false && (
+        <div className="text-center mt-8 pt-4">
+          <div 
+            className={`inline-flex items-center px-8 py-4 font-black text-2xl ${sceneSettings.transparentBackground ? '' : 'border-4 border-white'}`}
+            style={{
+              backgroundColor: tournament.status === 'live' 
+                ? BROADCAST_DEFAULTS.errorColor
+                : tournament.status === 'completed' 
+                  ? BROADCAST_DEFAULTS.successColor
+                  : sceneSettings.obsAccentColor || BROADCAST_DEFAULTS.accentColor,
+              color: sceneSettings.obsHeaderColor || '#000000',
+              fontFamily: BROADCAST_DEFAULTS.fontFamily
+            }}
+            >
+              {tournament.status === 'live' && '🔴 LIVE TOURNAMENT'}
+              {tournament.status === 'completed' && '✅ TOURNAMENT COMPLETE'}
+              {tournament.status === 'open' && '📝 REGISTRATION OPEN'}
+              {tournament.status === 'balancing' && '⚖️ TEAM BALANCING'}
+              {tournament.status === 'draft' && '📋 DRAFT MODE'}
+            </div>
+          </div>
+        )}
       </div>
-    </div>
-  );
-}
+    );
+  }

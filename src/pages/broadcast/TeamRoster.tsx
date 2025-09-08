@@ -178,6 +178,9 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
 
               // Use stored ATLAS weight from broadcast data
               const displayWeight = (user as any).display_weight || (user as any).atlas_weight || (user as any).adaptive_weight || 150;
+              
+              // Check if using compact layout
+              const isCompactLayout = effectiveSceneSettings.playerCardLayout === 'compact';
 
               return (
                 <div key={member.user_id}>
@@ -210,7 +213,7 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
                      </div>
 
                      {/* Player Info Horizontal Cards */}
-                     <div className="grid grid-cols-4">
+                     <div className={`grid ${isCompactLayout ? 'grid-cols-3' : 'grid-cols-4'}`}>
                         {/* Avatar Card */}
                         {effectiveSceneSettings.showAvatars !== false && (
                          <div 
@@ -220,7 +223,7 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
                              opacity: 0.8
                            }}
                          >
-                          <div className="w-16 h-16 bg-gray-600 mb-2">
+                          <div className={`${isCompactLayout ? 'w-12 h-12' : 'w-16 h-16'} bg-gray-600 mb-2`}>
                             <img
                               src={user.discord_avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.discord_username}`}
                               alt={user.discord_username}
@@ -252,55 +255,55 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
                          </div>
                        )}
 
-                       {/* Weight Card */}
-                       {effectiveSceneSettings.showAdaptiveWeight && (
-                          <div 
-                            className="p-4 flex flex-col items-center"
-                            style={{
-                              backgroundColor: effectiveSceneSettings.obsBackgroundColor || BROADCAST_DEFAULTS.cardBackground,
-                              opacity: 0.8
-                            }}
-                          >
-                            <div 
-                              className="w-16 h-16 flex items-center justify-center text-xl font-bold mb-2"
-                              style={{
-                                backgroundColor: effectiveSceneSettings.obsAccentColor || BROADCAST_DEFAULTS.accentColor,
-                                color: effectiveSceneSettings.obsTextColor || BROADCAST_DEFAULTS.textColor
-                              }}
-                            >
-                             {displayWeight}
-                           </div>
-                            <div 
-                              className="text-sm text-center"
-                              style={{ color: effectiveSceneSettings.obsTextColor || BROADCAST_DEFAULTS.textColor }}
-                            >Weight</div>
-                         </div>
-                       )}
-
-                       {/* Riot ID Card */}
-                       {effectiveSceneSettings.showRiotId && user.riot_id && (
-                          <div 
-                            className="p-4 flex flex-col items-center"
-                            style={{
-                              backgroundColor: effectiveSceneSettings.obsBackgroundColor || BROADCAST_DEFAULTS.cardBackground,
-                              opacity: 0.8
-                            }}
-                          >
-                            <div 
-                              className="w-16 h-16 flex items-center justify-center mb-2 text-xs text-center font-bold"
+                        {/* Weight Card */}
+                        {effectiveSceneSettings.showAdaptiveWeight && (
+                           <div 
+                             className="p-4 flex flex-col items-center"
+                             style={{
+                               backgroundColor: effectiveSceneSettings.obsBackgroundColor || BROADCAST_DEFAULTS.cardBackground,
+                               opacity: 0.8
+                             }}
+                           >
+                             <div 
+                               className={`${isCompactLayout ? 'w-12 h-12 text-lg' : 'w-16 h-16 text-xl'} flex items-center justify-center font-bold mb-2`}
                                style={{
-                                 backgroundColor: '#DC2626',
-                                 color: effectiveSceneSettings.obsTextColor || '#FFFFFF'
+                                 backgroundColor: effectiveSceneSettings.obsAccentColor || BROADCAST_DEFAULTS.accentColor,
+                                 color: effectiveSceneSettings.obsTextColor || BROADCAST_DEFAULTS.textColor
                                }}
-                            >
-                             RIOT
-                           </div>
-                            <div 
-                              className="text-sm text-center truncate w-full"
-                              style={{ color: effectiveSceneSettings.obsTextColor || BROADCAST_DEFAULTS.textColor }}
-                            >{user.riot_id}</div>
-                         </div>
-                       )}
+                             >
+                              {displayWeight}
+                            </div>
+                             <div 
+                               className="text-sm text-center"
+                               style={{ color: effectiveSceneSettings.obsTextColor || BROADCAST_DEFAULTS.textColor }}
+                             >Weight</div>
+                          </div>
+                        )}
+
+                        {/* Riot ID Card - Only show in detailed layout */}
+                        {!isCompactLayout && effectiveSceneSettings.showRiotId && user.riot_id && (
+                           <div 
+                             className="p-4 flex flex-col items-center"
+                             style={{
+                               backgroundColor: effectiveSceneSettings.obsBackgroundColor || BROADCAST_DEFAULTS.cardBackground,
+                               opacity: 0.8
+                             }}
+                           >
+                             <div 
+                               className="w-16 h-16 flex items-center justify-center mb-2 text-xs text-center font-bold"
+                                style={{
+                                  backgroundColor: '#DC2626',
+                                  color: effectiveSceneSettings.obsTextColor || '#FFFFFF'
+                                }}
+                             >
+                              RIOT
+                            </div>
+                             <div 
+                               className="text-sm text-center truncate w-full"
+                               style={{ color: effectiveSceneSettings.obsTextColor || BROADCAST_DEFAULTS.textColor }}
+                             >{user.riot_id}</div>
+                          </div>
+                        )}
                     </div>
                     </>
                   ) : (
@@ -325,22 +328,22 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
                           </div>
                         </div>
 
-                        {/* Player Info Cards */}
-                        <div className="grid grid-cols-4 rounded-b-lg overflow-hidden">
-                           {/* Avatar Card */}
-                           {effectiveSceneSettings.showAvatars !== false && (
-                           <div className="backdrop-blur-sm bg-white/10 p-4 flex flex-col items-center">
-                             <Avatar className="w-16 h-16 mb-2">
-                               <AvatarImage 
-                                 src={user.discord_avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.discord_username}`} 
-                                 alt={user.discord_username} 
-                               />
-                               <AvatarFallback className="bg-gray-600 text-white font-bold">
-                                 {(user.discord_username || 'U').charAt(0).toUpperCase()}
-                               </AvatarFallback>
-                             </Avatar>
-                           </div>
-                           )}
+                         {/* Player Info Cards */}
+                         <div className={`grid ${isCompactLayout ? 'grid-cols-3' : 'grid-cols-4'} rounded-b-lg overflow-hidden`}>
+                            {/* Avatar Card */}
+                            {effectiveSceneSettings.showAvatars !== false && (
+                            <div className="backdrop-blur-sm bg-white/10 p-4 flex flex-col items-center">
+                              <Avatar className={`${isCompactLayout ? 'w-12 h-12' : 'w-16 h-16'} mb-2`}>
+                                <AvatarImage 
+                                  src={user.discord_avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.discord_username}`} 
+                                  alt={user.discord_username} 
+                                />
+                                <AvatarFallback className="bg-gray-600 text-white font-bold">
+                                  {(user.discord_username || 'U').charAt(0).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                            </div>
+                            )}
 
                           {/* Rank Card */}
                           {effectiveSceneSettings.showCurrentRank && user.current_rank && (
@@ -359,15 +362,15 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
                             </div>
                           )}
 
-                          {/* Riot ID Card */}
-                          {effectiveSceneSettings.showRiotId && user.riot_id && (
-                            <div className="backdrop-blur-sm bg-white/10 p-4 flex flex-col items-center">
-                              <Badge variant="destructive" className="text-sm font-bold">
-                                RIOT
-                              </Badge>
-                              <div className="text-white text-sm mt-1 text-center truncate w-full">{user.riot_id}</div>
-                            </div>
-                          )}
+                           {/* Riot ID Card - Only show in detailed layout */}
+                           {!isCompactLayout && effectiveSceneSettings.showRiotId && user.riot_id && (
+                             <div className="backdrop-blur-sm bg-white/10 p-4 flex flex-col items-center">
+                               <Badge variant="destructive" className="text-sm font-bold">
+                                 RIOT
+                               </Badge>
+                               <div className="text-white text-sm mt-1 text-center truncate w-full">{user.riot_id}</div>
+                             </div>
+                           )}
                         </div>
                     </>
                   )}
@@ -377,7 +380,7 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
         </div>
 
         {/* Team Stats Section - Toggleable */}
-        {(effectiveSceneSettings.showTeamTotalWeight || effectiveSceneSettings.showTeamSeed) && (
+        {effectiveSceneSettings.showStatsSection !== false && (effectiveSceneSettings.showTeamTotalWeight || effectiveSceneSettings.showTeamSeed) && (
           <div 
             className="mt-8 backdrop-blur-md border shadow-xl" 
             style={getBroadcastCardStyle(effectiveSceneSettings)}

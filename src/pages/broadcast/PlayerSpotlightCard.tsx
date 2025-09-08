@@ -14,6 +14,22 @@ import {
   getRankColor
 } from "@/utils/broadcastLayoutUtils";
 
+// Helper function to format rank emojis
+const formatRankEmoji = (rank?: string) => {
+  if (!rank) return "❓";
+  const rankLower = rank.toLowerCase();
+  if (rankLower.includes('radiant')) return "✨";
+  if (rankLower.includes('immortal')) return "🟥";
+  if (rankLower.includes('ascendant')) return "🟩";
+  if (rankLower.includes('diamond')) return "🟪";
+  if (rankLower.includes('platinum')) return "🟦";
+  if (rankLower.includes('gold')) return "🟨";
+  if (rankLower.includes('silver')) return "⬜";
+  if (rankLower.includes('bronze')) return "🟫";
+  if (rankLower.includes('iron')) return "⬛";
+  return "❓";
+};
+
 interface PlayerData {
   id: string;
   discord_username: string;

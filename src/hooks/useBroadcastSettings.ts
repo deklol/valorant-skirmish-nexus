@@ -67,6 +67,7 @@ export interface BroadcastSceneSettings extends BroadcastDisplaySettings {
   showMatchCards?: boolean;
   showRoundIndicators?: boolean;
   showWinnerHighlight?: boolean;
+  showTournamentStatusFooter?: boolean;
   bracketStructure?: 'single' | 'double';
   
   // Teams Overview specific
@@ -182,9 +183,12 @@ const DEFAULT_SCENE_SETTINGS: BroadcastSceneSettings = {
   statCardLayout: 'grid',
   
   // Bracket Overlay
+  showTournamentHeader: true,
+  showMatchStatusBadges: true,
   showMatchCards: true,
   showRoundIndicators: true,
   showWinnerHighlight: true,
+  showTournamentStatusFooter: true,
   bracketStructure: 'single',
 };
 
@@ -253,9 +257,12 @@ const DEFAULT_SETTINGS: BroadcastSettings = {
       showTournamentWins: false,
       showRiotId: false,
       // Bracket Overlay specific settings
+      showTournamentHeader: true,
+      showMatchStatusBadges: true,
       showMatchCards: true,
       showRoundIndicators: true,
       showWinnerHighlight: true,
+      showTournamentStatusFooter: true,
       bracketStructure: 'single',
     },
     teamsOverview: {
