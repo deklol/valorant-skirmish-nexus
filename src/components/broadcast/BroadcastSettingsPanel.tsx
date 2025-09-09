@@ -1007,7 +1007,7 @@ export default function BroadcastSettingsPanel() {
           </div>
 
           <div className="flex-1 overflow-hidden">
-            <ScrollArea className="h-full px-6">
+            <ScrollArea className="h-[calc(85vh-200px)] px-6">
               <TabsContent value="general" className="space-y-6 mt-6">
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold">Global Settings</h3>
