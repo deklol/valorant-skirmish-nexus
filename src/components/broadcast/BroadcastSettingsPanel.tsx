@@ -412,7 +412,7 @@ export default function BroadcastSettingsPanel() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>VS Block Color</Label>
+                      <Label>Accent Color</Label>
                       <input
                         type="color"
                         value={sceneSettings.obsAccentColor || '#ff6b35'}
@@ -440,90 +440,21 @@ export default function BroadcastSettingsPanel() {
                     </div>
                   </div>
                 </div>
+                
+                {/* Weight Animation Controls */}
+                <div className="space-y-2 col-span-2">
+                  <h5 className="font-medium">Weight Animation</h5>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      checked={sceneSettings.showBalanceAssessment !== false}
+                      onCheckedChange={(checked) => updateSceneSettings(scene, { showBalanceAssessment: checked })}
+                    />
+                    <Label>Show Balance Assessment</Label>
+                  </div>
+                </div>
               </div>
             </div>
           );
-
-         case 'teamsOverview':
-           return (
-             <div className="space-y-4">
-               <h4 className="font-medium text-lg">Teams Overview Options</h4>
-               <div className="grid grid-cols-2 gap-4">
-                 <div className="flex items-center space-x-2">
-                   <Switch
-                     checked={sceneSettings.showActiveEliminated ?? true}
-                     onCheckedChange={(checked) => updateSceneSettings(scene, { showActiveEliminated: checked })}
-                   />
-                   <Label>Active/Eliminated Sections</Label>
-                 </div>
-                 <div className="flex items-center space-x-2">
-                   <Switch
-                     checked={sceneSettings.showTeamStatusBadges ?? true}
-                     onCheckedChange={(checked) => updateSceneSettings(scene, { showTeamStatusBadges: checked })}
-                   />
-                   <Label>Team Status Badges</Label>
-                 </div>
-                 <div className="flex items-center space-x-2">
-                   <Switch
-                     checked={sceneSettings.showTournamentStatus ?? true}
-                     onCheckedChange={(checked) => updateSceneSettings(scene, { showTournamentStatus: checked })}
-                   />
-                   <Label>Tournament Status Indicator</Label>
-                 </div>
-                 <div className="flex items-center space-x-2">
-                   <Switch
-                     checked={sceneSettings.showMemberCount ?? true}
-                     onCheckedChange={(checked) => updateSceneSettings(scene, { showMemberCount: checked })}
-                   />
-                   <Label>Member Count Display</Label>
-                 </div>
-                 <div className="space-y-2 col-span-2">
-                   <Label>Grid Columns: {sceneSettings.gridColumns || 2}</Label>
-                   <Slider
-                     value={[sceneSettings.gridColumns || 2]}
-                     onValueChange={([value]) => updateSceneSettings(scene, { gridColumns: value as 1 | 2 | 3 })}
-                     max={3}
-                     min={1}
-                     step={1}
-                   />
-                 </div>
-                 
-                 {/* Block Color Controls */}
-                 <div className="space-y-2 col-span-2">
-                   <h5 className="font-medium">Block Colors</h5>
-                   <div className="grid grid-cols-3 gap-4">
-                     <div className="space-y-2">
-                       <Label>Team Accent Color</Label>
-                       <input
-                         type="color"
-                         value={sceneSettings.teamAccentColor || '#ff6b35'}
-                         onChange={(e) => updateSceneSettings(scene, { teamAccentColor: e.target.value })}
-                         className="w-full h-8 rounded border"
-                       />
-                     </div>
-                     <div className="space-y-2">
-                       <Label>Player Accent Color</Label>
-                       <input
-                         type="color"
-                         value={sceneSettings.playerAccentColor || '#ff6b35'}
-                         onChange={(e) => updateSceneSettings(scene, { playerAccentColor: e.target.value })}
-                         className="w-full h-8 rounded border"
-                       />
-                     </div>
-                     <div className="space-y-2">
-                       <Label>Weight Block Color</Label>
-                       <input
-                         type="color"
-                         value={sceneSettings.weightBlockColor || '#333333'}
-                         onChange={(e) => updateSceneSettings(scene, { weightBlockColor: e.target.value })}
-                         className="w-full h-8 rounded border"
-                       />
-                     </div>
-                   </div>
-                 </div>
-               </div>
-             </div>
-           );
 
         case 'playerSpotlight':
           return (
@@ -532,70 +463,30 @@ export default function BroadcastSettingsPanel() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex items-center space-x-2">
                   <Switch
-                    checked={sceneSettings.showPerformanceRating ?? true}
-                    onCheckedChange={(checked) => updateSceneSettings(scene, { showPerformanceRating: checked })}
-                  />
-                  <Label>Performance Rating</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    checked={sceneSettings.showLargeAvatar ?? true}
+                    checked={sceneSettings.showLargeAvatar !== false}
                     onCheckedChange={(checked) => updateSceneSettings(scene, { showLargeAvatar: checked })}
                   />
                   <Label>Large Avatar Display</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Switch
-                    checked={sceneSettings.showTournamentHistory ?? true}
+                    checked={sceneSettings.showTournamentHistory !== false}
                     onCheckedChange={(checked) => updateSceneSettings(scene, { showTournamentHistory: checked })}
                   />
-                  <Label>Tournament History Stats</Label>
+                  <Label>Tournament History</Label>
                 </div>
                 <div className="space-y-2">
-                  <Label>Display Preset</Label>
+                  <Label>Statistics Layout</Label>
                   <Select 
-                    value="custom"
-                    onValueChange={(value) => {
-                      if (value === 'minimal') {
-                        updateSceneSettings(scene, { 
-                          showCurrentRank: true,
-                          showPeakRank: false,
-                          showRiotId: false,
-                          showAdaptiveWeight: true,
-                          showTournamentWins: false,
-                          showPerformanceRating: false,
-                          statsLayout: 'stacked'
-                        });
-                      } else if (value === 'detailed') {
-                        updateSceneSettings(scene, { 
-                          showCurrentRank: true,
-                          showPeakRank: true,
-                          showRiotId: true,
-                          showAdaptiveWeight: true,
-                          showTournamentWins: true,
-                          showPerformanceRating: true,
-                          statsLayout: 'grid'
-                        });
-                      } else if (value === 'broadcast') {
-                        updateSceneSettings(scene, { 
-                          showCurrentRank: true,
-                          showPeakRank: false,
-                          showRiotId: false,
-                          showAdaptiveWeight: true,
-                          showTournamentWins: false,
-                          showPerformanceRating: true,
-                          statsLayout: 'grid'
-                        });
-                      }
-                    }}
+                    value={sceneSettings.statsLayout || 'grid'}
+                    onValueChange={(value) => updateSceneSettings(scene, { statsLayout: value as 'grid' | 'stacked' })}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Choose a preset..." />
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="minimal">Minimal Info</SelectItem>
-                      <SelectItem value="broadcast">Broadcast Ready</SelectItem>
-                      <SelectItem value="detailed">Full Details</SelectItem>
+                      <SelectItem value="grid">Grid</SelectItem>
+                      <SelectItem value="stacked">Stacked</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -605,7 +496,7 @@ export default function BroadcastSettingsPanel() {
                   <h5 className="font-medium">OBS/vMix Block Colors</h5>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>Spotlight Block Color</Label>
+                      <Label>Background Color</Label>
                       <input
                         type="color"
                         value={sceneSettings.obsBackgroundColor || '#000000'}
@@ -614,7 +505,7 @@ export default function BroadcastSettingsPanel() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Stats Block Color</Label>
+                      <Label>Accent Color</Label>
                       <input
                         type="color"
                         value={sceneSettings.obsAccentColor || '#ff6b35'}
@@ -646,194 +537,31 @@ export default function BroadcastSettingsPanel() {
             </div>
           );
 
-        case 'tournamentStats':
+        case 'bracketOverlay':
           return (
             <div className="space-y-4">
-              <h4 className="font-medium text-lg">Tournament Stats Options</h4>
+              <h4 className="font-medium text-lg">Bracket Overlay Options</h4>
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex items-center space-x-2">
                   <Switch
-                    checked={sceneSettings.showIndividualStatCards ?? true}
-                    onCheckedChange={(checked) => updateSceneSettings(scene, { showIndividualStatCards: checked })}
+                    checked={sceneSettings.showTournamentHeader !== false}
+                    onCheckedChange={(checked) => updateSceneSettings(scene, { showTournamentHeader: checked })}
                   />
-                  <Label>Individual Stat Cards</Label>
+                  <Label>Tournament Header</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Switch
-                    checked={sceneSettings.showProgressBar ?? true}
-                    onCheckedChange={(checked) => updateSceneSettings(scene, { showProgressBar: checked })}
+                    checked={sceneSettings.showMatchStatusBadges !== false}
+                    onCheckedChange={(checked) => updateSceneSettings(scene, { showMatchStatusBadges: checked })}
                   />
-                  <Label>Progress Bar</Label>
+                  <Label>Match Status Badges</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Switch
-                    checked={sceneSettings.showTournamentStatusHeader ?? true}
-                    onCheckedChange={(checked) => updateSceneSettings(scene, { showTournamentStatusHeader: checked })}
+                    checked={sceneSettings.showTournamentStatusFooter !== false}
+                    onCheckedChange={(checked) => updateSceneSettings(scene, { showTournamentStatusFooter: checked })}
                   />
-                  <Label>Tournament Status Header</Label>
-                </div>
-                <div className="space-y-2">
-                  <Label>Icon Style</Label>
-                  <Select 
-                    value={sceneSettings.statIconStyle || 'filled'} 
-                    onValueChange={(value) => updateSceneSettings(scene, { statIconStyle: value as 'filled' | 'outline' })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="filled">Filled</SelectItem>
-                      <SelectItem value="outline">Outline</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Stats Preset</Label>
-                  <Select 
-                    value="custom"
-                    onValueChange={(value) => {
-                      if (value === 'essential') {
-                        updateSceneSettings(scene, { 
-                          showIndividualStatCards: true,
-                          showProgressBar: false,
-                          showTournamentStatusHeader: true,
-                          statCardLayout: 'grid'
-                        });
-                      } else if (value === 'minimal') {
-                        updateSceneSettings(scene, { 
-                          showIndividualStatCards: false,
-                          showProgressBar: true,
-                          showTournamentStatusHeader: true,
-                          statCardLayout: 'row'
-                        });
-                      } else if (value === 'complete') {
-                        updateSceneSettings(scene, { 
-                          showIndividualStatCards: true,
-                          showProgressBar: true,
-                          showTournamentStatusHeader: true,
-                          statCardLayout: 'grid'
-                        });
-                      }
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose a preset..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="essential">Essential Stats</SelectItem>
-                      <SelectItem value="minimal">Minimal View</SelectItem>
-                      <SelectItem value="complete">Complete View</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                {/* OBS/vMix Block Color Controls */}
-                <div className="space-y-2 col-span-2">
-                  <h5 className="font-medium">OBS/vMix Block Colors</h5>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Stats Block Color</Label>
-                      <input
-                        type="color"
-                        value={sceneSettings.obsBackgroundColor || '#000000'}
-                        onChange={(e) => updateSceneSettings(scene, { obsBackgroundColor: e.target.value })}
-                        className="w-full h-8 rounded border"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Progress Block Color</Label>
-                      <input
-                        type="color"
-                        value={sceneSettings.obsAccentColor || '#ff6b35'}
-                        onChange={(e) => updateSceneSettings(scene, { obsAccentColor: e.target.value })}
-                        className="w-full h-8 rounded border"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Header Color</Label>
-                      <input
-                        type="color"
-                        value={sceneSettings.obsHeaderColor || '#ffffff'}
-                        onChange={(e) => updateSceneSettings(scene, { obsHeaderColor: e.target.value })}
-                        className="w-full h-8 rounded border"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Text Color</Label>
-                      <input
-                        type="color"
-                        value={sceneSettings.obsTextColor || '#ffffff'}
-                        onChange={(e) => updateSceneSettings(scene, { obsTextColor: e.target.value })}
-                        className="w-full h-8 rounded border"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-
-         case 'bracketOverlay':
-           return (
-             <div className="space-y-4">
-               <h4 className="font-medium text-lg">Bracket Overlay Options</h4>
-               <div className="grid grid-cols-2 gap-4">
-                 <div className="flex items-center space-x-2">
-                   <Switch
-                     checked={sceneSettings.showTournamentHeader !== false}
-                     onCheckedChange={(checked) => updateSceneSettings(scene, { showTournamentHeader: checked })}
-                   />
-                   <Label>Tournament Header</Label>
-                 </div>
-                 <div className="flex items-center space-x-2">
-                   <Switch
-                     checked={sceneSettings.showMatchStatusBadges !== false}
-                     onCheckedChange={(checked) => updateSceneSettings(scene, { showMatchStatusBadges: checked })}
-                   />
-                   <Label>Match Status Badges</Label>
-                 </div>
-                 <div className="flex items-center space-x-2">
-                   <Switch
-                     checked={sceneSettings.showMatchCards ?? true}
-                     onCheckedChange={(checked) => updateSceneSettings(scene, { showMatchCards: checked })}
-                   />
-                   <Label>Match Cards</Label>
-                 </div>
-                 <div className="flex items-center space-x-2">
-                   <Switch
-                     checked={sceneSettings.showRoundIndicators ?? true}
-                     onCheckedChange={(checked) => updateSceneSettings(scene, { showRoundIndicators: checked })}
-                   />
-                   <Label>Round Indicators</Label>
-                 </div>
-                 <div className="flex items-center space-x-2">
-                   <Switch
-                     checked={sceneSettings.showWinnerHighlight ?? true}
-                     onCheckedChange={(checked) => updateSceneSettings(scene, { showWinnerHighlight: checked })}
-                   />
-                   <Label>Winner Highlight</Label>
-                 </div>
-                 <div className="flex items-center space-x-2">
-                   <Switch
-                     checked={sceneSettings.showTournamentStatusFooter !== false}
-                     onCheckedChange={(checked) => updateSceneSettings(scene, { showTournamentStatusFooter: checked })}
-                   />
-                   <Label>Tournament Status Footer</Label>
-                 </div>
-                <div className="space-y-2">
-                  <Label>Bracket Structure</Label>
-                  <Select 
-                    value={sceneSettings.bracketStructure || 'single'} 
-                    onValueChange={(value) => updateSceneSettings(scene, { bracketStructure: value as 'single' | 'double' })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="single">Single Elimination</SelectItem>
-                      <SelectItem value="double">Double Elimination</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label>Tournament Status Footer</Label>
                 </div>
                 
                 {/* OBS/vMix Block Color Controls */}
@@ -898,7 +626,7 @@ export default function BroadcastSettingsPanel() {
               onCheckedChange={(checked) => updateSceneSettings(scene, { transparentBackground: checked })}
             />
             <Label className="font-medium text-orange-400">
-              Transparent Background Mode (OBS/vMix Overlay)
+              🎥 Transparent Background (OBS Green Screen Mode)
             </Label>
           </div>
           <div className="space-y-2">
@@ -907,7 +635,6 @@ export default function BroadcastSettingsPanel() {
               type="color"
               value={sceneSettings.backgroundColor || settings.backgroundColor}
               onChange={(e) => updateSceneSettings(scene, { backgroundColor: e.target.value })}
-              disabled={sceneSettings.transparentBackground}
             />
           </div>
           <div className="space-y-2">
@@ -973,45 +700,191 @@ export default function BroadcastSettingsPanel() {
   };
 
   return (
-    <Card className="w-full max-h-[85vh] flex flex-col">
+    <Card className="w-full h-[85vh] flex flex-col">
       <CardHeader className="flex-shrink-0">
         <CardTitle className="flex items-center justify-between">
           <span>🎬 Broadcast Settings Panel</span>
           <div className="flex space-x-2">
-            <Button variant="outline" size="sm" onClick={saveSettings}>
-              <Save className="w-4 h-4 mr-2" />
-              Save
+            <Button onClick={resetSettings} variant="outline" size="sm">
+              <RotateCcw className="w-4 h-4" />
             </Button>
-            <Button variant="outline" size="sm" onClick={resetSettings}>
-              <RotateCcw className="w-4 h-4 mr-2" />
-              Reset
-            </Button>
-            <Button variant="outline" size="sm" onClick={logout}>
-              🔒 Lock
+            <Button onClick={logout} variant="outline" size="sm">
+              🔒
             </Button>
           </div>
         </CardTitle>
       </CardHeader>
-      <CardContent className="flex-1 overflow-hidden p-0">
-        <Tabs defaultValue="general" className="w-full h-full flex flex-col">
-          <div className="px-6 pt-6 pb-2">
-            <TabsList className="grid w-full grid-cols-7">
-              <TabsTrigger value="general">General</TabsTrigger>
-              <TabsTrigger value="teamRoster">Team Roster</TabsTrigger>
-              <TabsTrigger value="matchupPreview">Matchup</TabsTrigger>
-              <TabsTrigger value="playerSpotlight">Spotlight</TabsTrigger>
-              <TabsTrigger value="tournamentStats">Stats</TabsTrigger>
-              <TabsTrigger value="bracketOverlay">Bracket</TabsTrigger>
-              <TabsTrigger value="teamsOverview">Teams</TabsTrigger>
-            </TabsList>
-          </div>
+      
+      <CardContent className="flex-1 flex flex-col overflow-hidden p-0">
+        <Tabs defaultValue="scenes" className="flex-1 flex flex-col">
+          <TabsList className="grid w-full grid-cols-4 mx-6 mt-6 mb-4 flex-shrink-0">
+            <TabsTrigger value="scenes">Scene Settings</TabsTrigger>
+            <TabsTrigger value="export">Export/Import</TabsTrigger>
+            <TabsTrigger value="urls">Broadcast URLs</TabsTrigger>
+            <TabsTrigger value="global">Global Settings</TabsTrigger>
+          </TabsList>
 
           <div className="flex-1 overflow-hidden">
             <ScrollArea className="h-full px-6">
-              <TabsContent value="general" className="space-y-6 mt-6">
-                <div className="space-y-4">
+              <TabsContent value="scenes" className="mt-0 space-y-6">
+                <Tabs defaultValue="teamRoster" orientation="vertical" className="flex space-x-6">
+                  <TabsList className="flex flex-col h-fit space-y-1 w-40 flex-shrink-0">
+                    <TabsTrigger value="teamRoster" className="w-full justify-start">Team Roster</TabsTrigger>
+                    <TabsTrigger value="matchupPreview" className="w-full justify-start">Matchup Preview</TabsTrigger>
+                    <TabsTrigger value="playerSpotlight" className="w-full justify-start">Player Spotlight</TabsTrigger>
+                    <TabsTrigger value="tournamentStats" className="w-full justify-start">Tournament Stats</TabsTrigger>
+                    <TabsTrigger value="bracketOverlay" className="w-full justify-start">Bracket Overlay</TabsTrigger>
+                    <TabsTrigger value="teamsOverview" className="w-full justify-start">Teams Overview</TabsTrigger>
+                  </TabsList>
+
+                  <div className="flex-1 space-y-6">
+                    <TabsContent value="teamRoster" className="mt-0">
+                      <SceneCustomization scene="teamRoster" sceneSettings={settings.sceneSettings.teamRoster} />
+                    </TabsContent>
+
+                    <TabsContent value="matchupPreview" className="mt-0">
+                      <SceneCustomization scene="matchupPreview" sceneSettings={settings.sceneSettings.matchupPreview} />
+                    </TabsContent>
+
+                    <TabsContent value="playerSpotlight" className="mt-0">
+                      <SceneCustomization scene="playerSpotlight" sceneSettings={settings.sceneSettings.playerSpotlight} />
+                    </TabsContent>
+
+                    <TabsContent value="tournamentStats" className="mt-0">
+                      <SceneCustomization scene="tournamentStats" sceneSettings={settings.sceneSettings.tournamentStats} />
+                    </TabsContent>
+
+                    <TabsContent value="bracketOverlay" className="mt-0">
+                      <SceneCustomization scene="bracketOverlay" sceneSettings={settings.sceneSettings.bracketOverlay} />
+                    </TabsContent>
+
+                    <TabsContent value="teamsOverview" className="mt-0">
+                      <SceneCustomization scene="teamsOverview" sceneSettings={settings.sceneSettings.teamsOverview} />
+                    </TabsContent>
+                  </div>
+                </Tabs>
+              </TabsContent>
+
+              <TabsContent value="export" className="mt-0 space-y-6">
+                <div className="space-y-6">
+                  <h3 className="text-lg font-semibold">Export/Import Settings</h3>
+                  
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <h4 className="font-medium">Export Settings</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Save your current broadcast settings to a file for backup or sharing.
+                      </p>
+                      <Button 
+                        onClick={() => {
+                          const data = JSON.stringify(settings, null, 2);
+                          const blob = new Blob([data], { type: 'application/json' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `broadcast-settings-${new Date().toISOString().split('T')[0]}.json`;
+                          document.body.appendChild(a);
+                          a.click();
+                          document.body.removeChild(a);
+                          URL.revokeObjectURL(url);
+                          toast({
+                            title: "Settings Exported",
+                            description: "Your broadcast settings have been downloaded as a JSON file.",
+                          });
+                        }}
+                        className="w-full"
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        Export Settings to File
+                      </Button>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <h4 className="font-medium">Import Settings</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Load broadcast settings from a previously exported file.
+                      </p>
+                      <Input
+                        type="file"
+                        accept=".json"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (event) => {
+                              try {
+                                const importedSettings = JSON.parse(event.target?.result as string);
+                                // Validate and merge settings here
+                                updateSettings(importedSettings);
+                                toast({
+                                  title: "Settings Imported",
+                                  description: "Your broadcast settings have been successfully imported.",
+                                });
+                              } catch (error) {
+                                toast({
+                                  title: "Import Failed",
+                                  description: "The selected file is not a valid settings file.",
+                                  variant: "destructive",
+                                });
+                              }
+                            };
+                            reader.readAsText(file);
+                          }
+                        }}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="urls" className="mt-0 space-y-6">
+                <div className="space-y-6">
+                  <h3 className="text-lg font-semibold">Broadcast URLs</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Copy these URLs to use in OBS, vMix, or other streaming software. Replace the parameters with actual IDs.
+                  </p>
+                  
+                  <div className="grid gap-4">
+                    {Object.entries(broadcastUrls).map(([key, url]) => (
+                      <div key={key} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="font-medium capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</Label>
+                          <div className="flex space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => copyToClipboard(url, key)}
+                            >
+                              <Copy className="w-4 h-4 mr-2" />
+                              Copy
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => window.open(url.replace(/:tournamentId|:teamId|:team1Id|:team2Id|:playerId/g, '1'), '_blank')}
+                            >
+                              <ExternalLink className="w-4 h-4 mr-2" />
+                              Preview
+                            </Button>
+                          </div>
+                        </div>
+                        <Input
+                          value={url}
+                          readOnly
+                          className="font-mono text-sm"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="global" className="mt-0 space-y-6">
+                <div className="space-y-6">
                   <h3 className="text-lg font-semibold">Global Settings</h3>
-                  <div className="grid grid-cols-2 gap-4">
+                  
+                  <div className="space-y-4">
                     <div className="space-y-2">
                       <Label>Default Background Color</Label>
                       <Input
@@ -1045,30 +918,6 @@ export default function BroadcastSettingsPanel() {
                     </div>
                   </div>
                 </div>
-              </TabsContent>
-
-              <TabsContent value="teamRoster" className="mt-6">
-                <SceneCustomization scene="teamRoster" sceneSettings={settings.sceneSettings.teamRoster} />
-              </TabsContent>
-
-              <TabsContent value="matchupPreview" className="mt-6">
-                <SceneCustomization scene="matchupPreview" sceneSettings={settings.sceneSettings.matchupPreview} />
-              </TabsContent>
-
-              <TabsContent value="playerSpotlight" className="mt-6">
-                <SceneCustomization scene="playerSpotlight" sceneSettings={settings.sceneSettings.playerSpotlight} />
-              </TabsContent>
-
-              <TabsContent value="tournamentStats" className="mt-6">
-                <SceneCustomization scene="tournamentStats" sceneSettings={settings.sceneSettings.tournamentStats} />
-              </TabsContent>
-
-              <TabsContent value="bracketOverlay" className="mt-6">
-                <SceneCustomization scene="bracketOverlay" sceneSettings={settings.sceneSettings.bracketOverlay} />
-              </TabsContent>
-
-              <TabsContent value="teamsOverview" className="mt-6">
-                <SceneCustomization scene="teamsOverview" sceneSettings={settings.sceneSettings.teamsOverview} />
               </TabsContent>
             </ScrollArea>
           </div>
