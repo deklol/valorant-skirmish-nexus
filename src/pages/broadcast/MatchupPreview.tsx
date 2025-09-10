@@ -512,8 +512,8 @@ export default function MatchupPreview() {
                      </div>
                    </div>
 
-                   {/* Player Info Horizontal Cards - No gaps, using OBS colors */}
-                   <div className="grid grid-cols-4">
+                    {/* Player Info Horizontal Cards - No gaps, using OBS colors */}
+                    <div className={`grid ${effectiveSceneSettings.showCurrentRank ? 'grid-cols-4' : 'grid-cols-3'}`}>
                      {/* Avatar Card */}
                      <div 
                        className="p-3 flex flex-col items-center"
@@ -531,26 +531,28 @@ export default function MatchupPreview() {
                        
                      </div>
 
-                     {/* Rank Card */}
-                     <div 
-                       className="p-3 flex flex-col items-center"
-                       style={{
-                         backgroundColor: sceneSettings.obsBackgroundColor || '#000000'
-                       }}
-                     >
-                       <div 
-                         className="w-12 h-12 flex items-center justify-center text-lg mb-1"
-                         style={{ backgroundColor: getRankColor(user.current_rank) }}
-                       >
-                         {emoji}
-                       </div>
-                       <div 
-                         className="text-xs text-center truncate w-full"
-                         style={{
-                           color: sceneSettings.obsTextColor || '#FFFFFF'
-                         }}
-                       >{user.current_rank || 'Unranked'}</div>
-                     </div>
+                      {/* Rank Card */}
+                      {effectiveSceneSettings.showCurrentRank && (
+                        <div 
+                          className="p-3 flex flex-col items-center"
+                          style={{
+                            backgroundColor: sceneSettings.obsBackgroundColor || '#000000'
+                          }}
+                        >
+                          <div 
+                            className="w-12 h-12 flex items-center justify-center text-lg mb-1"
+                            style={{ backgroundColor: getRankColor(user.current_rank) }}
+                          >
+                            {emoji}
+                          </div>
+                          <div 
+                            className="text-xs text-center truncate w-full"
+                            style={{
+                              color: sceneSettings.obsTextColor || '#FFFFFF'
+                            }}
+                          >{user.current_rank || 'Unranked'}</div>
+                        </div>
+                      )}
 
                      {/* Weight Card */}
                      <div 
@@ -724,10 +726,27 @@ export default function MatchupPreview() {
                   </div>
                 </div>
                 
-                <div className="bg-black inline-block px-6 py-2">
-                  <div className="text-lg text-white uppercase tracking-wider font-bold">
-                    UPCOMING MATCH
+                <div className="flex items-center justify-center gap-4">
+                  <div className="bg-black inline-block px-6 py-2">
+                    <div className="text-lg text-white uppercase tracking-wider font-bold">
+                      UPCOMING MATCH
+                    </div>
                   </div>
+                  
+                  {/* Weight Difference Indicator */}
+                  {effectiveSceneSettings.showWeightDifference && weightDiff > 0 && (
+                    <div 
+                      className="px-4 py-2"
+                      style={{ 
+                        backgroundColor: effectiveSceneSettings.obsAccentColor || '#FF6B35',
+                        color: effectiveSceneSettings.obsHeaderColor || '#FFFFFF'
+                      }}
+                    >
+                      <div className="text-sm font-bold uppercase tracking-wide">
+                        ±{weightDiff} Weight Diff
+                      </div>
+                    </div>
+                  )}
                 </div>
               </>
             ) : (
@@ -746,28 +765,56 @@ export default function MatchupPreview() {
                       {team2.name}
                     </div>
                   </div>
-                <div className="text-sm text-white/80 uppercase tracking-wider font-bold">
-                  Upcoming Match
+                <div className="flex items-center justify-center gap-4">
+                  <div className="text-sm text-white/80 uppercase tracking-wider font-bold">
+                    Upcoming Match
+                  </div>
+                  
+                  {/* Weight Difference Indicator */}
+                  {effectiveSceneSettings.showWeightDifference && weightDiff > 0 && (
+                    <Badge variant="secondary" className="text-xs font-bold bg-orange-500/20 text-orange-300 border-orange-400/30">
+                      ±{weightDiff} Weight Diff
+                    </Badge>
+                  )}
                 </div>
               </>
             )}
           </div>
         )}
 
-        <div className="grid grid-cols-3 gap-8 items-start">
-          {/* Team 1 Lineup */}
-          <PlayerLineup team={team1} side="left" />
-          
-          {/* Center - Player Spotlight */}
-          {effectiveSceneSettings.showPlayerSpotlight !== false && (
-          <div className="flex justify-center">
-            <PlayerSpotlight />
+        {effectiveSceneSettings.matchupLayout === 'stacked' ? (
+          // Stacked Layout
+          <div className="space-y-8">
+            {/* Player Spotlight at top center */}
+            {effectiveSceneSettings.showPlayerSpotlight !== false && (
+              <div className="flex justify-center">
+                <PlayerSpotlight />
+              </div>
+            )}
+            
+            {/* Teams stacked vertically */}
+            <div className="grid grid-cols-2 gap-8">
+              <PlayerLineup team={team1} side="left" />
+              <PlayerLineup team={team2} side="right" />
+            </div>
           </div>
-          )}
-          
-          {/* Team 2 Lineup */}
-          <PlayerLineup team={team2} side="right" />
-        </div>
+        ) : (
+          // Side-by-side Layout (default)
+          <div className="grid grid-cols-3 gap-8 items-start">
+            {/* Team 1 Lineup */}
+            <PlayerLineup team={team1} side="left" />
+            
+            {/* Center - Player Spotlight */}
+            {effectiveSceneSettings.showPlayerSpotlight !== false && (
+            <div className="flex justify-center">
+              <PlayerSpotlight />
+            </div>
+            )}
+            
+            {/* Team 2 Lineup */}
+            <PlayerLineup team={team2} side="right" />
+          </div>
+        )}
       </div>
     </div>
   );
