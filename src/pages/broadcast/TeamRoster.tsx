@@ -198,17 +198,17 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
                          <span className="text-2xl font-bold">
                            {user.discord_username || 'Unknown Player'}
                          </span>
-                           {member.is_captain && effectiveSceneSettings.showCaptainBadges !== false && (
-                             <div 
-                               className="px-3 py-1 text-sm font-bold"
-                               style={{
-                                 backgroundColor: effectiveSceneSettings.obsAccentColor || BROADCAST_DEFAULTS.accentColor,
-                                 color: '#000000'
-                               }}
-                             >
-                               CAPTAIN
-                             </div>
-                           )}
+                            {member.is_captain && effectiveSceneSettings.showCaptainBadges !== false && (
+                              <div 
+                                className="px-3 py-1 text-sm font-bold"
+                                style={{
+                                  backgroundColor: '#FFFFFF',
+                                  color: '#000000'
+                                }}
+                              >
+                                CAPTAIN
+                              </div>
+                            )}
                        </div>
                      </div>
 

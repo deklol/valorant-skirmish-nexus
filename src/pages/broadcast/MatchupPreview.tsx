@@ -541,7 +541,7 @@ export default function MatchupPreview() {
                         >
                           <div 
                             className="w-12 h-12 flex items-center justify-center text-lg mb-1"
-                            style={{ backgroundColor: getRankColor(user.current_rank) }}
+                            style={{ backgroundColor: color }}
                           >
                             {emoji}
                           </div>
@@ -561,13 +561,13 @@ export default function MatchupPreview() {
                          backgroundColor: sceneSettings.obsBackgroundColor || '#000000'
                        }}
                      >
-                       <div 
-                         className="w-12 h-12 flex items-center justify-center text-sm font-bold mb-1"
-                         style={{
-                           backgroundColor: sceneSettings.obsAccentColor || '#0066CC',
-                           color: sceneSettings.obsHeaderColor || '#FFFFFF'
-                         }}
-                       >
+                        <div 
+                          className="w-12 h-12 flex items-center justify-center text-sm font-bold mb-1"
+                          style={{
+                            backgroundColor: sceneSettings.obsAccentColor || '#FF6B35',
+                            color: sceneSettings.obsHeaderColor || '#FFFFFF'
+                          }}
+                        >
                          {displayWeight}
                        </div>
                        <div 
