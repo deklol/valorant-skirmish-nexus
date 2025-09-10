@@ -18,19 +18,10 @@ import HomeHero from "@/components/home/HomeHero";
 import { HomePageSkeleton } from "@/components/ui/loading-skeleton";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
-/**
- * SEO Management Component
- * This component cleanly manages all head tags like title, meta description, canonical, and JSON-LD structured data.
- * This is a more robust approach than direct DOM manipulation within the main component's useEffect.
- * For larger applications, consider a library like 'react-helmet-async' for even better management.
- */
 const HomePageSeo = () => {
   useEffect(() => {
-    // --- 1. Title Optimization ---
-    // A more descriptive title following the format: Primary Keyword | Secondary Feature | Brand
     document.title = "Competitive Valorant Tournaments 2025 | Live Brackets & Prizes | TLR Hub";
 
-    // --- 2. Meta Description Optimization (Targeting 140-160 characters) ---
     const newMetaDesc = "Join TLR Hub for the ultimate competitive Valorant tournaments in 2025. Find live brackets, fair team balancing, free entry, and big prizes on our active Discord.";
     let metaDesc = document.querySelector<HTMLMetaElement>('meta[name="description"]');
     if (!metaDesc) {
@@ -40,16 +31,12 @@ const HomePageSeo = () => {
     }
     metaDesc.setAttribute("content", newMetaDesc);
     
-    // --- 3. Single Canonical Link Enforcement ---
-    // First, remove any existing canonical links to prevent duplicates, then add the correct one.
     document.querySelectorAll('link[rel="canonical"]').forEach(el => el.remove());
     const canonical = document.createElement('link');
     canonical.rel = 'canonical';
     canonical.href = window.location.origin + '/';
     document.head.appendChild(canonical);
     
-    // --- Open Graph & Twitter Cards ---
-    // A more robust way to handle meta tags: check if they exist, update, or create them.
     const metaTags = {
       'og:title': 'TLR Hub | Competitive Valorant Tournaments & Community',
       'og:description': newMetaDesc,
@@ -73,8 +60,6 @@ const HomePageSeo = () => {
       el.content = content;
     });
 
-    // --- 4. Structured Data (JSON-LD) ---
-    // Remove existing script to prevent duplicates on hot-reloads in development
     const existingLdJson = document.getElementById('ld-json-data');
     if (existingLdJson) {
       existingLdJson.remove();
@@ -225,13 +210,12 @@ const Index = () => {
 
   return (
     <ErrorBoundary componentName="Homepage">
-      <HomePageSeo /> {/* All SEO logic is now handled by this component */}
+      <HomePageSeo /> 
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
         
         {/* Hero/Main Headline */}
         <section className="container mx-auto px-4 pt-8 pb-6">
           <div className="text-center">
-            {/* --- H1 Heading Optimized --- */}
             <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 bg-gradient-to-r from-red-400 via-yellow-400 to-red-400 bg-clip-text text-transparent">
               TLR Hub: Premier Valorant Tournaments
             </h1>
