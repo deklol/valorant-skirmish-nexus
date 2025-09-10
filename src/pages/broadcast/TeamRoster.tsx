@@ -202,7 +202,7 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
                               <div 
                                 className="px-3 py-1 text-sm font-bold"
                                 style={{
-                                  backgroundColor: '#FFFFFF',
+                                  backgroundColor: '#FFD700',
                                   color: '#000000'
                                 }}
                               >
