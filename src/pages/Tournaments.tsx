@@ -86,18 +86,34 @@ const Tournaments = () => {
     fetchTournaments();
   };
 
-  const filteredTournaments = tournaments.filter(tournament => {
-    const matchesSearch = tournament.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === "all" || tournament.status === statusFilter;
-    const matchesFormat = formatFilter === "all" || tournament.format === formatFilter;
-    
-    // Hide archived tournaments unless specifically selected in filter
-    const isArchived = tournament.status === "archived";
-    const showArchived = statusFilter === "archived";
-    const shouldShow = !isArchived || showArchived;
-    
-    return matchesSearch && matchesStatus && matchesFormat && shouldShow;
-  });
+  const filteredTournaments = tournaments
+    .filter(tournament => {
+      const matchesSearch = tournament.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus = statusFilter === "all" || tournament.status === statusFilter;
+      const matchesFormat = formatFilter === "all" || tournament.format === formatFilter;
+      
+      // Hide archived tournaments unless specifically selected in filter
+      const isArchived = tournament.status === "archived";
+      const showArchived = statusFilter === "archived";
+      const shouldShow = !isArchived || showArchived;
+      
+      return matchesSearch && matchesStatus && matchesFormat && shouldShow;
+    })
+    .sort((a, b) => {
+      // Priority order: open and live tournaments first, then others by date
+      const priorityStatuses = ['open', 'live'];
+      
+      const aPriority = priorityStatuses.includes(a.status);
+      const bPriority = priorityStatuses.includes(b.status);
+      
+      // If both have priority or both don't have priority, sort by date
+      if (aPriority === bPriority) {
+        return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
+      }
+      
+      // Priority tournaments come first
+      return aPriority ? -1 : 1;
+    });
 
   if (loading) {
     return (
