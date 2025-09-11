@@ -49,6 +49,23 @@ export default function PlayerSpotlightCard() {
   const [loading, setLoading] = useState(true);
   const { settings } = useBroadcastSettings();
 
+  // Inject transparent background CSS for vMix & OBS compatibility
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      body {
+        margin: 0 !important;
+        padding: 0 !important;
+        background-color: rgba(0, 0, 0, 0) !important;
+        overflow: hidden !important;
+      }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
   // Check for animate=false in URL
   const searchParams = new URLSearchParams(window.location.search);
   const shouldSkipAnimations = searchParams.get('animate') === 'false';
