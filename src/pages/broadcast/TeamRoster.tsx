@@ -259,9 +259,12 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
                                   style={{ color: effectiveSceneSettings.obsTextColor || BROADCAST_DEFAULTS.textColor }}
                                 >{user.current_rank}</div>
                                 <div 
-                                  className="text-xs text-center mt-1"
-                                  style={{ color: effectiveSceneSettings.obsTextColor || BROADCAST_DEFAULTS.textColor, opacity: 0.7 }}
-                                >(Current)</div>
+                                  className="px-2 py-1 text-xs font-bold text-center mt-1 rounded"
+                                  style={{
+                                    backgroundColor: '#22C55E',
+                                    color: '#000000'
+                                  }}
+                                >CURRENT</div>
                               </div>
                               <div 
                                 className="p-4 flex flex-col items-center"
@@ -281,9 +284,12 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
                                   style={{ color: effectiveSceneSettings.obsTextColor || BROADCAST_DEFAULTS.textColor }}
                                 >{(user as any).peak_rank || user.current_rank}</div>
                                 <div 
-                                  className="text-xs text-center mt-1"
-                                  style={{ color: effectiveSceneSettings.obsTextColor || BROADCAST_DEFAULTS.textColor, opacity: 0.7 }}
-                                >(Peak)</div>
+                                  className="px-2 py-1 text-xs font-bold text-center mt-1 rounded"
+                                  style={{
+                                    backgroundColor: '#3B82F6',
+                                    color: '#FFFFFF'
+                                  }}
+                                >PEAK</div>
                               </div>
                             </>
                           ) : (
@@ -409,11 +415,11 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
                                <>
                                  <div className="backdrop-blur-sm bg-white/10 p-4 flex flex-col items-center">
                                    {renderRank(user.current_rank)}
-                                   <div className="text-white text-xs text-center mt-1 opacity-70">(Current)</div>
+                                   <div className="px-2 py-1 text-xs font-bold text-center mt-1 rounded bg-green-500 text-black">CURRENT</div>
                                  </div>
                                  <div className="backdrop-blur-sm bg-white/10 p-4 flex flex-col items-center">
                                    {renderRank((user as any).peak_rank || user.current_rank)}
-                                   <div className="text-white text-xs text-center mt-1 opacity-70">(Peak)</div>
+                                   <div className="px-2 py-1 text-xs font-bold text-center mt-1 rounded bg-blue-500 text-white">PEAK</div>
                                  </div>
                                </>
                              ) : (
