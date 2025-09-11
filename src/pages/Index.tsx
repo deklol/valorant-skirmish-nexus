@@ -242,7 +242,7 @@ const Index = () => {
               <CardContent className="p-4 text-center">
                 <Trophy className="w-8 h-8 text-red-400 mx-auto mb-2" aria-label="Trophy for Completed Tournaments" />
                 <div className="text-2xl font-bold text-white">{stats.totalTournaments}</div>
-                <div className="text-red-300 text-sm">Completed Tournaments</div>
+                <div className="text-red-300 text-sm">Tournaments</div>
               </CardContent>
             </Card>
             <Card className="bg-gradient-to-br from-blue-900/20 to-blue-800/10 border-blue-700/30">
