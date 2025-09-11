@@ -212,8 +212,11 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
                        </div>
                      </div>
 
-                     {/* Player Info Horizontal Cards */}
-                     <div className={`grid ${isCompactLayout ? 'grid-cols-3' : 'grid-cols-4'}`}>
+                      {/* Player Info Horizontal Cards */}
+                      <div className={`grid ${isCompactLayout ? 
+                        (effectiveSceneSettings.showPeakRank ? 'grid-cols-4' : 'grid-cols-3') : 
+                        (effectiveSceneSettings.showPeakRank ? 'grid-cols-5' : 'grid-cols-4')
+                      }`}>
                         {/* Avatar Card */}
                         {effectiveSceneSettings.showAvatars !== false && (
                          <div 
@@ -233,27 +236,78 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
                         </div>
                         )}
 
-                       {/* Rank Card */}
-                       {effectiveSceneSettings.showCurrentRank && user.current_rank && (
-                          <div 
-                            className="p-4 flex flex-col items-center"
-                            style={{
-                              backgroundColor: effectiveSceneSettings.obsBackgroundColor || BROADCAST_DEFAULTS.cardBackground,
-                              opacity: 0.8
-                            }}
-                          >
-                           <div 
-                             className="w-16 h-16 flex items-center justify-center text-2xl mb-2"
-                             style={{ backgroundColor: getRankColor(user.current_rank) }}
-                           >
-                             {formatRank(user.current_rank).emoji}
-                           </div>
+                        {/* Rank Cards */}
+                        {effectiveSceneSettings.showCurrentRank && user.current_rank && (
+                          effectiveSceneSettings.showPeakRank ? (
+                            // Show both current and peak ranks
+                            <>
+                              <div 
+                                className="p-4 flex flex-col items-center"
+                                style={{
+                                  backgroundColor: effectiveSceneSettings.obsBackgroundColor || BROADCAST_DEFAULTS.cardBackground,
+                                  opacity: 0.8
+                                }}
+                              >
+                                <div 
+                                  className="w-16 h-16 flex items-center justify-center text-2xl mb-2"
+                                  style={{ backgroundColor: getRankColor(user.current_rank) }}
+                                >
+                                  {formatRank(user.current_rank).emoji}
+                                </div>
+                                <div 
+                                  className="text-sm text-center"
+                                  style={{ color: effectiveSceneSettings.obsTextColor || BROADCAST_DEFAULTS.textColor }}
+                                >{user.current_rank}</div>
+                                <div 
+                                  className="text-xs text-center mt-1"
+                                  style={{ color: effectiveSceneSettings.obsTextColor || BROADCAST_DEFAULTS.textColor, opacity: 0.7 }}
+                                >(Current)</div>
+                              </div>
+                              <div 
+                                className="p-4 flex flex-col items-center"
+                                style={{
+                                  backgroundColor: effectiveSceneSettings.obsBackgroundColor || BROADCAST_DEFAULTS.cardBackground,
+                                  opacity: 0.8
+                                }}
+                              >
+                                <div 
+                                  className="w-16 h-16 flex items-center justify-center text-2xl mb-2"
+                                  style={{ backgroundColor: getRankColor((user as any).peak_rank || user.current_rank) }}
+                                >
+                                  {formatRank((user as any).peak_rank || user.current_rank).emoji}
+                                </div>
+                                <div 
+                                  className="text-sm text-center"
+                                  style={{ color: effectiveSceneSettings.obsTextColor || BROADCAST_DEFAULTS.textColor }}
+                                >{(user as any).peak_rank || user.current_rank}</div>
+                                <div 
+                                  className="text-xs text-center mt-1"
+                                  style={{ color: effectiveSceneSettings.obsTextColor || BROADCAST_DEFAULTS.textColor, opacity: 0.7 }}
+                                >(Peak)</div>
+                              </div>
+                            </>
+                          ) : (
+                            // Show only current rank
                             <div 
-                              className="text-sm text-center"
-                              style={{ color: effectiveSceneSettings.obsTextColor || BROADCAST_DEFAULTS.textColor }}
-                            >{user.current_rank}</div>
-                         </div>
-                       )}
+                              className="p-4 flex flex-col items-center"
+                              style={{
+                                backgroundColor: effectiveSceneSettings.obsBackgroundColor || BROADCAST_DEFAULTS.cardBackground,
+                                opacity: 0.8
+                              }}
+                            >
+                              <div 
+                                className="w-16 h-16 flex items-center justify-center text-2xl mb-2"
+                                style={{ backgroundColor: getRankColor(user.current_rank) }}
+                              >
+                                {formatRank(user.current_rank).emoji}
+                              </div>
+                              <div 
+                                className="text-sm text-center"
+                                style={{ color: effectiveSceneSettings.obsTextColor || BROADCAST_DEFAULTS.textColor }}
+                              >{user.current_rank}</div>
+                            </div>
+                          )
+                        )}
 
                         {/* Weight Card */}
                         {effectiveSceneSettings.showAdaptiveWeight && (
@@ -328,8 +382,11 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
                           </div>
                         </div>
 
-                         {/* Player Info Cards */}
-                         <div className={`grid ${isCompactLayout ? 'grid-cols-3' : 'grid-cols-4'} rounded-b-lg overflow-hidden`}>
+                          {/* Player Info Cards */}
+                          <div className={`grid ${isCompactLayout ? 
+                            (effectiveSceneSettings.showPeakRank ? 'grid-cols-4' : 'grid-cols-3') : 
+                            (effectiveSceneSettings.showPeakRank ? 'grid-cols-5' : 'grid-cols-4')
+                          } rounded-b-lg overflow-hidden`}>
                             {/* Avatar Card */}
                             {effectiveSceneSettings.showAvatars !== false && (
                             <div className="backdrop-blur-sm bg-white/10 p-4 flex flex-col items-center">
@@ -345,12 +402,27 @@ export default function TeamRoster({ animate = true }: TeamRosterProps) {
                             </div>
                             )}
 
-                          {/* Rank Card */}
-                          {effectiveSceneSettings.showCurrentRank && user.current_rank && (
-                            <div className="backdrop-blur-sm bg-white/10 p-4 flex flex-col items-center">
-                              {renderRank(user.current_rank)}
-                            </div>
-                          )}
+                           {/* Rank Cards */}
+                           {effectiveSceneSettings.showCurrentRank && user.current_rank && (
+                             effectiveSceneSettings.showPeakRank ? (
+                               // Show both current and peak ranks
+                               <>
+                                 <div className="backdrop-blur-sm bg-white/10 p-4 flex flex-col items-center">
+                                   {renderRank(user.current_rank)}
+                                   <div className="text-white text-xs text-center mt-1 opacity-70">(Current)</div>
+                                 </div>
+                                 <div className="backdrop-blur-sm bg-white/10 p-4 flex flex-col items-center">
+                                   {renderRank((user as any).peak_rank || user.current_rank)}
+                                   <div className="text-white text-xs text-center mt-1 opacity-70">(Peak)</div>
+                                 </div>
+                               </>
+                             ) : (
+                               // Show only current rank
+                               <div className="backdrop-blur-sm bg-white/10 p-4 flex flex-col items-center">
+                                 {renderRank(user.current_rank)}
+                               </div>
+                             )
+                           )}
 
                           {/* Weight Card */}
                           {effectiveSceneSettings.showAdaptiveWeight && (
