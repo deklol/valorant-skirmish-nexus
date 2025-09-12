@@ -90,19 +90,7 @@ const LiveMatches = () => {
   }
 
   if (liveMatches.length === 0) {
-    return (
-      <Card className="bg-slate-800 border-slate-700">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            <Trophy className="w-5 h-5" />
-            Live Matches
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="py-2">
-          <p className="text-slate-400 text-center">No live matches at the moment</p>
-        </CardContent>
-      </Card>
-    );
+    return null;
   }
 
   return (

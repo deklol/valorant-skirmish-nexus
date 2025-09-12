@@ -7,6 +7,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import LiveMatches from "@/components/LiveMatches";
+import PointsSpendingReminder from "@/components/PointsSpendingReminder";
 import HomePageAnnouncement from "@/components/HomePageAnnouncement";
 import TournamentTabs from "@/components/TournamentTabs";
 import TopPlayersDisplay from "@/components/TopPlayersDisplay";
@@ -274,9 +275,10 @@ const Index = () => {
           <TwitchEmbed />
         </section>
         
-        {/* Live Matches Section */}
-        <section className="container mx-auto px-4 pt-4 pb-8">
+        {/* Live Matches and Points Reminder Section */}
+        <section className="container mx-auto px-4 pt-4 pb-8 space-y-8">
           <LiveMatches />
+          <PointsSpendingReminder />
         </section>
         
         {/* Community Spotlight Grid */}
