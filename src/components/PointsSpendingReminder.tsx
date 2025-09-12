@@ -16,7 +16,7 @@ const PointsSpendingReminder = () => {
   }
 
   return (
-    <Card className="bg-gradient-to-br from-amber-900/30 via-yellow-900/20 to-orange-900/30 border-amber-700/50 shadow-lg shadow-amber-500/10">
+    <Card className="bg-gradient-to-br from-amber-900/30 via-yellow-900/20 to-orange-900/30 border-amber-700/50">
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -35,7 +35,7 @@ const PointsSpendingReminder = () => {
           </div>
           <Button
             onClick={() => navigate('/shop')}
-            className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-semibold px-6 py-3 rounded-lg shadow-lg hover:shadow-amber-500/25 transition-all duration-200"
+            className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-semibold px-6 py-3 rounded-lg transition-all duration-200"
           >
             <ShoppingBag className="w-4 h-4 mr-2" />
             Shop Now

@@ -278,19 +278,10 @@ const Index = () => {
         </section>
         
         {/* Live Matches and Points Reminder Section */}
-        {hasLiveMatches && (
-          <section className="container mx-auto px-4 pt-4 pb-8 space-y-8">
-            <LiveMatches />
-            <PointsSpendingReminder />
-          </section>
-        )}
-        
-        {/* Points Reminder Only (when no live matches) */}
-        {!hasLiveMatches && (
-          <section className="container mx-auto px-4 pt-4 pb-8">
-            <PointsSpendingReminder />
-          </section>
-        )}
+        <section className="container mx-auto px-4 pt-4 pb-8">
+          {hasLiveMatches && <LiveMatches />}
+          <PointsSpendingReminder />
+        </section>
         
         {/* Community Spotlight Grid */}
         <section className="container mx-auto px-4 pb-8" aria-labelledby="community-spotlight-heading">
