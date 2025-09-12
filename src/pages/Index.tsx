@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import LiveMatches from "@/components/LiveMatches";
 import PointsSpendingReminder from "@/components/PointsSpendingReminder";
 import { useLiveMatches } from "@/hooks/useLiveMatches";
+import { useTwitchEmbed } from "@/hooks/useTwitchEmbed";
 import HomePageAnnouncement from "@/components/HomePageAnnouncement";
 import TournamentTabs from "@/components/TournamentTabs";
 import TopPlayersDisplay from "@/components/TopPlayersDisplay";
@@ -167,6 +168,7 @@ const HomePageSeo = () => {
 const Index = () => {
   const { user } = useAuth();
   const { hasLiveMatches } = useLiveMatches();
+  const { shouldShowTwitch } = useTwitchEmbed();
   const [stats, setStats] = useState({
     totalTournaments: 0,
     activePlayers: 0,
@@ -273,9 +275,11 @@ const Index = () => {
         </section>
         
         {/* Twitch embed full width */}
-        <section className="container mx-auto px-4 pb-8">
-          <TwitchEmbed />
-        </section>
+        {shouldShowTwitch && (
+          <section className="container mx-auto px-4 pb-8">
+            <TwitchEmbed />
+          </section>
+        )}
         
         {/* Live Matches and Points Reminder Section */}
         <section className="container mx-auto px-4 pt-4 pb-8">
