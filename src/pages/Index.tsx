@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import LiveMatches from "@/components/LiveMatches";
 import PointsSpendingReminder from "@/components/PointsSpendingReminder";
+import { useLiveMatches } from "@/hooks/useLiveMatches";
 import HomePageAnnouncement from "@/components/HomePageAnnouncement";
 import TournamentTabs from "@/components/TournamentTabs";
 import TopPlayersDisplay from "@/components/TopPlayersDisplay";
@@ -165,6 +166,7 @@ const HomePageSeo = () => {
 
 const Index = () => {
   const { user } = useAuth();
+  const { hasLiveMatches } = useLiveMatches();
   const [stats, setStats] = useState({
     totalTournaments: 0,
     activePlayers: 0,
@@ -276,10 +278,19 @@ const Index = () => {
         </section>
         
         {/* Live Matches and Points Reminder Section */}
-        <section className="container mx-auto px-4 pt-4 pb-8 space-y-8">
-          <LiveMatches />
-          <PointsSpendingReminder />
-        </section>
+        {hasLiveMatches && (
+          <section className="container mx-auto px-4 pt-4 pb-8 space-y-8">
+            <LiveMatches />
+            <PointsSpendingReminder />
+          </section>
+        )}
+        
+        {/* Points Reminder Only (when no live matches) */}
+        {!hasLiveMatches && (
+          <section className="container mx-auto px-4 pt-4 pb-8">
+            <PointsSpendingReminder />
+          </section>
+        )}
         
         {/* Community Spotlight Grid */}
         <section className="container mx-auto px-4 pb-8" aria-labelledby="community-spotlight-heading">
