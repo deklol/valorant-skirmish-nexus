@@ -21,6 +21,7 @@ export interface Tournament {
   match_format: "BO1" | "BO3" | "BO5" | null;
   bracket_type: string | null;
   check_in_required: boolean;
+  registration_type: "solo" | "team";
   // Optional fields that may be included in some contexts
   created_at?: string;
   updated_at?: string;

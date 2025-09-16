@@ -85,60 +85,60 @@ matches (tournament_id → tournaments.id, team1_id, team2_id, winner_id)
 
 ---
 
-## 🔄 Phase 2A: Tournament Creation Enhancements (PRIORITY 1)
+## ✅ Phase 2A: Tournament Creation Enhancements (COMPLETED)
 **Database Dependencies**: `tournaments` table (EXISTS - needs UI updates only)
 
-### Tournament Type Selection ❌
-- [ ] **`CreateTournamentDialog.tsx` Updates**:
-  - [ ] Add registration type selector (`'solo'` vs `'team'`)
-  - [ ] Different default settings for each type (team_size, max_teams vs max_players)
-  - [ ] Registration type cannot be changed after creation
-- [ ] **Team Tournament Settings**:
-  - [ ] Team size requirements (min/max members per team)
-  - [ ] Maximum team registrations (uses `tournaments.max_teams`)
-  - [ ] Team registration deadlines
+### Tournament Type Selection ✅
+- [x] **`CreateTournamentDialog.tsx` Updates**:
+  - [x] Add registration type selector (`'solo'` vs `'team'`)
+  - [x] Different default settings for each type (team_size, max_teams vs max_players)
+  - [x] Registration type cannot be changed after creation
+- [x] **Team Tournament Settings**:
+  - [x] Team size requirements (min/max members per team)
+  - [x] Maximum team registrations (uses `tournaments.max_teams`)
+  - [x] Team registration deadlines
 
-### Tournament Display Updates ❌  
-- [ ] **`TournamentCard.tsx` Updates**:
-  - [ ] Show registration type badge (`SOLO` / `TEAM`)
-  - [ ] Display appropriate participant count (teams vs players)
-  - [ ] Different icons/colors for tournament types
+### Tournament Display Updates ✅  
+- [x] **`TournamentCard.tsx` Updates**:
+  - [x] Show registration type badge (`SOLO` / `TEAM`)
+  - [x] Display appropriate participant count (teams vs players)
+  - [x] Different icons/colors for tournament types
 
 ---
 
-## 🎯 Phase 2B: Team Tournament Registration Flow (PRIORITY 2)
+## ✅ Phase 2B: Team Tournament Registration Flow (COMPLETED)
 **Database Dependencies**: `team_tournament_registrations`, `persistent_teams` (BOTH EXIST)
 
-### Core Team Registration Component ❌
-- [ ] **`TeamTournamentRegistration.tsx`** - NEW COMPONENT NEEDED
-  - [ ] Captain-only registration interface
-  - [ ] Team roster validation (min/max size from tournament settings)
-  - [ ] Registration status display (registered/waitlist/full)
-  - [ ] Withdrawal functionality for captains
+### Core Team Registration Component ✅
+- [x] **`TeamTournamentRegistration.tsx`** - NEW COMPONENT CREATED
+  - [x] Captain-only registration interface
+  - [x] Team roster validation (min/max size from tournament settings)
+  - [x] Registration status display (registered/waitlist/full)
+  - [x] Withdrawal functionality for captains
 
-### Registration Logic & Validation ❌
-- [ ] **Team Validation System**:
-  - [ ] Active team member verification (all members still on team)
-  - [ ] Tournament eligibility checks (team size requirements)
-  - [ ] Registration deadline enforcement
-  - [ ] One registration per team per tournament
+### Registration Logic & Validation ✅
+- [x] **Team Validation System**:
+  - [x] Active team member verification (all members still on team)
+  - [x] Tournament eligibility checks (team size requirements)
+  - [x] Registration deadline enforcement
+  - [x] One registration per team per tournament
 
-### Database Integration ❌
-- [ ] **Registration Flow**: `persistent_teams` → `team_tournament_registrations` → `tournaments`
-- [ ] **Captain Permissions**: Only `persistent_teams.captain_id` can register team
-- [ ] **Status Tracking**: Registration, withdrawal, confirmation states
+### Database Integration ✅
+- [x] **Registration Flow**: `persistent_teams` → `team_tournament_registrations` → `tournaments`
+- [x] **Captain Permissions**: Only `persistent_teams.captain_id` can register team
+- [x] **Status Tracking**: Registration, withdrawal, confirmation states
 
 ---
 
-## 🏆 Phase 2C: Tournament Detail Page Integration (PRIORITY 3)
+## ✅ Phase 2C: Tournament Detail Page Integration (COMPLETED)
 **Database Dependencies**: Queries need to check `tournaments.registration_type`
 
-### Registration Type Detection ❌
-- [ ] **`TournamentDetail.tsx` Updates**:
-  - [ ] Detect `tournaments.registration_type` field  
-  - [ ] Show `TournamentRegistration.tsx` for solo tournaments
-  - [ ] Show `TeamTournamentRegistration.tsx` for team tournaments
-  - [ ] Different participant lists based on type
+### Registration Type Detection ✅
+- [x] **`TournamentDetail.tsx` Updates**:
+  - [x] Detect `tournaments.registration_type` field  
+  - [x] Show `TournamentRegistration.tsx` for solo tournaments
+  - [x] Show `TeamTournamentRegistration.tsx` for team tournaments
+  - [x] Different participant lists based on type
 
 ### Team Tournament Display ❌
 - [ ] **Participant Management**:

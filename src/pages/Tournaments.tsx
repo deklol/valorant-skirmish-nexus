@@ -45,21 +45,37 @@ const Tournaments = () => {
 
       console.log('Raw tournaments data:', tournamentsData);
 
-      // Get signup counts for each tournament
+      // Get signup counts for each tournament based on registration type
       const tournamentsWithSignups = await Promise.all(
         (tournamentsData || []).map(async (tournament) => {
-          const { count } = await supabase
-            .from('tournament_signups')
-            .select('*', { count: 'exact' })
-            .eq('tournament_id', tournament.id);
+          let signupCount = 0;
+          
+          if (tournament.registration_type === 'team') {
+            // Get team registration count
+            const { count } = await supabase
+              .from('team_tournament_registrations')
+              .select('*', { count: 'exact' })
+              .eq('tournament_id', tournament.id)
+              .eq('status', 'registered');
+            signupCount = count || 0;
+          } else {
+            // Get individual player signup count
+            const { count } = await supabase
+              .from('tournament_signups')
+              .select('*', { count: 'exact' })
+              .eq('tournament_id', tournament.id);
+            signupCount = count || 0;
+          }
 
           return {
             ...tournament,
-            currentSignups: count || 0,
+            currentSignups: signupCount,
             startTime: new Date(tournament.start_time || Date.now()),
             format: (tournament.match_format === 'BO5' ? 'BO3' : tournament.match_format) as "BO1" | "BO3",
             maxPlayers: tournament.max_players,
             prizePool: tournament.prize_pool || 'TBD',
+            registration_type: tournament.registration_type as "solo" | "team",
+            max_teams: tournament.max_teams || 0,
             map_pool: Array.isArray(tournament.map_pool) 
               ? tournament.map_pool.filter((item): item is string => typeof item === 'string')
               : null

@@ -3,6 +3,7 @@ import React from "react";
 import { useAuth } from "@/hooks/useAuth";
 import TournamentWinnerDisplay from "@/components/TournamentWinnerDisplay";
 import TournamentRegistration from "@/components/TournamentRegistration";
+import TeamTournamentRegistration from "@/components/TeamTournamentRegistration";
 import FeaturedVODs from "@/components/FeaturedVODs";
 import { useTournamentData } from "@/hooks/useTournamentData";
 import TournamentHero from "@/components/tournament-detail/TournamentHero";
@@ -54,11 +55,19 @@ const TournamentDetail = () => {
         {/* Registration Banner - Only for open tournaments */}
         {tournament.status === "open" && (
           <div className="mb-6">
-            <TournamentRegistration
-              tournamentId={tournament.id}
-              tournament={tournament}
-              onRegistrationChange={handleRefresh}
-            />
+            {tournament.registration_type === "team" ? (
+              <TeamTournamentRegistration
+                tournamentId={tournament.id}
+                tournament={tournament}
+                onRegistrationChange={handleRefresh}
+              />
+            ) : (
+              <TournamentRegistration
+                tournamentId={tournament.id}
+                tournament={tournament}
+                onRegistrationChange={handleRefresh}
+              />
+            )}
           </div>
         )}
         

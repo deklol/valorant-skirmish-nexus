@@ -242,7 +242,8 @@ export default function TournamentMedicToolsTab({
             prize_pool: null,
             match_format: "BO1",
             bracket_type: "single_elimination",
-            check_in_required: true
+            check_in_required: true,
+            registration_type: "solo"
           }}
           onTournamentDeleted={onRefresh}
         />
