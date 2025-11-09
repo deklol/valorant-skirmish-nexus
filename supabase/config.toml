@@ -1,8 +1,5 @@
 project_id = "tmncfnwtqorbmxxyxhle"
 
-[functions.ai-weight-confidence]
-verify_jwt = false
-
 [functions.ai-health-check]
 verify_jwt = false
 
