@@ -15,6 +15,8 @@ interface DetailedBalanceAnalysisProps {
 
 const DetailedBalanceAnalysis = ({ balanceResult, tournamentName }: DetailedBalanceAnalysisProps) => {
   const [expandedSteps, setExpandedSteps] = useState<boolean>(false);
+  const [analyzingConfidence, setAnalyzingConfidence] = useState(false);
+  const [confidenceScores, setConfidenceScores] = useState<Map<string, { confidence: number; reasoning: string; flags: string[] }>>(new Map());
   const { toast } = useToast();
 
   if (!balanceResult) {
@@ -79,6 +81,92 @@ const DetailedBalanceAnalysis = ({ balanceResult, tournamentName }: DetailedBala
     });
   };
 
+  const analyzeConfidence = async () => {
+    setAnalyzingConfidence(true);
+    const { supabase } = await import('@/integrations/supabase/client');
+    
+    try {
+      const allPlayers = teams.flat();
+      const confidenceResults = new Map();
+      
+      toast({
+        title: "Analyzing Confidence",
+        description: `Calculating AI confidence for ${allPlayers.length} players...`,
+      });
+
+      // Analyze players in parallel for speed
+      const analyses = await Promise.all(
+        allPlayers.map(async (player) => {
+          try {
+            const { data, error } = await supabase.functions.invoke('ai-weight-confidence', {
+              body: {
+                playerData: {
+                  discord_username: player.discord_username,
+                  current_rank: player.current_rank,
+                  peak_rank: player.peak_rank,
+                  tournaments_won: player.tournaments_won,
+                  tournaments_played: player.tournaments_played,
+                  last_rank_update: player.last_rank_update,
+                  use_manual_override: player.use_manual_override,
+                  weightSource: player.weightSource || 'atlas_evidence'
+                },
+                calculatedWeight: player.evidenceWeight || player.adaptiveWeight || 150
+              }
+            });
+
+            if (error) throw error;
+
+            return {
+              playerId: player.id,
+              confidence: data.confidence || 0.75,
+              reasoning: data.reasoning || 'AI analysis completed',
+              flags: data.flags || []
+            };
+          } catch (error) {
+            console.error(`Failed to analyze confidence for ${player.discord_username}:`, error);
+            return {
+              playerId: player.id,
+              confidence: 0.75,
+              reasoning: 'AI analysis unavailable',
+              flags: ['error']
+            };
+          }
+        })
+      );
+
+      // Store results
+      analyses.forEach(result => {
+        confidenceResults.set(result.playerId, {
+          confidence: result.confidence,
+          reasoning: result.reasoning,
+          flags: result.flags
+        });
+      });
+
+      setConfidenceScores(confidenceResults);
+
+      // Calculate average confidence
+      const avgConfidence = analyses.reduce((sum, r) => sum + r.confidence, 0) / analyses.length;
+      const highConfidence = analyses.filter(r => r.confidence >= 0.8).length;
+      const lowConfidence = analyses.filter(r => r.confidence < 0.6).length;
+
+      toast({
+        title: "Confidence Analysis Complete",
+        description: `Avg: ${(avgConfidence * 100).toFixed(0)}% • High: ${highConfidence} • Low: ${lowConfidence}`,
+      });
+
+    } catch (error) {
+      console.error('Failed to analyze confidence:', error);
+      toast({
+        title: "Analysis Failed",
+        description: "Could not calculate AI confidence scores",
+        variant: "destructive",
+      });
+    } finally {
+      setAnalyzingConfidence(false);
+    }
+  };
+
   const generateBalanceReport = () => {
     const date = new Date().toLocaleString();
     let report = `TEAM BALANCE ANALYSIS REPORT\n`;
@@ -135,6 +223,16 @@ const DetailedBalanceAnalysis = ({ balanceResult, tournamentName }: DetailedBala
               Balance Analysis
             </div>
             <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={analyzeConfidence}
+                disabled={analyzingConfidence || confidenceScores.size > 0}
+                className="text-purple-300 border-purple-600 hover:bg-purple-700"
+              >
+                <Brain className="w-4 h-4 mr-1" />
+                {analyzingConfidence ? 'Analyzing...' : confidenceScores.size > 0 ? 'Analyzed' : 'AI Confidence'}
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -227,13 +325,26 @@ const DetailedBalanceAnalysis = ({ balanceResult, tournamentName }: DetailedBala
                         </span>
                       </div>
                     </div>
-                    <div className="text-sm text-slate-400">
-                      {team.map((player, playerIndex) => (
-                        <span key={player.id}>
-                          {player.discord_username}{playerIndex === 0 ? ' (C)' : ''}
-                          {playerIndex < team.length - 1 ? ', ' : ''}
-                        </span>
-                      ))}
+                    <div className="flex flex-wrap gap-2 text-sm">
+                      {team.map((player, playerIndex) => {
+                        const confidence = confidenceScores.get(player.id);
+                        return (
+                          <div key={player.id} className="flex items-center gap-1">
+                            <span className="text-slate-400">
+                              {player.discord_username}{playerIndex === 0 ? ' (C)' : ''}
+                            </span>
+                            {confidence && (
+                              <Badge className={`text-white text-xs ${
+                                confidence.confidence >= 0.8 ? 'bg-green-600' : 
+                                confidence.confidence >= 0.6 ? 'bg-yellow-600' : 
+                                'bg-red-600'
+                              }`} title={confidence.reasoning}>
+                                {(confidence.confidence * 100).toFixed(0)}%
+                              </Badge>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 );
