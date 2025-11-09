@@ -108,7 +108,24 @@ export async function getUnifiedPlayerWeight(
       // Add AI confidence scoring if enabled (only for ATLAS mode)
       if (enableAIConfidence && enableATLAS) {
         try {
-          const confidenceResult = await getAIWeightConfidence(userData, validatedPoints);
+          // Pass full ATLAS evidence data to AI for accurate analysis
+          const atlasData = {
+            tournamentsPlayed: userData.tournaments_played || 0,
+            tournamentsWon: atlasResult.evidenceResult.evidenceCalculation?.tournamentsWon || userData.tournaments_won || 0,
+            winRate: userData.tournaments_played > 0 
+              ? ((userData.tournaments_won || 0) / userData.tournaments_played * 100).toFixed(1)
+              : '0',
+            tournamentBonus: atlasResult.evidenceResult.evidenceCalculation?.tournamentBonus || 0,
+            underrankedBonus: atlasResult.evidenceResult.evidenceCalculation?.underrankedBonus || 0,
+            basePoints: atlasResult.evidenceResult.evidenceCalculation?.basePoints || 150,
+            isElite: atlasResult.evidenceResult.evidenceCalculation?.isEliteTier || false,
+            weightSource: atlasResult.evidenceResult.evidenceCalculation?.weightSource || 'unknown',
+            evidenceFactors: atlasResult.evidenceResult.evidenceCalculation?.evidenceFactors || [],
+            reasoning: atlasResult.adjustmentReasoning || 'No ATLAS reasoning available',
+            miniAiAnalysis: atlasResult.miniAiRecommendations?.length > 0 ? 'Available' : 'Not available'
+          };
+
+          const confidenceResult = await getAIWeightConfidence(userData, validatedPoints, atlasData);
           result.aiConfidence = confidenceResult.confidence;
           result.aiConfidenceReason = confidenceResult.reasoning;
           result.aiConfidenceFlags = confidenceResult.flags;
@@ -256,7 +273,8 @@ export function validateRadiantDistribution(teams: any[][]): {
  */
 async function getAIWeightConfidence(
   userData: any, 
-  calculatedWeight: number
+  calculatedWeight: number,
+  atlasData: any = null
 ): Promise<{ confidence: number; reasoning: string; flags: string[] }> {
   const { supabase } = await import('@/integrations/supabase/client');
   
@@ -273,7 +291,8 @@ async function getAIWeightConfidence(
           use_manual_override: userData.use_manual_override,
           weightSource: userData.weightSource
         },
-        calculatedWeight
+        calculatedWeight,
+        atlasData
       }
     });
 
