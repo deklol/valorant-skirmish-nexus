@@ -17,6 +17,12 @@ export interface UnifiedPlayerWeight {
   evidenceFactors?: string[];
   /** Flag to ensure this is never 0 */
   isValid: boolean;
+  /** AI confidence score (0-1) for weight calculation reliability */
+  aiConfidence?: number;
+  /** AI's reasoning for confidence level */
+  aiConfidenceReason?: string;
+  /** Any warnings or flags from AI analysis */
+  aiConfidenceFlags?: string[];
 }
 
 export interface PlayerWeightOptions {
@@ -24,6 +30,8 @@ export interface PlayerWeightOptions {
   userId?: string;
   username?: string;
   forceValidation?: boolean;
+  /** Enable AI confidence scoring (requires ATLAS to be enabled) */
+  enableAIConfidence?: boolean;
 }
 
 /**
@@ -34,7 +42,7 @@ export async function getUnifiedPlayerWeight(
   userData: any,
   options: PlayerWeightOptions = { enableATLAS: false }
 ): Promise<UnifiedPlayerWeight> {
-  const { enableATLAS, userId, username, forceValidation = true } = options;
+  const { enableATLAS, userId, username, forceValidation = true, enableAIConfidence = false } = options;
 
   // Debug logging for specific players
   const isTargetPlayer = username?.toLowerCase().includes('kera') || 
@@ -86,7 +94,7 @@ export async function getUnifiedPlayerWeight(
 
       const src = (atlasResult.evidenceResult as any)?.miniAiAnalysis ? 'atlas_evidence' : ((atlasResult.evidenceResult as any)?.evidenceCalculation?.weightSource || 'adaptive_weight');
 
-      return {
+      const result: UnifiedPlayerWeight = {
         points: validatedPoints,
         source: src,
         rank: atlasResult.evidenceResult.rank,
@@ -96,6 +104,21 @@ export async function getUnifiedPlayerWeight(
         evidenceFactors: atlasResult.evidenceResult.evidenceCalculation?.evidenceFactors,
         isValid: validatedPoints > 0 && !isNaN(validatedPoints)
       };
+
+      // Add AI confidence scoring if enabled (only for ATLAS mode)
+      if (enableAIConfidence && enableATLAS) {
+        try {
+          const confidenceResult = await getAIWeightConfidence(userData, validatedPoints);
+          result.aiConfidence = confidenceResult.confidence;
+          result.aiConfidenceReason = confidenceResult.reasoning;
+          result.aiConfidenceFlags = confidenceResult.flags;
+        } catch (confError) {
+          atlasLogger.error('AI confidence scoring failed', confError);
+          // Continue without confidence score
+        }
+      }
+
+      return result;
     } else {
       // Use standard system with manual overrides
       const standardResult = getRankPointsWithManualOverride(userData);
@@ -229,6 +252,53 @@ export function validateRadiantDistribution(teams: any[][]): {
 }
 
 /**
+ * Get AI confidence score for a calculated weight
+ */
+async function getAIWeightConfidence(
+  userData: any, 
+  calculatedWeight: number
+): Promise<{ confidence: number; reasoning: string; flags: string[] }> {
+  const { supabase } = await import('@/integrations/supabase/client');
+  
+  try {
+    const { data, error } = await supabase.functions.invoke('ai-weight-confidence', {
+      body: {
+        playerData: {
+          discord_username: userData.discord_username,
+          current_rank: userData.current_rank,
+          peak_rank: userData.peak_rank,
+          tournaments_won: userData.tournaments_won,
+          tournaments_played: userData.tournaments_played,
+          last_rank_update: userData.last_rank_update,
+          use_manual_override: userData.use_manual_override,
+          weightSource: userData.weightSource
+        },
+        calculatedWeight
+      }
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    return {
+      confidence: data.confidence || 0.75,
+      reasoning: data.reasoning || 'AI confidence analysis completed',
+      flags: data.flags || []
+    };
+  } catch (error) {
+    atlasLogger.error('Failed to get AI confidence', error);
+    
+    // Return default confidence on error
+    return {
+      confidence: 0.75,
+      reasoning: 'AI confidence unavailable',
+      flags: ['error']
+    };
+  }
+}
+
+/**
  * Log weight calculation for transparency
  */
 export function logWeightCalculation(
@@ -246,4 +316,15 @@ export function logWeightCalculation(
     isValid: result.isValid,
     reasoning: result.reasoning
   });
+  
+  // Log AI confidence if available
+  if (result.aiConfidence !== undefined) {
+    const confidenceLevel = result.aiConfidence >= 0.8 ? 'HIGH' : 
+                            result.aiConfidence >= 0.6 ? 'MEDIUM' : 'LOW';
+    atlasLogger.info(`AI Confidence for ${username}: ${confidenceLevel} (${(result.aiConfidence * 100).toFixed(0)}%) - ${result.aiConfidenceReason}`);
+    
+    if (result.aiConfidenceFlags && result.aiConfidenceFlags.length > 0) {
+      atlasLogger.debug(`AI Confidence Flags for ${username}`, result.aiConfidenceFlags);
+    }
+  }
 }

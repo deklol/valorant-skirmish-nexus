@@ -70,16 +70,23 @@ const DraggablePlayer = ({ player, enableAdaptiveWeights }: { player: Player, en
   const [displaySource, setDisplaySource] = useState<string>('loading');
   const [displayReasoning, setDisplayReasoning] = useState<string>('');
   
-  // Calculate weight using unified system
+  // AI Confidence state
+  const [aiConfidence, setAiConfidence] = useState<number | undefined>();
+  const [aiConfidenceReason, setAiConfidenceReason] = useState<string>('');
+  
+  // Calculate weight using unified system with AI confidence
   useEffect(() => {
     getUnifiedPlayerWeight(player, {
       enableATLAS: enableAdaptiveWeights,
       username: player.discord_username,
-      forceValidation: true
+      forceValidation: true,
+      enableAIConfidence: enableAdaptiveWeights // Only enable AI confidence when ATLAS is on
     }).then(result => {
       setDisplayWeight(result.points);
       setDisplaySource(result.source);
       setDisplayReasoning(result.reasoning || '');
+      setAiConfidence(result.aiConfidence);
+      setAiConfidenceReason(result.aiConfidenceReason || '');
       
       // Log for transparency
       logWeightCalculation(player.discord_username, result, 'UI Display');
@@ -90,6 +97,7 @@ const DraggablePlayer = ({ player, enableAdaptiveWeights }: { player: Player, en
       setDisplayWeight(fallbackResult.points);
       setDisplaySource(fallbackResult.source);
       setDisplayReasoning(fallbackResult.reasoning || '');
+      setAiConfidence(undefined);
     });
   }, [enableAdaptiveWeights, player]);
 
@@ -133,6 +141,15 @@ const DraggablePlayer = ({ player, enableAdaptiveWeights }: { player: Player, en
                 ATLAS: {rankResult.points}pts
               </Badge>
             )}
+            {aiConfidence !== undefined && (
+              <Badge className={`text-white text-xs flex items-center gap-1 ${
+                aiConfidence >= 0.8 ? 'bg-green-600' : 
+                aiConfidence >= 0.6 ? 'bg-yellow-600' : 
+                'bg-red-600'
+              }`}>
+                {(aiConfidence * 100).toFixed(0)}% Confidence
+              </Badge>
+            )}
           </div>
           <div className="text-xs text-slate-400">
             {rankResult.source === 'manual_override' ? (
@@ -164,10 +181,21 @@ const DraggablePlayer = ({ player, enableAdaptiveWeights }: { player: Player, en
         <TooltipTrigger asChild>
           {content}
         </TooltipTrigger>
-        {displayReasoning && (
+        {(displayReasoning || aiConfidenceReason) && (
           <TooltipContent className="max-w-[320px] whitespace-pre-wrap">
-            <div className="text-xs">
-              {displayReasoning}
+            <div className="text-xs space-y-2">
+              {displayReasoning && (
+                <div>
+                  <div className="font-semibold mb-1">Weight Calculation:</div>
+                  <div>{displayReasoning}</div>
+                </div>
+              )}
+              {aiConfidenceReason && (
+                <div>
+                  <div className="font-semibold mb-1">AI Confidence Analysis:</div>
+                  <div>{aiConfidenceReason}</div>
+                </div>
+              )}
             </div>
           </TooltipContent>
         )}
