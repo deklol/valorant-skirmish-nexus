@@ -1,1 +1,25 @@
 project_id = "tmncfnwtqorbmxxyxhle"
+
+[functions.ai-health-check]
+verify_jwt = false
+
+[functions.ai-chat]
+verify_jwt = false
+
+[functions.scrape-rank]
+verify_jwt = false
+
+[functions.send-email-notification]
+verify_jwt = false
+
+[functions.send-push-notification]
+verify_jwt = false
+
+[functions.valorant-matches]
+verify_jwt = false
+
+[functions.admin-logout-all]
+verify_jwt = false
+
+[functions.export-db-schema]
+verify_jwt = false

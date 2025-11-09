@@ -32,6 +32,7 @@ import SponsorManager from "@/components/admin/SponsorManager";
 import { VODManager } from "@/components/admin/VODManager";
 import { RankWeightSyncManager } from "@/components/admin/RankWeightSyncManager";
 import { TeamSessionMedicManager } from "@/components/TeamSessionMedicManager";
+import AIAssistant from "@/components/ai/AIAssistant";
 
 const Admin = () => {
   const { isAdmin } = useAuth();
@@ -311,6 +312,9 @@ const Admin = () => {
         team1Name="Team adum__"
         team2Name="Team _dek"
       />
+      
+      {/* AI Assistant - Available on all admin pages */}
+      <AIAssistant />
     </div>
   );
 };

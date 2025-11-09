@@ -29,6 +29,48 @@ const BracketGenerator = ({ tournamentId, teams, onBracketGenerated }: BracketGe
       return;
     }
 
+    // PHASE 3: Pre-generation validation - Check for existing matches
+    const { data: existingMatches, error: checkError } = await supabase
+      .from('matches')
+      .select('id')
+      .eq('tournament_id', tournamentId)
+      .limit(1);
+
+    if (checkError) {
+      console.error('Error checking existing matches:', checkError);
+    }
+
+    if (existingMatches && existingMatches.length > 0) {
+      const confirmed = window.confirm(
+        '⚠️ WARNING: This tournament already has matches!\n\n' +
+        'Regenerating will DELETE all existing matches, scores, and bracket data.\n\n' +
+        'Are you absolutely sure you want to proceed?'
+      );
+      
+      if (!confirmed) {
+        toast({
+          title: "Bracket Generation Cancelled",
+          description: "Existing bracket preserved.",
+        });
+        return;
+      }
+
+      // Delete existing matches if user confirmed
+      const { error: deleteError } = await supabase
+        .from('matches')
+        .delete()
+        .eq('tournament_id', tournamentId);
+
+      if (deleteError) {
+        toast({
+          title: "Error",
+          description: "Failed to clear existing matches. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     setGenerating(true);
     try {
       // First, capture current active map pool for this tournament

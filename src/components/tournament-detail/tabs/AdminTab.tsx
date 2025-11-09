@@ -6,6 +6,7 @@ import TournamentStatusManager from "@/components/TournamentStatusManager";
 import TournamentEditDialog from "@/components/TournamentEditDialog";
 import ComprehensiveTournamentEditor from "@/components/ComprehensiveTournamentEditor";
 import CloneTournamentDialog from "@/components/CloneTournamentDialog";
+import AIHealthMonitor from "@/components/ai/AIHealthMonitor";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface AdminTabProps {
@@ -74,17 +75,22 @@ export default function AdminTab({
           </CardContent>
         </Card>
 
-        {/* Bracket Management */}
+        {/* Bracket Management with AI Health Monitoring */}
         <Card className="bg-slate-800 border-slate-700">
           <CardHeader>
             <CardTitle className="text-white">Bracket Management</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <BracketGenerator
+            <AIHealthMonitor 
               tournamentId={tournament.id}
-              teams={teams}
               onBracketGenerated={onBracketGenerated || onRefresh}
-            />
+            >
+              <BracketGenerator
+                tournamentId={tournament.id}
+                teams={teams}
+                onBracketGenerated={onBracketGenerated || onRefresh}
+              />
+            </AIHealthMonitor>
             <IntegratedBracketView tournamentId={tournament.id} />
           </CardContent>
         </Card>
