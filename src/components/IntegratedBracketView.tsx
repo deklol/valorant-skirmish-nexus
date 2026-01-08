@@ -116,44 +116,43 @@ const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => 
       setLoading(true);
       setError(null);
       
-      // Fetch tournament details (safe RPC so we don't require broad public SELECT on tournaments)
-      const { data: tournamentRows, error: tournamentError } = await supabase.rpc(
-        'get_bracket_tournament_meta',
-        { p_tournament_id: tournamentId }
-      );
+      // Fetch tournament details
+      const { data: tournamentData, error: tournamentError } = await supabase
+        .from('tournaments')
+        .select('max_teams, bracket_type, match_format, status, name')
+        .eq('id', tournamentId)
+        .maybeSingle();
 
       if (tournamentError) {
         throw new Error(`Failed to fetch tournament: ${tournamentError.message}`);
       }
 
-      const tournamentData = Array.isArray(tournamentRows) ? tournamentRows[0] : null;
-
       if (!tournamentData) {
         throw new Error('Tournament not found');
       }
 
-      setTournament({
-        max_teams: tournamentData.max_teams,
-        bracket_type: tournamentData.bracket_type,
-        match_format: tournamentData.match_format,
-        status: tournamentData.status,
-        name: tournamentData.name,
-      });
+      setTournament(tournamentData);
 
-      // Fetch matches with team names (safe RPC)
-      const { data: matchesData, error: matchesError } = await supabase.rpc('get_bracket_matches', {
-        p_tournament_id: tournamentId,
-      });
+      // Fetch matches with proper team joins
+      const { data: matchesData, error: matchesError } = await supabase
+        .from('matches')
+        .select(`
+          *,
+          team1:teams!matches_team1_id_fkey (name, id),
+          team2:teams!matches_team2_id_fkey (name, id)
+        `)
+        .eq('tournament_id', tournamentId)
+        .order('round_number', { ascending: true })
+        .order('match_number', { ascending: true });
 
       if (matchesError) {
         throw new Error(`Failed to fetch matches: ${matchesError.message}`);
       }
 
-      const processedMatches = (Array.isArray(matchesData) ? matchesData : []).map((match: any) => ({
+      const processedMatches = (matchesData || []).map((match: any) => ({
         ...match,
-        // Normalize the RPC jsonb into the same shape the UI expects
-        team1: match.team1 && typeof match.team1 === 'object' ? match.team1 : null,
-        team2: match.team2 && typeof match.team2 === 'object' ? match.team2 : null,
+        team1: match.team1 && typeof match.team1 === 'object' && 'name' in match.team1 ? match.team1 : null,
+        team2: match.team2 && typeof match.team2 === 'object' && 'name' in match.team2 ? match.team2 : null,
       }));
 
       setMatches(processedMatches);

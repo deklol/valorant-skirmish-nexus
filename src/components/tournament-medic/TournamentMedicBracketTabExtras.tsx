@@ -86,14 +86,18 @@ export default function TournamentMedicBracketTabExtras({ tournament, onRefresh 
 
   return (
     <div className="flex flex-col gap-4 mt-3">
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" variant="outline" onClick={refreshStatus}>
+          Refresh status
+        </Button>
+        <Button size="sm" variant="outline" onClick={forceUnlock}>
+          Force unlock
+        </Button>
+      </div>
+
       {generationInProgress && (
-        <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant="outline" onClick={refreshStatus}>
-            Refresh status
-          </Button>
-          <Button size="sm" variant="destructive" onClick={forceUnlock}>
-            Force unlock
-          </Button>
+        <div className="text-sm text-muted-foreground">
+          Bracket generation is currently marked as in progress. If this is wrong (e.g. browser closed mid-run), use Force unlock.
         </div>
       )}
 
