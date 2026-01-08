@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogFooter, AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel } from "@/components/ui/alert-dialog";
 import { Progress } from "@/components/ui/progress";
-import { BarChart, Database, RefreshCw, AlertTriangle, CheckCircle, Wrench } from "lucide-react";
+import { BarChart, Database, RefreshCw, AlertTriangle, CheckCircle, Wrench, RotateCcw } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -22,7 +23,16 @@ export default function StatisticsMedicManager() {
   const [fixing, setFixing] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [showRecalculateConfirm, setShowRecalculateConfirm] = useState(false);
+  const [recalculateLoading, setRecalculateLoading] = useState(false);
   const [selectedFix, setSelectedFix] = useState<StatisticsIssue | null>(null);
+  const [recalculateResults, setRecalculateResults] = useState<{
+    users_updated: number;
+    total_wins: number;
+    total_losses: number;
+    total_tournament_wins: number;
+    total_tournaments_played: number;
+  } | null>(null);
   const { toast } = useToast();
 
   const runStatisticsScan = async () => {
@@ -288,6 +298,33 @@ export default function StatisticsMedicManager() {
     }
   };
 
+  const handleRecalculateStatistics = async () => {
+    setRecalculateLoading(true);
+    setShowRecalculateConfirm(false);
+    try {
+      const { data, error } = await supabase.rpc('recalculate_all_user_statistics');
+      
+      if (error) throw error;
+      
+      if (data && data[0]) {
+        setRecalculateResults(data[0]);
+        toast({
+          title: "Statistics Recalculated!",
+          description: `Updated ${data[0].users_updated} users. Total: ${data[0].total_wins} wins, ${data[0].total_losses} losses, ${data[0].total_tournament_wins} tournament wins`,
+        });
+      }
+    } catch (error: any) {
+      console.error('Error recalculating statistics:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to recalculate statistics",
+        variant: "destructive",
+      });
+    } finally {
+      setRecalculateLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card className="bg-slate-800 border-slate-700">
@@ -420,6 +457,84 @@ export default function StatisticsMedicManager() {
               </div>
             </div>
           </div>
+
+          {/* Full Recalculation Section */}
+          <div className="border-t border-slate-700 pt-6">
+            <h4 className="text-white font-medium mb-3 flex items-center gap-2">
+              <RotateCcw className="w-4 h-4 text-orange-400" />
+              Full Statistics Recalculation
+            </h4>
+            
+            <Alert className="bg-orange-500/10 border-orange-500/30 mb-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription className="text-orange-200 text-sm">
+                This will <strong>reset ALL user statistics to zero</strong> and recalculate from ground truth 
+                (completed matches in completed tournaments only). Use this to fix inflated or incorrect statistics.
+              </AlertDescription>
+            </Alert>
+
+            {recalculateResults && (
+              <Alert className="bg-green-500/10 border-green-500/30 mb-4">
+                <CheckCircle className="h-4 w-4" />
+                <AlertDescription className="text-green-200">
+                  <div className="space-y-2">
+                    <div className="font-medium">Recalculation Results:</div>
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
+                      <div>
+                        <Badge variant="secondary" className="bg-blue-600/20 text-blue-400">
+                          {recalculateResults.users_updated}
+                        </Badge>
+                        <div className="mt-1">Users Updated</div>
+                      </div>
+                      <div>
+                        <Badge variant="secondary" className="bg-green-600/20 text-green-400">
+                          {recalculateResults.total_wins}
+                        </Badge>
+                        <div className="mt-1">Total Wins</div>
+                      </div>
+                      <div>
+                        <Badge variant="secondary" className="bg-red-600/20 text-red-400">
+                          {recalculateResults.total_losses}
+                        </Badge>
+                        <div className="mt-1">Total Losses</div>
+                      </div>
+                      <div>
+                        <Badge variant="secondary" className="bg-yellow-600/20 text-yellow-400">
+                          {recalculateResults.total_tournament_wins}
+                        </Badge>
+                        <div className="mt-1">Tournament Wins</div>
+                      </div>
+                      <div>
+                        <Badge variant="secondary" className="bg-purple-600/20 text-purple-400">
+                          {recalculateResults.total_tournaments_played}
+                        </Badge>
+                        <div className="mt-1">Tournaments Played</div>
+                      </div>
+                    </div>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <Button
+              onClick={() => setShowRecalculateConfirm(true)}
+              disabled={recalculateLoading || loading || fixing}
+              variant="destructive"
+              className="w-full"
+            >
+              {recalculateLoading ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Recalculating Statistics...
+                </>
+              ) : (
+                <>
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  Recalculate All Statistics from Ground Truth
+                </>
+              )}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -445,6 +560,35 @@ export default function StatisticsMedicManager() {
               className="bg-green-600 hover:bg-green-700"
             >
               Fix Issue
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Recalculate Confirmation Dialog */}
+      <AlertDialog open={showRecalculateConfirm} onOpenChange={setShowRecalculateConfirm}>
+        <AlertDialogContent className="bg-slate-800 border-slate-700">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">Recalculate All Statistics?</AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-300">
+              This will <strong className="text-orange-400">reset ALL user statistics to zero</strong> and recalculate them 
+              from completed matches in completed tournaments only. This action cannot be undone.
+              <br /><br />
+              Use this if statistics are inflated due to:
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                <li>Matches from non-completed tournaments being counted</li>
+                <li>Double-counting from match result resubmissions</li>
+                <li>Orphaned statistics from deleted or reset tournaments</li>
+              </ul>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-slate-700 text-white hover:bg-slate-600">Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleRecalculateStatistics}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Yes, Recalculate All
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
