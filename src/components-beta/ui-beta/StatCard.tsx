@@ -1,19 +1,34 @@
 import { cn } from "@/lib/utils";
-import { LucideIcon } from "lucide-react";
+import { ReactNode } from "react";
 import { GlassCard } from "./GlassCard";
 
 interface StatCardProps {
   label: string;
   value: string | number;
-  icon?: LucideIcon;
-  trend?: {
-    value: number;
-    isPositive: boolean;
-  };
+  icon?: ReactNode;
+  trend?: 'up' | 'down' | 'neutral';
+  trendValue?: string;
   className?: string;
+  valueClassName?: string;
 }
 
-const StatCard = ({ label, value, icon: Icon, trend, className }: StatCardProps) => {
+const StatCard = ({ 
+  label, 
+  value, 
+  icon, 
+  trend, 
+  trendValue,
+  className,
+  valueClassName 
+}: StatCardProps) => {
+  const getTrendColor = () => {
+    switch (trend) {
+      case 'up': return 'text-[hsl(var(--beta-success))]';
+      case 'down': return 'text-[hsl(var(--beta-error))]';
+      default: return 'text-[hsl(var(--beta-text-muted))]';
+    }
+  };
+
   return (
     <GlassCard
       variant="default"
@@ -26,25 +41,23 @@ const StatCard = ({ label, value, icon: Icon, trend, className }: StatCardProps)
           <p className="text-xs font-medium uppercase tracking-wider text-[hsl(var(--beta-text-muted))]">
             {label}
           </p>
-          <p className="text-2xl font-bold tracking-tight text-[hsl(var(--beta-text-primary))]">
+          <p className={cn(
+            "text-2xl font-bold tracking-tight text-[hsl(var(--beta-text-primary))]",
+            valueClassName
+          )}>
             {value}
           </p>
-          {trend && (
-            <p
-              className={cn(
-                "text-xs font-medium",
-                trend.isPositive
-                  ? "text-[hsl(var(--beta-success))]"
-                  : "text-[hsl(var(--beta-error))]"
-              )}
-            >
-              {trend.isPositive ? "+" : ""}{trend.value}%
+          {trendValue && (
+            <p className={cn("text-xs font-medium", getTrendColor())}>
+              {trendValue}
             </p>
           )}
         </div>
-        {Icon && (
+        {icon && (
           <div className="shrink-0 rounded-[var(--beta-radius-lg)] bg-[hsl(var(--beta-accent-subtle))] p-3 transition-colors group-hover:bg-[hsl(var(--beta-accent)/0.2)]">
-            <Icon className="h-5 w-5 text-[hsl(var(--beta-accent))]" />
+            <div className="h-5 w-5 text-[hsl(var(--beta-accent))] [&>svg]:h-5 [&>svg]:w-5">
+              {icon}
+            </div>
           </div>
         )}
       </div>

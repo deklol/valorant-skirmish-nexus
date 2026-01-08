@@ -80,10 +80,10 @@ const BetaIndex = () => {
 
         {/* Stats Grid */}
         <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard label="Tournaments" value={loading ? "—" : stats.totalTournaments} icon={Trophy} />
-          <StatCard label="Active Players" value={loading ? "—" : stats.activePlayers} icon={Users} />
-          <StatCard label="Matches Played" value={loading ? "—" : stats.matchesPlayed} icon={BarChart3} />
-          <StatCard label="Open Signups" value={loading ? "—" : stats.upcomingEvents} icon={Calendar} />
+          <StatCard label="Tournaments" value={loading ? "—" : stats.totalTournaments} icon={<Trophy />} />
+          <StatCard label="Active Players" value={loading ? "—" : stats.activePlayers} icon={<Users />} />
+          <StatCard label="Matches Played" value={loading ? "—" : stats.matchesPlayed} icon={<BarChart3 />} />
+          <StatCard label="Open Signups" value={loading ? "—" : stats.upcomingEvents} icon={<Calendar />} />
         </section>
 
         {/* Quick Actions */}
