@@ -1850,6 +1850,7 @@ export type Database = {
         Row: {
           balance_analysis: Json | null
           banner_image_url: string | null
+          bracket_generated: boolean | null
           bracket_type: string | null
           check_in_ends_at: string | null
           check_in_required: boolean | null
@@ -1861,6 +1862,7 @@ export type Database = {
           enable_adaptive_weights: boolean | null
           enable_map_veto: boolean | null
           final_match_format: Database["public"]["Enums"]["match_format"] | null
+          generating_bracket: boolean | null
           id: string
           map_pool: Json | null
           map_veto_required_rounds: Json | null
@@ -1885,6 +1887,7 @@ export type Database = {
         Insert: {
           balance_analysis?: Json | null
           banner_image_url?: string | null
+          bracket_generated?: boolean | null
           bracket_type?: string | null
           check_in_ends_at?: string | null
           check_in_required?: boolean | null
@@ -1898,6 +1901,7 @@ export type Database = {
           final_match_format?:
             | Database["public"]["Enums"]["match_format"]
             | null
+          generating_bracket?: boolean | null
           id?: string
           map_pool?: Json | null
           map_veto_required_rounds?: Json | null
@@ -1922,6 +1926,7 @@ export type Database = {
         Update: {
           balance_analysis?: Json | null
           banner_image_url?: string | null
+          bracket_generated?: boolean | null
           bracket_type?: string | null
           check_in_ends_at?: string | null
           check_in_required?: boolean | null
@@ -1935,6 +1940,7 @@ export type Database = {
           final_match_format?:
             | Database["public"]["Enums"]["match_format"]
             | null
+          generating_bracket?: boolean | null
           id?: string
           map_pool?: Json | null
           map_veto_required_rounds?: Json | null
@@ -2643,6 +2649,10 @@ export type Database = {
         Args: { p_match_id: string; p_side_choice: string; p_user_id: string }
         Returns: Json
       }
+      complete_bracket_generation: {
+        Args: { p_success?: boolean; p_tournament_id: string }
+        Returns: Json
+      }
       create_enhanced_notification: {
         Args: {
           p_data?: Json
@@ -2705,6 +2715,10 @@ export type Database = {
       fix_missing_tournament_wins: { Args: never; Returns: number }
       force_advance_team: {
         Args: { p_reason?: string; p_target_round: number; p_team_id: string }
+        Returns: Json
+      }
+      generate_bracket_secure: {
+        Args: { p_force?: boolean; p_tournament_id: string }
         Returns: Json
       }
       generate_team_invite_code: { Args: never; Returns: string }
@@ -2939,6 +2953,10 @@ export type Database = {
         }
         Returns: Json
       }
+      reset_match_secure: {
+        Args: { p_match_id: string; p_reason?: string }
+        Returns: Json
+      }
       reverse_player_tournament_stats: {
         Args: { p_team_id: string; p_tournament_id: string; p_user_id: string }
         Returns: Json
@@ -2949,6 +2967,10 @@ export type Database = {
       }
       roll_veto_dice: {
         Args: { p_initiator_user_id: string; p_match_id: string }
+        Returns: Json
+      }
+      rollback_match_result: {
+        Args: { p_match_id: string; p_reason?: string }
         Returns: Json
       }
       rollback_tournament_to_round: {
