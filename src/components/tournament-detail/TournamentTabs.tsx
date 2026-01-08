@@ -4,14 +4,12 @@ import {
   StandardTabsTrigger, 
   StandardTabsContent 
 } from "@/components/ui/standard-tabs";
-import { Settings, Trophy, Users, Scale, UserCheck, ScrollText } from "lucide-react";
+import { Settings, Trophy, Users, UserCheck, ScrollText } from "lucide-react";
 import OverviewTab from "./tabs/OverviewTab";
 import BracketTab from "./tabs/BracketTab";
 import ParticipantsTab from "./tabs/ParticipantsTab";
 import AdminTab from "./tabs/AdminTab";
 import PlayersTab from "./tabs/PlayersTab";
-import BalancingTab from "./tabs/BalancingTab";
-import TournamentBalanceTransparency from "./TournamentBalanceTransparency";
 import RulesTab from "./tabs/RulesTab";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -64,11 +62,6 @@ export default function TournamentTabs({
               <span className="hidden md:inline">Players</span>
               <span className="md:hidden">Plys</span>
             </StandardTabsTrigger>
-            <StandardTabsTrigger value="balancing" className="flex items-center gap-1 md:gap-2 whitespace-nowrap px-2 md:px-4">
-              <Scale className="w-4 h-4" />
-              <span className="hidden md:inline">Balance</span>
-              <span className="md:hidden">Bal</span>
-            </StandardTabsTrigger>
           </>
         )}
       </StandardTabsList>
@@ -103,9 +96,6 @@ export default function TournamentTabs({
           </StandardTabsContent>
           <StandardTabsContent value="players" className="space-y-6">
             <PlayersTab tournamentId={tournament.id} maxPlayers={maxPlayers} onCheckInUpdate={onRefresh} />
-          </StandardTabsContent>
-          <StandardTabsContent value="balancing" className="space-y-6">
-            <BalancingTab tournamentId={tournament.id} maxTeams={tournament.max_teams} teamSize={tournament.team_size} onTeamsUpdated={onRefresh} />
           </StandardTabsContent>
         </>
       }
