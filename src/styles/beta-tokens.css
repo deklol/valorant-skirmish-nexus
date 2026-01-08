@@ -1,55 +1,63 @@
 /* Beta Design System Tokens */
-/* Modern glassmorphism with refined dark palette */
+/* Dark premium theme with gold/amber accents */
 
 :root {
-  /* Beta Surface Colors - Refined dark palette */
-  --beta-surface-1: 222 47% 8%;
-  --beta-surface-2: 222 47% 11%;
-  --beta-surface-3: 222 47% 14%;
-  --beta-surface-4: 222 47% 18%;
+  /* Beta Surface Colors - Deep dark palette */
+  --beta-surface-1: 220 20% 4%;
+  --beta-surface-2: 220 18% 7%;
+  --beta-surface-3: 220 16% 10%;
+  --beta-surface-4: 220 14% 14%;
   
-  /* Beta Accent Colors - Vibrant cyan/teal */
-  --beta-accent: 186 100% 50%;
-  --beta-accent-muted: 186 70% 40%;
-  --beta-accent-subtle: 186 50% 20%;
+  /* Beta Accent Colors - Gold/Amber */
+  --beta-accent: 38 92% 50%;
+  --beta-accent-muted: 38 70% 42%;
+  --beta-accent-subtle: 38 50% 15%;
+  --beta-accent-glow: 38 100% 60%;
   
-  /* Beta Secondary Accent - Electric purple */
-  --beta-secondary: 270 100% 65%;
-  --beta-secondary-muted: 270 60% 50%;
+  /* Beta Secondary Accent - Warm copper */
+  --beta-secondary: 25 80% 50%;
+  --beta-secondary-muted: 25 60% 40%;
   
   /* Beta Success/Warning/Error */
-  --beta-success: 142 76% 45%;
+  --beta-success: 142 70% 45%;
   --beta-warning: 38 92% 50%;
-  --beta-error: 0 84% 60%;
+  --beta-error: 0 72% 51%;
   
   /* Beta Text Colors */
-  --beta-text-primary: 0 0% 98%;
-  --beta-text-secondary: 220 14% 70%;
-  --beta-text-muted: 220 14% 50%;
+  --beta-text-primary: 40 20% 96%;
+  --beta-text-secondary: 220 10% 65%;
+  --beta-text-muted: 220 10% 45%;
+  
+  /* Beta Border Colors */
+  --beta-border: 220 15% 15%;
+  --beta-border-subtle: 220 15% 12%;
+  --beta-border-accent: 38 70% 30%;
   
   /* Beta Glass Effects */
-  --beta-glass-bg: 222 47% 11% / 0.7;
-  --beta-glass-border: 220 14% 30% / 0.3;
-  --beta-glass-blur: 12px;
-  --beta-glass-highlight: 0 0% 100% / 0.05;
+  --beta-glass-bg: 220 20% 6% / 0.85;
+  --beta-glass-border: 220 15% 18% / 0.5;
+  --beta-glass-blur: 16px;
+  --beta-glass-highlight: 40 20% 100% / 0.03;
   
   /* Beta Elevation Shadows */
-  --beta-shadow-sm: 0 2px 8px -2px hsl(0 0% 0% / 0.3);
-  --beta-shadow-md: 0 4px 16px -4px hsl(0 0% 0% / 0.4);
-  --beta-shadow-lg: 0 8px 32px -8px hsl(0 0% 0% / 0.5);
-  --beta-shadow-glow: 0 0 20px -5px hsl(var(--beta-accent) / 0.3);
+  --beta-shadow-sm: 0 2px 8px -2px hsl(0 0% 0% / 0.5);
+  --beta-shadow-md: 0 4px 20px -4px hsl(0 0% 0% / 0.6);
+  --beta-shadow-lg: 0 8px 40px -8px hsl(0 0% 0% / 0.7);
+  --beta-shadow-glow: 0 0 30px -5px hsl(var(--beta-accent) / 0.25);
+  --beta-shadow-glow-strong: 0 0 40px -5px hsl(var(--beta-accent) / 0.4);
   
   /* Beta Gradients */
   --beta-gradient-primary: linear-gradient(135deg, hsl(var(--beta-accent)) 0%, hsl(var(--beta-secondary)) 100%);
   --beta-gradient-surface: linear-gradient(180deg, hsl(var(--beta-surface-2)) 0%, hsl(var(--beta-surface-1)) 100%);
-  --beta-gradient-glow: radial-gradient(ellipse at top, hsl(var(--beta-accent) / 0.15) 0%, transparent 50%);
+  --beta-gradient-glow: radial-gradient(ellipse at top, hsl(var(--beta-accent) / 0.08) 0%, transparent 60%);
+  --beta-gradient-subtle: linear-gradient(180deg, hsl(var(--beta-surface-3)) 0%, hsl(var(--beta-surface-2)) 100%);
   
   /* Beta Border Radius */
   --beta-radius-sm: 0.375rem;
   --beta-radius-md: 0.5rem;
   --beta-radius-lg: 0.75rem;
   --beta-radius-xl: 1rem;
-  --beta-radius-2xl: 1.5rem;
+  --beta-radius-2xl: 1.25rem;
   
   /* Beta Spacing Scale */
   --beta-space-1: 0.25rem;
@@ -61,6 +69,7 @@
   --beta-space-8: 2rem;
   --beta-space-10: 2.5rem;
   --beta-space-12: 3rem;
+  --beta-space-16: 4rem;
   
   /* Beta Typography */
   --beta-font-display: 'Inter', system-ui, sans-serif;
@@ -78,22 +87,33 @@
   background: hsl(var(--beta-glass-bg));
   backdrop-filter: blur(var(--beta-glass-blur));
   -webkit-backdrop-filter: blur(var(--beta-glass-blur));
-  border: 1px solid hsl(var(--beta-glass-border));
+  border: 1px solid hsl(var(--beta-border));
 }
 
 .beta-glass-strong {
-  background: hsl(222 47% 11% / 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid hsl(220 14% 35% / 0.4);
+  background: hsl(220 20% 6% / 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid hsl(var(--beta-border));
+}
+
+.beta-glass-subtle {
+  background: hsl(220 20% 8% / 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid hsl(var(--beta-border-subtle));
 }
 
 .beta-glow {
   box-shadow: var(--beta-shadow-glow);
 }
 
+.beta-glow-strong {
+  box-shadow: var(--beta-shadow-glow-strong);
+}
+
 .beta-glow-text {
-  text-shadow: 0 0 20px hsl(var(--beta-accent) / 0.5);
+  text-shadow: 0 0 30px hsl(var(--beta-accent) / 0.5);
 }
 
 .beta-gradient-text {
@@ -103,41 +123,55 @@
   background-clip: text;
 }
 
+.beta-border-glow {
+  border-color: hsl(var(--beta-border-accent));
+  box-shadow: 0 0 20px -5px hsl(var(--beta-accent) / 0.2);
+}
+
+/* Surface utilities */
 .beta-surface-1 { background-color: hsl(var(--beta-surface-1)); }
 .beta-surface-2 { background-color: hsl(var(--beta-surface-2)); }
 .beta-surface-3 { background-color: hsl(var(--beta-surface-3)); }
 .beta-surface-4 { background-color: hsl(var(--beta-surface-4)); }
 
+/* Text utilities */
 .beta-text-primary { color: hsl(var(--beta-text-primary)); }
 .beta-text-secondary { color: hsl(var(--beta-text-secondary)); }
 .beta-text-muted { color: hsl(var(--beta-text-muted)); }
 
+/* Accent utilities */
 .beta-accent { color: hsl(var(--beta-accent)); }
 .beta-accent-bg { background-color: hsl(var(--beta-accent)); }
+.beta-accent-border { border-color: hsl(var(--beta-accent)); }
 
 /* Beta Animations */
 @keyframes beta-fade-in {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes beta-slide-in {
-  from { opacity: 0; transform: translateX(-20px); }
+  from { opacity: 0; transform: translateX(-16px); }
   to { opacity: 1; transform: translateX(0); }
 }
 
 @keyframes beta-scale-in {
-  from { opacity: 0; transform: scale(0.95); }
+  from { opacity: 0; transform: scale(0.96); }
   to { opacity: 1; transform: scale(1); }
 }
 
 @keyframes beta-glow-pulse {
-  0%, 100% { box-shadow: 0 0 20px -5px hsl(var(--beta-accent) / 0.3); }
-  50% { box-shadow: 0 0 30px -5px hsl(var(--beta-accent) / 0.5); }
+  0%, 100% { box-shadow: 0 0 20px -5px hsl(var(--beta-accent) / 0.2); }
+  50% { box-shadow: 0 0 30px -5px hsl(var(--beta-accent) / 0.35); }
+}
+
+@keyframes beta-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
 .beta-animate-fade-in {
-  animation: beta-fade-in 0.3s ease-out forwards;
+  animation: beta-fade-in 0.4s ease-out forwards;
 }
 
 .beta-animate-slide-in {
@@ -145,9 +179,39 @@
 }
 
 .beta-animate-scale-in {
-  animation: beta-scale-in 0.2s ease-out forwards;
+  animation: beta-scale-in 0.25s ease-out forwards;
 }
 
 .beta-animate-glow-pulse {
-  animation: beta-glow-pulse 2s ease-in-out infinite;
+  animation: beta-glow-pulse 3s ease-in-out infinite;
+}
+
+.beta-shimmer {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--beta-surface-3)) 0%,
+    hsl(var(--beta-surface-4)) 50%,
+    hsl(var(--beta-surface-3)) 100%
+  );
+  background-size: 200% 100%;
+  animation: beta-shimmer 1.5s infinite;
+}
+
+/* Hover effects */
+.beta-hover-lift {
+  transition: transform var(--beta-transition-base), box-shadow var(--beta-transition-base);
+}
+
+.beta-hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--beta-shadow-md);
+}
+
+.beta-hover-glow {
+  transition: box-shadow var(--beta-transition-base), border-color var(--beta-transition-base);
+}
+
+.beta-hover-glow:hover {
+  box-shadow: var(--beta-shadow-glow);
+  border-color: hsl(var(--beta-border-accent));
 }

@@ -18,12 +18,15 @@ const StatCard = ({ label, value, icon: Icon, trend, className }: StatCardProps)
     <GlassCard
       variant="default"
       hover
-      className={cn("p-[var(--beta-space-4)]", className)}
+      noPadding
+      className={cn("p-5 group", className)}
     >
-      <div className="flex items-start justify-between">
-        <div className="space-y-1">
-          <p className="text-sm text-[hsl(var(--beta-text-muted))]">{label}</p>
-          <p className="text-2xl font-semibold text-[hsl(var(--beta-text-primary))]">
+      <div className="flex items-center justify-between gap-4">
+        <div className="space-y-1.5 min-w-0 flex-1">
+          <p className="text-xs font-medium uppercase tracking-wider text-[hsl(var(--beta-text-muted))]">
+            {label}
+          </p>
+          <p className="text-2xl font-bold tracking-tight text-[hsl(var(--beta-text-primary))]">
             {value}
           </p>
           {trend && (
@@ -40,7 +43,7 @@ const StatCard = ({ label, value, icon: Icon, trend, className }: StatCardProps)
           )}
         </div>
         {Icon && (
-          <div className="rounded-[var(--beta-radius-md)] bg-[hsl(var(--beta-accent-subtle))] p-2">
+          <div className="shrink-0 rounded-[var(--beta-radius-lg)] bg-[hsl(var(--beta-accent-subtle))] p-3 transition-colors group-hover:bg-[hsl(var(--beta-accent)/0.2)]">
             <Icon className="h-5 w-5 text-[hsl(var(--beta-accent))]" />
           </div>
         )}
