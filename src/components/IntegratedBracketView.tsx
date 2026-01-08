@@ -57,6 +57,39 @@ const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => 
     if (user?.id) {
       fetchUserTeam();
     }
+
+    // Live updates: auto-refresh bracket when matches/tournament change
+    const channel = supabase
+      .channel(`bracket:${tournamentId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'matches',
+          filter: `tournament_id=eq.${tournamentId}`,
+        },
+        () => {
+          fetchBracketData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'tournaments',
+          filter: `id=eq.${tournamentId}`,
+        },
+        () => {
+          fetchBracketData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [tournamentId, user?.id]);
 
   const fetchUserTeam = async () => {
@@ -83,58 +116,58 @@ const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => 
       setLoading(true);
       setError(null);
       
-      // Fetch tournament details
-      const { data: tournamentData, error: tournamentError } = await supabase
-        .from('tournaments')
-        .select('max_teams, bracket_type, match_format, status, name')
-        .eq('id', tournamentId)
-        .maybeSingle();
+      // Fetch tournament details (safe RPC so we don't require broad public SELECT on tournaments)
+      const { data: tournamentRows, error: tournamentError } = await supabase.rpc(
+        'get_bracket_tournament_meta',
+        { p_tournament_id: tournamentId }
+      );
 
       if (tournamentError) {
         throw new Error(`Failed to fetch tournament: ${tournamentError.message}`);
       }
 
+      const tournamentData = Array.isArray(tournamentRows) ? tournamentRows[0] : null;
+
       if (!tournamentData) {
         throw new Error('Tournament not found');
       }
 
-      setTournament(tournamentData);
+      setTournament({
+        max_teams: tournamentData.max_teams,
+        bracket_type: tournamentData.bracket_type,
+        match_format: tournamentData.match_format,
+        status: tournamentData.status,
+        name: tournamentData.name,
+      });
 
-      // Fetch matches with proper team joins
-      const { data: matchesData, error: matchesError } = await supabase
-        .from('matches')
-        .select(`
-          *,
-          team1:teams!matches_team1_id_fkey (name, id),
-          team2:teams!matches_team2_id_fkey (name, id)
-        `)
-        .eq('tournament_id', tournamentId)
-        .order('round_number', { ascending: true })
-        .order('match_number', { ascending: true });
+      // Fetch matches with team names (safe RPC)
+      const { data: matchesData, error: matchesError } = await supabase.rpc('get_bracket_matches', {
+        p_tournament_id: tournamentId,
+      });
 
       if (matchesError) {
-        console.warn('Could not fetch matches, continuing with empty bracket');
-        setMatches([]);
-      } else {
-        const processedMatches = (matchesData || []).map(match => ({
-          ...match,
-          team1: match.team1 && typeof match.team1 === 'object' && 'name' in match.team1 ? match.team1 : null,
-          team2: match.team2 && typeof match.team2 === 'object' && 'name' in match.team2 ? match.team2 : null
-        }));
+        throw new Error(`Failed to fetch matches: ${matchesError.message}`);
+      }
 
-        setMatches(processedMatches);
+      const processedMatches = (Array.isArray(matchesData) ? matchesData : []).map((match: any) => ({
+        ...match,
+        // Normalize the RPC jsonb into the same shape the UI expects
+        team1: match.team1 && typeof match.team1 === 'object' ? match.team1 : null,
+        team2: match.team2 && typeof match.team2 === 'object' ? match.team2 : null,
+      }));
 
-        // Fetch map veto sessions for matches with veto enabled
-        const vetoEnabledMatches = processedMatches.filter(m => m.map_veto_enabled);
-        if (vetoEnabledMatches.length > 0) {
-          const { data: vetoData } = await supabase
-            .from('map_veto_sessions')
-            .select('*')
-            .in('match_id', vetoEnabledMatches.map(m => m.id));
+      setMatches(processedMatches);
 
-          if (vetoData) {
-            setVetoSessions(vetoData);
-          }
+      // Fetch map veto sessions for matches with veto enabled
+      const vetoEnabledMatches = processedMatches.filter((m: any) => m.map_veto_enabled);
+      if (vetoEnabledMatches.length > 0) {
+        const { data: vetoData, error: vetoError } = await supabase
+          .from('map_veto_sessions')
+          .select('*')
+          .in('match_id', vetoEnabledMatches.map((m: any) => m.id));
+
+        if (!vetoError && vetoData) {
+          setVetoSessions(vetoData);
         }
       }
 

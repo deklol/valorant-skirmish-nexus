@@ -2733,6 +2733,36 @@ export type Database = {
           top_points_username: string
         }[]
       }
+      get_bracket_matches: {
+        Args: { p_tournament_id: string }
+        Returns: {
+          id: string
+          map_veto_enabled: boolean
+          match_number: number
+          round_number: number
+          scheduled_time: string
+          score_team1: number
+          score_team2: number
+          status: string
+          team1: Json
+          team1_id: string
+          team2: Json
+          team2_id: string
+          tournament_id: string
+          winner_id: string
+        }[]
+      }
+      get_bracket_tournament_meta: {
+        Args: { p_tournament_id: string }
+        Returns: {
+          bracket_type: string
+          id: string
+          match_format: string
+          max_teams: number
+          name: string
+          status: string
+        }[]
+      }
       get_next_substitute: {
         Args: { p_tournament_id: string }
         Returns: {
