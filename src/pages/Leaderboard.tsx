@@ -34,8 +34,9 @@ const Leaderboard = () => {
   const fetchLeaderboard = async () => {
     setLoading(true);
     try {
+      // Use public_user_profiles view for secure public access
       let { data, error } = await supabase
-        .from('users')
+        .from('public_user_profiles')
         .select('id, discord_username, current_rank, rank_points, tournaments_won, tournaments_played, wins, losses')
         .eq('is_phantom', false);
 

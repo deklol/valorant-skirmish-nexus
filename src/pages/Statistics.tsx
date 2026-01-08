@@ -85,13 +85,13 @@ const Statistics = () => {
         ] = await Promise.all([
           supabase.from('tournaments').select('*', { count: 'exact', head: true }),
           supabase.from('matches').select('*', { count: 'exact', head: true }),
-          supabase.from('users').select('*', { count: 'exact', head: true }),
+          supabase.from('public_user_profiles').select('*', { count: 'exact', head: true }),
           supabase
-            .from('users')
+            .from('public_user_profiles')
             .select('discord_username, tournaments_won')
             .order('tournaments_won', { ascending: false })
             .limit(1)
-            .single(),
+            .maybeSingle(),
           supabase.rpc('get_achievement_leaders'),
           supabase.rpc('get_achievement_leaders')
         ]);
