@@ -49,6 +49,8 @@ import BetaIndex from "./pages-beta/BetaIndex";
 import BetaTournaments from "./pages-beta/BetaTournaments";
 import BetaLeaderboard from "./pages-beta/BetaLeaderboard";
 import BetaPlayers from "./pages-beta/BetaPlayers";
+import BetaTournamentDetail from "./pages-beta/BetaTournamentDetail";
+import BetaProfile from "./pages-beta/BetaProfile";
 
 const queryClient = new QueryClient();
 
@@ -91,9 +93,11 @@ const AppContent = () => {
             <Route path="/beta" element={<BetaLayout />}>
               <Route index element={<BetaIndex />} />
               <Route path="tournaments" element={<BetaTournaments />} />
+              <Route path="tournament/:id" element={<BetaTournamentDetail />} />
               <Route path="leaderboard" element={<BetaLeaderboard />} />
               <Route path="players" element={<BetaPlayers />} />
-              {/* More beta routes will be added in future phases */}
+              <Route path="profile" element={<BetaProfile />} />
+              <Route path="profile/:userId" element={<BetaProfile />} />
             </Route>
             
             {/* All other routes with normal layout */}
