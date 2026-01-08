@@ -101,7 +101,7 @@ const MatchHistoryTab = ({ userId }: { userId: string }) => {
   return (
     <div className="space-y-3">
       {matches.map((match: any, idx: number) => (
-        <Link key={match.id} to={`/match/${match.id}`}>
+        <Link key={match.id} to={`/beta/match/${match.id}`}>
           <GlassCard 
             variant="subtle" 
             hover 

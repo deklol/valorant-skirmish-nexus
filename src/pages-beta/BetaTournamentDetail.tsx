@@ -174,7 +174,7 @@ const BetaBracketView = ({ tournamentId }: { tournamentId: string }) => {
               
               <div className="space-y-3">
                 {roundMatches.map((match, idx) => (
-                  <Link key={match.id} to={`/match/${match.id}`}>
+                  <Link key={match.id} to={`/beta/match/${match.id}`}>
                     <GlassCard 
                       variant="subtle" 
                       hover 
@@ -850,10 +850,16 @@ const BetaTournamentDetail = () => {
             <p className="text-[hsl(var(--beta-text-muted))] mb-4">
               Admin controls are available on the full tournament page for comprehensive management.
             </p>
+            <Link to={`/beta/admin`}>
+              <BetaButton variant="outline" className="mr-3">
+                <Settings className="w-4 h-4 mr-2" />
+                Beta Admin
+              </BetaButton>
+            </Link>
             <Link to={`/tournament/${id}`}>
               <BetaButton>
                 <Shield className="w-4 h-4 mr-2" />
-                Go to Admin Dashboard
+                Full Admin Dashboard
               </BetaButton>
             </Link>
           </GlassCard>
