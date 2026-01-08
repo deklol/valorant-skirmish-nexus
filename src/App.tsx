@@ -43,6 +43,10 @@ import TournamentData from "./pages/broadcast/api/TournamentData";
 import BroadcastIds from "./pages/broadcast/BroadcastIds";
 import { AppSettingsProvider } from "./contexts/AppSettingsContext";
 
+// Beta imports - BETA ONLY
+import { BetaLayout } from "./components-beta/BetaLayout";
+import BetaIndex from "./pages-beta/BetaIndex";
+
 const queryClient = new QueryClient();
 
 const AppContent = () => {
@@ -64,7 +68,7 @@ const AppContent = () => {
       <OnboardingSystem>
         <SidebarProvider>
           <Routes>
-            {/* Original broadcast control panel */}
+          {/* Original broadcast control panel */}
             <Route path="/broadcast/:id" element={<Broadcast />} />
             
             {/* Individual broadcast components for OBS/streaming */}
@@ -79,6 +83,12 @@ const AppContent = () => {
             
             {/* API endpoint for external integrations */}
             <Route path="/broadcast/:id/api/data" element={<TournamentData />} />
+
+            {/* BETA ROUTES - New design preview */}
+            <Route path="/beta" element={<BetaLayout />}>
+              <Route index element={<BetaIndex />} />
+              {/* More beta routes will be added here in future phases */}
+            </Route>
             
             {/* All other routes with normal layout */}
             <Route path="*" element={

@@ -1,0 +1,153 @@
+/* Beta Design System Tokens */
+/* Modern glassmorphism with refined dark palette */
+
+:root {
+  /* Beta Surface Colors - Refined dark palette */
+  --beta-surface-1: 222 47% 8%;
+  --beta-surface-2: 222 47% 11%;
+  --beta-surface-3: 222 47% 14%;
+  --beta-surface-4: 222 47% 18%;
+  
+  /* Beta Accent Colors - Vibrant cyan/teal */
+  --beta-accent: 186 100% 50%;
+  --beta-accent-muted: 186 70% 40%;
+  --beta-accent-subtle: 186 50% 20%;
+  
+  /* Beta Secondary Accent - Electric purple */
+  --beta-secondary: 270 100% 65%;
+  --beta-secondary-muted: 270 60% 50%;
+  
+  /* Beta Success/Warning/Error */
+  --beta-success: 142 76% 45%;
+  --beta-warning: 38 92% 50%;
+  --beta-error: 0 84% 60%;
+  
+  /* Beta Text Colors */
+  --beta-text-primary: 0 0% 98%;
+  --beta-text-secondary: 220 14% 70%;
+  --beta-text-muted: 220 14% 50%;
+  
+  /* Beta Glass Effects */
+  --beta-glass-bg: 222 47% 11% / 0.7;
+  --beta-glass-border: 220 14% 30% / 0.3;
+  --beta-glass-blur: 12px;
+  --beta-glass-highlight: 0 0% 100% / 0.05;
+  
+  /* Beta Elevation Shadows */
+  --beta-shadow-sm: 0 2px 8px -2px hsl(0 0% 0% / 0.3);
+  --beta-shadow-md: 0 4px 16px -4px hsl(0 0% 0% / 0.4);
+  --beta-shadow-lg: 0 8px 32px -8px hsl(0 0% 0% / 0.5);
+  --beta-shadow-glow: 0 0 20px -5px hsl(var(--beta-accent) / 0.3);
+  
+  /* Beta Gradients */
+  --beta-gradient-primary: linear-gradient(135deg, hsl(var(--beta-accent)) 0%, hsl(var(--beta-secondary)) 100%);
+  --beta-gradient-surface: linear-gradient(180deg, hsl(var(--beta-surface-2)) 0%, hsl(var(--beta-surface-1)) 100%);
+  --beta-gradient-glow: radial-gradient(ellipse at top, hsl(var(--beta-accent) / 0.15) 0%, transparent 50%);
+  
+  /* Beta Border Radius */
+  --beta-radius-sm: 0.375rem;
+  --beta-radius-md: 0.5rem;
+  --beta-radius-lg: 0.75rem;
+  --beta-radius-xl: 1rem;
+  --beta-radius-2xl: 1.5rem;
+  
+  /* Beta Spacing Scale */
+  --beta-space-1: 0.25rem;
+  --beta-space-2: 0.5rem;
+  --beta-space-3: 0.75rem;
+  --beta-space-4: 1rem;
+  --beta-space-5: 1.25rem;
+  --beta-space-6: 1.5rem;
+  --beta-space-8: 2rem;
+  --beta-space-10: 2.5rem;
+  --beta-space-12: 3rem;
+  
+  /* Beta Typography */
+  --beta-font-display: 'Inter', system-ui, sans-serif;
+  --beta-font-body: 'Inter', system-ui, sans-serif;
+  --beta-font-mono: 'JetBrains Mono', monospace;
+  
+  /* Beta Transitions */
+  --beta-transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --beta-transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --beta-transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Beta-specific utility classes */
+.beta-glass {
+  background: hsl(var(--beta-glass-bg));
+  backdrop-filter: blur(var(--beta-glass-blur));
+  -webkit-backdrop-filter: blur(var(--beta-glass-blur));
+  border: 1px solid hsl(var(--beta-glass-border));
+}
+
+.beta-glass-strong {
+  background: hsl(222 47% 11% / 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid hsl(220 14% 35% / 0.4);
+}
+
+.beta-glow {
+  box-shadow: var(--beta-shadow-glow);
+}
+
+.beta-glow-text {
+  text-shadow: 0 0 20px hsl(var(--beta-accent) / 0.5);
+}
+
+.beta-gradient-text {
+  background: var(--beta-gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.beta-surface-1 { background-color: hsl(var(--beta-surface-1)); }
+.beta-surface-2 { background-color: hsl(var(--beta-surface-2)); }
+.beta-surface-3 { background-color: hsl(var(--beta-surface-3)); }
+.beta-surface-4 { background-color: hsl(var(--beta-surface-4)); }
+
+.beta-text-primary { color: hsl(var(--beta-text-primary)); }
+.beta-text-secondary { color: hsl(var(--beta-text-secondary)); }
+.beta-text-muted { color: hsl(var(--beta-text-muted)); }
+
+.beta-accent { color: hsl(var(--beta-accent)); }
+.beta-accent-bg { background-color: hsl(var(--beta-accent)); }
+
+/* Beta Animations */
+@keyframes beta-fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes beta-slide-in {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes beta-scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes beta-glow-pulse {
+  0%, 100% { box-shadow: 0 0 20px -5px hsl(var(--beta-accent) / 0.3); }
+  50% { box-shadow: 0 0 30px -5px hsl(var(--beta-accent) / 0.5); }
+}
+
+.beta-animate-fade-in {
+  animation: beta-fade-in 0.3s ease-out forwards;
+}
+
+.beta-animate-slide-in {
+  animation: beta-slide-in 0.3s ease-out forwards;
+}
+
+.beta-animate-scale-in {
+  animation: beta-scale-in 0.2s ease-out forwards;
+}
+
+.beta-animate-glow-pulse {
+  animation: beta-glow-pulse 2s ease-in-out infinite;
+}
