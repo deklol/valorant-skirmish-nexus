@@ -31,8 +31,8 @@ export function useBroadcastData(tournamentId: string | undefined) {
         const { data: tournamentData, error: tournamentError } = await supabase
           .from('tournaments')
           .select('*, balance_analysis')
-          .eq('id', tournamentId)
-          .single();
+        .eq('id', tournamentId)
+        .maybeSingle();
 
         if (tournamentError) throw tournamentError;
 
