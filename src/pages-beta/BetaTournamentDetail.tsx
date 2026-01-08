@@ -13,6 +13,76 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getRankIcon, getRankColor, calculateAverageRank } from "@/utils/rankUtils";
 import { useToast } from "@/hooks/use-toast";
+
+// One-Click Registration Component
+const RegistrationSection = ({ 
+  tournamentId, isUserSignedUp, currentParticipants, maxParticipants, registrationType, onRefresh 
+}: { 
+  tournamentId: string; isUserSignedUp: boolean; currentParticipants: number; maxParticipants: number; registrationType: string; onRefresh: () => void;
+}) => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [registering, setRegistering] = useState(false);
+
+  const handleQuickRegister = async () => {
+    if (!user) {
+      toast({ title: "Login required", description: "Please log in to register", variant: "destructive" });
+      return;
+    }
+    
+    setRegistering(true);
+    try {
+      const { error } = await supabase.from('tournament_signups').insert({ tournament_id: tournamentId, user_id: user.id });
+      if (error) throw error;
+      toast({ title: "Registered!", description: "You're signed up for this tournament" });
+      onRefresh();
+    } catch (error: any) {
+      toast({ title: "Registration failed", description: error.message, variant: "destructive" });
+    } finally {
+      setRegistering(false);
+    }
+  };
+
+  return (
+    <GlassCard className="p-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h3 className="text-lg font-semibold text-[hsl(var(--beta-text-primary))] mb-1">
+            Registration {isUserSignedUp ? 'Complete' : 'Open'}
+          </h3>
+          <p className="text-sm text-[hsl(var(--beta-text-muted))]">
+            {isUserSignedUp ? "You're registered for this tournament!" : `${maxParticipants - currentParticipants} spots remaining`}
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          {isUserSignedUp ? (
+            <div className="flex items-center gap-2 text-[hsl(var(--beta-success))]">
+              <CheckCircle className="w-5 h-5" />
+              <span className="font-medium">Registered</span>
+            </div>
+          ) : user ? (
+            <BetaButton onClick={handleQuickRegister} disabled={registering}>
+              {registering ? 'Registering...' : 'Quick Register'}
+            </BetaButton>
+          ) : (
+            <Link to="/login"><BetaButton>Login to Register</BetaButton></Link>
+          )}
+        </div>
+      </div>
+      <div className="mt-4">
+        <div className="flex justify-between text-xs text-[hsl(var(--beta-text-muted))] mb-1">
+          <span>{currentParticipants} registered</span>
+          <span>{maxParticipants} max</span>
+        </div>
+        <div className="w-full h-2 bg-[hsl(var(--beta-surface-4))] rounded-full overflow-hidden">
+          <div className="h-full bg-gradient-to-r from-[hsl(var(--beta-accent))] to-[hsl(var(--beta-secondary))] transition-all duration-500"
+            style={{ width: `${Math.min((currentParticipants / maxParticipants) * 100, 100)}%` }} />
+        </div>
+      </div>
+    </GlassCard>
+  );
+};
+
 // Beta Tabs component
 const BetaTabs = ({ 
   tabs, 
@@ -484,44 +554,14 @@ const BetaTournamentDetail = () => {
 
         {/* Registration Status */}
         {tournament.status === 'open' && (
-          <GlassCard className="p-6">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div>
-                <h3 className="text-lg font-semibold text-[hsl(var(--beta-text-primary))] mb-1">
-                  Registration {isUserSignedUp ? 'Complete' : 'Open'}
-                </h3>
-                <p className="text-sm text-[hsl(var(--beta-text-muted))]">
-                  {isUserSignedUp ? "You're registered for this tournament!" : `${maxParticipants - currentParticipants} spots remaining`}
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                {isUserSignedUp ? (
-                  <div className="flex items-center gap-2 text-[hsl(var(--beta-success))]">
-                    <CheckCircle className="w-5 h-5" />
-                    <span className="font-medium">Registered</span>
-                  </div>
-                ) : (
-                  <Link to={`/tournament/${id}`}>
-                    <BetaButton>Register Now</BetaButton>
-                  </Link>
-                )}
-              </div>
-            </div>
-            
-            {/* Progress bar */}
-            <div className="mt-4">
-              <div className="flex justify-between text-xs text-[hsl(var(--beta-text-muted))] mb-1">
-                <span>{currentParticipants} registered</span>
-                <span>{maxParticipants} max</span>
-              </div>
-              <div className="w-full h-2 bg-[hsl(var(--beta-surface-4))] rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-[hsl(var(--beta-accent))] to-[hsl(var(--beta-secondary))] transition-all duration-500"
-                  style={{ width: `${Math.min((currentParticipants / maxParticipants) * 100, 100)}%` }}
-                />
-              </div>
-            </div>
-          </GlassCard>
+          <RegistrationSection 
+            tournamentId={tournament.id}
+            isUserSignedUp={isUserSignedUp}
+            currentParticipants={currentParticipants}
+            maxParticipants={maxParticipants}
+            registrationType={tournament.registration_type}
+            onRefresh={() => window.location.reload()}
+          />
         )}
 
         {/* Tabs Navigation */}

@@ -461,6 +461,15 @@ const BetaProfile = () => {
                   {isPrivate && (
                     <Lock className="w-5 h-5 text-[hsl(var(--beta-text-muted))]" />
                   )}
+
+                  {isOwnProfile && (
+                    <Link to="/beta/settings">
+                      <BetaButton variant="outline" size="sm">
+                        <Edit className="w-3 h-3 mr-1" />
+                        Edit Profile
+                      </BetaButton>
+                    </Link>
+                  )}
                 </div>
 
                 {/* Status Message */}
