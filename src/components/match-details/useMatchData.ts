@@ -89,7 +89,7 @@ export const useMatchData = (matchId: string | undefined, userId: string | undef
         .from('matches')
         .select('team1_id, team2_id')
         .eq('id', matchId)
-        .single();
+        .maybeSingle();
 
       if (!matchData || (!matchData.team1_id && !matchData.team2_id)) return;
 
@@ -100,7 +100,7 @@ export const useMatchData = (matchId: string | undefined, userId: string | undef
         .select('team_id')
         .eq('user_id', userId)
         .in('team_id', teamIds)
-        .single();
+        .maybeSingle();
 
       setUserTeamId(teamMember?.team_id || null);
     } catch (error) {
@@ -116,7 +116,7 @@ export const useMatchData = (matchId: string | undefined, userId: string | undef
         .from('users')
         .select('role')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       setIsAdmin(data?.role === 'admin');
     } catch (error) {

@@ -55,7 +55,7 @@ const EnhancedTeamBalancingTool = ({
         .from('tournaments')
         .select('enable_adaptive_weights')
         .eq('id', tournamentId)
-        .single();
+        .maybeSingle();
       
       if (!error && data) {
         setEnableAdaptiveWeights(data.enable_adaptive_weights || false);
@@ -103,7 +103,7 @@ const EnhancedTeamBalancingTool = ({
         .from('tournaments')
         .select('name, team_size')
         .eq('id', tournamentId)
-        .single();
+        .maybeSingle();
 
       if (!tournament) throw new Error('Tournament not found');
 
@@ -217,7 +217,7 @@ const EnhancedTeamBalancingTool = ({
         .from('tournaments')
         .select('team_size')
         .eq('id', tournamentId)
-        .single();
+        .maybeSingle();
 
       const teamSize = tournament?.team_size || 5;
 
@@ -245,10 +245,10 @@ const EnhancedTeamBalancingTool = ({
             total_rank_points: totalPoints,
             seed: i + 1
           })
-          .select()
-          .single();
+        .select()
+        .maybeSingle();
 
-        if (teamError) throw teamError;
+      if (teamError || !newTeam) throw teamError || new Error('Failed to create team');
 
         for (let j = 0; j < team.length; j++) {
           const player = team[j];

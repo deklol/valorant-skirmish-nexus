@@ -30,7 +30,6 @@ const Tournaments = () => {
   const { isAdmin } = useAuth();
 
   const fetchTournaments = async () => {
-    console.log('Fetching tournaments...');
     try {
       setLoading(true);
       
@@ -42,8 +41,6 @@ const Tournaments = () => {
       if (error) {
         throw error;
       }
-
-      console.log('Raw tournaments data:', tournamentsData);
 
       // Get signup counts for each tournament based on registration type
       const tournamentsWithSignups = await Promise.all(
@@ -83,7 +80,6 @@ const Tournaments = () => {
         })
       );
 
-      console.log('Processed tournaments:', tournamentsWithSignups);
       setTournaments(tournamentsWithSignups);
     } catch (error) {
       console.error('Error fetching tournaments:', error);
@@ -97,7 +93,6 @@ const Tournaments = () => {
   }, []);
 
   const handleTournamentCreated = () => {
-    console.log('Tournament created, refreshing list and closing dialog...');
     setCreateDialogOpen(false);
     fetchTournaments();
   };
@@ -155,10 +150,7 @@ const Tournaments = () => {
           
           {isAdmin && (
             <Button 
-              onClick={() => {
-                console.log('Create Tournament button clicked');
-                setCreateDialogOpen(true);
-              }}
+              onClick={() => setCreateDialogOpen(true)}
               className="bg-red-600 hover:bg-red-700 text-white w-full sm:w-auto"
               size="sm"
             >
@@ -236,10 +228,7 @@ const Tournaments = () => {
       {/* Create Tournament Dialog */}
       <CreateTournamentDialog 
         open={createDialogOpen}
-        onOpenChange={(open) => {
-          console.log('Dialog open state changed to:', open);
-          setCreateDialogOpen(open);
-        }}
+        onOpenChange={setCreateDialogOpen}
         onTournamentCreated={handleTournamentCreated}
       />
     </div>
