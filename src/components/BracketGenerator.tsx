@@ -366,12 +366,11 @@ const BracketGenerator = ({ tournamentId, teams, onBracketGenerated }: BracketGe
         </Alert>
       )}
       {hasExistingBracket && !generationInProgress && (
-        <Alert variant="destructive" className="mb-4">
+        <Alert className="mb-4">
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Bracket Already Exists</AlertTitle>
+          <AlertTitle>Bracket Exists</AlertTitle>
           <AlertDescription>
-            This tournament has {existingMatchCount} existing matches. 
-            Regenerating will delete all current bracket data including scores.
+            This tournament currently has {existingMatchCount} matches. You can regenerate or clear/reset the bracket if needed.
           </AlertDescription>
         </Alert>
       )}
