@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { calculateBracketStructure } from "@/utils/bracketCalculations";
 import BatchBracketGenerator from "./BatchBracketGenerator";
-import { AlertTriangle, Trash2, RefreshCw } from "lucide-react";
+import { AlertTriangle, Trash2, RefreshCw, Lock } from "lucide-react";
 
 interface BracketGeneratorProps {
   tournamentId: string;
@@ -18,6 +18,7 @@ const BracketGenerator = ({ tournamentId, teams, onBracketGenerated }: BracketGe
   const [clearing, setClearing] = useState(false);
   const [hasExistingBracket, setHasExistingBracket] = useState(false);
   const [existingMatchCount, setExistingMatchCount] = useState(0);
+  const [generationInProgress, setGenerationInProgress] = useState(false);
   const { toast } = useToast();
 
   // Use batch processing for tournaments with 8+ teams (32+ players typically)
@@ -29,14 +30,25 @@ const BracketGenerator = ({ tournamentId, teams, onBracketGenerated }: BracketGe
   }, [tournamentId]);
 
   const checkExistingBracket = async () => {
-    const { data, error } = await supabase
-      .from('matches')
-      .select('id', { count: 'exact' })
-      .eq('tournament_id', tournamentId);
+    const [matchesResult, tournamentResult] = await Promise.all([
+      supabase
+        .from('matches')
+        .select('id', { count: 'exact' })
+        .eq('tournament_id', tournamentId),
+      supabase
+        .from('tournaments')
+        .select('generating_bracket, bracket_generated')
+        .eq('id', tournamentId)
+        .maybeSingle()
+    ]);
     
-    if (!error && data) {
-      setHasExistingBracket(data.length > 0);
-      setExistingMatchCount(data.length);
+    if (!matchesResult.error && matchesResult.data) {
+      setHasExistingBracket(matchesResult.data.length > 0);
+      setExistingMatchCount(matchesResult.data.length);
+    }
+    
+    if (!tournamentResult.error && tournamentResult.data) {
+      setGenerationInProgress(tournamentResult.data.generating_bracket || false);
     }
   };
 
@@ -87,96 +99,90 @@ const BracketGenerator = ({ tournamentId, teams, onBracketGenerated }: BracketGe
       return;
     }
 
-    // PHASE 3: Pre-generation validation - Check for existing matches
-    const { data: existingMatches, error: checkError } = await supabase
-      .from('matches')
-      .select('id')
-      .eq('tournament_id', tournamentId)
-      .limit(1);
-
-    if (checkError) {
-      console.error('Error checking existing matches:', checkError);
-    }
-
-    if (existingMatches && existingMatches.length > 0) {
-      const confirmed = window.confirm(
-        '⚠️ WARNING: This tournament already has matches!\n\n' +
-        'Regenerating will DELETE all existing matches, scores, and bracket data.\n\n' +
-        'Are you absolutely sure you want to proceed?'
-      );
-      
-      if (!confirmed) {
-        toast({
-          title: "Bracket Generation Cancelled",
-          description: "Existing bracket preserved.",
-        });
-        return;
-      }
-
-      // Delete existing matches if user confirmed
-      const { error: deleteError } = await supabase
-        .from('matches')
-        .delete()
-        .eq('tournament_id', tournamentId);
-
-      if (deleteError) {
-        toast({
-          title: "Error",
-          description: "Failed to clear existing matches. Please try again.",
-          variant: "destructive",
-        });
-        return;
-      }
-    }
-
+    // PRODUCTION HARDENING: Use database-level lock for bracket generation
     setGenerating(true);
+    
     try {
-      // First, capture current active map pool for this tournament
+      // Step 1: Acquire lock via RPC
+      const { data: lockResult, error: lockError } = await supabase.rpc('generate_bracket_secure', {
+        p_tournament_id: tournamentId,
+        p_force: hasExistingBracket // Force if regenerating
+      });
+
+      if (lockError) {
+        throw new Error(`Lock acquisition failed: ${lockError.message}`);
+      }
+
+      const result = lockResult as { success: boolean; error?: string; code?: string; existing_matches?: number };
+      
+      if (!result.success) {
+        if (result.code === 'GENERATION_IN_PROGRESS') {
+          toast({
+            title: "Generation Already In Progress",
+            description: "Another admin is currently generating the bracket. Please wait.",
+            variant: "destructive",
+          });
+          setGenerating(false);
+          return;
+        }
+        
+        if (result.code === 'BRACKET_EXISTS' && !hasExistingBracket) {
+          // Bracket exists but we didn't know - refresh state
+          await checkExistingBracket();
+          toast({
+            title: "Bracket Already Exists",
+            description: `Found ${result.existing_matches} existing matches. Confirm to regenerate.`,
+            variant: "destructive",
+          });
+          setGenerating(false);
+          return;
+        }
+        
+        throw new Error(result.error || 'Failed to acquire bracket generation lock');
+      }
+
+      // Step 2: Capture map pool
       const { data: capturedMapPoolData, error: mapPoolError } = await supabase
         .rpc('capture_active_map_pool');
 
       if (mapPoolError) {
         console.error('Error capturing active map pool:', mapPoolError);
-        toast({
-          title: "Warning",
-          description: "Could not capture current map pool. Tournament will use global settings.",
-          variant: "destructive",
-        });
       }
 
-      // Update tournament with map pool before generating bracket
       if (capturedMapPoolData) {
         const mapPoolArray = Array.isArray(capturedMapPoolData) ? capturedMapPoolData : [capturedMapPoolData];
-        const { error: updateError } = await supabase
+        await supabase
           .from('tournaments')
           .update({ map_pool: mapPoolArray })
           .eq('id', tournamentId);
-
-        if (updateError) {
-          console.error('Error updating tournament map pool:', updateError);
-          toast({
-            title: "Warning", 
-            description: "Tournament map pool could not be set. Continuing with bracket generation.",
-            variant: "destructive",
-          });
-        }
       }
 
-      // Generate bracket using corrected bracket structure logic
+      // Step 3: Generate bracket matches
       await generateSingleEliminationBracket(tournamentId, teams);
+
+      // Step 4: Complete generation (release lock and set bracket_generated)
+      await supabase.rpc('complete_bracket_generation', {
+        p_tournament_id: tournamentId,
+        p_success: true
+      });
 
       toast({
         title: "Success",
-        description: "Bracket generated successfully",
+        description: "Bracket generated successfully with database-level protection",
       });
-      onBracketGenerated();
       
-      // Add logging for map pool capture
-      const mapCount = Array.isArray(capturedMapPoolData) ? capturedMapPoolData.length : (capturedMapPoolData ? 1 : 0);
-      // Map pool captured successfully
+      await checkExistingBracket();
+      onBracketGenerated();
 
     } catch (error: any) {
       console.error('Error generating bracket:', error);
+      
+      // Release the lock on error
+      await supabase.rpc('complete_bracket_generation', {
+        p_tournament_id: tournamentId,
+        p_success: false
+      });
+      
       toast({
         title: "Error",
         description: error.message || "Failed to generate bracket",
@@ -291,16 +297,27 @@ const BracketGenerator = ({ tournamentId, teams, onBracketGenerated }: BracketGe
 
   // Existing bracket warning component
   const ExistingBracketWarning = () => (
-    hasExistingBracket ? (
-      <Alert variant="destructive" className="mb-4">
-        <AlertTriangle className="h-4 w-4" />
-        <AlertTitle>Bracket Already Exists</AlertTitle>
-        <AlertDescription>
-          This tournament has {existingMatchCount} existing matches. 
-          Regenerating will delete all current bracket data including scores.
-        </AlertDescription>
-      </Alert>
-    ) : null
+    <>
+      {generationInProgress && (
+        <Alert className="mb-4 bg-yellow-900/30 border-yellow-600">
+          <Lock className="h-4 w-4 text-yellow-500" />
+          <AlertTitle className="text-yellow-400">Generation In Progress</AlertTitle>
+          <AlertDescription className="text-yellow-300">
+            Another admin is currently generating the bracket. Please wait and refresh.
+          </AlertDescription>
+        </Alert>
+      )}
+      {hasExistingBracket && !generationInProgress && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Bracket Already Exists</AlertTitle>
+          <AlertDescription>
+            This tournament has {existingMatchCount} existing matches. 
+            Regenerating will delete all current bracket data including scores.
+          </AlertDescription>
+        </Alert>
+      )}
+    </>
   );
 
   // Show batch generator for large tournaments, regular generator for small ones
@@ -353,11 +370,21 @@ const BracketGenerator = ({ tournamentId, teams, onBracketGenerated }: BracketGe
       )}
       <Button
         onClick={generateBracket}
-        disabled={generating}
+        disabled={generating || generationInProgress}
         className="w-full bg-green-600 hover:bg-green-700"
       >
-        <RefreshCw className={`h-4 w-4 mr-2 ${generating ? 'animate-spin' : ''}`} />
-        {generating ? "Generating..." : hasExistingBracket ? "Regenerate Bracket" : "Generate Bracket"}
+        {generationInProgress ? (
+          <Lock className="h-4 w-4 mr-2" />
+        ) : (
+          <RefreshCw className={`h-4 w-4 mr-2 ${generating ? 'animate-spin' : ''}`} />
+        )}
+        {generationInProgress 
+          ? "Generation In Progress..." 
+          : generating 
+            ? "Generating..." 
+            : hasExistingBracket 
+              ? "Regenerate Bracket" 
+              : "Generate Bracket"}
       </Button>
     </div>
   );

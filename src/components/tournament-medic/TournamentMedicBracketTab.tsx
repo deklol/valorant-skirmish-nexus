@@ -7,11 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogFooter, AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel } from "@/components/ui/alert-dialog";
-import { Target, Shuffle } from "lucide-react";
+import { Target, Shuffle, RotateCcw, AlertTriangle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import TournamentMedicBracketTabExtras from "./TournamentMedicBracketTabExtras";
 import MatchEditModal from "@/components/MatchEditModal";
+import { processMatchResults } from "@/components/MatchResultsProcessor";
 
 // Update Match type to include team objects
 type TeamObj = { id: string; name: string };
@@ -61,6 +62,8 @@ export default function TournamentMedicBracketTab({ tournament, onRefresh }: {
   const [progressionReason, setProgressionReason] = useState<string>("");
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingAction, setPendingAction] = useState<() => void>(() => {});
+  const [rollbackMatchId, setRollbackMatchId] = useState<string | null>(null);
+  const [showRollbackDialog, setShowRollbackDialog] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -109,45 +112,46 @@ export default function TournamentMedicBracketTab({ tournament, onRefresh }: {
     setActionMatchId(editModal.id);
 
     try {
-      await supabase
-        .from("matches")
-        .update({
-          status,
-          score_team1,
-          score_team2,
-          winner_id,
-          ...(status === "completed" ? { completed_at: new Date().toISOString() } : {})
-        })
-        .eq("id", editModal.id);
-      toast({ title: "Match updated" });
+      // PRODUCTION FIX: If marking as completed with a winner, route through RPC for proper bracket progression
+      if (status === 'completed' && winner_id && editModal.team1_id && editModal.team2_id) {
+        const loserId = winner_id === editModal.team1_id ? editModal.team2_id : editModal.team1_id;
+        
+        // Use the centralized match results processor
+        await processMatchResults(
+          {
+            matchId: editModal.id,
+            winnerId: winner_id,
+            loserId: loserId,
+            tournamentId: tournament.id,
+            scoreTeam1: score_team1,
+            scoreTeam2: score_team2,
+          },
+          {
+            toast: (args) => toast(args),
+          }
+        );
+        
+        toast({ 
+          title: "Match Completed via RPC",
+          description: "Winner advanced to next round using database-level logic"
+        });
+      } else {
+        // For non-completion updates (changing status to pending/live, updating scores without winner)
+        await supabase
+          .from("matches")
+          .update({
+            status,
+            score_team1,
+            score_team2,
+            winner_id,
+            ...(status === "completed" ? { completed_at: new Date().toISOString() } : {})
+          })
+          .eq("id", editModal.id);
+        toast({ title: "Match updated" });
+      }
+      
       onRefresh();
-      const { data, error } = await supabase
-        .from("matches")
-        .select(`
-          id, team1_id, team2_id, winner_id, round_number, match_number, status, score_team1, score_team2,
-          team1:team1_id (id, name),
-          team2:team2_id (id, name)
-        `)
-        .eq("tournament_id", tournament.id)
-        .order("round_number", { ascending: true })
-        .order("match_number", { ascending: true });
-
-      // Sanitize joined fields for team1/team2
-      const sanitized: Match[] = (data || []).map((m: any) => ({
-        id: m.id,
-        team1: parseTeam(m.team1),
-        team2: parseTeam(m.team2),
-        team1_id: m.team1_id ?? null,
-        team2_id: m.team2_id ?? null,
-        winner_id: m.winner_id ?? null,
-        round_number: m.round_number,
-        match_number: m.match_number,
-        status: m.status ?? null,
-        score_team1: m.score_team1 ?? null,
-        score_team2: m.score_team2 ?? null,
-      }));
-
-      setMatches(sanitized);
+      await refreshMatches();
     } catch (err: any) {
       toast({
         title: "Error updating match",
@@ -157,6 +161,112 @@ export default function TournamentMedicBracketTab({ tournament, onRefresh }: {
     } finally {
       setActionMatchId(null);
       setEditModal(null);
+    }
+  }
+
+  // Helper to refresh matches list
+  async function refreshMatches() {
+    const { data } = await supabase
+      .from("matches")
+      .select(`
+        id, team1_id, team2_id, winner_id, round_number, match_number, status, score_team1, score_team2,
+        team1:team1_id (id, name),
+        team2:team2_id (id, name)
+      `)
+      .eq("tournament_id", tournament.id)
+      .order("round_number", { ascending: true })
+      .order("match_number", { ascending: true });
+
+    const sanitized: Match[] = (data || []).map((m: any) => ({
+      id: m.id,
+      team1: parseTeam(m.team1),
+      team2: parseTeam(m.team2),
+      team1_id: m.team1_id ?? null,
+      team2_id: m.team2_id ?? null,
+      winner_id: m.winner_id ?? null,
+      round_number: m.round_number,
+      match_number: m.match_number,
+      status: m.status ?? null,
+      score_team1: m.score_team1 ?? null,
+      score_team2: m.score_team2 ?? null,
+    }));
+
+    setMatches(sanitized);
+  }
+
+  // NEW: Handle match result rollback
+  async function handleRollbackMatch() {
+    if (!rollbackMatchId) return;
+    
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.rpc('rollback_match_result', {
+        p_match_id: rollbackMatchId,
+        p_reason: 'Admin rollback via Medic tools'
+      });
+
+      if (error) throw error;
+
+      const result = data as { success: boolean; error?: string; matches_rolled_back?: string[]; cascade_count?: number };
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Rollback failed');
+      }
+
+      toast({
+        title: "Match Result Rolled Back",
+        description: result.cascade_count && result.cascade_count > 0 
+          ? `Match reset. ${result.cascade_count} subsequent match(es) also affected.`
+          : "Match reset to live status. Winner cleared from next round."
+      });
+
+      onRefresh();
+      await refreshMatches();
+    } catch (error: any) {
+      toast({
+        title: "Rollback Failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+      setShowRollbackDialog(false);
+      setRollbackMatchId(null);
+    }
+  }
+
+  // NEW: Handle individual match reset
+  async function handleResetMatch(matchId: string) {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.rpc('reset_match_secure', {
+        p_match_id: matchId,
+        p_reason: 'Admin reset via Medic tools'
+      });
+
+      if (error) throw error;
+
+      const result = data as { success: boolean; error?: string };
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Reset failed');
+      }
+
+      toast({
+        title: "Match Reset",
+        description: "Match cleared and set back to live status."
+      });
+
+      onRefresh();
+      await refreshMatches();
+    } catch (error: any) {
+      toast({
+        title: "Reset Failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -380,18 +490,35 @@ export default function TournamentMedicBracketTab({ tournament, onRefresh }: {
         <span>Loading...</span>
       ) : (
         matches.map(match => (
-          <div key={match.id} className="bg-slate-800 rounded px-2 py-1 text-xs flex flex-wrap items-center gap-2">
+          <div key={match.id} className="bg-slate-800 rounded px-3 py-2 text-xs flex flex-wrap items-center gap-2">
             <Badge className="bg-amber-900/60">
               R{match.round_number} M{match.match_number}
             </Badge>
-            {/* Show real team names */}
             <span className="font-mono">
               {match.team1?.name || (match.team1_id?.slice(0, 8) ?? "?")} vs {match.team2?.name || (match.team2_id?.slice(0, 8) ?? "?")}
             </span>
-            <span>Status: {match.status}</span>
-            <Button size="sm" variant="outline" onClick={() => setEditModal(match)}>
-              Force Result
-            </Button>
+            <Badge variant={match.status === 'completed' ? 'default' : match.status === 'live' ? 'secondary' : 'outline'}>
+              {match.status}
+            </Badge>
+            <div className="flex gap-1 ml-auto">
+              <Button size="sm" variant="outline" onClick={() => setEditModal(match)}>
+                Force Result
+              </Button>
+              {match.winner_id && (
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="text-orange-400 border-orange-600 hover:bg-orange-900/30"
+                  onClick={() => {
+                    setRollbackMatchId(match.id);
+                    setShowRollbackDialog(true);
+                  }}
+                >
+                  <RotateCcw className="w-3 h-3 mr-1" />
+                  Rollback
+                </Button>
+              )}
+            </div>
           </div>
         ))
       )}
@@ -437,6 +564,38 @@ export default function TournamentMedicBracketTab({ tournament, onRefresh }: {
               className="bg-blue-600 hover:bg-blue-700"
             >
               Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Rollback Confirmation Dialog */}
+      <AlertDialog open={showRollbackDialog} onOpenChange={setShowRollbackDialog}>
+        <AlertDialogContent className="bg-slate-800 border-slate-700">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-orange-400" />
+              Confirm Match Rollback
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-400">
+              This will reset the match result and remove the winner from any subsequent matches.
+              <br /><br />
+              <span className="text-orange-400 font-medium">
+                ⚠️ Warning: If the winner has already played in the next round, that match will also be rolled back (cascading effect).
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleRollbackMatch}
+              className="bg-orange-600 hover:bg-orange-700"
+              disabled={loading}
+            >
+              <RotateCcw className="w-4 h-4 mr-2" />
+              {loading ? "Rolling back..." : "Confirm Rollback"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
