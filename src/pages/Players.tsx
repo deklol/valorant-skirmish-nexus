@@ -49,13 +49,11 @@ interface Player {
   current_rank: string;
   rank_points: number;
   weight_rating: number;
-  manual_weight_override: number | null;
-  use_manual_override: boolean | null;
   tournaments_won: number;
   mvp_awards: number;
   wins: number;
   losses: number;
-  role: string;
+  is_admin_user: boolean;
   valorant_role: string | null;
   looking_for_team: boolean | null;
 }
@@ -70,11 +68,12 @@ const Players = () => {
 
   const fetchPlayers = async () => {
     try {
+      // Use public_user_profiles view for secure public access
       const { data, error } = await supabase
-        .from('users')
-        .select('id, discord_username, discord_avatar_url, current_rank, rank_points, weight_rating, manual_weight_override, use_manual_override, tournaments_won, mvp_awards, wins, losses, role, valorant_role, looking_for_team')
+        .from('public_user_profiles')
+        .select('id, discord_username, discord_avatar_url, current_rank, rank_points, weight_rating, tournaments_won, mvp_awards, wins, losses, is_admin_user, valorant_role, looking_for_team')
         .eq('is_phantom', false)
-        .order('weight_rating', { ascending: false }); // Sort by weight_rating instead
+        .order('weight_rating', { ascending: false });
 
       if (error) throw error;
       setPlayers(data || []);
@@ -86,9 +85,6 @@ const Players = () => {
   };
 
   const getEffectiveWeight = (player: Player) => {
-    if (player.use_manual_override && player.manual_weight_override !== null) {
-      return player.manual_weight_override;
-    }
     return player.weight_rating || 150;
   };
 
@@ -237,9 +233,6 @@ const Players = () => {
                     <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg p-3 text-center border border-primary/20">
                       <div className="text-lg font-bold text-primary flex items-center justify-center gap-1">
                         {getEffectiveWeight(player)}
-                        {player.use_manual_override && player.manual_weight_override !== null && (
-                          <span className="text-orange-400 text-sm">*</span>
-                        )}
                       </div>
                       <div className="text-xs text-muted-foreground font-medium">
                         Balance Weight
@@ -292,7 +285,7 @@ const Players = () => {
                       </div>
                     </div>
                     
-                    {player.role === 'admin' && (
+                    {player.is_admin_user && (
                       <Badge variant="destructive" className="text-xs px-2 py-0.5">
                         Admin
                       </Badge>

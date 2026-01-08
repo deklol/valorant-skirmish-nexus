@@ -181,7 +181,7 @@ const Index = () => {
     const fetchStats = async () => {
       try {
         const { count: tournamentCount } = await supabase.from('tournaments').select('*', { count: 'exact' });
-        const { count: playerCount } = await supabase.from('users').select('*', { count: 'exact' }).eq('is_phantom', false);
+        const { count: playerCount } = await supabase.from('public_user_profiles').select('*', { count: 'exact' }).eq('is_phantom', false);
         const { count: liveMatchCount } = await supabase.from('matches').select('*', { count: 'exact' }).eq('status', 'live');
         const { count: completedMatchCount } = await supabase.from('matches').select('*', { count: 'exact' }).eq('status', 'completed');
         

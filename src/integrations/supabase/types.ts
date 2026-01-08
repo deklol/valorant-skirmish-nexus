@@ -95,6 +95,13 @@ export type Database = {
             foreignKeyName: "announcements_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "announcements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -190,6 +197,13 @@ export type Database = {
             foreignKeyName: "audit_logs_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -276,6 +290,13 @@ export type Database = {
             foreignKeyName: "fulfillment_orders_completed_by_fkey"
             columns: ["completed_by"]
             isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fulfillment_orders_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -291,6 +312,13 @@ export type Database = {
             columns: ["shop_item_id"]
             isOneToOne: false
             referencedRelation: "shop_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fulfillment_orders_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -342,6 +370,13 @@ export type Database = {
             columns: ["map_id"]
             isOneToOne: false
             referencedRelation: "maps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "map_veto_actions_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -476,6 +511,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "maps_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "maps_created_by_fkey"
             columns: ["created_by"]
@@ -798,6 +840,13 @@ export type Database = {
             foreignKeyName: "persistent_team_invites_invited_by_fkey"
             columns: ["invited_by"]
             isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "persistent_team_invites_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -838,6 +887,13 @@ export type Database = {
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "persistent_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "persistent_team_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -906,6 +962,13 @@ export type Database = {
             foreignKeyName: "persistent_teams_captain_id_fkey"
             columns: ["captain_id"]
             isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "persistent_teams_captain_id_fkey"
+            columns: ["captain_id"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -937,6 +1000,13 @@ export type Database = {
           weight_rating?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "phantom_players_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "phantom_players_created_by_fkey"
             columns: ["created_by"]
@@ -1003,6 +1073,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "quick_match_queue_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "quick_match_queue_user_id_fkey"
             columns: ["user_id"]
@@ -1159,6 +1236,13 @@ export type Database = {
             foreignKeyName: "rank_history_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rank_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -1211,6 +1295,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "shop_items_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "shop_items_created_by_fkey"
             columns: ["created_by"]
@@ -1284,6 +1375,13 @@ export type Database = {
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -1421,6 +1519,13 @@ export type Database = {
             foreignKeyName: "teams_captain_id_fkey"
             columns: ["captain_id"]
             isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teams_captain_id_fkey"
+            columns: ["captain_id"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -1494,6 +1599,13 @@ export type Database = {
             columns: ["tournament_id"]
             isOneToOne: false
             referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_adaptive_weights_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -1583,6 +1695,13 @@ export type Database = {
             foreignKeyName: "tournament_page_views_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_page_views_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -1631,6 +1750,13 @@ export type Database = {
             columns: ["tournament_id"]
             isOneToOne: false
             referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_signups_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -1835,6 +1961,13 @@ export type Database = {
             foreignKeyName: "tournaments_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournaments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -1947,6 +2080,13 @@ export type Database = {
             foreignKeyName: "user_active_effects_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_active_effects_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -1976,7 +2116,21 @@ export type Database = {
             foreignKeyName: "user_follows_follower_id_fkey"
             columns: ["follower_id"]
             isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_follows_follower_id_fkey"
+            columns: ["follower_id"]
+            isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_follows_following_id_fkey"
+            columns: ["following_id"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -2069,6 +2223,13 @@ export type Database = {
             foreignKeyName: "user_onboarding_progress_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_onboarding_progress_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -2116,6 +2277,13 @@ export type Database = {
             foreignKeyName: "user_purchases_refunded_by_fkey"
             columns: ["refunded_by"]
             isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_purchases_refunded_by_fkey"
+            columns: ["refunded_by"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -2124,6 +2292,13 @@ export type Database = {
             columns: ["shop_item_id"]
             isOneToOne: false
             referencedRelation: "shop_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_purchases_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -2264,6 +2439,13 @@ export type Database = {
             foreignKeyName: "users_rank_override_set_by_fkey"
             columns: ["rank_override_set_by"]
             isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "users_rank_override_set_by_fkey"
+            columns: ["rank_override_set_by"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -2339,7 +2521,81 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_user_profiles: {
+        Row: {
+          bio: string | null
+          created_at: string | null
+          current_rank: string | null
+          discord_avatar_url: string | null
+          discord_username: string | null
+          id: string | null
+          is_admin_user: boolean | null
+          is_phantom: boolean | null
+          looking_for_team: boolean | null
+          losses: number | null
+          mvp_awards: number | null
+          peak_rank: string | null
+          rank_points: number | null
+          status_message: string | null
+          tournaments_played: number | null
+          tournaments_won: number | null
+          twitch_handle: string | null
+          twitter_handle: string | null
+          valorant_agent: string | null
+          valorant_role: Database["public"]["Enums"]["valorant_role"] | null
+          weight_rating: number | null
+          wins: number | null
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string | null
+          current_rank?: string | null
+          discord_avatar_url?: string | null
+          discord_username?: string | null
+          id?: string | null
+          is_admin_user?: never
+          is_phantom?: boolean | null
+          looking_for_team?: boolean | null
+          losses?: number | null
+          mvp_awards?: number | null
+          peak_rank?: string | null
+          rank_points?: number | null
+          status_message?: string | null
+          tournaments_played?: number | null
+          tournaments_won?: number | null
+          twitch_handle?: string | null
+          twitter_handle?: string | null
+          valorant_agent?: string | null
+          valorant_role?: Database["public"]["Enums"]["valorant_role"] | null
+          weight_rating?: number | null
+          wins?: number | null
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string | null
+          current_rank?: string | null
+          discord_avatar_url?: string | null
+          discord_username?: string | null
+          id?: string | null
+          is_admin_user?: never
+          is_phantom?: boolean | null
+          looking_for_team?: boolean | null
+          losses?: number | null
+          mvp_awards?: number | null
+          peak_rank?: string | null
+          rank_points?: number | null
+          status_message?: string | null
+          tournaments_played?: number | null
+          tournaments_won?: number | null
+          twitch_handle?: string | null
+          twitter_handle?: string | null
+          valorant_agent?: string | null
+          valorant_role?: Database["public"]["Enums"]["valorant_role"] | null
+          weight_rating?: number | null
+          wins?: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       activate_name_effect: {
@@ -2578,6 +2834,7 @@ export type Database = {
         Returns: undefined
       }
       increment_user_wins: { Args: { user_id: string }; Returns: undefined }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_team_captain: {
         Args: { team_uuid: string; user_uuid: string }
         Returns: boolean
