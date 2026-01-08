@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Users, Search } from "lucide-react";
+import { Users, Search, Star } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { GradientBackground, GlassCard, BetaInput, BetaBadge } from "@/components-beta/ui-beta";
 import { Link } from "react-router-dom";
@@ -42,6 +42,7 @@ interface Player {
   rank_points: number;
   weight_rating: number;
   tournaments_won: number;
+  mvp_awards: number;
   wins: number;
   losses: number;
   is_admin_user: boolean;
@@ -62,7 +63,7 @@ const BetaPlayers = () => {
     try {
       const { data, error } = await supabase
         .from('public_user_profiles')
-        .select('id, discord_username, discord_avatar_url, current_rank, rank_points, weight_rating, tournaments_won, wins, losses, is_admin_user, valorant_role, looking_for_team')
+        .select('id, discord_username, discord_avatar_url, current_rank, rank_points, weight_rating, tournaments_won, mvp_awards, wins, losses, is_admin_user, valorant_role, looking_for_team')
         .eq('is_phantom', false)
         .order('weight_rating', { ascending: false });
 
@@ -122,6 +123,14 @@ const BetaPlayers = () => {
             </div>
           </div>
 
+          {/* Info Banner */}
+          <GlassCard className="p-4 mb-6">
+            <p className="text-sm text-[hsl(var(--beta-text-muted))]">
+              <span className="font-medium text-[hsl(var(--beta-accent))]">Balance Weight:</span> Numerical rank representation used for ATLAS team balancing.
+              Higher weight = higher skill estimation.
+            </p>
+          </GlassCard>
+
           {/* Search */}
           <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[hsl(var(--beta-text-muted))]" />
@@ -175,7 +184,7 @@ const BetaPlayers = () => {
                           )}
                         </div>
                         {player.looking_for_team && (
-                          <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-[hsl(var(--beta-surface-1))]" />
+                          <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-[hsl(var(--beta-surface-1))] animate-pulse" title="Looking for Team" />
                         )}
                       </div>
                       
@@ -201,11 +210,16 @@ const BetaPlayers = () => {
                               {player.valorant_role}
                             </BetaBadge>
                           )}
+                          {player.looking_for_team && (
+                            <BetaBadge size="sm" variant="success">
+                              LFT
+                            </BetaBadge>
+                          )}
                         </div>
                       </div>
                     </div>
 
-                    {/* Stats Grid */}
+                    {/* Stats Grid - 2x2 */}
                     <div className="grid grid-cols-2 gap-2 mb-3">
                       <div className="bg-[hsl(var(--beta-surface-3))] rounded-[var(--beta-radius-md)] p-2 text-center">
                         <p className="text-sm font-bold text-[hsl(var(--beta-accent))]">
@@ -214,22 +228,37 @@ const BetaPlayers = () => {
                         <p className="text-xs text-[hsl(var(--beta-text-muted))]">Weight</p>
                       </div>
                       <div className="bg-[hsl(var(--beta-surface-3))] rounded-[var(--beta-radius-md)] p-2 text-center">
+                        <p className="text-sm font-bold text-purple-400">
+                          {player.rank_points || 0}
+                        </p>
+                        <p className="text-xs text-[hsl(var(--beta-text-muted))]">Ranked RR</p>
+                      </div>
+                      <div className="bg-[hsl(var(--beta-surface-3))] rounded-[var(--beta-radius-md)] p-2 text-center">
                         <p className="text-sm font-bold text-yellow-400">
                           {player.tournaments_won || 0}
                         </p>
-                        <p className="text-xs text-[hsl(var(--beta-text-muted))]">Wins</p>
+                        <p className="text-xs text-[hsl(var(--beta-text-muted))]">Tournaments Won</p>
+                      </div>
+                      <div className="bg-[hsl(var(--beta-surface-3))] rounded-[var(--beta-radius-md)] p-2 text-center">
+                        <p className="text-sm font-bold text-blue-400">
+                          {calculateWinRate(player.wins || 0, player.losses || 0)}%
+                        </p>
+                        <p className="text-xs text-[hsl(var(--beta-text-muted))]">Win Rate</p>
                       </div>
                     </div>
 
-                    {/* Win/Loss */}
-                    <div className="flex items-center justify-between text-xs">
+                    {/* Win/Loss and MVP */}
+                    <div className="flex items-center justify-between text-xs pt-2 border-t border-[hsl(var(--beta-glass-border))]">
                       <div className="flex items-center gap-3">
                         <span className="text-green-400">W: {player.wins || 0}</span>
                         <span className="text-red-400">L: {player.losses || 0}</span>
                       </div>
-                      <span className="text-[hsl(var(--beta-accent))]">
-                        {calculateWinRate(player.wins || 0, player.losses || 0)}% WR
-                      </span>
+                      {(player.mvp_awards || 0) > 0 && (
+                        <div className="flex items-center gap-1 text-yellow-400">
+                          <Star className="w-3 h-3" />
+                          <span>{player.mvp_awards} MVP</span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Admin Badge */}
