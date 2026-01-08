@@ -52,6 +52,36 @@ const BracketGenerator = ({ tournamentId, teams, onBracketGenerated }: BracketGe
     }
   };
 
+  const forceUnlockGeneration = async () => {
+    const confirmed = window.confirm(
+      'Force unlock bracket generation?\n\n' +
+      'Use this ONLY if generation is stuck (e.g., browser closed mid-generation).\n\n' +
+      'This will clear the generation lock so you can generate again.'
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await supabase.rpc('complete_bracket_generation', {
+        p_tournament_id: tournamentId,
+        p_success: false,
+      });
+
+      toast({
+        title: "Generation Unlocked",
+        description: "The generation lock was cleared. You can try generating again.",
+      });
+
+      await checkExistingBracket();
+    } catch (error: any) {
+      toast({
+        title: "Unlock Failed",
+        description: error.message || "Could not clear generation lock",
+        variant: "destructive",
+      });
+    }
+  };
+
   const clearBracket = async () => {
     const confirmed = window.confirm(
       '⚠️ DANGER: Clear Entire Bracket?\n\n' +
@@ -63,6 +93,14 @@ const BracketGenerator = ({ tournamentId, teams, onBracketGenerated }: BracketGe
 
     setClearing(true);
     try {
+      // If a generation lock is stuck, clear it first so the UI can recover.
+      if (generationInProgress) {
+        await supabase.rpc('complete_bracket_generation', {
+          p_tournament_id: tournamentId,
+          p_success: false,
+        });
+      }
+
       const { error } = await supabase
         .from('matches')
         .delete()
@@ -77,6 +115,7 @@ const BracketGenerator = ({ tournamentId, teams, onBracketGenerated }: BracketGe
       
       setHasExistingBracket(false);
       setExistingMatchCount(0);
+      await checkExistingBracket();
       onBracketGenerated(); // Refresh parent
     } catch (error: any) {
       toast({
@@ -302,8 +341,27 @@ const BracketGenerator = ({ tournamentId, teams, onBracketGenerated }: BracketGe
         <Alert className="mb-4 bg-yellow-900/30 border-yellow-600">
           <Lock className="h-4 w-4 text-yellow-500" />
           <AlertTitle className="text-yellow-400">Generation In Progress</AlertTitle>
-          <AlertDescription className="text-yellow-300">
-            Another admin is currently generating the bracket. Please wait and refresh.
+          <AlertDescription className="text-yellow-300 space-y-2">
+            <div>Another admin is currently generating the bracket. Please wait and refresh.</div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => checkExistingBracket()}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh status
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={forceUnlockGeneration}
+              >
+                Force unlock
+              </Button>
+            </div>
           </AlertDescription>
         </Alert>
       )}
