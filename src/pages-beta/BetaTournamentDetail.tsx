@@ -6,12 +6,13 @@ import { GradientBackground, GlassCard, BetaButton, BetaBadge, StatCard } from "
 import { 
   Trophy, Users, Calendar, Clock, ArrowLeft, Shield, Swords, 
   CheckCircle, User, Eye, Map, Crown, Play, ExternalLink,
-  ScrollText, Settings, UserCheck, Info, Scale
+  ScrollText, Settings, UserCheck, Info, Scale, Download, Copy, BarChart3
 } from "lucide-react";
 import { format } from "date-fns";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getRankIcon, getRankColor, calculateAverageRank } from "@/utils/rankUtils";
+import { useToast } from "@/hooks/use-toast";
 // Beta Tabs component
 const BetaTabs = ({ 
   tabs, 
@@ -234,6 +235,84 @@ const BetaBracketView = ({ tournamentId }: { tournamentId: string }) => {
           );
         })}
       </div>
+    </div>
+  );
+};
+
+// Export Teams Button Component
+const ExportTeamsButton = ({ teams, tournamentName }: { teams: any[]; tournamentName: string }) => {
+  const { toast } = useToast();
+  
+  const generateDiscordExport = () => {
+    const sortedTeams = [...teams].sort((a, b) => (b.total_rank_points || 0) - (a.total_rank_points || 0));
+    let exportText = `**${tournamentName} - Teams Export**\n\n`;
+    
+    sortedTeams.forEach((team, index) => {
+      exportText += `**${index + 1}. ${team.name}** (Weight: ${team.total_rank_points ?? 0})\n`;
+      
+      if (team.team_members && team.team_members.length > 0) {
+        team.team_members.forEach((member: any) => {
+          const rank = member.users?.current_rank || "Unranked";
+          const weight = member.users?.weight_rating || member.users?.rank_points || 0;
+          const captain = member.is_captain ? " 👑" : "";
+          exportText += `  • ${member.users?.discord_username || "Unknown"}${captain} - ${rank} (${weight})\n`;
+        });
+        const avgWeight = Math.round((team.total_rank_points ?? 0) / team.team_members.length);
+        exportText += `  📊 Avg Weight: ${avgWeight}\n\n`;
+      }
+    });
+    
+    return exportText;
+  };
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(generateDiscordExport());
+    toast({ title: "Copied!", description: "Teams exported to clipboard" });
+  };
+
+  return (
+    <button
+      onClick={copyToClipboard}
+      className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg bg-[hsl(var(--beta-surface-3))] text-[hsl(var(--beta-text-muted))] hover:text-[hsl(var(--beta-text-primary))] hover:bg-[hsl(var(--beta-surface-4))] transition-colors"
+    >
+      <Copy className="w-4 h-4" />
+      <span className="hidden sm:inline">Export</span>
+    </button>
+  );
+};
+
+// Balance Analysis Display Component
+const BalanceAnalysisDisplay = ({ analysis }: { analysis: any }) => {
+  if (!analysis) return null;
+  
+  const data = typeof analysis === 'string' ? JSON.parse(analysis) : analysis;
+  
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {data.totalWeightDifference !== undefined && (
+        <div className="p-3 rounded-lg bg-[hsl(var(--beta-surface-3))]">
+          <p className="text-xs text-[hsl(var(--beta-text-muted))]">Weight Difference</p>
+          <p className="text-lg font-bold text-purple-400">{data.totalWeightDifference}</p>
+        </div>
+      )}
+      {data.averageTeamWeight !== undefined && (
+        <div className="p-3 rounded-lg bg-[hsl(var(--beta-surface-3))]">
+          <p className="text-xs text-[hsl(var(--beta-text-muted))]">Avg Team Weight</p>
+          <p className="text-lg font-bold text-[hsl(var(--beta-accent))]">{Math.round(data.averageTeamWeight)}</p>
+        </div>
+      )}
+      {data.balanceScore !== undefined && (
+        <div className="p-3 rounded-lg bg-[hsl(var(--beta-surface-3))]">
+          <p className="text-xs text-[hsl(var(--beta-text-muted))]">Balance Score</p>
+          <p className="text-lg font-bold text-green-400">{data.balanceScore}%</p>
+        </div>
+      )}
+      {data.algorithm && (
+        <div className="p-3 rounded-lg bg-[hsl(var(--beta-surface-3))]">
+          <p className="text-xs text-[hsl(var(--beta-text-muted))]">Algorithm</p>
+          <p className="text-sm font-medium text-[hsl(var(--beta-text-primary))]">{data.algorithm}</p>
+        </div>
+      )}
     </div>
   );
 };
@@ -537,10 +616,13 @@ const BetaTournamentDetail = () => {
             {/* Teams Preview */}
             {teams && teams.length > 0 && (
               <GlassCard className="p-6 lg:col-span-2">
-                <h3 className="text-lg font-semibold text-[hsl(var(--beta-text-primary))] mb-4 flex items-center gap-2">
-                  <Shield className="w-5 h-5 text-[hsl(var(--beta-accent))]" />
-                  Teams ({teams.length})
-                </h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-[hsl(var(--beta-text-primary))] flex items-center gap-2">
+                    <Shield className="w-5 h-5 text-[hsl(var(--beta-accent))]" />
+                    Teams ({teams.length})
+                  </h3>
+                  <ExportTeamsButton teams={teams} tournamentName={tournament.name} />
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                   {[...teams].sort((a, b) => (b.total_rank_points || 0) - (a.total_rank_points || 0)).slice(0, 8).map((team, index) => (
                     <GlassCard 
@@ -589,6 +671,17 @@ const BetaTournamentDetail = () => {
                     </button>
                   </div>
                 )}
+              </GlassCard>
+            )}
+
+            {/* Balance Analysis */}
+            {tournament.balance_analysis && (
+              <GlassCard className="p-6 lg:col-span-2">
+                <h3 className="text-lg font-semibold text-[hsl(var(--beta-text-primary))] mb-4 flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-[hsl(var(--beta-accent))]" />
+                  Balance Analysis
+                </h3>
+                <BalanceAnalysisDisplay analysis={tournament.balance_analysis} />
               </GlassCard>
             )}
           </div>
