@@ -1,10 +1,11 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { calculateBracketStructure } from "@/utils/bracketCalculations";
 import BatchBracketGenerator from "./BatchBracketGenerator";
+import { AlertTriangle, Trash2, RefreshCw } from "lucide-react";
 
 interface BracketGeneratorProps {
   tournamentId: string;
@@ -14,10 +15,67 @@ interface BracketGeneratorProps {
 
 const BracketGenerator = ({ tournamentId, teams, onBracketGenerated }: BracketGeneratorProps) => {
   const [generating, setGenerating] = useState(false);
+  const [clearing, setClearing] = useState(false);
+  const [hasExistingBracket, setHasExistingBracket] = useState(false);
+  const [existingMatchCount, setExistingMatchCount] = useState(0);
   const { toast } = useToast();
 
   // Use batch processing for tournaments with 8+ teams (32+ players typically)
   const shouldUseBatchMode = teams.length >= 8;
+
+  // Check for existing bracket on mount and after operations
+  useEffect(() => {
+    checkExistingBracket();
+  }, [tournamentId]);
+
+  const checkExistingBracket = async () => {
+    const { data, error } = await supabase
+      .from('matches')
+      .select('id', { count: 'exact' })
+      .eq('tournament_id', tournamentId);
+    
+    if (!error && data) {
+      setHasExistingBracket(data.length > 0);
+      setExistingMatchCount(data.length);
+    }
+  };
+
+  const clearBracket = async () => {
+    const confirmed = window.confirm(
+      '⚠️ DANGER: Clear Entire Bracket?\n\n' +
+      `This will permanently delete all ${existingMatchCount} matches, scores, and bracket data.\n\n` +
+      'This action cannot be undone. Are you sure?'
+    );
+    
+    if (!confirmed) return;
+
+    setClearing(true);
+    try {
+      const { error } = await supabase
+        .from('matches')
+        .delete()
+        .eq('tournament_id', tournamentId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Bracket Cleared",
+        description: "All matches have been deleted. You can now generate a new bracket.",
+      });
+      
+      setHasExistingBracket(false);
+      setExistingMatchCount(0);
+      onBracketGenerated(); // Refresh parent
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to clear bracket",
+        variant: "destructive",
+      });
+    } finally {
+      setClearing(false);
+    }
+  };
 
   const generateBracket = async () => {
     if (teams.length < 2) {
@@ -231,33 +289,77 @@ const BracketGenerator = ({ tournamentId, teams, onBracketGenerated }: BracketGe
     }
   };
 
+  // Existing bracket warning component
+  const ExistingBracketWarning = () => (
+    hasExistingBracket ? (
+      <Alert variant="destructive" className="mb-4">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>Bracket Already Exists</AlertTitle>
+        <AlertDescription>
+          This tournament has {existingMatchCount} existing matches. 
+          Regenerating will delete all current bracket data including scores.
+        </AlertDescription>
+      </Alert>
+    ) : null
+  );
+
   // Show batch generator for large tournaments, regular generator for small ones
   if (shouldUseBatchMode) {
     return (
       <div className="space-y-4">
-        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <h3 className="font-semibold text-blue-800">Large Tournament Detected</h3>
-          <p className="text-sm text-blue-600 mt-1">
+        <ExistingBracketWarning />
+        <div className="p-4 bg-blue-900/20 border border-blue-500/30 rounded-lg">
+          <h3 className="font-semibold text-blue-400">Large Tournament Detected</h3>
+          <p className="text-sm text-blue-300/80 mt-1">
             Using batch processing for optimal performance with {teams.length} teams.
           </p>
         </div>
+        {hasExistingBracket && (
+          <Button
+            onClick={clearBracket}
+            disabled={clearing}
+            variant="destructive"
+            className="w-full"
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            {clearing ? "Clearing..." : `Clear Existing Bracket (${existingMatchCount} matches)`}
+          </Button>
+        )}
         <BatchBracketGenerator 
           tournamentId={tournamentId} 
           teams={teams} 
-          onBracketGenerated={onBracketGenerated} 
+          onBracketGenerated={() => {
+            checkExistingBracket();
+            onBracketGenerated();
+          }} 
         />
       </div>
     );
   }
 
   return (
-    <Button
-      onClick={generateBracket}
-      disabled={generating}
-      className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
-    >
-      {generating ? "Generating..." : "Generate Bracket"}
-    </Button>
+    <div className="space-y-4">
+      <ExistingBracketWarning />
+      {hasExistingBracket && (
+        <Button
+          onClick={clearBracket}
+          disabled={clearing}
+          variant="destructive"
+          className="w-full"
+        >
+          <Trash2 className="h-4 w-4 mr-2" />
+          {clearing ? "Clearing..." : `Clear Existing Bracket (${existingMatchCount} matches)`}
+        </Button>
+      )}
+      <Button
+        onClick={generateBracket}
+        disabled={generating}
+        className="w-full bg-green-600 hover:bg-green-700"
+      >
+        <RefreshCw className={`h-4 w-4 mr-2 ${generating ? 'animate-spin' : ''}`} />
+        {generating ? "Generating..." : hasExistingBracket ? "Regenerate Bracket" : "Generate Bracket"}
+      </Button>
+    </div>
   );
 };
 
