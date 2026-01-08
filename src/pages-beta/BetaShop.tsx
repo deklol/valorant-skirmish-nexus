@@ -18,7 +18,7 @@ const BetaShop = () => {
       if (!user?.id) return null;
       const { data } = await supabase
         .from('users')
-        .select('shop_points')
+        .select('spendable_points')
         .eq('id', user.id)
         .single();
       return data;
@@ -72,7 +72,7 @@ const BetaShop = () => {
   };
 
   const hasPurchased = (itemId: string) => purchases?.includes(itemId);
-  const canAfford = (price: number) => (userProfile?.shop_points || 0) >= price;
+  const canAfford = (price: number) => (userProfile?.spendable_points || 0) >= price;
 
   if (isLoading) {
     return (
@@ -115,7 +115,7 @@ const BetaShop = () => {
               <div>
                 <p className="text-xs text-[hsl(var(--beta-text-muted))]">Your Balance</p>
                 <p className="text-2xl font-bold text-[hsl(var(--beta-accent))]">
-                  {userProfile?.shop_points || 0}
+                  {userProfile?.spendable_points || 0}
                 </p>
               </div>
             </GlassCard>
