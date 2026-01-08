@@ -51,6 +51,11 @@ import BetaLeaderboard from "./pages-beta/BetaLeaderboard";
 import BetaPlayers from "./pages-beta/BetaPlayers";
 import BetaTournamentDetail from "./pages-beta/BetaTournamentDetail";
 import BetaProfile from "./pages-beta/BetaProfile";
+import BetaMatchDetails from "./pages-beta/BetaMatchDetails";
+import BetaAdmin from "./pages-beta/BetaAdmin";
+import BetaShop from "./pages-beta/BetaShop";
+import BetaVODs from "./pages-beta/BetaVODs";
+import BetaHelp from "./pages-beta/BetaHelp";
 
 const queryClient = new QueryClient();
 
@@ -98,6 +103,11 @@ const AppContent = () => {
               <Route path="players" element={<BetaPlayers />} />
               <Route path="profile" element={<BetaProfile />} />
               <Route path="profile/:userId" element={<BetaProfile />} />
+              <Route path="match/:id" element={<BetaMatchDetails />} />
+              <Route path="admin" element={<BetaAdmin />} />
+              <Route path="shop" element={<BetaShop />} />
+              <Route path="vods" element={<BetaVODs />} />
+              <Route path="help" element={<BetaHelp />} />
             </Route>
             
             {/* All other routes with normal layout */}
