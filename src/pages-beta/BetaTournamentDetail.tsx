@@ -6,12 +6,12 @@ import { GradientBackground, GlassCard, BetaButton, BetaBadge, StatCard } from "
 import { 
   Trophy, Users, Calendar, Clock, ArrowLeft, Shield, Swords, 
   CheckCircle, User, Eye, Map, Crown, Play, ExternalLink,
-  ScrollText, Settings, UserCheck, Info
+  ScrollText, Settings, UserCheck, Info, Scale
 } from "lucide-react";
 import { format } from "date-fns";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-
+import { getRankIcon, getRankColor, calculateAverageRank } from "@/utils/rankUtils";
 // Beta Tabs component
 const BetaTabs = ({ 
   tabs, 
@@ -541,24 +541,54 @@ const BetaTournamentDetail = () => {
                   <Shield className="w-5 h-5 text-[hsl(var(--beta-accent))]" />
                   Teams ({teams.length})
                 </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                  {teams.slice(0, 12).map((team, index) => (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {[...teams].sort((a, b) => (b.total_rank_points || 0) - (a.total_rank_points || 0)).slice(0, 8).map((team, index) => (
                     <GlassCard 
                       key={team.id} 
                       variant="subtle" 
-                      className="p-3 text-center beta-animate-fade-in"
-                      style={{ animationDelay: `${index * 20}ms` }}
+                      className="p-4 beta-animate-fade-in"
+                      style={{ animationDelay: `${index * 30}ms` }}
                     >
-                      <h4 className="font-medium text-[hsl(var(--beta-text-primary))] text-sm truncate">{team.name}</h4>
-                      <p className="text-xs text-[hsl(var(--beta-text-muted))]">{team.team_members?.length || 0} players</p>
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-semibold text-[hsl(var(--beta-text-primary))] truncate">{team.name}</h4>
+                        {team.seed && <BetaBadge variant="accent" size="sm">#{team.seed}</BetaBadge>}
+                      </div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <Scale className="w-4 h-4 text-purple-400" />
+                        <span className="text-sm text-purple-300 font-medium">Weight: {team.total_rank_points ?? 0}</span>
+                      </div>
+                      <div className="space-y-1">
+                        {team.team_members?.slice(0, 5).map((member: any) => (
+                          <div key={member.user_id} className="flex items-center justify-between text-xs">
+                            <span className={`truncate ${member.is_captain ? 'text-[hsl(var(--beta-accent))]' : 'text-[hsl(var(--beta-text-secondary))]'}`}>
+                              {member.is_captain && <Crown className="w-3 h-3 inline mr-1" />}
+                              {member.users?.discord_username}
+                            </span>
+                            <span style={{ color: getRankColor(member.users?.current_rank) }}>
+                              {getRankIcon(member.users?.current_rank)} {member.users?.current_rank || 'Unranked'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      {team.team_members && team.team_members.length > 0 && (
+                        <div className="mt-2 pt-2 border-t border-[hsl(var(--beta-border))] text-xs text-[hsl(var(--beta-text-muted))]">
+                          Avg: {calculateAverageRank(team.team_members.map((m: any) => m.users?.current_rank))} | 
+                          Weight/Player: {Math.round((team.total_rank_points ?? 0) / team.team_members.length)}
+                        </div>
+                      )}
                     </GlassCard>
                   ))}
-                  {teams.length > 12 && (
-                    <div className="p-3 text-center flex items-center justify-center">
-                      <span className="text-sm text-[hsl(var(--beta-text-muted))]">+{teams.length - 12} more</span>
-                    </div>
-                  )}
                 </div>
+                {teams.length > 8 && (
+                  <div className="mt-4 text-center">
+                    <button 
+                      onClick={() => setActiveTab('participants')}
+                      className="text-sm text-[hsl(var(--beta-accent))] hover:underline"
+                    >
+                      View all {teams.length} teams →
+                    </button>
+                  </div>
+                )}
               </GlassCard>
             )}
           </div>
@@ -591,22 +621,39 @@ const BetaTournamentDetail = () => {
             
             {tournament.registration_type === 'team' ? (
               <div className="space-y-4">
-                {teams?.map((team, index) => (
+                {[...teams].sort((a, b) => (b.total_rank_points || 0) - (a.total_rank_points || 0))?.map((team, index) => (
                   <GlassCard 
                     key={team.id} 
                     variant="subtle" 
                     className="p-4 beta-animate-fade-in"
                     style={{ animationDelay: `${index * 30}ms` }}
                   >
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-semibold text-[hsl(var(--beta-text-primary))]">{team.name}</h4>
-                      {team.seed && <BetaBadge variant="accent" size="sm">Seed #{team.seed}</BetaBadge>}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                      <div className="flex items-center gap-3">
+                        <h4 className="font-semibold text-lg text-[hsl(var(--beta-text-primary))]">{team.name}</h4>
+                        {team.seed && <BetaBadge variant="accent" size="sm">Seed #{team.seed}</BetaBadge>}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/20 border border-purple-500/30">
+                          <Scale className="w-4 h-4 text-purple-400" />
+                          <span className="text-sm text-purple-300 font-semibold">Weight: {team.total_rank_points ?? 0}</span>
+                        </div>
+                        {team.team_members && team.team_members.length > 0 && (
+                          <span className="text-xs text-[hsl(var(--beta-text-muted))]">
+                            Avg: {Math.round((team.total_rank_points ?? 0) / team.team_members.length)}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
                       {team.team_members?.map((member: any) => (
                         <Link key={member.user_id} to={`/beta/profile/${member.user_id}`}>
-                          <div className="flex items-center gap-2 p-2 rounded-lg bg-[hsl(var(--beta-surface-4))] hover:bg-[hsl(var(--beta-surface-3))] transition-colors">
-                            <div className="w-8 h-8 rounded-full bg-[hsl(var(--beta-surface-3))] flex items-center justify-center overflow-hidden">
+                          <div className={`flex items-center gap-2 p-2 rounded-lg transition-colors ${
+                            member.is_captain 
+                              ? 'bg-[hsl(var(--beta-accent)/0.15)] border border-[hsl(var(--beta-accent)/0.3)]' 
+                              : 'bg-[hsl(var(--beta-surface-4))] hover:bg-[hsl(var(--beta-surface-3))]'
+                          }`}>
+                            <div className="w-8 h-8 rounded-full bg-[hsl(var(--beta-surface-3))] flex items-center justify-center overflow-hidden flex-shrink-0">
                               {member.users?.discord_avatar_url ? (
                                 <img src={member.users.discord_avatar_url} alt="" className="w-full h-full object-cover" />
                               ) : (
@@ -614,14 +661,34 @@ const BetaTournamentDetail = () => {
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm text-[hsl(var(--beta-text-primary))] truncate">{member.users?.discord_username}</p>
-                              <p className="text-xs text-[hsl(var(--beta-text-muted))] truncate">{member.users?.current_rank}</p>
+                              <div className="flex items-center gap-1">
+                                {member.is_captain && <Crown className="w-3 h-3 text-[hsl(var(--beta-accent))] flex-shrink-0" />}
+                                <p className="text-sm text-[hsl(var(--beta-text-primary))] truncate">{member.users?.discord_username}</p>
+                              </div>
+                              <div className="flex items-center gap-1 text-xs">
+                                <span style={{ color: getRankColor(member.users?.current_rank) }}>
+                                  {getRankIcon(member.users?.current_rank)} {member.users?.current_rank || 'Unranked'}
+                                </span>
+                                <span className="text-purple-400">({member.users?.weight_rating || member.users?.rank_points || 0})</span>
+                              </div>
                             </div>
-                            {member.is_captain && <Crown className="w-3 h-3 text-[hsl(var(--beta-accent))]" />}
                           </div>
                         </Link>
                       ))}
                     </div>
+                    {team.team_members && team.team_members.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-[hsl(var(--beta-border))] flex flex-wrap gap-4 text-xs text-[hsl(var(--beta-text-muted))]">
+                        <span>
+                          Average Rank: <span style={{ color: getRankColor(calculateAverageRank(team.team_members.map((m: any) => m.users?.current_rank))) }}>
+                            {calculateAverageRank(team.team_members.map((m: any) => m.users?.current_rank))}
+                          </span>
+                        </span>
+                        <span>
+                          Average Weight: <span className="text-purple-300">{Math.round((team.total_rank_points ?? 0) / team.team_members.length)}</span>
+                        </span>
+                        <span>Players: {team.team_members.length}</span>
+                      </div>
+                    )}
                   </GlassCard>
                 ))}
               </div>

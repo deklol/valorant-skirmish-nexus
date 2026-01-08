@@ -49,7 +49,10 @@ export function useTournamentData(): UseTournamentDataResult {
                 discord_username,
                 discord_avatar_url,
                 current_rank,
-                riot_id
+                riot_id,
+                rank_points,
+                weight_rating,
+                peak_rank
               )
             )
           ),
