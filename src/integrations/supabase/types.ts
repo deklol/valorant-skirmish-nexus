@@ -2906,6 +2906,16 @@ export type Database = {
         }
         Returns: string
       }
+      recalculate_all_user_statistics: {
+        Args: never
+        Returns: {
+          total_losses: number
+          total_tournament_wins: number
+          total_tournaments_played: number
+          total_wins: number
+          users_updated: number
+        }[]
+      }
       recalculate_team_weight: { Args: { p_team_id: string }; Returns: number }
       record_tournament_metric: {
         Args: {
