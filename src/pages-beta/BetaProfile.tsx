@@ -6,13 +6,16 @@ import { useUserTeam } from "@/hooks/useUserTeam";
 import { GradientBackground, GlassCard, BetaButton, BetaBadge, StatCard } from "@/components-beta/ui-beta";
 import { 
   User, Trophy, Target, Calendar, Twitter, Clock, 
-  Shield, Users, Swords, Award, Lock, ExternalLink, Edit
+  Shield, Users, Swords, Award, Lock, ExternalLink, Edit,
+  TrendingUp, Medal, History, Gamepad2
 } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 import { getTrackerGGUrl } from "@/utils/getTrackerGGUrl";
+import { useState } from "react";
+import { getRankIcon, getRankColor } from "@/utils/rankUtils";
 
 // Role color mapping
-const getRoleColor = (role: string) => {
+const getRoleColorClass = (role: string) => {
   switch (role) {
     case 'Duelist': return 'text-red-400 bg-red-500/20 border-red-500/30';
     case 'Controller': return 'text-blue-400 bg-blue-500/20 border-blue-500/30';
@@ -22,9 +25,310 @@ const getRoleColor = (role: string) => {
   }
 };
 
+// Beta Tabs Component
+const BetaProfileTabs = ({ 
+  tabs, 
+  activeTab, 
+  onTabChange 
+}: { 
+  tabs: { id: string; label: string; icon: React.ReactNode }[];
+  activeTab: string;
+  onTabChange: (id: string) => void;
+}) => (
+  <div className="flex flex-wrap gap-2 p-1 bg-[hsl(var(--beta-surface-2))] rounded-xl border border-[hsl(var(--beta-border))]">
+    {tabs.map(tab => (
+      <button
+        key={tab.id}
+        onClick={() => onTabChange(tab.id)}
+        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+          activeTab === tab.id
+            ? 'bg-[hsl(var(--beta-accent))] text-[hsl(var(--beta-surface-1))]'
+            : 'text-[hsl(var(--beta-text-muted))] hover:text-[hsl(var(--beta-text-primary))] hover:bg-[hsl(var(--beta-surface-3))]'
+        }`}
+      >
+        {tab.icon}
+        <span className="hidden sm:inline">{tab.label}</span>
+      </button>
+    ))}
+  </div>
+);
+
+// Match History Tab
+const MatchHistoryTab = ({ userId }: { userId: string }) => {
+  const { data: matches, isLoading } = useQuery({
+    queryKey: ['beta-match-history', userId],
+    queryFn: async () => {
+      // Get teams the user is a member of
+      const { data: teamMemberships } = await supabase
+        .from('team_members')
+        .select('team_id')
+        .eq('user_id', userId);
+      
+      if (!teamMemberships || teamMemberships.length === 0) return [];
+      
+      const teamIds = teamMemberships.map(tm => tm.team_id);
+      
+      // Get matches for those teams
+      const { data } = await supabase
+        .from('matches')
+        .select(`
+          id, status, score_team1, score_team2, completed_at, round_number,
+          team1:teams!matches_team1_id_fkey (id, name),
+          team2:teams!matches_team2_id_fkey (id, name),
+          winner:teams!matches_winner_id_fkey (id, name),
+          tournament:tournaments (id, name)
+        `)
+        .or(teamIds.map(id => `team1_id.eq.${id},team2_id.eq.${id}`).join(','))
+        .eq('status', 'completed')
+        .order('completed_at', { ascending: false })
+        .limit(20);
+      
+      return data || [];
+    }
+  });
+
+  if (isLoading) return <div className="text-[hsl(var(--beta-text-muted))] text-center py-8">Loading matches...</div>;
+
+  if (!matches || matches.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <Swords className="w-12 h-12 text-[hsl(var(--beta-text-muted))] mx-auto mb-4" />
+        <p className="text-[hsl(var(--beta-text-muted))]">No match history yet</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {matches.map((match: any, idx: number) => (
+        <Link key={match.id} to={`/match/${match.id}`}>
+          <GlassCard 
+            variant="subtle" 
+            hover 
+            className="p-4 beta-animate-fade-in"
+            style={{ animationDelay: `${idx * 30}ms` }}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-xs text-[hsl(var(--beta-text-muted))] mb-1">
+                  {match.tournament?.name} • Round {match.round_number}
+                </p>
+                <div className="flex items-center gap-2">
+                  <span className="text-[hsl(var(--beta-text-primary))] font-medium">{match.team1?.name}</span>
+                  <span className="text-[hsl(var(--beta-text-muted))]">vs</span>
+                  <span className="text-[hsl(var(--beta-text-primary))] font-medium">{match.team2?.name}</span>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-lg font-bold text-[hsl(var(--beta-text-primary))]">
+                  {match.score_team1} - {match.score_team2}
+                </div>
+                {match.completed_at && (
+                  <p className="text-xs text-[hsl(var(--beta-text-muted))]">
+                    {format(new Date(match.completed_at), 'MMM d, yyyy')}
+                  </p>
+                )}
+              </div>
+            </div>
+          </GlassCard>
+        </Link>
+      ))}
+    </div>
+  );
+};
+
+// Tournament History Tab
+const TournamentHistoryTab = ({ userId }: { userId: string }) => {
+  const { data: tournaments, isLoading } = useQuery({
+    queryKey: ['beta-tournament-history', userId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('tournament_signups')
+        .select(`
+          id,
+          tournament:tournaments (
+            id, name, status, start_time,
+            teams (id, name, status)
+          )
+        `)
+        .eq('user_id', userId)
+        .order('signed_up_at', { ascending: false })
+        .limit(20);
+      
+      return data || [];
+    }
+  });
+
+  if (isLoading) return <div className="text-[hsl(var(--beta-text-muted))] text-center py-8">Loading tournaments...</div>;
+
+  if (!tournaments || tournaments.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <Trophy className="w-12 h-12 text-[hsl(var(--beta-text-muted))] mx-auto mb-4" />
+        <p className="text-[hsl(var(--beta-text-muted))]">No tournament history yet</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {tournaments.map((signup: any, idx: number) => (
+        <Link key={signup.id} to={`/beta/tournament/${signup.tournament?.id}`}>
+          <GlassCard 
+            variant="subtle" 
+            hover 
+            className="p-4 beta-animate-fade-in"
+            style={{ animationDelay: `${idx * 30}ms` }}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[hsl(var(--beta-text-primary))] font-medium">{signup.tournament?.name}</p>
+                <p className="text-xs text-[hsl(var(--beta-text-muted))]">
+                  {signup.tournament?.start_time && format(new Date(signup.tournament.start_time), 'MMM d, yyyy')}
+                </p>
+              </div>
+              <BetaBadge 
+                variant={signup.tournament?.status === 'completed' ? 'success' : 'default'}
+                size="sm"
+              >
+                {signup.tournament?.status}
+              </BetaBadge>
+            </div>
+          </GlassCard>
+        </Link>
+      ))}
+    </div>
+  );
+};
+
+// Achievements Tab
+const AchievementsTab = ({ userId }: { userId: string }) => {
+  const { data: achievements, isLoading } = useQuery({
+    queryKey: ['beta-achievements', userId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('user_achievements')
+        .select(`
+          id, unlocked_at,
+          achievement:achievements (id, name, description, icon, points, rarity)
+        `)
+        .eq('user_id', userId)
+        .order('unlocked_at', { ascending: false });
+      
+      return data || [];
+    }
+  });
+
+  if (isLoading) return <div className="text-[hsl(var(--beta-text-muted))] text-center py-8">Loading achievements...</div>;
+
+  if (!achievements || achievements.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <Award className="w-12 h-12 text-[hsl(var(--beta-text-muted))] mx-auto mb-4" />
+        <p className="text-[hsl(var(--beta-text-muted))]">No achievements unlocked yet</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {achievements.map((ua: any, idx: number) => (
+        <GlassCard 
+          key={ua.id} 
+          variant="subtle" 
+          className="p-4 beta-animate-fade-in"
+          style={{ animationDelay: `${idx * 30}ms` }}
+        >
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-lg bg-[hsl(var(--beta-accent)/0.2)] flex items-center justify-center text-2xl">
+              {ua.achievement?.icon || '🏆'}
+            </div>
+            <div className="flex-1">
+              <p className="text-[hsl(var(--beta-text-primary))] font-medium">{ua.achievement?.name}</p>
+              <p className="text-xs text-[hsl(var(--beta-text-muted))] mt-1">{ua.achievement?.description}</p>
+              <div className="flex items-center gap-2 mt-2">
+                <BetaBadge variant="accent" size="sm">{ua.achievement?.points} pts</BetaBadge>
+                <span className="text-xs text-[hsl(var(--beta-text-muted))]">{ua.achievement?.rarity}</span>
+              </div>
+            </div>
+          </div>
+        </GlassCard>
+      ))}
+    </div>
+  );
+};
+
+// Rank History Tab
+const RankHistoryTab = ({ userId }: { userId: string }) => {
+  const { data: rankHistory, isLoading } = useQuery({
+    queryKey: ['beta-rank-history', userId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('rank_history')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      
+      return data || [];
+    }
+  });
+
+  if (isLoading) return <div className="text-[hsl(var(--beta-text-muted))] text-center py-8">Loading rank history...</div>;
+
+  if (!rankHistory || rankHistory.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <TrendingUp className="w-12 h-12 text-[hsl(var(--beta-text-muted))] mx-auto mb-4" />
+        <p className="text-[hsl(var(--beta-text-muted))]">No rank history available</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {rankHistory.map((entry: any, idx: number) => (
+        <GlassCard 
+          key={entry.id} 
+          variant="subtle" 
+          className="p-4 beta-animate-fade-in"
+          style={{ animationDelay: `${idx * 30}ms` }}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {entry.previous_rank && (
+                <>
+                  <span style={{ color: getRankColor(entry.previous_rank) }}>
+                    {getRankIcon(entry.previous_rank)} {entry.previous_rank}
+                  </span>
+                  <span className="text-[hsl(var(--beta-text-muted))]">→</span>
+                </>
+              )}
+              <span style={{ color: getRankColor(entry.new_rank) }}>
+                {getRankIcon(entry.new_rank)} {entry.new_rank}
+              </span>
+            </div>
+            <div className="text-right">
+              {entry.rank_points_change && (
+                <span className={`text-sm font-medium ${entry.rank_points_change > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {entry.rank_points_change > 0 ? '+' : ''}{entry.rank_points_change} RR
+                </span>
+              )}
+              <p className="text-xs text-[hsl(var(--beta-text-muted))]">
+                {format(new Date(entry.created_at), 'MMM d, yyyy')}
+              </p>
+            </div>
+          </div>
+        </GlassCard>
+      ))}
+    </div>
+  );
+};
+
 const BetaProfile = () => {
   const { userId } = useParams<{ userId: string }>();
   const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState('overview');
   
   // Determine if viewing own profile or someone else's
   const profileId = userId || user?.id;
@@ -35,8 +339,6 @@ const BetaProfile = () => {
     queryFn: async () => {
       if (!profileId) throw new Error('No user ID');
       
-      // For own profile, fetch from users table directly
-      // For public profile, use the RPC function
       if (isOwnProfile && user) {
         const { data, error } = await supabase
           .from('users')
@@ -60,7 +362,6 @@ const BetaProfile = () => {
 
   const { userTeam } = useUserTeam(profileId);
 
-  // Calculate win rate
   const calculateWinRate = (wins: number, losses: number) => {
     const total = wins + losses;
     if (total === 0) return 0;
@@ -107,6 +408,14 @@ const BetaProfile = () => {
 
   const isPrivate = profile.profile_visibility === 'private' && !isOwnProfile;
   const winRate = calculateWinRate(profile.wins || 0, profile.losses || 0);
+
+  const tabs = [
+    { id: 'overview', label: 'Overview', icon: <User className="w-4 h-4" /> },
+    { id: 'matches', label: 'Matches', icon: <Swords className="w-4 h-4" /> },
+    { id: 'tournaments', label: 'Tournaments', icon: <Trophy className="w-4 h-4" /> },
+    { id: 'achievements', label: 'Achievements', icon: <Award className="w-4 h-4" /> },
+    { id: 'rank-history', label: 'Rank History', icon: <TrendingUp className="w-4 h-4" /> },
+  ];
 
   return (
     <GradientBackground>
@@ -165,7 +474,7 @@ const BetaProfile = () => {
                 <div className="flex flex-wrap items-center gap-2 mb-4">
                   {profile.current_rank && (
                     <BetaBadge variant="accent" size="md">
-                      {profile.current_rank}
+                      {getRankIcon(profile.current_rank)} {profile.current_rank}
                     </BetaBadge>
                   )}
                   
@@ -176,7 +485,7 @@ const BetaProfile = () => {
                   )}
                   
                   {!isPrivate && profile.valorant_role && (
-                    <span className={`px-2 py-1 text-xs font-medium rounded-md border ${getRoleColor(profile.valorant_role)}`}>
+                    <span className={`px-2 py-1 text-xs font-medium rounded-md border ${getRoleColorClass(profile.valorant_role)}`}>
                       {profile.valorant_role}
                     </span>
                   )}
@@ -236,7 +545,7 @@ const BetaProfile = () => {
                         rel="noopener noreferrer"
                         className="flex items-center gap-2 text-sm text-[hsl(var(--beta-text-muted))] hover:text-purple-400 transition-colors"
                       >
-                        <span className="w-4 h-4 font-bold">📺</span>
+                        <Gamepad2 className="w-4 h-4" />
                         <span>Twitch</span>
                         <ExternalLink className="w-3 h-3" />
                       </a>
@@ -350,15 +659,39 @@ const BetaProfile = () => {
           </GlassCard>
         )}
 
+        {/* Tabs for additional content */}
+        {!isPrivate && profileId && (
+          <>
+            <BetaProfileTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
+            
+            <GlassCard className="p-6">
+              {activeTab === 'overview' && (
+                <div className="text-center py-8">
+                  <User className="w-12 h-12 text-[hsl(var(--beta-accent))] mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-[hsl(var(--beta-text-primary))] mb-2">Profile Overview</h3>
+                  <p className="text-[hsl(var(--beta-text-muted))]">
+                    Use the tabs above to view match history, tournaments, achievements, and rank history.
+                  </p>
+                </div>
+              )}
+              
+              {activeTab === 'matches' && <MatchHistoryTab userId={profileId} />}
+              {activeTab === 'tournaments' && <TournamentHistoryTab userId={profileId} />}
+              {activeTab === 'achievements' && <AchievementsTab userId={profileId} />}
+              {activeTab === 'rank-history' && <RankHistoryTab userId={profileId} />}
+            </GlassCard>
+          </>
+        )}
+
         {/* View Full Profile CTA */}
         {!isPrivate && (
           <GlassCard className="p-6 text-center">
             <p className="text-[hsl(var(--beta-text-muted))] mb-4">
-              View match history, achievements, and detailed statistics
+              Edit your profile settings and notifications
             </p>
             <Link to={isOwnProfile ? '/profile' : `/profile/${profileId}`}>
               <BetaButton variant="outline">
-                View Full Profile
+                View Full Profile Settings
               </BetaButton>
             </Link>
           </GlassCard>
