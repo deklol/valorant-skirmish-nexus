@@ -46,6 +46,9 @@ import { AppSettingsProvider } from "./contexts/AppSettingsContext";
 // Beta imports - BETA ONLY
 import { BetaLayout } from "./components-beta/BetaLayout";
 import BetaIndex from "./pages-beta/BetaIndex";
+import BetaTournaments from "./pages-beta/BetaTournaments";
+import BetaLeaderboard from "./pages-beta/BetaLeaderboard";
+import BetaPlayers from "./pages-beta/BetaPlayers";
 
 const queryClient = new QueryClient();
 
@@ -87,7 +90,10 @@ const AppContent = () => {
             {/* BETA ROUTES - New design preview */}
             <Route path="/beta" element={<BetaLayout />}>
               <Route index element={<BetaIndex />} />
-              {/* More beta routes will be added here in future phases */}
+              <Route path="tournaments" element={<BetaTournaments />} />
+              <Route path="leaderboard" element={<BetaLeaderboard />} />
+              <Route path="players" element={<BetaPlayers />} />
+              {/* More beta routes will be added in future phases */}
             </Route>
             
             {/* All other routes with normal layout */}
