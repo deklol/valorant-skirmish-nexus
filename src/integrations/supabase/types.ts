@@ -2650,7 +2650,7 @@ export type Database = {
         Returns: Json
       }
       complete_bracket_generation: {
-        Args: { p_success?: boolean; p_tournament_id: string }
+        Args: { p_success: boolean; p_tournament_id: string }
         Returns: Json
       }
       create_enhanced_notification: {
