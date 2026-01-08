@@ -1,18 +1,27 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import { GradientBackground, GlassCard, BetaButton, BetaBadge } from "@/components-beta/ui-beta";
 import { 
   ShoppingBag, Coins, Gift, Sparkles, Tag, 
-  CheckCircle, Lock, TrendingUp, Star
+  CheckCircle, Lock, TrendingUp, Star, Crown,
+  Power, PowerOff
 } from "lucide-react";
+import { useNameEffects } from "@/hooks/useNameEffects";
 
 const BetaShop = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const { toast } = useToast();
+  const { nameEffect: currentEffect } = useNameEffects(user?.id || null);
+  const [purchasing, setPurchasing] = useState<string | null>(null);
+  const [activating, setActivating] = useState<string | null>(null);
+  const [activeEffectPurchaseId, setActiveEffectPurchaseId] = useState<string | null>(null);
 
   // Fetch user points
-  const { data: userProfile } = useQuery({
+  const { data: userProfile, refetch: refetchProfile } = useQuery({
     queryKey: ['beta-user-points', user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
@@ -39,19 +48,41 @@ const BetaShop = () => {
     }
   });
 
-  // Fetch user purchases
-  const { data: purchases } = useQuery({
-    queryKey: ['beta-user-purchases', user?.id],
+  // Fetch user purchases with item details
+  const { data: purchases, refetch: refetchPurchases } = useQuery({
+    queryKey: ['beta-user-purchases-detailed', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
       const { data } = await supabase
         .from('user_purchases')
-        .select('shop_item_id')
-        .eq('user_id', user.id);
-      return data?.map(p => p.shop_item_id) || [];
+        .select('id, shop_item_id, status, shop_items(id, name, description, category, item_data)')
+        .eq('user_id', user.id)
+        .eq('status', 'completed');
+      return data || [];
     },
     enabled: !!user?.id
   });
+
+  // Fetch active effect
+  useEffect(() => {
+    if (!user || !currentEffect) {
+      setActiveEffectPurchaseId(null);
+      return;
+    }
+
+    const fetchActiveEffect = async () => {
+      const { data } = await supabase
+        .from('user_active_effects')
+        .select('purchase_id')
+        .eq('user_id', user.id)
+        .eq('effect_type', 'name_effect')
+        .single();
+
+      setActiveEffectPurchaseId(data?.purchase_id || null);
+    };
+
+    fetchActiveEffect();
+  }, [user, currentEffect]);
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
@@ -71,8 +102,148 @@ const BetaShop = () => {
     }
   };
 
-  const hasPurchased = (itemId: string) => purchases?.includes(itemId);
+  const hasPurchased = (itemId: string) => purchases?.some(p => p.shop_item_id === itemId);
   const canAfford = (price: number) => (userProfile?.spendable_points || 0) >= price;
+
+  const handlePurchase = async (itemId: string, price: number) => {
+    if (!user) return;
+    
+    setPurchasing(itemId);
+    try {
+      const { error } = await supabase.rpc('process_shop_purchase', {
+        p_user_id: user.id,
+        p_shop_item_id: itemId
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Purchase successful!",
+        description: "Item has been added to your inventory.",
+      });
+
+      refetchProfile();
+      refetchPurchases();
+    } catch (error: any) {
+      console.error('Purchase error:', error);
+      toast({
+        title: "Purchase failed",
+        description: error.message || "Something went wrong",
+        variant: "destructive",
+      });
+    } finally {
+      setPurchasing(null);
+    }
+  };
+
+  const handleActivateEffect = async (purchaseId: string) => {
+    if (!user) return;
+    
+    setActivating(purchaseId);
+    try {
+      const { error } = await supabase.rpc('activate_name_effect', {
+        p_purchase_id: purchaseId,
+        p_user_id: user.id
+      });
+
+      if (error) throw error;
+
+      setActiveEffectPurchaseId(purchaseId);
+      toast({
+        title: "Effect activated!",
+        description: "Your name effect is now active.",
+      });
+    } catch (error: any) {
+      console.error('Activation error:', error);
+      toast({
+        title: "Activation failed",
+        description: error.message || "Something went wrong",
+        variant: "destructive",
+      });
+    } finally {
+      setActivating(null);
+    }
+  };
+
+  const handleDeactivateEffect = async () => {
+    if (!user) return;
+    
+    setActivating('deactivating');
+    try {
+      const { error } = await supabase.rpc('deactivate_name_effect', {
+        p_user_id: user.id
+      });
+
+      if (error) throw error;
+
+      setActiveEffectPurchaseId(null);
+      toast({
+        title: "Effect deactivated",
+        description: "Your name is back to normal.",
+      });
+    } catch (error: any) {
+      console.error('Deactivation error:', error);
+      toast({
+        title: "Deactivation failed",
+        description: error.message || "Something went wrong",
+        variant: "destructive",
+      });
+    } finally {
+      setActivating(null);
+    }
+  };
+
+  const getPreviewStyle = (itemData: any) => {
+    if (!itemData) return {};
+    
+    if (itemData.color) {
+      return {
+        color: itemData.color,
+        fontWeight: itemData.weight || '600',
+        textShadow: `0 0 8px ${itemData.color}60`
+      };
+    }
+    
+    if (!itemData.style) return {};
+    
+    const style = itemData.style;
+    
+    switch (style) {
+      case 'galaxy':
+        return {
+          background: 'linear-gradient(to right, rgb(96, 165, 250), rgb(168, 85, 247), rgb(99, 102, 241))',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text',
+          fontWeight: '600'
+        };
+      case 'fire':
+        return {
+          background: 'linear-gradient(to right, rgb(239, 68, 68), rgb(249, 115, 22), rgb(234, 179, 8))',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text',
+          fontWeight: '600'
+        };
+      case 'neon':
+        return {
+          color: 'rgb(34, 197, 94)',
+          textShadow: '0 0 10px rgba(34, 197, 94, 0.9)',
+          fontWeight: 'bold'
+        };
+      case 'golden':
+        return {
+          color: 'rgb(255, 215, 0)',
+          textShadow: '0 0 8px rgba(255, 215, 0, 0.6)',
+          fontWeight: '600'
+        };
+      default:
+        return {};
+    }
+  };
+
+  // Get purchased name effects
+  const purchasedNameEffects = purchases?.filter(p => p.shop_items?.category === 'name_effects') || [];
 
   if (isLoading) {
     return (
@@ -91,9 +262,9 @@ const BetaShop = () => {
 
   return (
     <GradientBackground>
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 space-y-8">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-xl bg-[hsl(var(--beta-accent-subtle))]">
               <ShoppingBag className="w-6 h-6 text-[hsl(var(--beta-accent))]" />
@@ -124,7 +295,7 @@ const BetaShop = () => {
 
         {/* Not Logged In */}
         {!user && (
-          <GlassCard className="p-8 text-center mb-8">
+          <GlassCard className="p-8 text-center">
             <Lock className="w-12 h-12 text-[hsl(var(--beta-text-muted))] mx-auto mb-4" />
             <h3 className="text-xl font-bold text-[hsl(var(--beta-text-primary))] mb-2">
               Login Required
@@ -138,71 +309,157 @@ const BetaShop = () => {
           </GlassCard>
         )}
 
-        {/* Shop Items Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {shopItems?.map((item, index) => {
-            const owned = hasPurchased(item.id);
-            const affordable = canAfford(item.price_points);
+        {/* Your Name Effects Section */}
+        {user && purchasedNameEffects.length > 0 && (
+          <GlassCard className="p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <Crown className="w-5 h-5 text-[hsl(var(--beta-accent))]" />
+              <h2 className="text-lg font-semibold text-[hsl(var(--beta-text-primary))]">Your Name Effects</h2>
+              <BetaBadge variant="accent" size="sm">{purchasedNameEffects.length} owned</BetaBadge>
+            </div>
             
-            return (
-              <GlassCard 
-                key={item.id} 
-                hover={!owned}
-                className={`p-5 beta-animate-fade-in ${owned ? 'opacity-75' : ''}`}
-                style={{ animationDelay: `${index * 50}ms` }}
-              >
-                {/* Category Badge */}
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`p-2 rounded-lg ${getCategoryColor(item.category)}`}>
-                    {getCategoryIcon(item.category)}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {purchasedNameEffects.map((purchase: any) => {
+                const isActive = activeEffectPurchaseId === purchase.id;
+                const isActivating = activating === purchase.id;
+                
+                return (
+                  <div
+                    key={purchase.id}
+                    className={`p-4 rounded-xl border transition-all ${
+                      isActive 
+                        ? 'bg-[hsl(var(--beta-accent)/0.1)] border-[hsl(var(--beta-accent)/0.5)]' 
+                        : 'bg-[hsl(var(--beta-surface-3))] border-[hsl(var(--beta-border))]'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="font-medium text-[hsl(var(--beta-text-primary))]">
+                        {purchase.shop_items?.name}
+                      </span>
+                      {isActive && (
+                        <BetaBadge variant="success" size="sm">
+                          <Power className="w-3 h-3 mr-1" />
+                          Active
+                        </BetaBadge>
+                      )}
+                    </div>
+                    
+                    <div className="p-3 rounded-lg bg-[hsl(var(--beta-surface-2))] mb-3">
+                      <span className="text-xs text-[hsl(var(--beta-text-muted))]">Preview: </span>
+                      <span style={getPreviewStyle(purchase.shop_items?.item_data)}>
+                        {(profile as any)?.discord_username || "Your Name"}
+                      </span>
+                    </div>
+                    
+                    {isActive ? (
+                      <BetaButton
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={handleDeactivateEffect}
+                        disabled={activating === 'deactivating'}
+                      >
+                        <PowerOff className="w-4 h-4 mr-2" />
+                        {activating === 'deactivating' ? 'Deactivating...' : 'Deactivate'}
+                      </BetaButton>
+                    ) : (
+                      <BetaButton
+                        size="sm"
+                        className="w-full"
+                        onClick={() => handleActivateEffect(purchase.id)}
+                        disabled={!!activating}
+                      >
+                        <Power className="w-4 h-4 mr-2" />
+                        {isActivating ? 'Activating...' : 'Activate'}
+                      </BetaButton>
+                    )}
                   </div>
-                  {owned && (
-                    <BetaBadge variant="success" size="sm">
-                      <CheckCircle className="w-3 h-3 mr-1" />
-                      Owned
-                    </BetaBadge>
-                  )}
-                </div>
+                );
+              })}
+            </div>
+          </GlassCard>
+        )}
 
-                {/* Item Info */}
-                <h3 className="text-lg font-semibold text-[hsl(var(--beta-text-primary))] mb-2">
-                  {item.name}
-                </h3>
-                <p className="text-sm text-[hsl(var(--beta-text-muted))] mb-4 line-clamp-2">
-                  {item.description}
-                </p>
-
-                {/* Price */}
-                <div className="flex items-center justify-between pt-4 border-t border-[hsl(var(--beta-glass-border))]">
-                  <div className="flex items-center gap-2">
-                    <Tag className="w-4 h-4 text-[hsl(var(--beta-accent))]" />
-                    <span className={`font-bold ${affordable ? 'text-[hsl(var(--beta-accent))]' : 'text-red-400'}`}>
-                      {item.price_points} pts
-                    </span>
+        {/* Shop Items Grid */}
+        <div>
+          <h2 className="text-xl font-semibold text-[hsl(var(--beta-text-primary))] mb-4">Available Items</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {shopItems?.map((item, index) => {
+              const owned = hasPurchased(item.id);
+              const affordable = canAfford(item.price_points);
+              const isPurchasing = purchasing === item.id;
+              
+              return (
+                <GlassCard 
+                  key={item.id} 
+                  hover={!owned}
+                  className={`p-5 beta-animate-fade-in ${owned ? 'opacity-75' : ''}`}
+                  style={{ animationDelay: `${index * 50}ms` }}
+                >
+                  {/* Category Badge */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className={`p-2 rounded-lg ${getCategoryColor(item.category)}`}>
+                      {getCategoryIcon(item.category)}
+                    </div>
+                    {owned && (
+                      <BetaBadge variant="success" size="sm">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Owned
+                      </BetaBadge>
+                    )}
                   </div>
-                  
-                  {!owned && user && (
-                    <BetaButton 
-                      size="sm" 
-                      variant={affordable ? 'primary' : 'outline'}
-                      disabled={!affordable}
-                    >
-                      {affordable ? 'Buy' : 'Not Enough'}
-                    </BetaButton>
-                  )}
-                </div>
 
-                {/* Stock indicator */}
-                {item.quantity_available !== null && (
-                  <p className="text-xs text-[hsl(var(--beta-text-muted))] mt-2">
-                    {item.quantity_available > 0 
-                      ? `${item.quantity_available} left in stock` 
-                      : 'Out of stock'}
+                  {/* Item Info */}
+                  <h3 className="text-lg font-semibold text-[hsl(var(--beta-text-primary))] mb-2">
+                    {item.name}
+                  </h3>
+                  <p className="text-sm text-[hsl(var(--beta-text-muted))] mb-3 line-clamp-2">
+                    {item.description}
                   </p>
-                )}
-              </GlassCard>
-            );
-          })}
+
+                  {/* Preview for name effects */}
+                  {item.category === 'name_effects' && item.item_data && (
+                    <div className="p-2 rounded-lg bg-[hsl(var(--beta-surface-3))] mb-3">
+                      <span className="text-xs text-[hsl(var(--beta-text-muted))]">Preview: </span>
+                      <span style={getPreviewStyle(item.item_data as any)}>
+                        {(profile as any)?.discord_username || "Your Name"}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Price */}
+                  <div className="flex items-center justify-between pt-4 border-t border-[hsl(var(--beta-glass-border))]">
+                    <div className="flex items-center gap-2">
+                      <Tag className="w-4 h-4 text-[hsl(var(--beta-accent))]" />
+                      <span className={`font-bold ${affordable ? 'text-[hsl(var(--beta-accent))]' : 'text-red-400'}`}>
+                        {item.price_points} pts
+                      </span>
+                    </div>
+                    
+                    {!owned && user && (
+                      <BetaButton 
+                        size="sm" 
+                        variant={affordable ? 'primary' : 'outline'}
+                        disabled={!affordable || isPurchasing}
+                        onClick={() => handlePurchase(item.id, item.price_points)}
+                      >
+                        {isPurchasing ? '...' : affordable ? 'Buy' : 'Not Enough'}
+                      </BetaButton>
+                    )}
+                  </div>
+
+                  {/* Stock indicator */}
+                  {item.quantity_available !== null && (
+                    <p className="text-xs text-[hsl(var(--beta-text-muted))] mt-2">
+                      {item.quantity_available > 0 
+                        ? `${item.quantity_available} left in stock` 
+                        : 'Out of stock'}
+                    </p>
+                  )}
+                </GlassCard>
+              );
+            })}
+          </div>
         </div>
 
         {shopItems?.length === 0 && (

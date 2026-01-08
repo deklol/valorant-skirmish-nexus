@@ -56,6 +56,7 @@ import BetaAdmin from "./pages-beta/BetaAdmin";
 import BetaShop from "./pages-beta/BetaShop";
 import BetaVODs from "./pages-beta/BetaVODs";
 import BetaHelp from "./pages-beta/BetaHelp";
+import BetaProfileSettings from "./pages-beta/BetaProfileSettings";
 
 const queryClient = new QueryClient();
 
@@ -108,6 +109,7 @@ const AppContent = () => {
               <Route path="shop" element={<BetaShop />} />
               <Route path="vods" element={<BetaVODs />} />
               <Route path="help" element={<BetaHelp />} />
+              <Route path="settings" element={<BetaProfileSettings />} />
             </Route>
             
             {/* All other routes with normal layout */}
