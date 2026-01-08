@@ -150,7 +150,7 @@ export type Database = {
           action: string
           created_at: string | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           map_display_name: string | null
           new_values: Json | null
           old_values: Json | null
@@ -163,7 +163,7 @@ export type Database = {
           action: string
           created_at?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           map_display_name?: string | null
           new_values?: Json | null
           old_values?: Json | null
@@ -176,7 +176,7 @@ export type Database = {
           action?: string
           created_at?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           map_display_name?: string | null
           new_values?: Json | null
           old_values?: Json | null
@@ -1547,7 +1547,7 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           referrer: string | null
           tournament_id: string | null
           user_agent: string | null
@@ -1556,7 +1556,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           referrer?: string | null
           tournament_id?: string | null
           user_agent?: string | null
@@ -1565,7 +1565,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           referrer?: string | null
           tournament_id?: string | null
           user_agent?: string | null
@@ -2375,10 +2375,7 @@ export type Database = {
         }
         Returns: string
       }
-      capture_active_map_pool: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
+      capture_active_map_pool: { Args: never; Returns: Json }
       check_and_award_achievements: {
         Args: { p_user_id: string }
         Returns: {
@@ -2424,10 +2421,7 @@ export type Database = {
         }
         Returns: string
       }
-      deactivate_name_effect: {
-        Args: { p_user_id: string }
-        Returns: Json
-      }
+      deactivate_name_effect: { Args: { p_user_id: string }; Returns: Json }
       diagnose_bracket_progression: {
         Args: { p_tournament_id: string }
         Returns: Json
@@ -2445,27 +2439,21 @@ export type Database = {
         Returns: Json
       }
       fix_missing_match_statistics: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           losses_added: number
           matches_processed: number
           wins_added: number
         }[]
       }
-      fix_missing_tournament_wins: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
+      fix_missing_tournament_wins: { Args: never; Returns: number }
       force_advance_team: {
         Args: { p_reason?: string; p_target_round: number; p_team_id: string }
         Returns: Json
       }
-      generate_team_invite_code: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      generate_team_invite_code: { Args: never; Returns: string }
       get_achievement_leaders: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           most_achievements_count: number
           most_achievements_user_id: string
@@ -2513,10 +2501,7 @@ export type Database = {
           following_count: number
         }[]
       }
-      get_user_info_for_audit: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
+      get_user_info_for_audit: { Args: never; Returns: Json }
       get_user_match_history: {
         Args: { match_limit?: number; profile_user_id: string }
         Returns: {
@@ -2573,10 +2558,7 @@ export type Database = {
           tournament_name: string
         }[]
       }
-      increment_team_losses: {
-        Args: { p_team_id: string }
-        Returns: undefined
-      }
+      increment_team_losses: { Args: { p_team_id: string }; Returns: undefined }
       increment_team_tournament_wins: {
         Args: { p_team_id: string }
         Returns: undefined
@@ -2585,14 +2567,8 @@ export type Database = {
         Args: { p_team_id: string }
         Returns: undefined
       }
-      increment_team_wins: {
-        Args: { p_team_id: string }
-        Returns: undefined
-      }
-      increment_user_losses: {
-        Args: { user_id: string }
-        Returns: undefined
-      }
+      increment_team_wins: { Args: { p_team_id: string }; Returns: undefined }
+      increment_user_losses: { Args: { user_id: string }; Returns: undefined }
       increment_user_tournament_wins: {
         Args: { user_id: string }
         Returns: undefined
@@ -2601,10 +2577,7 @@ export type Database = {
         Args: { user_id: string }
         Returns: undefined
       }
-      increment_user_wins: {
-        Args: { user_id: string }
-        Returns: undefined
-      }
+      increment_user_wins: { Args: { user_id: string }; Returns: undefined }
       is_team_captain: {
         Args: { team_uuid: string; user_uuid: string }
         Returns: boolean
@@ -2676,10 +2649,7 @@ export type Database = {
         }
         Returns: string
       }
-      recalculate_team_weight: {
-        Args: { p_team_id: string }
-        Returns: number
-      }
+      recalculate_team_weight: { Args: { p_team_id: string }; Returns: number }
       record_tournament_metric: {
         Args: {
           p_metadata?: Json

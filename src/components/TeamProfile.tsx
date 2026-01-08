@@ -54,7 +54,7 @@ const TeamProfile = () => {
         `)
         .eq('id', id)
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
 

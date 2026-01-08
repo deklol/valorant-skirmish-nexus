@@ -30,9 +30,43 @@ const BatchBracketGenerator = ({ tournamentId, teams, onBracketGenerated }: Batc
 
     setGenerating(true);
     setProgress(0);
-    setProgressText("Initializing bracket generation...");
+    setProgressText("Checking for existing matches...");
 
     try {
+      // Step 0: Check for existing matches and confirm regeneration
+      const { data: existingMatches } = await supabase
+        .from('matches')
+        .select('id')
+        .eq('tournament_id', tournamentId)
+        .limit(1);
+
+      if (existingMatches && existingMatches.length > 0) {
+        const confirmed = window.confirm(
+          'WARNING: This tournament already has matches!\n\n' +
+          'Regenerating will DELETE all existing matches and related data.\n\n' +
+          'Are you sure you want to proceed?'
+        );
+        
+        if (!confirmed) {
+          toast({ title: "Cancelled", description: "Existing bracket preserved." });
+          setGenerating(false);
+          return;
+        }
+
+        setProgressText("Clearing existing matches...");
+        const { error: deleteError } = await supabase
+          .from('matches')
+          .delete()
+          .eq('tournament_id', tournamentId);
+
+        if (deleteError) {
+          throw new Error(`Failed to clear existing matches: ${deleteError.message}`);
+        }
+      }
+
+      setProgress(5);
+      setProgressText("Initializing bracket generation...");
+
       // Step 1: Capture map pool (10%)
       setProgressText("Capturing active map pool...");
       const { data: activeMapPoolData, error: mapPoolError } = await supabase
