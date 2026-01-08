@@ -68,13 +68,13 @@ const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => 
         .select('team_id, teams!inner(tournament_id)')
         .eq('user_id', user.id)
         .eq('teams.tournament_id', tournamentId)
-        .single();
+        .maybeSingle();
 
       if (teamMember) {
         setUserTeamId(teamMember.team_id);
       }
     } catch (error) {
-      console.error('Error fetching user team:', error);
+      // User may not be part of any team - this is expected
     }
   };
 
@@ -83,17 +83,14 @@ const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => 
       setLoading(true);
       setError(null);
       
-      console.log('Fetching bracket data for tournament:', tournamentId);
-      
       // Fetch tournament details
       const { data: tournamentData, error: tournamentError } = await supabase
         .from('tournaments')
         .select('max_teams, bracket_type, match_format, status, name')
         .eq('id', tournamentId)
-        .single();
+        .maybeSingle();
 
       if (tournamentError) {
-        console.error('Tournament error:', tournamentError);
         throw new Error(`Failed to fetch tournament: ${tournamentError.message}`);
       }
 
@@ -101,7 +98,6 @@ const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => 
         throw new Error('Tournament not found');
       }
 
-      console.log('Tournament data:', tournamentData);
       setTournament(tournamentData);
 
       // Fetch matches with proper team joins
@@ -117,7 +113,6 @@ const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => 
         .order('match_number', { ascending: true });
 
       if (matchesError) {
-        console.error('Matches error:', matchesError);
         console.warn('Could not fetch matches, continuing with empty bracket');
         setMatches([]);
       } else {
@@ -127,7 +122,6 @@ const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => 
           team2: match.team2 && typeof match.team2 === 'object' && 'name' in match.team2 ? match.team2 : null
         }));
 
-        console.log('Processed matches:', processedMatches);
         setMatches(processedMatches);
 
         // Fetch map veto sessions for matches with veto enabled

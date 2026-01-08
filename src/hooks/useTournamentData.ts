@@ -61,7 +61,17 @@ export function useTournamentData(): UseTournamentDataResult {
           )
         `)
         .eq('id', id)
-        .single();
+        .maybeSingle();
+
+      if (!tournamentData) {
+        toast({
+          title: "Error",
+          description: "Tournament not found",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
 
       if (tournamentError) throw tournamentError;
 

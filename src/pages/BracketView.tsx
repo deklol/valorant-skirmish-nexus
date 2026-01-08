@@ -74,7 +74,7 @@ export default function BracketView() {
             )
           `)
           .eq("id", tournamentId)
-          .single();
+          .maybeSingle();
 
         if (error) throw error;
         if (!data) throw new Error("Tournament not found");
@@ -108,7 +108,7 @@ export default function BracketView() {
             .select("team_id")
             .eq("user_id", user.id)
             .limit(1)
-            .single();
+            .maybeSingle();
 
           setUserTeamId(teamData?.team_id || null);
         }
@@ -150,7 +150,7 @@ export default function BracketView() {
           )
         `)
         .eq("id", tournamentId)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       if (data) {
