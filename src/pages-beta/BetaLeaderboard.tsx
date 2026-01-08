@@ -5,6 +5,7 @@ import { GradientBackground, GlassCard, BetaBadge } from "@/components-beta/ui-b
 import { getRankPoints } from "@/utils/rankingSystem";
 import { getRankIcon, getRankColor } from "@/utils/rankUtils";
 import { Link } from "react-router-dom";
+import { Username } from "@/components/Username";
 
 interface Player {
   id: string;
@@ -193,9 +194,11 @@ const BetaLeaderboard = () => {
                   </div>
                   
                   <div>
-                    <p className="font-medium text-[hsl(var(--beta-text-primary))] hover:text-[hsl(var(--beta-accent))] transition-colors">
-                      {player.discord_username || 'Unknown Player'}
-                    </p>
+                    <Username 
+                      userId={player.id}
+                      username={player.discord_username || 'Unknown Player'}
+                      className="font-medium text-[hsl(var(--beta-text-primary))] hover:text-[hsl(var(--beta-accent))] transition-colors"
+                    />
                     <p className="text-sm flex items-center gap-1" style={{ color: getRankColor(player.current_rank) }}>
                       {getRankIcon(player.current_rank)} {player.current_rank || 'Unranked'}
                     </p>

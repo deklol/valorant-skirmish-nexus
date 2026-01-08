@@ -1,11 +1,11 @@
 import { Link } from "react-router-dom";
-import { Trophy, Users, BarChart3, Calendar, ArrowRight, Shield, Target, Zap, ShoppingBag, Play, Activity, Award, Clock, TrendingUp } from "lucide-react";
+import { Trophy, Users, BarChart3, Calendar, ArrowRight, Shield, Target, Zap, ShoppingBag, Play, Activity, Award, Clock, TrendingUp, ExternalLink } from "lucide-react";
 import { GradientBackground, GlassCard, StatCard, BetaButton, BetaBadge } from "@/components-beta/ui-beta";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useLiveMatches } from "@/hooks/useLiveMatches";
 import { format } from "date-fns";
+import { Username } from "@/components/Username";
 
 interface Stats {
   totalTournaments: number;
@@ -39,17 +39,117 @@ interface TopPlayer {
   weight_rating: number;
 }
 
-interface LiveMatch {
-  id: string;
-  round_number: number;
-  team1_name: string;
-  team2_name: string;
-  tournament_name: string;
-}
+
+// Live Matches Section Component
+const LiveMatchesSection = () => {
+  const [liveMatches, setLiveMatches] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchLiveMatches = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('matches')
+          .select(`
+            id, round_number, match_number, score_team1, score_team2,
+            team1:teams!matches_team1_id_fkey (id, name),
+            team2:teams!matches_team2_id_fkey (id, name),
+            tournament:tournaments (id, name)
+          `)
+          .eq('status', 'live')
+          .order('scheduled_time', { ascending: true })
+          .limit(6);
+
+        if (error) throw error;
+        setLiveMatches(data || []);
+      } catch (error) {
+        console.error('Error fetching live matches:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLiveMatches();
+
+    // Real-time subscription
+    const channel = supabase
+      .channel('beta-live-matches')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'matches',
+        filter: 'status=eq.live'
+      }, () => fetchLiveMatches())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
+  if (loading) return null;
+  if (liveMatches.length === 0) return null;
+
+  return (
+    <section className="space-y-4">
+      <div className="flex items-center gap-2">
+        <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+        <h2 className="text-xl font-semibold text-[hsl(var(--beta-text-primary))]">Live Matches</h2>
+        <Link to="/beta/tournaments" className="text-sm text-[hsl(var(--beta-accent))] hover:underline ml-auto">
+          View tournaments
+        </Link>
+      </div>
+      <div className={`grid gap-4 ${
+        liveMatches.length === 1 ? 'grid-cols-1' : 
+        liveMatches.length === 2 ? 'grid-cols-1 md:grid-cols-2' : 
+        'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+      }`}>
+        {liveMatches.map((match) => (
+          <Link key={match.id} to={`/beta/match/${match.id}`}>
+            <GlassCard variant="interactive" className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <BetaBadge variant="accent" size="sm">
+                  <span className="mr-1">🔴</span> LIVE
+                </BetaBadge>
+                <span className="text-xs text-[hsl(var(--beta-text-muted))]">
+                  {match.tournament?.name} · R{match.round_number}
+                </span>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-center justify-between p-2 rounded-lg bg-[hsl(var(--beta-surface-3))]">
+                  <span className="text-[hsl(var(--beta-text-primary))] font-medium truncate">
+                    {match.team1?.name || 'TBD'}
+                  </span>
+                  <span className="text-lg font-bold text-[hsl(var(--beta-text-primary))]">
+                    {match.score_team1 || 0}
+                  </span>
+                </div>
+                <div className="text-center text-xs text-[hsl(var(--beta-text-muted))]">VS</div>
+                <div className="flex items-center justify-between p-2 rounded-lg bg-[hsl(var(--beta-surface-3))]">
+                  <span className="text-[hsl(var(--beta-text-primary))] font-medium truncate">
+                    {match.team2?.name || 'TBD'}
+                  </span>
+                  <span className="text-lg font-bold text-[hsl(var(--beta-text-primary))]">
+                    {match.score_team2 || 0}
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-3 flex justify-end">
+                <BetaButton variant="outline" size="sm">
+                  <ExternalLink className="w-3 h-3 mr-1" />
+                  Watch
+                </BetaButton>
+              </div>
+            </GlassCard>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+};
 
 const BetaIndex = () => {
   const { user } = useAuth();
-  const { hasLiveMatches } = useLiveMatches();
   const [stats, setStats] = useState<Stats>({
     totalTournaments: 0,
     activePlayers: 0,
@@ -60,7 +160,7 @@ const BetaIndex = () => {
   const [upcomingTournaments, setUpcomingTournaments] = useState<UpcomingTournament[]>([]);
   const [recentWinners, setRecentWinners] = useState<RecentWinner[]>([]);
   const [topPlayers, setTopPlayers] = useState<TopPlayer[]>([]);
-  const [liveMatchesList, setLiveMatchesList] = useState<LiveMatch[]>([]);
+  
 
   useEffect(() => {
     const fetchData = async () => {
@@ -210,24 +310,8 @@ const BetaIndex = () => {
           <StatCard label="Live Matches" value={loading ? "—" : stats.liveMatches} icon={<Activity />} />
         </section>
 
-        {/* Live Matches Section - simplified for now */}
-        {hasLiveMatches && (
-          <section className="space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-              <h2 className="text-xl font-semibold text-[hsl(var(--beta-text-primary))]">Live Matches</h2>
-              <Link to="/beta/tournaments" className="text-sm text-[hsl(var(--beta-accent))] hover:underline ml-auto">
-                View tournaments
-              </Link>
-            </div>
-            <GlassCard className="p-6 text-center">
-              <Play className="w-8 h-8 text-[hsl(var(--beta-accent))] mx-auto mb-2" />
-              <p className="text-[hsl(var(--beta-text-secondary))]">
-                Matches are currently live! Check the tournaments page for details.
-              </p>
-            </GlassCard>
-          </section>
-        )}
+        {/* Live Matches Section */}
+        <LiveMatchesSection />
 
         {/* Community Grid - Upcoming, Top Players, Recent Winners */}
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">

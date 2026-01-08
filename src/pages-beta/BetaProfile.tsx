@@ -13,6 +13,7 @@ import { formatDistanceToNow, format } from "date-fns";
 import { getTrackerGGUrl } from "@/utils/getTrackerGGUrl";
 import { useState } from "react";
 import { getRankIcon, getRankColor } from "@/utils/rankUtils";
+import { Username } from "@/components/Username";
 
 // Role color mapping
 const getRoleColorClass = (role: string) => {
@@ -447,8 +448,13 @@ const BetaProfile = () => {
               {/* Info */}
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-3 mb-2">
-                  <h1 className="text-2xl md:text-3xl font-bold text-[hsl(var(--beta-text-primary))]">
-                    {profile.discord_username || 'Unknown Player'}
+                  <h1 className="text-2xl md:text-3xl font-bold">
+                    <Username 
+                      userId={profileId}
+                      username={profile.discord_username || 'Unknown Player'}
+                      size="xl"
+                      weight="bold"
+                    />
                   </h1>
                   
                   {profile.role === 'admin' && (
