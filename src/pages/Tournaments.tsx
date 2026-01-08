@@ -112,14 +112,19 @@ const Tournaments = () => {
     })
     .sort((a, b) => {
       // Priority order: open and live tournaments first, then others by date
-      const priorityStatuses = ['open', 'live'];
+      const priorityStatuses = ['open', 'live', 'balancing'];
       
       const aPriority = priorityStatuses.includes(a.status);
       const bPriority = priorityStatuses.includes(b.status);
       
-      // If both have priority or both don't have priority, sort by date
-      if (aPriority === bPriority) {
+      // If both have priority, sort by ascending date (soonest first)
+      if (aPriority && bPriority) {
         return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
+      }
+      
+      // If neither has priority (completed/archived), sort by descending date (most recent first)
+      if (!aPriority && !bPriority) {
+        return new Date(b.startTime).getTime() - new Date(a.startTime).getTime();
       }
       
       // Priority tournaments come first
