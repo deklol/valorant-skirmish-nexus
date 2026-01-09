@@ -11,8 +11,12 @@ interface SearchResult {
   subtitle?: string;
 }
 
-export const BetaGlobalSearch = () => {
-  const [isOpen, setIsOpen] = useState(false);
+interface BetaGlobalSearchProps {
+  alwaysExpanded?: boolean;
+}
+
+export const BetaGlobalSearch = ({ alwaysExpanded = false }: BetaGlobalSearchProps) => {
+  const [isOpen, setIsOpen] = useState(alwaysExpanded);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -113,25 +117,27 @@ export const BetaGlobalSearch = () => {
   };
 
   return (
-    <div ref={containerRef} className="relative">
-      {/* Search trigger / input */}
+    <div ref={containerRef} className={alwaysExpanded ? "w-full" : "relative"}>
+      {/* Search input */}
       <div className="flex items-center">
-        {isOpen ? (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-[var(--beta-radius-lg)] bg-[hsl(var(--beta-surface-3))] border border-[hsl(var(--beta-border))]">
-            <Search className="w-4 h-4 text-[hsl(var(--beta-text-muted))]" />
+        {isOpen || alwaysExpanded ? (
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-[var(--beta-radius-lg)] bg-[hsl(var(--beta-surface-3))] border border-[hsl(var(--beta-border))] ${alwaysExpanded ? 'w-full' : ''}`}>
+            <Search className="w-4 h-4 text-[hsl(var(--beta-text-muted))] flex-shrink-0" />
             <input
               ref={inputRef}
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search players, teams, tournaments..."
-              className="w-48 lg:w-64 bg-transparent text-sm text-[hsl(var(--beta-text-primary))] placeholder:text-[hsl(var(--beta-text-muted))] focus:outline-none"
-              autoFocus
+              className={`bg-transparent text-sm text-[hsl(var(--beta-text-primary))] placeholder:text-[hsl(var(--beta-text-muted))] focus:outline-none ${alwaysExpanded ? 'w-full' : 'w-48 lg:w-64'}`}
+              autoFocus={!alwaysExpanded}
             />
-            {loading && <Loader2 className="w-4 h-4 animate-spin text-[hsl(var(--beta-text-muted))]" />}
-            <button onClick={() => { setIsOpen(false); setQuery(""); }}>
-              <X className="w-4 h-4 text-[hsl(var(--beta-text-muted))] hover:text-[hsl(var(--beta-text-primary))]" />
-            </button>
+            {loading && <Loader2 className="w-4 h-4 animate-spin text-[hsl(var(--beta-text-muted))] flex-shrink-0" />}
+            {!alwaysExpanded && (
+              <button onClick={() => { setIsOpen(false); setQuery(""); }}>
+                <X className="w-4 h-4 text-[hsl(var(--beta-text-muted))] hover:text-[hsl(var(--beta-text-primary))]" />
+              </button>
+            )}
           </div>
         ) : (
           <button
