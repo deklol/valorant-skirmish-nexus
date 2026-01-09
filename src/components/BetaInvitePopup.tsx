@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Sparkles, ArrowRight, X } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Sparkles, ArrowRight, X } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
-const BETA_POPUP_DISMISSED_KEY = 'beta_invite_dismissed_until';
+const BETA_POPUP_DISMISSED_KEY = "beta_invite_dismissed_until";
 
 export const BetaInvitePopup = () => {
   const { user } = useAuth();
@@ -63,12 +63,11 @@ export const BetaInvitePopup = () => {
           <DialogTitle className="flex items-center gap-2 text-xl">
             <Sparkles className="w-6 h-6 text-amber-400" />
             <span className="bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent">
-              Try Our New Beta Experience
+              Try Our New Beta
             </span>
           </DialogTitle>
           <DialogDescription className="text-slate-300">
-            We've been working on a brand new design with enhanced features, 
-            live updates, and a modern esports aesthetic.
+            We've been working on a brand new design with enhanced features, live updates, and tournament chats!
           </DialogDescription>
         </DialogHeader>
 
@@ -104,15 +103,12 @@ export const BetaInvitePopup = () => {
 
           {/* Remind later checkbox */}
           <div className="flex items-center space-x-2">
-            <Checkbox 
-              id="remind-later" 
+            <Checkbox
+              id="remind-later"
               checked={remindLater}
               onCheckedChange={(checked) => setRemindLater(checked as boolean)}
             />
-            <label 
-              htmlFor="remind-later" 
-              className="text-sm text-slate-400 cursor-pointer"
-            >
+            <label htmlFor="remind-later" className="text-sm text-slate-400 cursor-pointer">
               Remind me in 3 days
             </label>
           </div>
