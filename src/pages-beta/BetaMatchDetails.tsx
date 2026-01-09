@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { getRankIcon, getRankColor } from "@/utils/rankUtils";
+import { Username } from "@/components/Username";
 
 // Team Card with Player Details
 const TeamCard = ({ 
@@ -82,7 +83,7 @@ const TeamCard = ({
         </div>
 
         {/* Players */}
-        <div className="w-full space-y-2">
+        <div className="w-full space-y-3">
           {members?.map((member: any) => (
             <Link key={member.user_id} to={`/beta/profile/${member.user_id}`}>
               <div className={`flex items-center gap-3 p-2 rounded-lg bg-[hsl(var(--beta-surface-3))] hover:bg-[hsl(var(--beta-surface-4))] transition-colors ${side === 'right' ? 'flex-row-reverse' : ''}`}>
@@ -99,11 +100,14 @@ const TeamCard = ({
                 
                 {/* Player Info */}
                 <div className={`flex-1 min-w-0 ${side === 'right' ? 'text-right' : 'text-left'}`}>
-                  <div className="flex items-center gap-1">
+                  <div className={`flex items-center gap-1 ${side === 'right' ? 'justify-end' : ''}`}>
                     {member.is_captain && <Crown className="w-3 h-3 text-[hsl(var(--beta-accent))]" />}
-                    <span className="text-sm font-medium text-[hsl(var(--beta-text-primary))] truncate">
-                      {member.users?.discord_username || 'Unknown'}
-                    </span>
+                    <Username 
+                      userId={member.user_id} 
+                      username={member.users?.discord_username || 'Unknown'} 
+                      size="sm"
+                      weight="medium"
+                    />
                   </div>
                   <div className="flex items-center gap-2 text-xs">
                     <span style={{ color: getRankColor(member.users?.current_rank) }}>

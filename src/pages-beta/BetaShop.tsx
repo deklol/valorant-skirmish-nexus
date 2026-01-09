@@ -193,17 +193,19 @@ const BetaShop = () => {
     }
   };
 
-  const getPreviewStyle = (itemData: any) => {
+  const getPreviewStyle = (itemData: any): React.CSSProperties => {
     if (!itemData) return {};
     
+    // Handle new format with color and weight properties (like Golden Name)
     if (itemData.color) {
       return {
         color: itemData.color,
-        fontWeight: itemData.weight || '600',
+        fontWeight: itemData.weight === 'bold' ? 'bold' : '600',
         textShadow: `0 0 8px ${itemData.color}60`
       };
     }
     
+    // Handle legacy format with style property
     if (!itemData.style) return {};
     
     const style = itemData.style;
@@ -225,11 +227,47 @@ const BetaShop = () => {
           backgroundClip: 'text',
           fontWeight: '600'
         };
+      case 'ice':
+        return {
+          background: 'linear-gradient(to right, rgb(34, 211, 238), rgb(59, 130, 246), rgb(37, 99, 235))',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text',
+          fontWeight: '600'
+        };
       case 'neon':
         return {
           color: 'rgb(34, 197, 94)',
           textShadow: '0 0 10px rgba(34, 197, 94, 0.9)',
           fontWeight: 'bold'
+        };
+      case 'royal':
+        return {
+          background: 'linear-gradient(to right, rgb(147, 51, 234), rgb(139, 92, 246), rgb(126, 34, 206))',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text',
+          fontWeight: 'bold'
+        };
+      case 'shadow':
+        return {
+          color: 'rgb(209, 213, 219)',
+          textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
+          fontWeight: '600'
+        };
+      case 'electric':
+        return {
+          background: 'linear-gradient(to right, rgb(250, 204, 21), rgb(59, 130, 246), rgb(34, 211, 238))',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text',
+          fontWeight: 'bold'
+        };
+      case 'silver':
+        return {
+          color: 'rgb(192, 192, 192)',
+          textShadow: '0 0 5px rgba(192, 192, 192, 0.5)',
+          fontWeight: '600'
         };
       case 'golden':
         return {

@@ -80,16 +80,20 @@ export const getNameEffectStyles = (effect: any): string => {
   
   const { style, color, weight } = effect.effect_data;
   
-  // Handle new format with color and weight properties (like Golden Name)
-  if (color && weight) {
+  // Handle new format with color property
+  if (color) {
     const fontWeight = weight === 'bold' ? 'font-bold' : 'font-semibold';
     
     // Golden effect
-    if (color === '#FFD700') {
+    if (color === '#FFD700' || color.toLowerCase() === '#ffd700') {
       return `text-yellow-400 drop-shadow-[0_0_8px_rgba(255,215,0,0.6)] ${fontWeight}`;
     }
     
-    // Add other color-based effects here if needed
+    // Silver effect  
+    if (color === '#C0C0C0' || color.toLowerCase() === '#c0c0c0') {
+      return `text-gray-300 drop-shadow-[0_0_5px_rgba(192,192,192,0.5)] ${fontWeight}`;
+    }
+    
     return fontWeight;
   }
   
@@ -100,7 +104,7 @@ export const getNameEffectStyles = (effect: any): string => {
     case 'italic':
       return 'italic';
     case 'glow':
-      return `text-${color || 'blue'}-400 drop-shadow-[0_0_8px_rgba(59,130,246,0.8)]`;
+      return 'text-blue-400 drop-shadow-[0_0_8px_rgba(59,130,246,0.8)]';
     case 'galaxy':
       return 'bg-gradient-to-r from-blue-400 via-purple-500 to-indigo-600 bg-clip-text text-transparent font-semibold';
     case 'fire':
