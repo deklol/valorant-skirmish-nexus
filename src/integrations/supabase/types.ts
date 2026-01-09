@@ -1655,6 +1655,56 @@ export type Database = {
           },
         ]
       }
+      tournament_chat_messages: {
+        Row: {
+          content: string
+          created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
+          edited_at: string | null
+          id: string
+          is_deleted: boolean
+          message_type: string
+          tournament_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          edited_at?: string | null
+          id?: string
+          is_deleted?: boolean
+          message_type?: string
+          tournament_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          edited_at?: string | null
+          id?: string
+          is_deleted?: boolean
+          message_type?: string
+          tournament_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_chat_messages_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tournament_page_views: {
         Row: {
           created_at: string | null
@@ -2094,6 +2144,41 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_chat_warnings: {
+        Row: {
+          created_at: string
+          id: string
+          reason: string
+          tournament_id: string | null
+          user_id: string
+          warned_by: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          reason: string
+          tournament_id?: string | null
+          user_id: string
+          warned_by: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          reason?: string
+          tournament_id?: string | null
+          user_id?: string
+          warned_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_chat_warnings_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
             referencedColumns: ["id"]
           },
         ]
