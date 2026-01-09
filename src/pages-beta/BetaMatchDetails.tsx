@@ -1,15 +1,13 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 import { GradientBackground, GlassCard, BetaButton, BetaBadge } from "@/components-beta/ui-beta";
 import { 
-  ArrowLeft, Trophy, Swords, Clock, Calendar, Users, 
+  ArrowLeft, Swords, Calendar, Users,
   Map, Play, CheckCircle, User, Scale, Crown
 } from "lucide-react";
 import { format } from "date-fns";
 import { getRankIcon, getRankColor } from "@/utils/rankUtils";
-import { useState, useEffect } from "react";
 
 // Team Card with Player Details
 const TeamCard = ({ 
@@ -126,9 +124,8 @@ const TeamCard = ({
 const BetaMatchDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
 
-  const { data: match, isLoading } = useQuery({
+  const { data: match, isLoading, error } = useQuery({
     queryKey: ['beta-match', id],
     queryFn: async () => {
       if (!id) throw new Error('No match ID');
@@ -163,10 +160,10 @@ const BetaMatchDetails = () => {
         .single();
       return data;
     },
-    enabled: !!id && match?.map_veto_enabled
+    enabled: !!id && !!match?.map_veto_enabled
   });
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): "success" | "accent" | "default" => {
     switch (status) {
       case 'completed': return 'success';
       case 'live': return 'accent';
@@ -190,14 +187,16 @@ const BetaMatchDetails = () => {
     );
   }
 
-  if (!match) {
+  if (!match || error) {
     return (
       <GradientBackground>
         <div className="container mx-auto px-4 py-8">
           <GlassCard className="p-12 text-center">
             <Swords className="w-16 h-16 text-[hsl(var(--beta-text-muted))] mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-[hsl(var(--beta-text-primary))] mb-2">Match Not Found</h2>
-            <p className="text-[hsl(var(--beta-text-muted))] mb-6">This match doesn't exist or has been removed.</p>
+            <p className="text-[hsl(var(--beta-text-muted))] mb-6">
+              {error ? `Error: ${error.message}` : "This match doesn't exist or has been removed."}
+            </p>
             <BetaButton variant="outline" onClick={() => navigate(-1)}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Go Back
