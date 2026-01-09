@@ -372,7 +372,7 @@ const BetaIndex = () => {
                 <p className="text-sm text-[hsl(var(--beta-text-muted))]">No players yet</p>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {topPlayers.map((player, idx) => (
                   <Link key={player.id} to={`/beta/profile/${player.id}`}>
                     <div className="flex items-center gap-3 p-2 rounded-[var(--beta-radius-md)] hover:bg-[hsl(var(--beta-surface-3))] transition-colors">
@@ -417,7 +417,7 @@ const BetaIndex = () => {
                 <p className="text-sm text-[hsl(var(--beta-text-muted))]">No completed tournaments</p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {recentWinners.map((winner) => (
                   <Link key={winner.id} to={`/beta/tournament/${winner.id}`}>
                     <div className="p-3 rounded-[var(--beta-radius-md)] bg-[hsl(var(--beta-surface-3))] hover:bg-[hsl(var(--beta-surface-4))] transition-colors">
