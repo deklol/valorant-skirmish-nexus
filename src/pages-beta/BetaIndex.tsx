@@ -390,7 +390,7 @@ const BetaIndex = () => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-[hsl(var(--beta-text-primary))] truncate">
-                          {player.discord_username}
+                          <Username userId={player.id} username={player.discord_username || 'Unknown'} />
                         </p>
                         <p className="text-xs text-[hsl(var(--beta-text-muted))]">
                           {player.tournaments_won} wins · W{player.weight_rating || 150}

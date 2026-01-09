@@ -3,6 +3,7 @@ import { Users, Search, Star } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { GradientBackground, GlassCard, BetaInput, BetaBadge } from "@/components-beta/ui-beta";
 import { Link } from "react-router-dom";
+import { Username } from "@/components/Username";
 
 const RANK_CONFIG: Record<string, { emoji: string; color: string }> = {
   'Iron 1': { emoji: '⬛', color: '#4A4A4A' },
@@ -190,7 +191,7 @@ const BetaPlayers = () => {
                       
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-[hsl(var(--beta-text-primary))] truncate group-hover:text-[hsl(var(--beta-accent))] transition-colors">
-                          {player.discord_username || 'Unknown'}
+                          <Username userId={player.id} username={player.discord_username || 'Unknown'} />
                         </p>
                         <div className="flex flex-wrap gap-1 mt-1">
                           <BetaBadge 
