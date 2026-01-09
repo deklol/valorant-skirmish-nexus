@@ -42,6 +42,7 @@ import TeamsOverview from "./pages/broadcast/TeamsOverview";
 import TournamentData from "./pages/broadcast/api/TournamentData";
 import BroadcastIds from "./pages/broadcast/BroadcastIds";
 import { AppSettingsProvider } from "./contexts/AppSettingsContext";
+import BetaInvitePopup from "./components/BetaInvitePopup";
 
 // Beta imports - BETA ONLY
 import { BetaLayout } from "./components-beta/BetaLayout";
@@ -146,6 +147,7 @@ const AppContent = () => {
                       </Routes>
                     </main>
                     <Footer />
+                    <BetaInvitePopup />
                   </div>
                 </SidebarInset>
               </div>
