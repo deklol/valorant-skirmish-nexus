@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Bell, User, LogOut, Menu, X, Settings } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { User, LogOut, Menu, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { BetaButton } from "./ui-beta/BetaButton";
+import { BetaGlobalSearch } from "./BetaGlobalSearch";
+import { BetaNotificationCenter } from "./BetaNotificationCenter";
 
 const BetaHeader = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -36,10 +37,11 @@ const BetaHeader = () => {
 
         {/* Actions */}
         <div className="flex items-center gap-2">
-          <button className="p-2 rounded-[var(--beta-radius-md)] text-[hsl(var(--beta-text-muted))] hover:text-[hsl(var(--beta-text-primary))] hover:bg-[hsl(var(--beta-surface-3))] transition-colors relative">
-            <Bell className="h-5 w-5" />
-            <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-[hsl(var(--beta-accent))]" />
-          </button>
+          {/* Global Search */}
+          <BetaGlobalSearch />
+          
+          {/* Notifications */}
+          <BetaNotificationCenter />
 
           {user ? (
             <div className="flex items-center gap-2">

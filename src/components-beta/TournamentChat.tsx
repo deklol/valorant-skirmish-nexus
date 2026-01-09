@@ -262,6 +262,7 @@ export const TournamentChat = ({ tournamentId, className = "" }: TournamentChatP
     setEditContent("");
   };
 
+  // Always render the chat component - the login prompt is inside
   return (
     <GlassCard className={`flex flex-col ${className}`}>
       {/* Header */}
