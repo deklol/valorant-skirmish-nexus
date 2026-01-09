@@ -13,6 +13,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getRankIcon, getRankColor, calculateAverageRank } from "@/utils/rankUtils";
 import { useToast } from "@/hooks/use-toast";
+import { TournamentChat } from "@/components-beta/TournamentChat";
 
 // One-Click Registration Component
 const RegistrationSection = ({ 
@@ -904,6 +905,9 @@ const BetaTournamentDetail = () => {
             </Link>
           </GlassCard>
         )}
+
+        {/* Tournament Chat - Always visible, collapsible */}
+        <TournamentChat tournamentId={tournament.id} className="sticky bottom-4" />
       </div>
     </GradientBackground>
   );
