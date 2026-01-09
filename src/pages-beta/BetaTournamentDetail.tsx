@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getRankIcon, getRankColor, calculateAverageRank } from "@/utils/rankUtils";
 import { useToast } from "@/hooks/use-toast";
 import { TournamentChat } from "@/components-beta/TournamentChat";
+import { BetaBracketPreview } from "@/components-beta/BetaBracketPreview";
 
 // One-Click Registration Component
 const RegistrationSection = ({ 
@@ -553,6 +554,11 @@ const BetaTournamentDetail = () => {
           <BetaWinnerDisplay tournamentId={tournament.id} tournamentStatus={tournament.status} />
         )}
 
+        {/* Live Bracket Preview for Live Tournaments */}
+        {tournament.status === 'live' && matches && matches.length > 0 && (
+          <BetaBracketPreview tournamentId={tournament.id} tournamentName={tournament.name} />
+        )}
+
         {/* Registration Status */}
         {tournament.status === 'open' && (
           <RegistrationSection 
@@ -714,6 +720,11 @@ const BetaTournamentDetail = () => {
                 )}
               </GlassCard>
             )}
+
+            {/* Tournament Chat - Above Balance Analysis */}
+            <div className="lg:col-span-2">
+              <TournamentChat tournamentId={tournament.id} />
+            </div>
 
             {/* Balance Analysis */}
             {tournament.balance_analysis && (
@@ -905,9 +916,6 @@ const BetaTournamentDetail = () => {
             </Link>
           </GlassCard>
         )}
-
-        {/* Tournament Chat - Always visible, collapsible */}
-        <TournamentChat tournamentId={tournament.id} className="sticky bottom-4" />
       </div>
     </GradientBackground>
   );
