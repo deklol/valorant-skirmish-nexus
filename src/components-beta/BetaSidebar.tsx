@@ -13,6 +13,7 @@ import {
   Shield,
   ChevronLeft,
   ChevronRight,
+  Settings,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -28,6 +29,7 @@ const navigationItems = [
 
 const userItems = [
   { title: "Profile", href: "/beta/profile", icon: User },
+  { title: "Settings", href: "/beta/settings", icon: Settings },
 ];
 
 const adminItems = [

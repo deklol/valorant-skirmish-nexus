@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Bell, User, LogOut, Menu, X } from "lucide-react";
+import { Bell, User, LogOut, Menu, X, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { BetaButton } from "./ui-beta/BetaButton";
@@ -61,7 +61,7 @@ const BetaHeader = () => {
               </button>
             </div>
           ) : (
-            <Link to="/beta/login">
+            <Link to="/login">
               <BetaButton variant="primary" size="sm">
                 Sign In
               </BetaButton>
@@ -82,6 +82,7 @@ const BetaHeader = () => {
           <MobileNavLink to="/beta/help" onClick={() => setMobileMenuOpen(false)}>Help</MobileNavLink>
           <div className="my-3 border-t border-[hsl(var(--beta-border))]" />
           <MobileNavLink to="/beta/profile" onClick={() => setMobileMenuOpen(false)}>Profile</MobileNavLink>
+          <MobileNavLink to="/beta/settings" onClick={() => setMobileMenuOpen(false)}>Settings</MobileNavLink>
           {isAdmin && (
             <MobileNavLink to="/beta/admin" onClick={() => setMobileMenuOpen(false)}>Admin</MobileNavLink>
           )}
