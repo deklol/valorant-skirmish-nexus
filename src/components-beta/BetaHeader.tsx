@@ -18,7 +18,7 @@ const BetaHeader = () => {
 
   return (
     <header className="sticky top-0 z-30 w-full border-b border-[hsl(var(--beta-border))] bg-[hsl(var(--beta-surface-1)/0.95)] backdrop-blur-xl">
-      <div className="flex h-14 items-center justify-between px-4 lg:px-6">
+      <div className="flex h-14 items-center justify-between px-4 lg:px-6 gap-4">
         {/* Mobile menu button */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -33,12 +33,19 @@ const BetaHeader = () => {
         </Link>
 
         {/* Desktop spacer */}
-        <div className="hidden lg:block" />
+        <div className="hidden lg:block w-20" />
+
+        {/* Center: Global Search - Always visible */}
+        <div className="flex-1 max-w-xl hidden sm:block">
+          <BetaGlobalSearch alwaysExpanded />
+        </div>
 
         {/* Actions */}
         <div className="flex items-center gap-2">
-          {/* Global Search */}
-          <BetaGlobalSearch />
+          {/* Mobile search icon */}
+          <div className="sm:hidden">
+            <BetaGlobalSearch />
+          </div>
           
           {/* Notifications */}
           <BetaNotificationCenter />
