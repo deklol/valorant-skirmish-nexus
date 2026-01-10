@@ -53,7 +53,7 @@ export interface ResolveDisputeParams {
   adminNotes?: string;
 }
 
-export const useMatchDisputes = (tournamentId?: string, matchId?: string) => {
+export const useMatchDisputes = (tournamentId?: string, matchId?: string, fetchAll?: boolean) => {
   const { user, isAdmin } = useAuth();
   const { toast } = useToast();
   const [disputes, setDisputes] = useState<MatchDispute[]>([]);
@@ -61,7 +61,8 @@ export const useMatchDisputes = (tournamentId?: string, matchId?: string) => {
   const [submitting, setSubmitting] = useState(false);
 
   const fetchDisputes = useCallback(async () => {
-    if (!tournamentId && !matchId) {
+    // Allow fetching all disputes if fetchAll is true (admin mode)
+    if (!tournamentId && !matchId && !fetchAll) {
       setLoading(false);
       return;
     }
@@ -101,7 +102,7 @@ export const useMatchDisputes = (tournamentId?: string, matchId?: string) => {
     } finally {
       setLoading(false);
     }
-  }, [tournamentId, matchId]);
+  }, [tournamentId, matchId, fetchAll]);
 
   useEffect(() => {
     fetchDisputes();
@@ -109,28 +110,50 @@ export const useMatchDisputes = (tournamentId?: string, matchId?: string) => {
 
   // Real-time subscription
   useEffect(() => {
-    if (!tournamentId && !matchId) return;
+    if (!tournamentId && !matchId && !fetchAll) return;
 
-    const channel = supabase
-      .channel(`disputes:${tournamentId || matchId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'match_disputes',
-          filter: tournamentId ? `tournament_id=eq.${tournamentId}` : `match_id=eq.${matchId}`,
-        },
-        () => {
-          fetchDisputes();
-        }
-      )
-      .subscribe();
+    const channelName = fetchAll ? 'disputes:all' : `disputes:${tournamentId || matchId}`;
+    
+    let channel;
+    if (fetchAll) {
+      // Subscribe to all disputes without filter
+      channel = supabase
+        .channel(channelName)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'match_disputes',
+          },
+          () => {
+            fetchDisputes();
+          }
+        )
+        .subscribe();
+    } else {
+      // Subscribe to specific tournament or match disputes
+      channel = supabase
+        .channel(channelName)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'match_disputes',
+            filter: tournamentId ? `tournament_id=eq.${tournamentId}` : `match_id=eq.${matchId}`,
+          },
+          () => {
+            fetchDisputes();
+          }
+        )
+        .subscribe();
+    }
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [tournamentId, matchId, fetchDisputes]);
+  }, [tournamentId, matchId, fetchAll, fetchDisputes]);
 
   const raiseDispute = async (params: RaiseDisputeParams): Promise<boolean> => {
     if (!user) {

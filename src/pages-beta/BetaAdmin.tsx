@@ -35,6 +35,7 @@ import StatisticsManager from "@/components/admin/StatisticsManager";
 import { RankWeightSyncManager } from "@/components/admin/RankWeightSyncManager";
 import AdminHelpTab from "@/components/admin/AdminHelpTab";
 import CreateTournamentDialog from "@/components/CreateTournamentDialog";
+import { BetaDisputeManager } from "@/components-beta/dispute";
 
 // Tab configuration
 const adminTabs = [
@@ -44,6 +45,7 @@ const adminTabs = [
   { id: "maps", label: "Maps", icon: <Map className="w-4 h-4" />, category: "management" },
   { id: "sponsors", label: "Sponsors", icon: <Trophy className="w-4 h-4" />, category: "management" },
   { id: "vods", label: "VODs", icon: <Video className="w-4 h-4" />, category: "management" },
+  { id: "disputes", label: "Disputes", icon: <MessageSquare className="w-4 h-4" />, category: "management" },
   { id: "tournament-medic", label: "Tournament Medic", icon: <Stethoscope className="w-4 h-4" />, category: "medic" },
   { id: "veto-medic", label: "Veto Medic", icon: <MessageSquare className="w-4 h-4" />, category: "medic" },
   { id: "bracket-medic", label: "Bracket Medic", icon: <Wrench className="w-4 h-4" />, category: "medic" },
@@ -117,6 +119,8 @@ const BetaAdmin = () => {
         return <SponsorManager />;
       case "vods":
         return <VODManager />;
+      case "disputes":
+        return <BetaDisputeManager />;
       case "tournament-medic":
         return <TournamentMedicManager />;
       case "veto-medic":

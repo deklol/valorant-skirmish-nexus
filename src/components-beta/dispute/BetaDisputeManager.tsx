@@ -9,20 +9,21 @@ import { Link } from "react-router-dom";
 import { format } from "date-fns";
 
 interface BetaDisputeManagerProps {
-  tournamentId: string;
+  tournamentId?: string;
 }
 
 /**
  * BetaDisputeManager - Admin-facing dispute management interface
  * 
  * Allows admins to:
- * - View all disputes for a tournament
+ * - View all disputes for a tournament (or all tournaments if no tournamentId)
  * - Change dispute status
  * - Add resolution notes
  * - Take action on match results
  */
 export const BetaDisputeManager = ({ tournamentId }: BetaDisputeManagerProps) => {
-  const { disputes, loading, submitting, updateDisputeStatus, resolveDispute, getOpenDisputes } = useMatchDisputes(tournamentId);
+  // If no tournamentId, fetch all disputes (admin panel mode)
+  const { disputes, loading, submitting, updateDisputeStatus, resolveDispute, getOpenDisputes } = useMatchDisputes(tournamentId, undefined, !tournamentId);
   const [expandedDispute, setExpandedDispute] = useState<string | null>(null);
   const [resolution, setResolution] = useState("");
   const [adminNotes, setAdminNotes] = useState("");

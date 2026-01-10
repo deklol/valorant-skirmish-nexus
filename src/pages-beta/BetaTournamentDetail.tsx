@@ -6,7 +6,8 @@ import { GradientBackground, GlassCard, BetaButton, BetaBadge, StatCard } from "
 import { 
   Trophy, Users, Calendar, Clock, ArrowLeft, Shield, Swords, 
   CheckCircle, User, Eye, Map, Crown, Play, ExternalLink,
-  ScrollText, Settings, UserCheck, Info, Scale, Download, Copy, BarChart3
+  ScrollText, Settings, UserCheck, Info, Scale, Download, Copy, BarChart3,
+  ListOrdered, UserCheck2
 } from "lucide-react";
 import { format } from "date-fns";
 import { useState, useEffect } from "react";
@@ -16,6 +17,8 @@ import { useToast } from "@/hooks/use-toast";
 import { TournamentChat } from "@/components-beta/TournamentChat";
 import { BetaBracketPreview } from "@/components-beta/BetaBracketPreview";
 import { BetaBalanceAnalysis } from "@/components-beta/BetaBalanceAnalysis";
+import { BetaTeamSeedingManager, BetaTeamCheckInManager } from "@/components-beta/admin";
+import { BetaDisputeManager } from "@/components-beta/dispute";
 
 // One-Click Registration Component
 const RegistrationSection = ({ 
@@ -861,27 +864,58 @@ const BetaTournamentDetail = () => {
         )}
 
         {activeTab === 'admin' && isAdmin && (
-          <GlassCard className="p-6">
-            <h3 className="text-xl font-semibold text-[hsl(var(--beta-text-primary))] mb-6 flex items-center gap-2">
-              <Settings className="w-5 h-5 text-[hsl(var(--beta-accent))]" />
-              Admin Controls
-            </h3>
-            <p className="text-[hsl(var(--beta-text-muted))] mb-4">
-              Admin controls are available on the full tournament page for comprehensive management.
-            </p>
-            <Link to={`/beta/admin`}>
-              <BetaButton variant="outline" className="mr-3">
-                <Settings className="w-4 h-4 mr-2" />
-                Beta Admin
-              </BetaButton>
-            </Link>
-            <Link to={`/tournament/${id}`}>
-              <BetaButton>
-                <Shield className="w-4 h-4 mr-2" />
-                Full Admin Dashboard
-              </BetaButton>
-            </Link>
-          </GlassCard>
+          <div className="space-y-6">
+            <GlassCard className="p-6">
+              <h3 className="text-xl font-semibold text-[hsl(var(--beta-text-primary))] mb-4 flex items-center gap-2">
+                <Settings className="w-5 h-5 text-[hsl(var(--beta-accent))]" />
+                Admin Controls
+              </h3>
+              <div className="flex flex-wrap gap-3 mb-6">
+                <Link to={`/beta/admin`}>
+                  <BetaButton variant="outline">
+                    <Settings className="w-4 h-4 mr-2" />
+                    Beta Admin Panel
+                  </BetaButton>
+                </Link>
+                <Link to={`/tournament/${id}`}>
+                  <BetaButton>
+                    <Shield className="w-4 h-4 mr-2" />
+                    Full Admin Dashboard
+                  </BetaButton>
+                </Link>
+              </div>
+            </GlassCard>
+
+            {/* Team Seeding Manager - only for team tournaments in open/balancing status */}
+            {tournament.registration_type === 'team' && ['open', 'balancing'].includes(tournament.status) && (
+              <div>
+                <h4 className="text-lg font-semibold text-[hsl(var(--beta-text-primary))] mb-4 flex items-center gap-2">
+                  <ListOrdered className="w-5 h-5 text-[hsl(var(--beta-accent))]" />
+                  Team Seeding
+                </h4>
+                <BetaTeamSeedingManager tournamentId={tournament.id} />
+              </div>
+            )}
+
+            {/* Team Check-In Manager - only for tournaments with check-in required */}
+            {tournament.registration_type === 'team' && tournament.check_in_required && ['open', 'balancing'].includes(tournament.status) && (
+              <div>
+                <h4 className="text-lg font-semibold text-[hsl(var(--beta-text-primary))] mb-4 flex items-center gap-2">
+                  <UserCheck2 className="w-5 h-5 text-[hsl(var(--beta-accent))]" />
+                  Team Check-In
+                </h4>
+                <BetaTeamCheckInManager 
+                  tournamentId={tournament.id}
+                  checkInDeadline={tournament.check_in_ends_at}
+                />
+              </div>
+            )}
+
+            {/* Dispute Manager */}
+            <div>
+              <BetaDisputeManager tournamentId={tournament.id} />
+            </div>
+          </div>
         )}
       </div>
     </GradientBackground>

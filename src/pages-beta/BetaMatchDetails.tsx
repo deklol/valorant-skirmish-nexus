@@ -4,11 +4,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { GradientBackground, GlassCard, BetaButton, BetaBadge } from "@/components-beta/ui-beta";
 import { 
   ArrowLeft, Swords, Calendar, Users,
-  Map, Play, CheckCircle, User, Scale, Crown
+  Map, Play, CheckCircle, User, Scale, Crown, AlertTriangle
 } from "lucide-react";
 import { format } from "date-fns";
 import { getRankIcon, getRankColor } from "@/utils/rankUtils";
 import { Username } from "@/components/Username";
+import { useAuth } from "@/hooks/useAuth";
+import { BetaScoreSubmission } from "@/components-beta/score";
+import { BetaDisputePanel } from "@/components-beta/dispute";
 
 // Team Card with Player Details
 const TeamCard = ({ 
@@ -128,6 +131,7 @@ const TeamCard = ({
 const BetaMatchDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user, isAdmin } = useAuth();
 
   const { data: match, isLoading, error } = useQuery({
     queryKey: ['beta-match', id],
@@ -360,6 +364,29 @@ const BetaMatchDetails = () => {
             <h3 className="text-lg font-bold text-[hsl(var(--beta-text-primary))] mb-2">Notes</h3>
             <p className="text-[hsl(var(--beta-text-secondary))]">{match.notes}</p>
           </GlassCard>
+        )}
+
+        {/* Captain Score Submission - only show for pending/live matches */}
+        {user && (match.status === 'pending' || match.status === 'live') && match.team1 && match.team2 && (
+          <BetaScoreSubmission 
+            matchId={match.id}
+            team1Id={match.team1.id}
+            team2Id={match.team2.id}
+            team1Name={match.team1.name}
+            team2Name={match.team2.name}
+            currentScore1={match.score_team1 || 0}
+            currentScore2={match.score_team2 || 0}
+            matchStatus={match.status}
+          />
+        )}
+
+        {/* Dispute Panel - for captains and completed matches */}
+        {user && match.status === 'completed' && match.tournament && (
+          <BetaDisputePanel
+            matchId={match.id}
+            tournamentId={match.tournament.id}
+            matchStatus={match.status}
+          />
         )}
       </div>
     </GradientBackground>
