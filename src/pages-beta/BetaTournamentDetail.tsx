@@ -870,7 +870,7 @@ const BetaTournamentDetail = () => {
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <StatCard label="Participants" value={`${currentParticipants}/${maxParticipants}`} icon={<Users />} />
-          <StatCard label="Teams" value={teams?.length || 0} icon={<Shield />} />
+          <StatCard label="Teams" value={isTeamTournament ? teamRegistrationCount : (teams?.length || 0)} icon={<Shield />} />
           <StatCard label="Matches" value={`${completedMatches}/${matches?.length || 0}`} icon={<Swords />} />
           <StatCard label="Team Size" value={`${tournament.team_size}v${tournament.team_size}`} icon={<UserCheck />} />
           <StatCard label="Format" value={tournament.bracket_type?.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Single Elim'} icon={<Trophy />} valueClassName="text-sm" />
