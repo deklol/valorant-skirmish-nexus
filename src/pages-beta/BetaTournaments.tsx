@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Search, Plus, Filter, Trophy, Users, Calendar, MapPin } from "lucide-react";
+import { Search, Plus, Filter, Trophy, Users, Calendar, Gamepad2, Shield } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { GradientBackground, GlassCard, BetaButton, BetaInput, BetaBadge } from "@/components-beta/ui-beta";
@@ -104,14 +104,24 @@ const BetaTournaments = () => {
       return aPriority ? -1 : 1;
     });
 
-  const getStatusVariant = (status: string) => {
+  const getStatusVariant = (status: string): 'success' | 'accent' | 'warning' | 'default' | 'error' => {
     switch (status) {
       case 'open': return 'success';
       case 'live': return 'accent';
       case 'balancing': return 'warning';
       case 'completed': return 'default';
+      case 'archived': return 'default';
       default: return 'default';
     }
+  };
+
+  const formatStatus = (status: string) => {
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  };
+
+  const formatMatchFormat = (format: string) => {
+    if (!format) return 'Standard';
+    return format.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   };
 
   const getMaxParticipants = (tournament: DisplayTournament) => {
@@ -199,46 +209,92 @@ const BetaTournaments = () => {
               style={{ animationDelay: `${index * 50}ms` }}
             >
               <GlassCard hover className="p-5 h-full group">
-                <div className="flex items-start justify-between mb-3">
-                  <h3 className="text-lg font-semibold text-[hsl(var(--beta-text-primary))] group-hover:text-[hsl(var(--beta-accent))] transition-colors line-clamp-2">
+                {/* Header with title and status */}
+                <div className="flex items-start justify-between gap-3 mb-4">
+                  <h3 className="text-lg font-semibold text-[hsl(var(--beta-text-primary))] group-hover:text-[hsl(var(--beta-accent))] transition-colors line-clamp-2 flex-1">
                     {tournament.name}
                   </h3>
                   <BetaBadge variant={getStatusVariant(tournament.status)} size="sm">
-                    {tournament.status}
+                    {formatStatus(tournament.status)}
                   </BetaBadge>
                 </div>
 
-                <div className="space-y-2 mb-4">
-                  <div className="flex items-center gap-2 text-sm text-[hsl(var(--beta-text-muted))]">
-                    <Calendar className="w-4 h-4" />
-                    <span>{format(new Date(tournament.start_time), "MMM d, yyyy 'at' h:mm a")}</span>
+                {/* Registration type badge */}
+                <div className="mb-4">
+                  <span 
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium"
+                    style={{
+                      backgroundColor: tournament.registration_type === 'team' 
+                        ? 'hsl(var(--beta-accent) / 0.15)' 
+                        : 'hsl(var(--beta-secondary) / 0.15)',
+                      color: tournament.registration_type === 'team' 
+                        ? 'hsl(var(--beta-accent))' 
+                        : 'hsl(var(--beta-secondary))'
+                    }}
+                  >
+                    {tournament.registration_type === 'team' ? (
+                      <><Shield className="w-3 h-3" /> Team Tournament</>
+                    ) : (
+                      <><Users className="w-3 h-3" /> Solo Tournament</>
+                    )}
+                  </span>
+                </div>
+
+                {/* Info grid */}
+                <div className="space-y-3 mb-4">
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className="w-8 h-8 rounded-lg bg-[hsl(var(--beta-surface-4))] flex items-center justify-center">
+                      <Calendar className="w-4 h-4 text-[hsl(var(--beta-accent))]" />
+                    </div>
+                    <div>
+                      <p className="text-[hsl(var(--beta-text-muted))] text-xs">Date & Time</p>
+                      <p className="text-[hsl(var(--beta-text-primary))] font-medium">
+                        {format(new Date(tournament.start_time), "MMM d, yyyy")}
+                        <span className="text-[hsl(var(--beta-text-muted))] font-normal ml-1">
+                          {format(new Date(tournament.start_time), "h:mm a")}
+                        </span>
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-[hsl(var(--beta-text-muted))]">
-                    <Users className="w-4 h-4" />
-                    <span>
-                      {tournament.currentSignups} / {getMaxParticipants(tournament)} {tournament.registration_type === 'team' ? 'teams' : 'players'}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-[hsl(var(--beta-text-muted))]">
-                    <MapPin className="w-4 h-4" />
-                    <span>{tournament.match_format}</span>
+
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className="w-8 h-8 rounded-lg bg-[hsl(var(--beta-surface-4))] flex items-center justify-center">
+                      <Gamepad2 className="w-4 h-4 text-[hsl(var(--beta-secondary))]" />
+                    </div>
+                    <div>
+                      <p className="text-[hsl(var(--beta-text-muted))] text-xs">Format</p>
+                      <p className="text-[hsl(var(--beta-text-primary))] font-medium">
+                        {formatMatchFormat(tournament.match_format)}
+                      </p>
+                    </div>
                   </div>
                 </div>
 
-                {/* Progress bar */}
-                <div className="w-full h-1.5 bg-[hsl(var(--beta-surface-4))] rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-[hsl(var(--beta-accent))] transition-all duration-300"
-                    style={{ 
-                      width: `${Math.min((tournament.currentSignups / getMaxParticipants(tournament)) * 100, 100)}%` 
-                    }}
-                  />
+                {/* Participants progress */}
+                <div className="p-3 rounded-lg bg-[hsl(var(--beta-surface-3))] mb-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-[hsl(var(--beta-text-muted))]">
+                      {tournament.registration_type === 'team' ? 'Teams' : 'Players'}
+                    </span>
+                    <span className="text-sm font-semibold text-[hsl(var(--beta-text-primary))]">
+                      {tournament.currentSignups} / {getMaxParticipants(tournament)}
+                    </span>
+                  </div>
+                  <div className="w-full h-2 bg-[hsl(var(--beta-surface-4))] rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-[hsl(var(--beta-accent))] to-[hsl(var(--beta-secondary))] transition-all duration-300"
+                      style={{ 
+                        width: `${Math.min((tournament.currentSignups / getMaxParticipants(tournament)) * 100, 100)}%` 
+                      }}
+                    />
+                  </div>
                 </div>
 
                 {tournament.prize_pool && (
-                  <div className="mt-3 pt-3 border-t border-[hsl(var(--beta-glass-border))]">
-                    <span className="text-sm text-[hsl(var(--beta-accent))] font-medium">
-                      Prize: {tournament.prize_pool}
+                  <div className="flex items-center gap-2 pt-3 border-t border-[hsl(var(--beta-border))]">
+                    <Trophy className="w-4 h-4 text-[hsl(var(--beta-accent))]" />
+                    <span className="text-sm text-[hsl(var(--beta-accent))] font-semibold">
+                      {tournament.prize_pool}
                     </span>
                   </div>
                 )}
