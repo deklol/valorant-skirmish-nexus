@@ -15,6 +15,8 @@ import { useState } from "react";
 import { getRankIcon, getRankColor } from "@/utils/rankUtils";
 import { Username } from "@/components/Username";
 import FaceitStatsDisplay from "@/components/profile/FaceitStatsDisplay";
+import { FaceitRankIcon, getRankConfig } from "@/components/profile/FaceitRankIcon";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Role color mapping
 const getRoleColorClass = (role: string) => {
@@ -364,6 +366,21 @@ const BetaProfile = () => {
 
   const { userTeam } = useUserTeam(profileId);
 
+  // Fetch FACEIT stats for badge display
+  const { data: faceitStats } = useQuery({
+    queryKey: ['faceit-stats-badge', profileId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('faceit_stats')
+        .select('cs2_skill_level, cs2_elo, faceit_nickname')
+        .eq('user_id', profileId)
+        .maybeSingle();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!profileId,
+  });
   const calculateWinRate = (wins: number, losses: number) => {
     const total = wins + losses;
     if (total === 0) return 0;
@@ -504,6 +521,34 @@ const BetaProfile = () => {
                     <span className={`px-2 py-1 text-xs font-medium rounded-md border ${getRoleColorClass(profile.valorant_role)}`}>
                       {profile.valorant_role}
                     </span>
+                  )}
+                  
+                  {/* FACEIT Level Badge */}
+                  {!isPrivate && faceitStats?.cs2_skill_level && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="cursor-pointer">
+                            <FaceitRankIcon 
+                              level={faceitStats.cs2_skill_level} 
+                              size="md" 
+                              showGlow={false}
+                            />
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent 
+                          side="bottom" 
+                          className="bg-[hsl(var(--beta-surface-3))] border border-[hsl(var(--beta-border))]"
+                        >
+                          <p className="text-sm font-medium text-[hsl(var(--beta-text-primary))]">
+                            CS2 FACEIT Level {faceitStats.cs2_skill_level}
+                          </p>
+                          <p className="text-xs text-[hsl(var(--beta-text-muted))]">
+                            {faceitStats.cs2_elo} ELO
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   )}
                   
                   {profile.looking_for_team && (
