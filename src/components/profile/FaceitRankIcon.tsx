@@ -26,17 +26,25 @@ export interface FaceitRankConfig {
   glowColor: string;
 }
 
+/**
+ * FACEIT Rank Color Scheme:
+ * Level 1:  Silver/Gray
+ * Level 2-3: Green
+ * Level 4-7: Yellow/Gold
+ * Level 8-9: Orange
+ * Level 10: Red
+ */
 export const FACEIT_RANKS: FaceitRankConfig[] = [
-  { level: 1, minElo: 100, maxElo: 500, name: 'Level 1', primaryColor: '#6b6b6b', secondaryColor: '#4a4a4a', glowColor: 'rgba(107, 107, 107, 0.4)' },
-  { level: 2, minElo: 501, maxElo: 750, name: 'Level 2', primaryColor: '#1ce400', secondaryColor: '#0fa300', glowColor: 'rgba(28, 228, 0, 0.4)' },
-  { level: 3, minElo: 751, maxElo: 900, name: 'Level 3', primaryColor: '#32d35a', secondaryColor: '#1fa344', glowColor: 'rgba(50, 211, 90, 0.4)' },
-  { level: 4, minElo: 901, maxElo: 1050, name: 'Level 4', primaryColor: '#a4d932', secondaryColor: '#7cb020', glowColor: 'rgba(164, 217, 50, 0.4)' },
-  { level: 5, minElo: 1051, maxElo: 1200, name: 'Level 5', primaryColor: '#f6c800', secondaryColor: '#d4a800', glowColor: 'rgba(246, 200, 0, 0.4)' },
-  { level: 6, minElo: 1201, maxElo: 1350, name: 'Level 6', primaryColor: '#ff9b00', secondaryColor: '#d97f00', glowColor: 'rgba(255, 155, 0, 0.4)' },
-  { level: 7, minElo: 1351, maxElo: 1530, name: 'Level 7', primaryColor: '#ff6b00', secondaryColor: '#d45500', glowColor: 'rgba(255, 107, 0, 0.4)' },
-  { level: 8, minElo: 1531, maxElo: 1750, name: 'Level 8', primaryColor: '#ff4500', secondaryColor: '#cc3700', glowColor: 'rgba(255, 69, 0, 0.4)' },
-  { level: 9, minElo: 1751, maxElo: 2000, name: 'Level 9', primaryColor: '#ff2400', secondaryColor: '#cc1d00', glowColor: 'rgba(255, 36, 0, 0.4)' },
-  { level: 10, minElo: 2001, maxElo: null, name: 'Level 10', primaryColor: '#ff1a00', secondaryColor: '#cc1500', glowColor: 'rgba(255, 26, 0, 0.5)' },
+  { level: 1, minElo: 100, maxElo: 500, name: 'Level 1', primaryColor: '#909090', secondaryColor: '#6a6a6a', glowColor: 'rgba(144, 144, 144, 0.2)' },
+  { level: 2, minElo: 501, maxElo: 750, name: 'Level 2', primaryColor: '#1ce400', secondaryColor: '#15a800', glowColor: 'rgba(28, 228, 0, 0.2)' },
+  { level: 3, minElo: 751, maxElo: 900, name: 'Level 3', primaryColor: '#1ce400', secondaryColor: '#15a800', glowColor: 'rgba(28, 228, 0, 0.2)' },
+  { level: 4, minElo: 901, maxElo: 1050, name: 'Level 4', primaryColor: '#ffc800', secondaryColor: '#d9a800', glowColor: 'rgba(255, 200, 0, 0.2)' },
+  { level: 5, minElo: 1051, maxElo: 1200, name: 'Level 5', primaryColor: '#ffc800', secondaryColor: '#d9a800', glowColor: 'rgba(255, 200, 0, 0.2)' },
+  { level: 6, minElo: 1201, maxElo: 1350, name: 'Level 6', primaryColor: '#ffc800', secondaryColor: '#d9a800', glowColor: 'rgba(255, 200, 0, 0.2)' },
+  { level: 7, minElo: 1351, maxElo: 1530, name: 'Level 7', primaryColor: '#ffc800', secondaryColor: '#d9a800', glowColor: 'rgba(255, 200, 0, 0.2)' },
+  { level: 8, minElo: 1531, maxElo: 1750, name: 'Level 8', primaryColor: '#ff8c00', secondaryColor: '#d97500', glowColor: 'rgba(255, 140, 0, 0.2)' },
+  { level: 9, minElo: 1751, maxElo: 2000, name: 'Level 9', primaryColor: '#ff8c00', secondaryColor: '#d97500', glowColor: 'rgba(255, 140, 0, 0.2)' },
+  { level: 10, minElo: 2001, maxElo: null, name: 'Level 10', primaryColor: '#ff1a00', secondaryColor: '#cc1500', glowColor: 'rgba(255, 26, 0, 0.25)' },
 ];
 
 export function getSkillLevelFromElo(elo: number): number {
@@ -95,6 +103,8 @@ export function FaceitRankIcon({
   const pixelSize = sizeMap[size];
   const strokeWidth = pixelSize > 32 ? 3 : 2;
   const fontSize = pixelSize * 0.4;
+  // Reduced glow intensity
+  const glowSize = pixelSize * 0.08;
 
   // Level 10 special "speedometer" design
   if (level === 10) {
@@ -103,7 +113,7 @@ export function FaceitRankIcon({
         <div 
           className="relative"
           style={{
-            filter: showGlow ? `drop-shadow(0 0 ${pixelSize * 0.2}px ${config.glowColor})` : undefined
+            filter: showGlow ? `drop-shadow(0 0 ${glowSize}px ${config.glowColor})` : undefined
           }}
         >
           <svg 
@@ -187,7 +197,7 @@ export function FaceitRankIcon({
         <div 
           className="relative"
           style={{
-            filter: showGlow ? `drop-shadow(0 0 ${pixelSize * 0.25}px rgba(255, 215, 0, 0.6))` : undefined
+            filter: showGlow ? `drop-shadow(0 0 ${glowSize}px rgba(255, 215, 0, 0.25))` : undefined
           }}
         >
           <svg 
@@ -231,7 +241,7 @@ export function FaceitRankIcon({
       <div 
         className="relative"
         style={{
-          filter: showGlow ? `drop-shadow(0 0 ${pixelSize * 0.15}px ${config.glowColor})` : undefined
+          filter: showGlow ? `drop-shadow(0 0 ${glowSize}px ${config.glowColor})` : undefined
         }}
       >
         <svg 
