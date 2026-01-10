@@ -82,7 +82,7 @@ const getQualityColor = (score: number | null) => {
 
 // Get quality badge variant
 const getQualityBadge = (score: number | null) => {
-  if (score === null) return { variant: 'default' as const, label: 'Unknown' };
+  if (score === null || isNaN(score)) return { variant: 'default' as const, label: 'Pending' };
   if (score >= 90) return { variant: 'success' as const, label: 'Excellent' };
   if (score >= 75) return { variant: 'success' as const, label: 'Good' };
   if (score >= 60) return { variant: 'warning' as const, label: 'Fair' };
@@ -129,10 +129,12 @@ export const BetaBalanceAnalysis = ({ analysis, teams, className = "" }: Balance
           </div>
           
           <div className="flex items-center gap-3">
-            {metrics.qualityScore !== null && (
+            {metrics.qualityScore !== null && !isNaN(metrics.qualityScore) ? (
               <BetaBadge variant={qualityBadge.variant} size="md">
                 {qualityBadge.label} ({Math.round(metrics.qualityScore)}%)
               </BetaBadge>
+            ) : (
+              <BetaBadge variant="default" size="md">Analysis Pending</BetaBadge>
             )}
             {hasDetailedData && (
               <button className="p-1 text-[hsl(var(--beta-text-muted))] hover:text-[hsl(var(--beta-text-primary))]">
