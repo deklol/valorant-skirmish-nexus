@@ -2088,6 +2088,7 @@ export type Database = {
             | null
           start_time: string | null
           status: Database["public"]["Enums"]["tournament_status"] | null
+          swiss_rounds: number | null
           team_size: number | null
           updated_at: string | null
         }
@@ -2131,6 +2132,7 @@ export type Database = {
             | null
           start_time?: string | null
           status?: Database["public"]["Enums"]["tournament_status"] | null
+          swiss_rounds?: number | null
           team_size?: number | null
           updated_at?: string | null
         }
@@ -2174,6 +2176,7 @@ export type Database = {
             | null
           start_time?: string | null
           status?: Database["public"]["Enums"]["tournament_status"] | null
+          swiss_rounds?: number | null
           team_size?: number | null
           updated_at?: string | null
         }
