@@ -24,12 +24,14 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
     description: "",
     banner_image_url: "",
     registration_type: "solo" as "solo" | "team",
+    bracket_type: "single_elimination" as "single_elimination" | "double_elimination" | "swiss" | "round_robin",
     match_format: "BO3" as "BO1" | "BO3" | "BO5",
     semifinal_match_format: "default" as "default" | "BO1" | "BO3" | "BO5",
     final_match_format: "default" as "default" | "BO1" | "BO3" | "BO5",
     team_size: 5,
     max_players: 50,
     max_teams: 10,
+    swiss_rounds: 0, // 0 = auto-calculate based on team count
     prize_pool: "",
     start_time: "",
     registration_opens_at: "",
@@ -75,12 +77,14 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
         description: formData.description,
         banner_image_url: formData.banner_image_url || null,
         registration_type: formData.registration_type,
+        bracket_type: formData.bracket_type,
         match_format: formData.match_format,
         semifinal_match_format: formData.semifinal_match_format === "default" ? null : formData.semifinal_match_format,
         final_match_format: formData.final_match_format === "default" ? null : formData.final_match_format,
         team_size: formData.team_size,
         max_players: formData.max_players,
         max_teams: calculatedMaxTeams,
+        swiss_rounds: formData.bracket_type === 'swiss' && formData.swiss_rounds > 0 ? formData.swiss_rounds : null,
         prize_pool: formData.prize_pool,
         start_time: startTime,
         registration_opens_at: registrationOpens,
@@ -114,12 +118,14 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
         description: "",
         banner_image_url: "",
         registration_type: "solo",
+        bracket_type: "single_elimination",
         match_format: "BO3",
         semifinal_match_format: "default",
         final_match_format: "default",
         team_size: 5,
         max_players: 50,
         max_teams: 10,
+        swiss_rounds: 0,
         prize_pool: "",
         start_time: "",
         registration_opens_at: "",
@@ -233,6 +239,49 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
                   }
                 </p>
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="bracket_type" className="text-white">Format</Label>
+                <Select
+                  value={formData.bracket_type}
+                  onValueChange={(value: "single_elimination" | "double_elimination" | "swiss" | "round_robin") => setFormData(prev => ({ ...prev, bracket_type: value }))}
+                >
+                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="single_elimination">Single Elimination</SelectItem>
+                    <SelectItem value="double_elimination">Double Elimination</SelectItem>
+                    <SelectItem value="swiss">Swiss</SelectItem>
+                    <SelectItem value="round_robin">Round Robin</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-slate-400 text-sm">
+                  {formData.bracket_type === "single_elimination" && "One loss and you're out - fast and decisive"}
+                  {formData.bracket_type === "double_elimination" && "Two losses to be eliminated - winners and losers brackets"}
+                  {formData.bracket_type === "swiss" && "Points-based pairing - play multiple rounds without elimination"}
+                  {formData.bracket_type === "round_robin" && "Every team plays every other team - comprehensive ranking"}
+                </p>
+              </div>
+
+              {formData.bracket_type === "swiss" && (
+                <div className="space-y-2">
+                  <Label htmlFor="swiss_rounds" className="text-white">Swiss Rounds</Label>
+                  <StandardInput
+                    id="swiss_rounds"
+                    type="number"
+                    value={formData.swiss_rounds || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, swiss_rounds: parseInt(e.target.value) || 0 }))}
+                    className="bg-slate-700 border-slate-600 text-white"
+                    placeholder="Auto-calculate based on teams"
+                    min="1"
+                    max="15"
+                  />
+                  <p className="text-slate-400 text-xs">
+                    Leave empty to auto-calculate (typically log₂ of team count)
+                  </p>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
