@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
@@ -14,22 +14,20 @@ import {
   ChevronLeft,
   ChevronRight,
   Settings,
+  UsersRound,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserTeam } from "@/hooks/useUserTeam";
 
 const navigationItems = [
   { title: "Home", href: "/beta", icon: Home },
   { title: "Tournaments", href: "/beta/tournaments", icon: Trophy },
+  { title: "Teams", href: "/beta/teams", icon: UsersRound },
   { title: "Leaderboard", href: "/beta/leaderboard", icon: BarChart3 },
   { title: "Players", href: "/beta/players", icon: Users },
   { title: "Shop", href: "/beta/shop", icon: ShoppingBag },
   { title: "VODs", href: "/beta/vods", icon: Video },
   { title: "Help", href: "/beta/help", icon: HelpCircle },
-];
-
-const userItems = [
-  { title: "Profile", href: "/beta/profile", icon: User },
-  { title: "Settings", href: "/beta/settings", icon: Settings },
 ];
 
 const adminItems = [
@@ -40,7 +38,14 @@ const BetaSidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const { user, isAdmin } = useAuth();
+  const { userTeam, loading: teamLoading } = useUserTeam(user?.id);
 
+  // Build user items dynamically based on team membership
+  const userItems = [
+    { title: "Profile", href: "/beta/profile", icon: User },
+    ...(userTeam ? [{ title: "My Team", href: "/beta/my-team", icon: UsersRound }] : []),
+    { title: "Settings", href: "/beta/settings", icon: Settings },
+  ];
   const isActive = (href: string) => {
     if (href === "/beta") {
       return location.pathname === "/beta";
