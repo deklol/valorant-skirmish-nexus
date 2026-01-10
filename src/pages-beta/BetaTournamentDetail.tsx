@@ -15,6 +15,7 @@ import { getRankIcon, getRankColor, calculateAverageRank } from "@/utils/rankUti
 import { useToast } from "@/hooks/use-toast";
 import { TournamentChat } from "@/components-beta/TournamentChat";
 import { BetaBracketPreview } from "@/components-beta/BetaBracketPreview";
+import { BetaBalanceAnalysis } from "@/components-beta/BetaBalanceAnalysis";
 
 // One-Click Registration Component
 const RegistrationSection = ({ 
@@ -353,41 +354,8 @@ const ExportTeamsButton = ({ teams, tournamentName }: { teams: any[]; tournament
   );
 };
 
-// Balance Analysis Display Component
-const BalanceAnalysisDisplay = ({ analysis }: { analysis: any }) => {
-  if (!analysis) return null;
-  
-  const data = typeof analysis === 'string' ? JSON.parse(analysis) : analysis;
-  
-  return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-      {data.totalWeightDifference !== undefined && (
-        <div className="p-3 rounded-lg bg-[hsl(var(--beta-surface-3))]">
-          <p className="text-xs text-[hsl(var(--beta-text-muted))]">Weight Difference</p>
-          <p className="text-lg font-bold text-purple-400">{data.totalWeightDifference}</p>
-        </div>
-      )}
-      {data.averageTeamWeight !== undefined && (
-        <div className="p-3 rounded-lg bg-[hsl(var(--beta-surface-3))]">
-          <p className="text-xs text-[hsl(var(--beta-text-muted))]">Avg Team Weight</p>
-          <p className="text-lg font-bold text-[hsl(var(--beta-accent))]">{Math.round(data.averageTeamWeight)}</p>
-        </div>
-      )}
-      {data.balanceScore !== undefined && (
-        <div className="p-3 rounded-lg bg-[hsl(var(--beta-surface-3))]">
-          <p className="text-xs text-[hsl(var(--beta-text-muted))]">Balance Score</p>
-          <p className="text-lg font-bold text-green-400">{data.balanceScore}%</p>
-        </div>
-      )}
-      {data.algorithm && (
-        <div className="p-3 rounded-lg bg-[hsl(var(--beta-surface-3))]">
-          <p className="text-xs text-[hsl(var(--beta-text-muted))]">Algorithm</p>
-          <p className="text-sm font-medium text-[hsl(var(--beta-text-primary))]">{data.algorithm}</p>
-        </div>
-      )}
-    </div>
-  );
-};
+// Balance Analysis Display Component - Uses new clean component
+// This wrapper is kept for backward compatibility but delegates to BetaBalanceAnalysis
 
 const BetaTournamentDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -726,15 +694,14 @@ const BetaTournamentDetail = () => {
               <TournamentChat tournamentId={tournament.id} />
             </div>
 
-            {/* Balance Analysis */}
+            {/* Balance Analysis - Clean new display */}
             {tournament.balance_analysis && (
-              <GlassCard className="p-6 lg:col-span-2">
-                <h3 className="text-lg font-semibold text-[hsl(var(--beta-text-primary))] mb-4 flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5 text-[hsl(var(--beta-accent))]" />
-                  Balance Analysis
-                </h3>
-                <BalanceAnalysisDisplay analysis={tournament.balance_analysis} />
-              </GlassCard>
+              <div className="lg:col-span-2">
+                <BetaBalanceAnalysis 
+                  analysis={tournament.balance_analysis} 
+                  teams={teams}
+                />
+              </div>
             )}
           </div>
         )}

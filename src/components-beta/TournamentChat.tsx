@@ -51,8 +51,14 @@ export const TournamentChat = ({ tournamentId, className = "" }: TournamentChatP
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  // Only scroll to bottom within the chat container, not the page
+  const scrollToBottom = useCallback((force = false) => {
+    if (messagesEndRef.current) {
+      // Only auto-scroll on new messages (force=true), not initial load
+      if (force) {
+        messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+    }
   }, []);
 
   // Fetch messages
@@ -93,8 +99,8 @@ export const TournamentChat = ({ tournamentId, className = "" }: TournamentChatP
 
     setMessages(messagesWithUsers);
     setLoading(false);
-    setTimeout(scrollToBottom, 100);
-  }, [tournamentId, scrollToBottom]);
+    // Don't auto-scroll on initial load to prevent page jumping
+  }, [tournamentId]);
 
   // Setup realtime subscription
   useEffect(() => {
@@ -112,6 +118,8 @@ export const TournamentChat = ({ tournamentId, className = "" }: TournamentChatP
         },
         () => {
           fetchMessages();
+          // Scroll on new messages
+          setTimeout(() => scrollToBottom(true), 150);
         }
       )
       .subscribe();
@@ -141,6 +149,8 @@ export const TournamentChat = ({ tournamentId, className = "" }: TournamentChatP
 
       setNewMessage("");
       inputRef.current?.focus();
+      // Scroll to latest message after sending
+      setTimeout(() => scrollToBottom(true), 150);
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
