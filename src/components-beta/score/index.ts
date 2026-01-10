@@ -1,0 +1,1 @@
+export { BetaScoreSubmission } from './BetaScoreSubmission';
