@@ -91,7 +91,7 @@ const SoloRegistrationSection = ({
   );
 };
 
-// Team Tournament Registration Section Wrapper
+// Team Tournament Registration Section - Streamlined
 const TeamRegistrationSection = ({ 
   tournamentId, currentTeamCount, maxTeams, onRefresh 
 }: { 
@@ -99,7 +99,7 @@ const TeamRegistrationSection = ({
 }) => {
   return (
     <GlassCard className="p-6">
-      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div className="flex-1">
           <h3 className="text-lg font-semibold text-[hsl(var(--beta-text-primary))] mb-1">
             Team Registration
@@ -115,7 +115,7 @@ const TeamRegistrationSection = ({
             onRegistrationChange={onRefresh}
           />
         </div>
-        <div className="md:w-48">
+        <div className="w-full md:w-48 shrink-0">
           <div className="flex justify-between text-xs text-[hsl(var(--beta-text-muted))] mb-1">
             <span>{currentTeamCount} teams</span>
             <span>{maxTeams} max</span>
@@ -738,45 +738,40 @@ const BetaTournamentDetail = () => {
                   </h3>
                   <ExportTeamsButton teams={teams} tournamentName={tournament.name} />
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {[...teams].sort((a, b) => (b.total_rank_points || 0) - (a.total_rank_points || 0)).slice(0, 8).map((team, index) => (
-                    <GlassCard 
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                  {[...teams].sort((a, b) => (b.total_rank_points || 0) - (a.total_rank_points || 0)).slice(0, 6).map((team, index) => (
+                    <div 
                       key={team.id} 
-                      variant="subtle" 
-                      className="p-4 beta-animate-fade-in"
+                      className="p-3 rounded-lg bg-[hsl(var(--beta-surface-3))] border border-[hsl(var(--beta-border)/0.5)] beta-animate-fade-in"
                       style={{ animationDelay: `${index * 30}ms` }}
                     >
                       <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-semibold text-[hsl(var(--beta-text-primary))] truncate">{team.name}</h4>
+                        <h4 className="font-semibold text-sm text-[hsl(var(--beta-text-primary))] truncate flex-1">{team.name}</h4>
                         {team.seed && <BetaBadge variant="accent" size="sm">#{team.seed}</BetaBadge>}
                       </div>
-                      <div className="flex items-center gap-2 mb-3">
-                        <Scale className="w-4 h-4 text-purple-400" />
-                        <span className="text-sm text-purple-300 font-medium">Weight: {team.total_rank_points ?? 0}</span>
+                      <div className="flex items-center gap-2 mb-2 text-xs">
+                        <Scale className="w-3.5 h-3.5 text-purple-400" />
+                        <span className="text-purple-300 font-medium">{team.total_rank_points ?? 0} pts</span>
+                        <span className="text-[hsl(var(--beta-text-muted))]">•</span>
+                        <span className="text-[hsl(var(--beta-text-muted))]">{team.team_members?.length || 0} players</span>
                       </div>
-                      <div className="space-y-1">
+                      <div className="space-y-0.5">
                         {team.team_members?.slice(0, 5).map((member: any) => (
                           <div key={member.user_id} className="flex items-center justify-between text-xs">
-                            <span className={`truncate ${member.is_captain ? 'text-[hsl(var(--beta-accent))]' : 'text-[hsl(var(--beta-text-secondary))]'}`}>
+                            <span className={`truncate flex-1 ${member.is_captain ? 'text-[hsl(var(--beta-accent))]' : 'text-[hsl(var(--beta-text-secondary))]'}`}>
                               {member.is_captain && <Crown className="w-3 h-3 inline mr-1" />}
                               {member.users?.discord_username}
                             </span>
-                            <span style={{ color: getRankColor(member.users?.current_rank) }}>
-                              {getRankIcon(member.users?.current_rank)} {member.users?.current_rank || 'Unranked'}
+                            <span className="text-[hsl(var(--beta-text-muted))] text-[10px] ml-2" style={{ color: getRankColor(member.users?.current_rank) }}>
+                              {member.users?.current_rank || 'Unranked'}
                             </span>
                           </div>
                         ))}
                       </div>
-                      {team.team_members && team.team_members.length > 0 && (
-                        <div className="mt-2 pt-2 border-t border-[hsl(var(--beta-border))] text-xs text-[hsl(var(--beta-text-muted))]">
-                          Avg: {calculateAverageRank(team.team_members.map((m: any) => m.users?.current_rank))} | 
-                          Weight/Player: {Math.round((team.total_rank_points ?? 0) / team.team_members.length)}
-                        </div>
-                      )}
-                    </GlassCard>
+                    </div>
                   ))}
                 </div>
-                {teams.length > 8 && (
+                {teams.length > 6 && (
                   <div className="mt-4 text-center">
                     <button 
                       onClick={() => setActiveTab('participants')}

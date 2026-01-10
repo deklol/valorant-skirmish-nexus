@@ -196,8 +196,8 @@ export function BetaTeamTournamentRegistration({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-4">
-        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      <div className="flex items-center justify-center py-4">
+        <Loader2 className="h-5 w-5 animate-spin text-[hsl(var(--beta-text-muted))]" />
       </div>
     );
   }
@@ -205,8 +205,8 @@ export function BetaTeamTournamentRegistration({
   // Not logged in
   if (!user) {
     return (
-      <div className="rounded-lg border border-border/50 bg-card/50 p-4 text-center">
-        <p className="text-sm text-muted-foreground mb-3">
+      <div className="text-center">
+        <p className="text-sm text-[hsl(var(--beta-text-muted))] mb-3">
           Sign in to register your team
         </p>
         <BetaButton variant="primary" onClick={() => navigate('/login')}>
@@ -219,27 +219,24 @@ export function BetaTeamTournamentRegistration({
   // No team
   if (!userTeam) {
     return (
-      <div className="rounded-lg border border-border/50 bg-card/50 p-4">
-        <div className="flex items-start gap-3">
-          <div className="rounded-full bg-muted/50 p-2">
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </div>
-          <div className="flex-1">
-            <p className="text-sm font-medium">No Team Found</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              You need to join or create a team to register for team tournaments.
-            </p>
-            <BetaButton 
-              variant="secondary" 
-              size="sm" 
-              className="mt-3"
-              onClick={() => navigate('/beta/my-team')}
-            >
-              <UserPlus className="h-3.5 w-3.5 mr-1.5" />
-              Manage Team
-            </BetaButton>
-          </div>
+      <div className="flex items-center gap-3">
+        <div className="rounded-full bg-[hsl(var(--beta-surface-4))] p-2">
+          <Users className="h-4 w-4 text-[hsl(var(--beta-text-muted))]" />
         </div>
+        <div className="flex-1">
+          <p className="text-sm font-medium text-[hsl(var(--beta-text-primary))]">No Team Found</p>
+          <p className="text-xs text-[hsl(var(--beta-text-muted))]">
+            Join or create a team first
+          </p>
+        </div>
+        <BetaButton 
+          variant="secondary" 
+          size="sm"
+          onClick={() => navigate('/beta/my-team')}
+        >
+          <UserPlus className="h-3.5 w-3.5 mr-1.5" />
+          Manage Team
+        </BetaButton>
       </div>
     );
   }
@@ -247,24 +244,22 @@ export function BetaTeamTournamentRegistration({
   // Has team but not captain/owner
   if (!isCaptainOrOwner) {
     return (
-      <div className="rounded-lg border border-border/50 bg-card/50 p-4">
-        <div className="flex items-start gap-3">
-          <div className="rounded-full bg-muted/50 p-2">
-            <Shield className="h-4 w-4 text-muted-foreground" />
-          </div>
-          <div className="flex-1">
-            <p className="text-sm font-medium">{userTeam.name}</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Only team captains or owners can register for tournaments.
-            </p>
-            {isRegistered && (
-              <div className="flex items-center gap-1.5 mt-2 text-xs text-primary">
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                <span>Team is registered</span>
-              </div>
-            )}
-          </div>
+      <div className="flex items-center gap-3">
+        <div className="rounded-full bg-[hsl(var(--beta-surface-4))] p-2">
+          <Shield className="h-4 w-4 text-[hsl(var(--beta-text-muted))]" />
         </div>
+        <div className="flex-1">
+          <p className="text-sm font-medium text-[hsl(var(--beta-text-primary))]">{userTeam.name}</p>
+          <p className="text-xs text-[hsl(var(--beta-text-muted))]">
+            Only team captains can register
+          </p>
+        </div>
+        {isRegistered && (
+          <div className="flex items-center gap-1.5 text-xs text-[hsl(var(--beta-success))]">
+            <CheckCircle2 className="h-4 w-4" />
+            <span>Registered</span>
+          </div>
+        )}
       </div>
     );
   }
@@ -275,76 +270,71 @@ export function BetaTeamTournamentRegistration({
   // Team is registered
   if (isRegistered) {
     return (
-      <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
-        <div className="flex items-start gap-3">
-          <div className="rounded-full bg-primary/20 p-2">
-            <CheckCircle2 className="h-4 w-4 text-primary" />
-          </div>
-          <div className="flex-1">
-            <p className="text-sm font-medium text-primary">Registered</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {userTeam.name} is registered for this tournament.
-            </p>
-            {registrationOpen && (
-              <BetaButton 
-                variant="ghost" 
-                size="sm" 
-                className="mt-3 text-destructive hover:text-destructive"
-                onClick={handleUnregister}
-                disabled={submitting}
-              >
-                {submitting ? (
-                  <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                ) : (
-                  <XCircle className="h-3.5 w-3.5 mr-1.5" />
-                )}
-                Unregister Team
-              </BetaButton>
-            )}
-          </div>
+      <div className="flex items-center gap-3">
+        <div className="rounded-full bg-[hsl(var(--beta-success)/0.2)] p-2">
+          <CheckCircle2 className="h-4 w-4 text-[hsl(var(--beta-success))]" />
         </div>
+        <div className="flex-1">
+          <p className="text-sm font-medium text-[hsl(var(--beta-success))]">Registered</p>
+          <p className="text-xs text-[hsl(var(--beta-text-muted))]">
+            {userTeam.name} is signed up
+          </p>
+        </div>
+        {registrationOpen && (
+          <BetaButton 
+            variant="ghost" 
+            size="sm" 
+            className="text-[hsl(var(--beta-error))] hover:text-[hsl(var(--beta-error))] hover:bg-[hsl(var(--beta-error)/0.1)]"
+            onClick={handleUnregister}
+            disabled={submitting}
+          >
+            {submitting ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <>
+                <XCircle className="h-3.5 w-3.5 mr-1.5" />
+                Unregister
+              </>
+            )}
+          </BetaButton>
+        )}
       </div>
     );
   }
 
   // Can register
   return (
-    <div className="rounded-lg border border-border/50 bg-card/50 p-4">
-      <div className="flex items-start gap-3">
-        <div className="rounded-full bg-muted/50 p-2">
-          <Users className="h-4 w-4 text-foreground" />
-        </div>
-        <div className="flex-1">
-          <p className="text-sm font-medium">{userTeam.name}</p>
-          <p className="text-xs text-muted-foreground mt-1">
-            {userTeam.member_count} member{userTeam.member_count !== 1 ? 's' : ''}
-          </p>
-          {!registrationOpen ? (
-            <p className="text-xs text-muted-foreground mt-2">
-              Registration is currently closed.
-            </p>
-          ) : isFull ? (
-            <p className="text-xs text-destructive mt-2">
-              Tournament is full ({currentTeamCount}/{maxTeams} teams)
-            </p>
-          ) : (
-            <BetaButton 
-              variant="primary" 
-              size="sm" 
-              className="mt-3"
-              onClick={handleRegister}
-              disabled={submitting}
-            >
-              {submitting ? (
-                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-              ) : (
-                <UserPlus className="h-3.5 w-3.5 mr-1.5" />
-              )}
-              Register Team
-            </BetaButton>
-          )}
-        </div>
+    <div className="flex items-center gap-3">
+      <div className="rounded-full bg-[hsl(var(--beta-surface-4))] p-2">
+        <Users className="h-4 w-4 text-[hsl(var(--beta-text-primary))]" />
       </div>
+      <div className="flex-1">
+        <p className="text-sm font-medium text-[hsl(var(--beta-text-primary))]">{userTeam.name}</p>
+        <p className="text-xs text-[hsl(var(--beta-text-muted))]">
+          {userTeam.member_count} member{userTeam.member_count !== 1 ? 's' : ''}
+        </p>
+      </div>
+      {!registrationOpen ? (
+        <span className="text-xs text-[hsl(var(--beta-text-muted))]">Closed</span>
+      ) : isFull ? (
+        <span className="text-xs text-[hsl(var(--beta-error))]">Full</span>
+      ) : (
+        <BetaButton 
+          variant="primary" 
+          size="sm"
+          onClick={handleRegister}
+          disabled={submitting}
+        >
+          {submitting ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <>
+              <UserPlus className="h-3.5 w-3.5 mr-1.5" />
+              Register Team
+            </>
+          )}
+        </BetaButton>
+      )}
     </div>
   );
 }
