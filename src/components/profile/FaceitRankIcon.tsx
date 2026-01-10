@@ -76,7 +76,7 @@ export function getEloRange(level: number): string {
 interface FaceitRankIconProps {
   level: number;
   elo?: number;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'xs' | 'sm' | 'sm-md' | 'md' | 'lg' | 'xl';
   showElo?: boolean;
   showGlow?: boolean;
   isChallenger?: boolean;
@@ -84,7 +84,9 @@ interface FaceitRankIconProps {
 }
 
 const sizeMap = {
+  xs: 20,
   sm: 24,
+  'sm-md': 28,
   md: 32,
   lg: 48,
   xl: 64,
