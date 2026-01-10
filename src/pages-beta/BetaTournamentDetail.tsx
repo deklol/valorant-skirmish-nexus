@@ -100,32 +100,30 @@ const TeamRegistrationSection = ({
 }) => {
   return (
     <GlassCard className="p-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div className="flex-1">
-          <h3 className="text-lg font-semibold text-[hsl(var(--beta-text-primary))] mb-1">
-            Team Registration
-          </h3>
-          <p className="text-sm text-[hsl(var(--beta-text-muted))] mb-4">
-            {maxTeams - currentTeamCount} team slots remaining
-          </p>
-          <BetaTeamTournamentRegistration
-            tournamentId={tournamentId}
-            maxTeams={maxTeams}
-            currentTeamCount={currentTeamCount}
-            registrationOpen={true}
-            onRegistrationChange={onRefresh}
-          />
+      {/* Progress bar at top */}
+      <div className="mb-4">
+        <div className="flex justify-between text-xs text-[hsl(var(--beta-text-muted))] mb-1">
+          <span>{currentTeamCount} teams registered</span>
+          <span>{maxTeams} max</span>
         </div>
-        <div className="w-full md:w-48 shrink-0">
-          <div className="flex justify-between text-xs text-[hsl(var(--beta-text-muted))] mb-1">
-            <span>{currentTeamCount} teams</span>
-            <span>{maxTeams} max</span>
-          </div>
-          <div className="w-full h-2 bg-[hsl(var(--beta-surface-4))] rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-[hsl(var(--beta-accent))] to-[hsl(var(--beta-secondary))] transition-all duration-500"
-              style={{ width: `${Math.min((currentTeamCount / maxTeams) * 100, 100)}%` }} />
-          </div>
+        <div className="w-full h-2 bg-[hsl(var(--beta-surface-4))] rounded-full overflow-hidden">
+          <div className="h-full bg-gradient-to-r from-[hsl(var(--beta-accent))] to-[hsl(var(--beta-secondary))] transition-all duration-500"
+            style={{ width: `${Math.min((currentTeamCount / maxTeams) * 100, 100)}%` }} />
         </div>
+        <p className="text-sm text-[hsl(var(--beta-text-muted))] mt-2">
+          {maxTeams - currentTeamCount} team slots remaining
+        </p>
+      </div>
+      
+      {/* Full-width registration component */}
+      <div className="w-full">
+        <BetaTeamTournamentRegistration
+          tournamentId={tournamentId}
+          maxTeams={maxTeams}
+          currentTeamCount={currentTeamCount}
+          registrationOpen={true}
+          onRegistrationChange={onRefresh}
+        />
       </div>
     </GlassCard>
   );
