@@ -97,6 +97,7 @@ export interface PersistentTeamV2 {
   id: string;
   name: string;
   description: string | null;
+  banner_image_url: string | null;
   owner_id: string;
   captain_id: string; // Legacy compatibility
   invite_code: string | null;

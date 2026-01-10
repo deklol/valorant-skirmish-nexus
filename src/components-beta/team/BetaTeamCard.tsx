@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { GlassCard, BetaBadge } from "@/components-beta/ui-beta";
 import { Users, Trophy, Crown, Shield, Lock } from "lucide-react";
-import { PersistentTeamV2, TeamLifecycleStatus } from "@/types/teamV2";
+import { PersistentTeamV2, TeamLifecycleStatus, TeamMemberRole, getRoleDisplay } from "@/types/teamV2";
 
 interface BetaTeamCardProps {
   team: PersistentTeamV2 & {
@@ -27,6 +27,23 @@ const getStatusIcon = (status: TeamLifecycleStatus) => {
   }
 };
 
+const capitalizeStatus = (status: string) => {
+  return status.charAt(0).toUpperCase() + status.slice(1);
+};
+
+const getRoleBadgeColor = (role: TeamMemberRole) => {
+  switch (role) {
+    case 'owner': return 'text-amber-400';
+    case 'manager': return 'text-orange-400';
+    case 'captain': return 'text-blue-400';
+    case 'player': return 'text-gray-300';
+    case 'substitute': return 'text-gray-400';
+    case 'analyst': return 'text-cyan-400';
+    case 'coach': return 'text-yellow-400';
+    default: return 'text-gray-300';
+  }
+};
+
 export const BetaTeamCard = ({ team, showStats = true }: BetaTeamCardProps) => {
   const memberCount = team.members?.length || 0;
   const winRate = team.wins && (team.wins + team.losses) > 0
@@ -35,23 +52,40 @@ export const BetaTeamCard = ({ team, showStats = true }: BetaTeamCardProps) => {
 
   return (
     <Link to={`/beta/team/${team.id}`}>
-      <GlassCard variant="interactive" hover className="h-full">
-        {/* Header */}
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[hsl(var(--beta-accent))] to-[hsl(var(--beta-secondary))] flex items-center justify-center">
+      <GlassCard variant="interactive" hover className="h-full overflow-hidden">
+        {/* Banner Header */}
+        <div className="relative h-24 -mx-4 -mt-4 mb-4 overflow-hidden">
+          {team.banner_image_url ? (
+            <img 
+              src={team.banner_image_url} 
+              alt={`${team.name} banner`}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-[hsl(var(--beta-accent)/0.3)] via-[hsl(var(--beta-surface-3))] to-[hsl(var(--beta-secondary)/0.3)]" />
+          )}
+          {/* Gradient overlay for text readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[hsl(var(--beta-surface-2))] via-transparent to-transparent" />
+          
+          {/* Team icon overlay */}
+          <div className="absolute bottom-2 left-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[hsl(var(--beta-accent))] to-[hsl(var(--beta-secondary))] flex items-center justify-center shadow-lg border-2 border-[hsl(var(--beta-surface-2))]">
               <Shield className="w-6 h-6 text-[hsl(var(--beta-surface-1))]" />
             </div>
-            <div>
-              <h3 className="font-bold text-[hsl(var(--beta-text-primary))] text-lg">{team.name}</h3>
-              <div className="flex items-center gap-2">
-                <BetaBadge variant={getStatusVariant(team.status)} size="sm">
-                  {getStatusIcon(team.status)}
-                  <span className="ml-1">{team.status}</span>
-                </BetaBadge>
-              </div>
-            </div>
           </div>
+          
+          {/* Status badge overlay */}
+          <div className="absolute top-2 right-2">
+            <BetaBadge variant={getStatusVariant(team.status)} size="sm">
+              {getStatusIcon(team.status)}
+              <span className={getStatusIcon(team.status) ? "ml-1" : ""}>{capitalizeStatus(team.status)}</span>
+            </BetaBadge>
+          </div>
+        </div>
+
+        {/* Team Name */}
+        <div className="mb-3">
+          <h3 className="font-bold text-[hsl(var(--beta-text-primary))] text-lg">{team.name}</h3>
         </div>
 
         {/* Description */}
@@ -63,7 +97,7 @@ export const BetaTeamCard = ({ team, showStats = true }: BetaTeamCardProps) => {
 
         {/* Stats */}
         {showStats && (
-          <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="grid grid-cols-3 gap-2 mb-4">
             <div className="text-center p-2 rounded-lg bg-[hsl(var(--beta-surface-3))]">
               <Users className="w-4 h-4 mx-auto mb-1 text-[hsl(var(--beta-text-muted))]" />
               <p className="text-sm font-bold text-[hsl(var(--beta-text-primary))]">{memberCount}</p>
@@ -82,29 +116,33 @@ export const BetaTeamCard = ({ team, showStats = true }: BetaTeamCardProps) => {
           </div>
         )}
 
-        {/* Members Preview */}
+        {/* Members List */}
         {team.members && team.members.length > 0 && (
           <div className="pt-3 border-t border-[hsl(var(--beta-border))]">
-            <div className="flex items-center gap-2">
-              <div className="flex -space-x-2">
-                {team.members.slice(0, 5).map((member, idx) => (
+            <p className="text-xs text-[hsl(var(--beta-text-muted))] mb-2 font-medium">Team Members</p>
+            <div className="flex flex-col gap-1.5">
+              {team.members.slice(0, 5).map((member) => {
+                const role = member.role as TeamMemberRole;
+                const roleDisplay = getRoleDisplay(role);
+                return (
                   <div
                     key={member.user_id}
-                    className="w-7 h-7 rounded-full bg-[hsl(var(--beta-surface-4))] border-2 border-[hsl(var(--beta-surface-2))] flex items-center justify-center text-xs font-medium text-[hsl(var(--beta-text-muted))]"
-                    title={member.users?.discord_username || 'Unknown'}
+                    className="flex items-center justify-between text-sm"
                   >
-                    {(member.users?.discord_username || 'U')[0].toUpperCase()}
+                    <span className="text-[hsl(var(--beta-text-secondary))] truncate">
+                      {member.users?.discord_username || 'Unknown'}
+                    </span>
+                    <span className={`text-xs font-medium ${getRoleBadgeColor(role)}`}>
+                      {roleDisplay.label}
+                    </span>
                   </div>
-                ))}
-                {team.members.length > 5 && (
-                  <div className="w-7 h-7 rounded-full bg-[hsl(var(--beta-accent-subtle))] border-2 border-[hsl(var(--beta-surface-2))] flex items-center justify-center text-xs font-medium text-[hsl(var(--beta-accent))]">
-                    +{team.members.length - 5}
-                  </div>
-                )}
-              </div>
-              <span className="text-xs text-[hsl(var(--beta-text-muted))]">
-                {team.avg_rank_points ? `Avg ${Math.round(team.avg_rank_points)} pts` : ''}
-              </span>
+                );
+              })}
+              {team.members.length > 5 && (
+                <p className="text-xs text-[hsl(var(--beta-text-muted))] text-center mt-1">
+                  +{team.members.length - 5} more
+                </p>
+              )}
             </div>
           </div>
         )}

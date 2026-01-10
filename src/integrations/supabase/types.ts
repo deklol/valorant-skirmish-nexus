@@ -1116,6 +1116,7 @@ export type Database = {
       persistent_teams: {
         Row: {
           avg_rank_points: number | null
+          banner_image_url: string | null
           captain_id: string
           created_at: string | null
           description: string | null
@@ -1140,6 +1141,7 @@ export type Database = {
         }
         Insert: {
           avg_rank_points?: number | null
+          banner_image_url?: string | null
           captain_id: string
           created_at?: string | null
           description?: string | null
@@ -1164,6 +1166,7 @@ export type Database = {
         }
         Update: {
           avg_rank_points?: number | null
+          banner_image_url?: string | null
           captain_id?: string
           created_at?: string | null
           description?: string | null
