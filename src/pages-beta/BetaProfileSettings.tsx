@@ -12,6 +12,7 @@ import {
 import { useNameEffects, getNameEffectStyles } from "@/hooks/useNameEffects";
 import { useShopContext, ShopProvider } from "@/contexts/ShopContext";
 import { useQuery } from "@tanstack/react-query";
+import { BetaDiscordLinking } from "@/components-beta/BetaDiscordLinking";
 
 // Role options
 const VALORANT_ROLES = ['Duelist', 'Controller', 'Initiator', 'Sentinel'];
@@ -463,6 +464,9 @@ const ProfileSettingsContent = () => {
             {saving ? 'Saving...' : 'Save Changes'}
           </BetaButton>
         </div>
+
+        {/* Discord Integration */}
+        <BetaDiscordLinking />
 
         {/* Rank & Riot ID Section */}
         <GlassCard className="p-6">
