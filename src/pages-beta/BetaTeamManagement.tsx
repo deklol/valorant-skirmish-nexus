@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { GradientBackground, GlassCard, BetaButton, BetaBadge } from "@/components-beta/ui-beta";
 import { BetaTeamRoster, BetaTeamStats, BetaOwnershipTransfer, BetaJoinCodeManager } from "@/components-beta/team";
 import { 
   Shield, ArrowLeft, Save, Trash2, LogOut, Users, 
   Settings, Crown, Lock, Unlock, Edit3, AlertTriangle,
-  Plus, UserPlus
+  Plus, UserPlus, ImagePlus, X, Upload
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -39,6 +39,8 @@ const BetaTeamManagement = () => {
   const [editedName, setEditedName] = useState("");
   const [editedDescription, setEditedDescription] = useState("");
   const [isEditing, setIsEditing] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
 
   // User role info
   const [userRole, setUserRole] = useState<TeamMemberRole | null>(null);
@@ -246,6 +248,80 @@ const BetaTeamManagement = () => {
     navigate('/beta/teams');
   };
 
+  const handleBannerUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !team) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({ title: "Error", description: "Please select an image file", variant: "destructive" });
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "Error", description: "Image must be less than 5MB", variant: "destructive" });
+      return;
+    }
+
+    setUploadingBanner(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${team.id}/banner.${fileExt}`;
+
+      // Upload to storage
+      const { error: uploadError } = await supabase.storage
+        .from('team-banners')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('team-banners')
+        .getPublicUrl(fileName);
+
+      // Update team record
+      const { error: updateError } = await supabase
+        .from('persistent_teams')
+        .update({ banner_image_url: publicUrl })
+        .eq('id', team.id);
+
+      if (updateError) throw updateError;
+
+      setTeam({ ...team, banner_image_url: publicUrl } as any);
+      toast({ title: "Success", description: "Team banner uploaded successfully" });
+    } catch (error: any) {
+      console.error('Error uploading banner:', error);
+      toast({ title: "Error", description: error.message || "Failed to upload banner", variant: "destructive" });
+    } finally {
+      setUploadingBanner(false);
+      if (bannerInputRef.current) bannerInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveBanner = async () => {
+    if (!team) return;
+
+    setUploadingBanner(true);
+    try {
+      // Update team record to remove banner URL
+      const { error: updateError } = await supabase
+        .from('persistent_teams')
+        .update({ banner_image_url: null })
+        .eq('id', team.id);
+
+      if (updateError) throw updateError;
+
+      setTeam({ ...team, banner_image_url: null } as any);
+      toast({ title: "Success", description: "Team banner removed" });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message || "Failed to remove banner", variant: "destructive" });
+    } finally {
+      setUploadingBanner(false);
+    }
+  };
+
   if (loading) {
     return (
       <GradientBackground>
@@ -281,33 +357,49 @@ const BetaTeamManagement = () => {
           Back to Teams
         </Link>
 
-        {/* Header */}
-        <GlassCard variant="strong" className="p-6 mb-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-[hsl(var(--beta-accent))] to-[hsl(var(--beta-secondary))] flex items-center justify-center">
-                <Shield className="w-8 h-8 text-[hsl(var(--beta-surface-1))]" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-2xl font-bold text-[hsl(var(--beta-text-primary))]">{team.name}</h1>
-                  <BetaBadge variant={team.status === 'active' ? 'success' : team.status === 'locked' ? 'warning' : 'default'}>
-                    {team.status === 'locked' && <Lock className="w-3 h-3 mr-1" />}
-                    {team.status}
-                  </BetaBadge>
+        {/* Header with Banner */}
+        <GlassCard variant="strong" className="overflow-hidden mb-6">
+          {/* Banner */}
+          <div className="relative h-28">
+            {(team as any).banner_image_url ? (
+              <img 
+                src={(team as any).banner_image_url} 
+                alt={`${team.name} banner`}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-[hsl(var(--beta-accent)/0.2)] via-[hsl(var(--beta-surface-3))] to-[hsl(var(--beta-secondary)/0.2)]" />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-[hsl(var(--beta-surface-2))] via-[hsl(var(--beta-surface-2)/0.5)] to-transparent" />
+          </div>
+          
+          <div className="relative p-6 -mt-10">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-[hsl(var(--beta-accent))] to-[hsl(var(--beta-secondary))] flex items-center justify-center border-2 border-[hsl(var(--beta-surface-2))] shadow-lg">
+                  <Shield className="w-8 h-8 text-[hsl(var(--beta-surface-1))]" />
                 </div>
-                <p className="text-sm text-[hsl(var(--beta-text-muted))]">
-                  Your role: <span className="text-[hsl(var(--beta-accent))] capitalize">{userRole}</span>
-                </p>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-2xl font-bold text-[hsl(var(--beta-text-primary))]">{team.name}</h1>
+                    <BetaBadge variant={team.status === 'active' ? 'success' : team.status === 'locked' ? 'warning' : 'default'}>
+                      {team.status === 'locked' && <Lock className="w-3 h-3 mr-1" />}
+                      {team.status.charAt(0).toUpperCase() + team.status.slice(1)}
+                    </BetaBadge>
+                  </div>
+                  <p className="text-sm text-[hsl(var(--beta-text-muted))]">
+                    Your role: <span className="text-[hsl(var(--beta-accent))] capitalize">{userRole}</span>
+                  </p>
+                </div>
               </div>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <Link to={`/beta/team/${team.id}`}>
-                <BetaButton variant="outline" size="sm">
-                  View Public Profile
-                </BetaButton>
-              </Link>
+              
+              <div className="flex items-center gap-2">
+                <Link to={`/beta/team/${team.id}`}>
+                  <BetaButton variant="outline" size="sm">
+                    View Public Profile
+                  </BetaButton>
+                </Link>
+              </div>
             </div>
           </div>
         </GlassCard>
@@ -388,6 +480,62 @@ const BetaTeamManagement = () => {
                 </div>
               )}
             </GlassCard>
+
+            {/* Team Banner */}
+            {canManage && (
+              <GlassCard className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <ImagePlus className="w-5 h-5 text-[hsl(var(--beta-accent))]" />
+                  <h2 className="text-lg font-bold text-[hsl(var(--beta-text-primary))]">Team Banner</h2>
+                </div>
+                
+                <p className="text-sm text-[hsl(var(--beta-text-muted))] mb-4">
+                  Upload a banner image for your team. This will be displayed on your team card and profile page.
+                  Recommended size: 1200x300 pixels.
+                </p>
+
+                {/* Banner Preview */}
+                <div className="relative mb-4 rounded-xl overflow-hidden">
+                  {(team as any).banner_image_url ? (
+                    <div className="relative">
+                      <img 
+                        src={(team as any).banner_image_url} 
+                        alt="Team banner"
+                        className="w-full h-32 object-cover"
+                      />
+                      <button
+                        onClick={handleRemoveBanner}
+                        disabled={uploadingBanner}
+                        className="absolute top-2 right-2 p-1.5 rounded-lg bg-[hsl(var(--beta-surface-1)/0.8)] text-[hsl(var(--beta-error))] hover:bg-[hsl(var(--beta-error))] hover:text-white transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="w-full h-32 bg-gradient-to-br from-[hsl(var(--beta-accent)/0.2)] via-[hsl(var(--beta-surface-3))] to-[hsl(var(--beta-secondary)/0.2)] flex items-center justify-center border-2 border-dashed border-[hsl(var(--beta-border))]">
+                      <p className="text-[hsl(var(--beta-text-muted))] text-sm">No banner uploaded</p>
+                    </div>
+                  )}
+                </div>
+
+                <input
+                  ref={bannerInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleBannerUpload}
+                  className="hidden"
+                />
+                
+                <BetaButton
+                  variant="outline"
+                  onClick={() => bannerInputRef.current?.click()}
+                  disabled={uploadingBanner}
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  {uploadingBanner ? 'Uploading...' : (team as any).banner_image_url ? 'Change Banner' : 'Upload Banner'}
+                </BetaButton>
+              </GlassCard>
+            )}
 
             {/* Stats */}
             <BetaTeamStats team={team} memberCount={members.length} />

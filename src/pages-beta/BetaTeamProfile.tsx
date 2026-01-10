@@ -131,6 +131,7 @@ const BetaTeamProfile = () => {
   }
 
   const owner = members.find(m => m.role === 'owner');
+  const capitalizeStatus = (status: string) => status.charAt(0).toUpperCase() + status.slice(1);
 
   return (
     <GradientBackground>
@@ -141,47 +142,65 @@ const BetaTeamProfile = () => {
           Back to Teams
         </Link>
 
-        {/* Header */}
-        <GlassCard variant="strong" className="p-8 mb-8">
-          <div className="flex flex-col md:flex-row md:items-center gap-6">
-            {/* Team Avatar */}
-            <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-[hsl(var(--beta-accent))] to-[hsl(var(--beta-secondary))] flex items-center justify-center">
-              <Shield className="w-12 h-12 text-[hsl(var(--beta-surface-1))]" />
-            </div>
-
-            {/* Team Info */}
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-3xl font-bold text-[hsl(var(--beta-text-primary))]">{team.name}</h1>
-                <BetaBadge variant={getStatusVariant(team.status)}>
-                  {team.status === 'locked' && <Lock className="w-3 h-3 mr-1" />}
-                  {team.status}
-                </BetaBadge>
+        {/* Header with Banner */}
+        <GlassCard variant="strong" className="overflow-hidden mb-8">
+          {/* Banner */}
+          <div className="relative h-36 md:h-48">
+            {(team as any).banner_image_url ? (
+              <img 
+                src={(team as any).banner_image_url} 
+                alt={`${team.name} banner`}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-[hsl(var(--beta-accent)/0.3)] via-[hsl(var(--beta-surface-3))] to-[hsl(var(--beta-secondary)/0.3)]" />
+            )}
+            {/* Gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-[hsl(var(--beta-surface-2))] via-[hsl(var(--beta-surface-2)/0.5)] to-transparent" />
+          </div>
+          
+          {/* Content below banner */}
+          <div className="relative p-8 -mt-16">
+            <div className="flex flex-col md:flex-row md:items-end gap-6">
+              {/* Team Avatar */}
+              <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-[hsl(var(--beta-accent))] to-[hsl(var(--beta-secondary))] flex items-center justify-center border-4 border-[hsl(var(--beta-surface-2))] shadow-lg">
+                <Shield className="w-12 h-12 text-[hsl(var(--beta-surface-1))]" />
               </div>
-              
-              {team.description && (
-                <p className="text-[hsl(var(--beta-text-secondary))] mb-4">{team.description}</p>
-              )}
 
-              <div className="flex flex-wrap items-center gap-4 text-sm text-[hsl(var(--beta-text-muted))]">
-                <div className="flex items-center gap-1">
-                  <Crown className="w-4 h-4 text-[hsl(var(--beta-accent))]" />
-                  <span>Owner: </span>
-                  {owner ? (
-                    <Link to={`/beta/profile/${owner.user_id}`} className="text-[hsl(var(--beta-accent))] hover:underline">
-                      {owner.users?.discord_username || 'Unknown'}
-                    </Link>
-                  ) : (
-                    <span>Unknown</span>
-                  )}
+              {/* Team Info */}
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-2">
+                  <h1 className="text-3xl font-bold text-[hsl(var(--beta-text-primary))]">{team.name}</h1>
+                  <BetaBadge variant={getStatusVariant(team.status)}>
+                    {team.status === 'locked' && <Lock className="w-3 h-3 mr-1" />}
+                    {capitalizeStatus(team.status)}
+                  </BetaBadge>
                 </div>
-                <div className="flex items-center gap-1">
-                  <Calendar className="w-4 h-4" />
-                  <span>Created {format(new Date(team.created_at || Date.now()), 'MMM d, yyyy')}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Users className="w-4 h-4" />
-                  <span>{members.length} / {team.max_members || 10} members</span>
+                
+                {team.description && (
+                  <p className="text-[hsl(var(--beta-text-secondary))] mb-4">{team.description}</p>
+                )}
+
+                <div className="flex flex-wrap items-center gap-4 text-sm text-[hsl(var(--beta-text-muted))]">
+                  <div className="flex items-center gap-1">
+                    <Crown className="w-4 h-4 text-[hsl(var(--beta-accent))]" />
+                    <span>Owner: </span>
+                    {owner ? (
+                      <Link to={`/beta/profile/${owner.user_id}`} className="text-[hsl(var(--beta-accent))] hover:underline">
+                        {owner.users?.discord_username || 'Unknown'}
+                      </Link>
+                    ) : (
+                      <span>Unknown</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Calendar className="w-4 h-4" />
+                    <span>Created {format(new Date(team.created_at || Date.now()), 'MMM d, yyyy')}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Users className="w-4 h-4" />
+                    <span>{members.length} / {team.max_members || 10} members</span>
+                  </div>
                 </div>
               </div>
             </div>
