@@ -505,25 +505,7 @@ const BetaProfile = () => {
 
                 {/* Badges Row */}
                 <div className="flex flex-wrap items-center gap-2 mb-4">
-                  {profile.current_rank && (
-                    <BetaBadge variant="accent" size="md">
-                      {getRankIcon(profile.current_rank)} {profile.current_rank}
-                    </BetaBadge>
-                  )}
-                  
-                  {profile.peak_rank && profile.peak_rank !== profile.current_rank && (
-                    <BetaBadge variant="default" size="sm">
-                      Peak: {profile.peak_rank}
-                    </BetaBadge>
-                  )}
-                  
-                  {!isPrivate && profile.valorant_role && (
-                    <span className={`px-2 py-1 text-xs font-medium rounded-md border ${getRoleColorClass(profile.valorant_role)}`}>
-                      {profile.valorant_role}
-                    </span>
-                  )}
-                  
-                  {/* FACEIT Level Badge */}
+                  {/* FACEIT Level Badge - First */}
                   {!isPrivate && faceitStats?.cs2_skill_level && (
                     <TooltipProvider>
                       <Tooltip>
@@ -531,7 +513,7 @@ const BetaProfile = () => {
                           <div className="cursor-pointer">
                             <FaceitRankIcon 
                               level={faceitStats.cs2_skill_level} 
-                              size="md" 
+                              size="sm" 
                               showGlow={false}
                             />
                           </div>
@@ -549,6 +531,24 @@ const BetaProfile = () => {
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
+                  )}
+                  
+                  {profile.current_rank && (
+                    <BetaBadge variant="accent" size="md">
+                      {getRankIcon(profile.current_rank)} {profile.current_rank}
+                    </BetaBadge>
+                  )}
+                  
+                  {profile.peak_rank && profile.peak_rank !== profile.current_rank && (
+                    <BetaBadge variant="default" size="sm">
+                      Peak: {profile.peak_rank}
+                    </BetaBadge>
+                  )}
+                  
+                  {!isPrivate && profile.valorant_role && (
+                    <span className={`px-2 py-1 text-xs font-medium rounded-md border ${getRoleColorClass(profile.valorant_role)}`}>
+                      {profile.valorant_role}
+                    </span>
                   )}
                   
                   {profile.looking_for_team && (
