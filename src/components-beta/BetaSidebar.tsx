@@ -82,7 +82,7 @@ const BetaSidebar = () => {
       )}
     >
       {/* Logo */}
-      <div className="h-14 flex items-center justify-between px-4 border-b border-[hsl(var(--beta-border))]">
+      <div className="h-[57px] flex items-center justify-between px-4 border-b border-[hsl(var(--beta-border))]">
         {!collapsed && (
           <span className="text-lg font-bold text-[hsl(var(--beta-accent))]">
             TLR
