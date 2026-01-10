@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getRankIcon, getRankColor, calculateAverageRank } from "@/utils/rankUtils";
 import { useToast } from "@/hooks/use-toast";
 import { TournamentChat } from "@/components-beta/TournamentChat";
+import { Username } from "@/components/Username";
 import { BetaBracketPreview } from "@/components-beta/BetaBracketPreview";
 import { BetaBalanceAnalysis } from "@/components-beta/BetaBalanceAnalysis";
 import { BetaTeamSeedingManager, BetaTeamCheckInManager, BetaBracketRepairTool } from "@/components-beta/admin";
@@ -211,10 +212,22 @@ const BetaWinnerDisplay = ({ tournamentId, tournamentStatus }: { tournamentId: s
       </div>
       <div className="flex flex-col gap-3">
         {winner.members.map(member => (
-          <Link key={member.id} to={`/beta/profile/${member.id}`}>
+          <Link key={member.id} to={`/beta/profile/${member.id}`} className="block">
             <div className="flex items-center justify-between p-3 rounded-lg bg-[hsl(var(--beta-surface-3))] hover:bg-[hsl(var(--beta-surface-4))] transition-colors">
-              <span className="text-[hsl(var(--beta-text-primary))] font-medium">{member.discord_username}</span>
-              <BetaBadge variant="default" size="sm">{member.current_rank}</BetaBadge>
+              <Username 
+                userId={member.id} 
+                username={member.discord_username} 
+                className="text-[hsl(var(--beta-text-primary))] font-medium"
+              />
+              <span 
+                className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium"
+                style={{ 
+                  backgroundColor: `${getRankColor(member.current_rank)}20`,
+                  color: getRankColor(member.current_rank)
+                }}
+              >
+                {getRankIcon(member.current_rank)} {member.current_rank || 'Unranked'}
+              </span>
             </div>
           </Link>
         ))}
@@ -760,9 +773,12 @@ const BetaTournamentDetail = () => {
                           <div key={member.user_id} className="flex items-center gap-1.5 text-xs">
                             <div className="flex items-center gap-1 flex-1 min-w-0">
                               {member.is_captain && <Crown className="w-3 h-3 text-[hsl(var(--beta-accent))] shrink-0" />}
-                              <span className={`truncate ${member.is_captain ? 'text-[hsl(var(--beta-accent))]' : 'text-[hsl(var(--beta-text-secondary))]'}`}>
-                                {member.users?.discord_username}
-                              </span>
+                              <Username 
+                                userId={member.user_id} 
+                                username={member.users?.discord_username || 'Unknown'}
+                                size="xs"
+                                className={`truncate ${member.is_captain ? 'text-[hsl(var(--beta-accent))]' : 'text-[hsl(var(--beta-text-secondary))]'}`}
+                              />
                               <span className="text-[hsl(var(--beta-text-muted))] text-[10px] shrink-0">
                                 W{member.users?.weight_rating || 150}
                               </span>
