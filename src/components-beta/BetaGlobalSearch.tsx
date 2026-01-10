@@ -117,7 +117,7 @@ export const BetaGlobalSearch = ({ alwaysExpanded = false }: BetaGlobalSearchPro
   };
 
   return (
-    <div ref={containerRef} className={alwaysExpanded ? "w-full" : "relative"}>
+    <div ref={containerRef} className={alwaysExpanded ? "w-full relative" : "relative"}>
       {/* Search input */}
       <div className="flex items-center">
         {isOpen || alwaysExpanded ? (
@@ -150,8 +150,8 @@ export const BetaGlobalSearch = ({ alwaysExpanded = false }: BetaGlobalSearchPro
       </div>
 
       {/* Results dropdown */}
-      {isOpen && query.trim() && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-[hsl(var(--beta-surface-2))] border border-[hsl(var(--beta-border))] rounded-[var(--beta-radius-lg)] shadow-xl overflow-hidden z-50 min-w-[300px]">
+      {(isOpen || alwaysExpanded) && query.trim() && (
+        <div className="absolute top-full left-0 mt-2 bg-[hsl(var(--beta-surface-2))] border border-[hsl(var(--beta-border))] rounded-[var(--beta-radius-lg)] shadow-xl overflow-hidden z-50 w-[300px] max-w-[90vw]">
           {results.length === 0 && !loading ? (
             <div className="p-4 text-center text-sm text-[hsl(var(--beta-text-muted))]">
               No results found for "{query}"
