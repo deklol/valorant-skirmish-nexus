@@ -240,12 +240,14 @@ const BetaIndex = () => {
           setRecentWinners(winnersWithTeams);
         }
 
-        // Fetch top players
+        // Fetch top players - sorted by tournament wins, then match wins, then weight rating
         const { data: players } = await supabase
           .from("public_user_profiles")
           .select("id, discord_username, discord_avatar_url, tournaments_won, wins, weight_rating")
           .eq("is_phantom", false)
           .order("tournaments_won", { ascending: false })
+          .order("wins", { ascending: false })
+          .order("weight_rating", { ascending: false })
           .limit(5);
 
         if (players) {
@@ -393,7 +395,7 @@ const BetaIndex = () => {
                           <Username userId={player.id} username={player.discord_username || 'Unknown'} />
                         </p>
                         <p className="text-xs text-[hsl(var(--beta-text-muted))]">
-                          {player.tournaments_won} wins · W{player.weight_rating || 150}
+                          {player.tournaments_won} tourney wins · {player.wins || 0} match wins
                         </p>
                       </div>
                     </div>
@@ -417,9 +419,9 @@ const BetaIndex = () => {
                 <p className="text-sm text-[hsl(var(--beta-text-muted))]">No completed tournaments</p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="flex flex-col gap-3">
                 {recentWinners.map((winner) => (
-                  <Link key={winner.id} to={`/beta/tournament/${winner.id}`}>
+                  <Link key={winner.id} to={`/beta/tournament/${winner.id}`} className="block">
                     <div className="p-3 rounded-[var(--beta-radius-md)] bg-[hsl(var(--beta-surface-3))] hover:bg-[hsl(var(--beta-surface-4))] transition-colors">
                       <div className="flex items-center gap-2 mb-1">
                         <Trophy className="w-4 h-4 text-yellow-400" />
