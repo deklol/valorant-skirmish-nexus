@@ -19,12 +19,13 @@ export interface GeneratedMatch {
   match_number: number;
   team1_id: string | null;
   team2_id: string | null;
-  status: 'pending' | 'in_progress' | 'completed';
+  status: 'pending' | 'live' | 'completed';
   best_of: number;
   score_team1: number;
   score_team2: number;
   bracket_position?: string; // 'winners' | 'losers' | 'grand_final' for double elim
   notes?: string;
+  winner_id?: string | null;
 }
 
 // ============================================================================
