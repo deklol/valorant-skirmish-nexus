@@ -738,8 +738,8 @@ const BetaTournamentDetail = () => {
                   </h3>
                   <ExportTeamsButton teams={teams} tournamentName={tournament.name} />
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-                  {[...teams].sort((a, b) => (b.total_rank_points || 0) - (a.total_rank_points || 0)).slice(0, 6).map((team, index) => (
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+                  {[...teams].sort((a, b) => (b.total_rank_points || 0) - (a.total_rank_points || 0)).slice(0, 8).map((team, index) => (
                     <div 
                       key={team.id} 
                       className="p-3 rounded-lg bg-[hsl(var(--beta-surface-3))] border border-[hsl(var(--beta-border)/0.5)] beta-animate-fade-in"
@@ -755,15 +755,26 @@ const BetaTournamentDetail = () => {
                         <span className="text-[hsl(var(--beta-text-muted))]">•</span>
                         <span className="text-[hsl(var(--beta-text-muted))]">{team.team_members?.length || 0} players</span>
                       </div>
-                      <div className="space-y-0.5">
+                      <div className="space-y-1">
                         {team.team_members?.slice(0, 5).map((member: any) => (
-                          <div key={member.user_id} className="flex items-center justify-between text-xs">
-                            <span className={`truncate flex-1 ${member.is_captain ? 'text-[hsl(var(--beta-accent))]' : 'text-[hsl(var(--beta-text-secondary))]'}`}>
-                              {member.is_captain && <Crown className="w-3 h-3 inline mr-1" />}
-                              {member.users?.discord_username}
-                            </span>
-                            <span className="text-[hsl(var(--beta-text-muted))] text-[10px] ml-2" style={{ color: getRankColor(member.users?.current_rank) }}>
-                              {member.users?.current_rank || 'Unranked'}
+                          <div key={member.user_id} className="flex items-center gap-1.5 text-xs">
+                            <div className="flex items-center gap-1 flex-1 min-w-0">
+                              {member.is_captain && <Crown className="w-3 h-3 text-[hsl(var(--beta-accent))] shrink-0" />}
+                              <span className={`truncate ${member.is_captain ? 'text-[hsl(var(--beta-accent))]' : 'text-[hsl(var(--beta-text-secondary))]'}`}>
+                                {member.users?.discord_username}
+                              </span>
+                              <span className="text-[hsl(var(--beta-text-muted))] text-[10px] shrink-0">
+                                W{member.users?.weight_rating || 150}
+                              </span>
+                            </div>
+                            <span 
+                              className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium"
+                              style={{ 
+                                backgroundColor: `${getRankColor(member.users?.current_rank)}20`,
+                                color: getRankColor(member.users?.current_rank)
+                              }}
+                            >
+                              {getRankIcon(member.users?.current_rank)} {member.users?.current_rank || 'Unranked'}
                             </span>
                           </div>
                         ))}
@@ -771,7 +782,7 @@ const BetaTournamentDetail = () => {
                     </div>
                   ))}
                 </div>
-                {teams.length > 6 && (
+                {teams.length > 8 && (
                   <div className="mt-4 text-center">
                     <button 
                       onClick={() => setActiveTab('participants')}
