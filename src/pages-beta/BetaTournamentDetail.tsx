@@ -755,7 +755,7 @@ const BetaTournamentDetail = () => {
                         <span className="text-[hsl(var(--beta-text-muted))]">•</span>
                         <span className="text-[hsl(var(--beta-text-muted))]">{team.team_members?.length || 0} players</span>
                       </div>
-                      <div className="space-y-1">
+                      <div className="flex flex-col gap-2">
                         {team.team_members?.slice(0, 5).map((member: any) => (
                           <div key={member.user_id} className="flex items-center gap-1.5 text-xs">
                             <div className="flex items-center gap-1 flex-1 min-w-0">
