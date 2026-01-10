@@ -17,6 +17,7 @@ interface DisplayTournament {
   registration_type: "solo" | "team";
   currentSignups: number;
   prize_pool: string | null;
+  banner_image_url: string | null;
 }
 
 const BetaTournaments = () => {
@@ -70,6 +71,7 @@ const BetaTournaments = () => {
             registration_type: tournament.registration_type as "solo" | "team",
             currentSignups: signupCount,
             prize_pool: tournament.prize_pool,
+            banner_image_url: tournament.banner_image_url,
           };
         })
       );
@@ -208,19 +210,44 @@ const BetaTournaments = () => {
               className="beta-animate-fade-in"
               style={{ animationDelay: `${index * 50}ms` }}
             >
-              <GlassCard hover className="p-5 h-full group">
-                {/* Header with title and status */}
-                <div className="flex items-start justify-between gap-3 mb-4">
-                  <h3 className="text-lg font-semibold text-[hsl(var(--beta-text-primary))] group-hover:text-[hsl(var(--beta-accent))] transition-colors line-clamp-2 flex-1">
+              <GlassCard hover className="p-0 h-full group overflow-hidden">
+                {/* Banner Image */}
+                {tournament.banner_image_url ? (
+                  <div className="relative h-36 overflow-hidden">
+                    <img 
+                      src={tournament.banner_image_url} 
+                      alt={tournament.name}
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[hsl(var(--beta-surface-1))] via-transparent to-transparent" />
+                    <div className="absolute top-3 right-3">
+                      <BetaBadge variant={getStatusVariant(tournament.status)} size="sm">
+                        {formatStatus(tournament.status)}
+                      </BetaBadge>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="relative h-24 bg-gradient-to-br from-[hsl(var(--beta-accent)/0.2)] via-[hsl(var(--beta-surface-3))] to-[hsl(var(--beta-secondary)/0.2)] overflow-hidden">
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Trophy className="w-10 h-10 text-[hsl(var(--beta-text-muted)/0.3)]" />
+                    </div>
+                    <div className="absolute top-3 right-3">
+                      <BetaBadge variant={getStatusVariant(tournament.status)} size="sm">
+                        {formatStatus(tournament.status)}
+                      </BetaBadge>
+                    </div>
+                  </div>
+                )}
+
+                {/* Card Content */}
+                <div className="p-5">
+                  {/* Title */}
+                  <h3 className="text-lg font-semibold text-[hsl(var(--beta-text-primary))] group-hover:text-[hsl(var(--beta-accent))] transition-colors line-clamp-2 mb-3">
                     {tournament.name}
                   </h3>
-                  <BetaBadge variant={getStatusVariant(tournament.status)} size="sm">
-                    {formatStatus(tournament.status)}
-                  </BetaBadge>
-                </div>
 
-                {/* Registration type badge */}
-                <div className="mb-4">
+                  {/* Registration type badge */}
+                  <div className="mb-4">
                   <span 
                     className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium"
                     style={{
@@ -290,14 +317,15 @@ const BetaTournaments = () => {
                   </div>
                 </div>
 
-                {tournament.prize_pool && (
-                  <div className="flex items-center gap-2 pt-3 border-t border-[hsl(var(--beta-border))]">
-                    <Trophy className="w-4 h-4 text-[hsl(var(--beta-accent))]" />
-                    <span className="text-sm text-[hsl(var(--beta-accent))] font-semibold">
-                      {tournament.prize_pool}
-                    </span>
-                  </div>
-                )}
+                  {tournament.prize_pool && (
+                    <div className="flex items-center gap-2 pt-3 border-t border-[hsl(var(--beta-border))]">
+                      <Trophy className="w-4 h-4 text-[hsl(var(--beta-accent))]" />
+                      <span className="text-sm text-[hsl(var(--beta-accent))] font-semibold">
+                        {tournament.prize_pool}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </GlassCard>
             </Link>
           ))}
