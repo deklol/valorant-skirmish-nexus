@@ -251,6 +251,141 @@ export type Database = {
         }
         Relationships: []
       }
+      faceit_stats: {
+        Row: {
+          created_at: string | null
+          cs2_elo: number | null
+          cs2_game_player_id: string | null
+          cs2_game_player_name: string | null
+          cs2_region: string | null
+          cs2_skill_level: number | null
+          faceit_activated_at: string | null
+          faceit_avatar: string | null
+          faceit_country: string | null
+          faceit_nickname: string | null
+          faceit_player_id: string | null
+          faceit_teams: Json | null
+          faceit_verified: boolean | null
+          id: string
+          last_fetched_at: string | null
+          last30_adr: number | null
+          last30_assists: number | null
+          last30_deaths: number | null
+          last30_headshot_pct: number | null
+          last30_kd_ratio: number | null
+          last30_kills: number | null
+          last30_losses: number | null
+          last30_wins: number | null
+          lifetime_adr: number | null
+          lifetime_avg_headshots_pct: number | null
+          lifetime_avg_kd: number | null
+          lifetime_longest_win_streak: number | null
+          lifetime_matches: number | null
+          lifetime_win_rate: number | null
+          lifetime_wins: number | null
+          steam_game_banned: boolean | null
+          steam_playtime_hours: number | null
+          steam_profile_created_at: string | null
+          steam_url: string
+          steam_vac_banned: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          cs2_elo?: number | null
+          cs2_game_player_id?: string | null
+          cs2_game_player_name?: string | null
+          cs2_region?: string | null
+          cs2_skill_level?: number | null
+          faceit_activated_at?: string | null
+          faceit_avatar?: string | null
+          faceit_country?: string | null
+          faceit_nickname?: string | null
+          faceit_player_id?: string | null
+          faceit_teams?: Json | null
+          faceit_verified?: boolean | null
+          id?: string
+          last_fetched_at?: string | null
+          last30_adr?: number | null
+          last30_assists?: number | null
+          last30_deaths?: number | null
+          last30_headshot_pct?: number | null
+          last30_kd_ratio?: number | null
+          last30_kills?: number | null
+          last30_losses?: number | null
+          last30_wins?: number | null
+          lifetime_adr?: number | null
+          lifetime_avg_headshots_pct?: number | null
+          lifetime_avg_kd?: number | null
+          lifetime_longest_win_streak?: number | null
+          lifetime_matches?: number | null
+          lifetime_win_rate?: number | null
+          lifetime_wins?: number | null
+          steam_game_banned?: boolean | null
+          steam_playtime_hours?: number | null
+          steam_profile_created_at?: string | null
+          steam_url: string
+          steam_vac_banned?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          cs2_elo?: number | null
+          cs2_game_player_id?: string | null
+          cs2_game_player_name?: string | null
+          cs2_region?: string | null
+          cs2_skill_level?: number | null
+          faceit_activated_at?: string | null
+          faceit_avatar?: string | null
+          faceit_country?: string | null
+          faceit_nickname?: string | null
+          faceit_player_id?: string | null
+          faceit_teams?: Json | null
+          faceit_verified?: boolean | null
+          id?: string
+          last_fetched_at?: string | null
+          last30_adr?: number | null
+          last30_assists?: number | null
+          last30_deaths?: number | null
+          last30_headshot_pct?: number | null
+          last30_kd_ratio?: number | null
+          last30_kills?: number | null
+          last30_losses?: number | null
+          last30_wins?: number | null
+          lifetime_adr?: number | null
+          lifetime_avg_headshots_pct?: number | null
+          lifetime_avg_kd?: number | null
+          lifetime_longest_win_streak?: number | null
+          lifetime_matches?: number | null
+          lifetime_win_rate?: number | null
+          lifetime_wins?: number | null
+          steam_game_banned?: boolean | null
+          steam_playtime_hours?: number | null
+          steam_profile_created_at?: string | null
+          steam_url?: string
+          steam_vac_banned?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "faceit_stats_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "faceit_stats_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fulfillment_orders: {
         Row: {
           completed_at: string | null
@@ -2618,6 +2753,7 @@ export type Database = {
           role: Database["public"]["Enums"]["user_role"] | null
           spendable_points: number
           status_message: string | null
+          steam_url: string | null
           tournaments_played: number | null
           tournaments_won: number | null
           twitch_handle: string | null
@@ -2659,6 +2795,7 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role"] | null
           spendable_points?: number
           status_message?: string | null
+          steam_url?: string | null
           tournaments_played?: number | null
           tournaments_won?: number | null
           twitch_handle?: string | null
@@ -2700,6 +2837,7 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role"] | null
           spendable_points?: number
           status_message?: string | null
+          steam_url?: string | null
           tournaments_played?: number | null
           tournaments_won?: number | null
           twitch_handle?: string | null
