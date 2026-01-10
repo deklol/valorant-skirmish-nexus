@@ -8,7 +8,7 @@ import { BetaNotificationCenter } from "./BetaNotificationCenter";
 
 const BetaHeader = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { user, signOut, isAdmin } = useAuth();
+  const { user, profile, signOut, isAdmin } = useAuth();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -56,10 +56,20 @@ const BetaHeader = () => {
                 to="/beta/profile"
                 className="flex items-center gap-2 px-3 py-1.5 rounded-[var(--beta-radius-lg)] text-sm font-medium text-[hsl(var(--beta-text-secondary))] hover:text-[hsl(var(--beta-text-primary))] hover:bg-[hsl(var(--beta-surface-3))] transition-colors"
               >
-                <div className="h-7 w-7 rounded-full bg-[hsl(var(--beta-surface-4))] flex items-center justify-center">
-                  <User className="h-4 w-4" />
-                </div>
-                <span className="hidden sm:inline">Profile</span>
+                {profile?.discord_avatar_url ? (
+                  <img 
+                    src={profile.discord_avatar_url} 
+                    alt="Avatar" 
+                    className="h-7 w-7 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="h-7 w-7 rounded-full bg-[hsl(var(--beta-surface-4))] flex items-center justify-center">
+                    <User className="h-4 w-4" />
+                  </div>
+                )}
+                <span className="hidden sm:inline">
+                  {profile?.discord_username || 'Profile'}
+                </span>
               </Link>
               <button
                 onClick={handleSignOut}
