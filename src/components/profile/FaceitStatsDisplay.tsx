@@ -1,6 +1,6 @@
 /**
  * FACEIT CS2 Stats Display Component
- * Shows FACEIT stats on user profiles
+ * Shows FACEIT stats on user profiles with authentic rank icons
  */
 
 import { useQuery } from "@tanstack/react-query";
@@ -8,31 +8,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { GlassCard, BetaBadge } from "@/components-beta/ui-beta";
 import { 
   Gamepad2, Trophy, Target, TrendingUp, Skull, 
-  Clock, Shield, Award, Users, ExternalLink
+  Clock, Shield, ExternalLink
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { FaceitRankIcon, FaceitRankBadge, getRankConfig, getEloRange } from "./FaceitRankIcon";
 
 interface FaceitStatsDisplayProps {
   userId: string;
   showCompact?: boolean;
 }
-
-// FACEIT skill level colors
-const getSkillLevelColor = (level: number): string => {
-  const colors: Record<number, string> = {
-    1: '#EE4B2B',
-    2: '#EE4B2B', 
-    3: '#FF8C00',
-    4: '#FFD700',
-    5: '#FFD700',
-    6: '#32CD32',
-    7: '#32CD32',
-    8: '#00CED1',
-    9: '#8A2BE2',
-    10: '#FF1493',
-  };
-  return colors[level] || '#888';
-};
 
 const FaceitStatsDisplay = ({ userId, showCompact = false }: FaceitStatsDisplayProps) => {
   const { data: stats, isLoading } = useQuery({
@@ -65,7 +49,7 @@ const FaceitStatsDisplay = ({ userId, showCompact = false }: FaceitStatsDisplayP
     return null; // Don't show anything if no FACEIT stats
   }
 
-  const skillLevelColor = getSkillLevelColor(stats.cs2_skill_level || 1);
+  const rankConfig = getRankConfig(stats.cs2_skill_level || 1);
   const last30WinRate = stats.last30_wins && stats.last30_losses 
     ? Math.round((stats.last30_wins / (stats.last30_wins + stats.last30_losses)) * 100)
     : null;
@@ -73,18 +57,17 @@ const FaceitStatsDisplay = ({ userId, showCompact = false }: FaceitStatsDisplayP
   if (showCompact) {
     return (
       <div className="flex items-center gap-3 p-3 rounded-xl bg-[hsl(var(--beta-surface-3))] border border-[hsl(var(--beta-border))]">
-        <div 
-          className="w-10 h-10 rounded-lg flex items-center justify-center font-bold text-lg text-white"
-          style={{ backgroundColor: skillLevelColor }}
-        >
-          {stats.cs2_skill_level || '?'}
-        </div>
+        <FaceitRankIcon 
+          level={stats.cs2_skill_level || 1} 
+          size="lg" 
+          showGlow={true}
+        />
         <div>
           <p className="text-sm font-medium text-[hsl(var(--beta-text-primary))]">
             FACEIT Level {stats.cs2_skill_level}
           </p>
           <p className="text-xs text-[hsl(var(--beta-text-muted))]">
-            {stats.cs2_elo} ELO • {stats.faceit_nickname}
+            <span style={{ color: rankConfig.primaryColor }}>{stats.cs2_elo} ELO</span> • {stats.faceit_nickname}
           </p>
         </div>
       </div>
@@ -140,23 +123,29 @@ const FaceitStatsDisplay = ({ userId, showCompact = false }: FaceitStatsDisplayP
           </p>
         </div>
         
-        {/* Skill Level Badge */}
+        {/* Skill Level Badge with authentic FACEIT icon */}
         <div className="text-center">
-          <div 
-            className="w-16 h-16 rounded-xl flex items-center justify-center font-bold text-2xl text-white shadow-lg"
-            style={{ backgroundColor: skillLevelColor }}
-          >
-            {stats.cs2_skill_level || '?'}
-          </div>
-          <p className="text-xs text-[hsl(var(--beta-text-muted))] mt-1">Level</p>
+          <FaceitRankIcon 
+            level={stats.cs2_skill_level || 1} 
+            size="xl" 
+            showGlow={true}
+          />
+          <p className="text-xs text-[hsl(var(--beta-text-muted))] mt-1">
+            Level {stats.cs2_skill_level}
+          </p>
         </div>
         
-        {/* ELO */}
+        {/* ELO with color */}
         <div className="text-center">
-          <p className="text-2xl font-bold text-[hsl(var(--beta-text-primary))]">
+          <p 
+            className="text-2xl font-bold"
+            style={{ color: rankConfig.primaryColor }}
+          >
             {stats.cs2_elo?.toLocaleString()}
           </p>
-          <p className="text-xs text-[hsl(var(--beta-text-muted))]">ELO</p>
+          <p className="text-xs text-[hsl(var(--beta-text-muted))]">
+            ELO ({getEloRange(stats.cs2_skill_level || 1)})
+          </p>
         </div>
       </div>
 
