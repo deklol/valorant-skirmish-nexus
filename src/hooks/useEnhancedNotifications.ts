@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -185,7 +184,7 @@ export const useEnhancedNotifications = () => {
 
         await createNotification(
           participant.user_id,
-          'tournament_complete',
+          'tournament_winner',
           isWinner ? 'Tournament Victory!' : 'Tournament Complete',
           isWinner 
             ? `Congratulations! You won ${tournamentName}!`
@@ -251,7 +250,6 @@ export const useEnhancedNotifications = () => {
     }
   };
 
-  // Additional notification triggers for missing events
   const notifyTournamentStart = async (tournamentId: string) => {
     try {
       const { data: signups } = await supabase
@@ -336,6 +334,99 @@ export const useEnhancedNotifications = () => {
     }
   };
 
+  // NEW: Score confirmation needed notification
+  const notifyScoreConfirmationNeeded = async (
+    matchId: string, 
+    teamId: string, 
+    opponentTeamName: string,
+    tournamentId?: string
+  ) => {
+    try {
+      // Get team captain
+      const { data: members } = await supabase
+        .from('team_members')
+        .select('user_id, is_captain')
+        .eq('team_id', teamId)
+        .eq('is_captain', true);
+
+      if (members && members.length > 0) {
+        for (const member of members) {
+          await createNotification(
+            member.user_id,
+            'score_confirmation_needed',
+            'Score Confirmation Required',
+            `${opponentTeamName} has submitted the match score. Please confirm or dispute.`,
+            { matchId, teamId, opponentTeamName },
+            tournamentId,
+            matchId,
+            teamId
+          );
+        }
+      }
+    } catch (error) {
+      console.error('Error notifying score confirmation needed:', error);
+    }
+  };
+
+  // NEW: Tournament victory notification (enhanced version)
+  const notifyTournamentVictory = async (
+    tournamentId: string, 
+    winningTeamId: string,
+    tournamentName: string
+  ) => {
+    try {
+      const { data: members } = await supabase
+        .from('team_members')
+        .select('user_id')
+        .eq('team_id', winningTeamId);
+
+      if (members) {
+        for (const member of members) {
+          await createNotification(
+            member.user_id,
+            'tournament_winner',
+            'Tournament Victory! 🏆',
+            `Congratulations! Your team won ${tournamentName}!`,
+            { tournamentId, winningTeamId, tournamentName },
+            tournamentId,
+            undefined,
+            winningTeamId
+          );
+        }
+      }
+    } catch (error) {
+      console.error('Error notifying tournament victory:', error);
+    }
+  };
+
+  // NEW: Match live notification
+  const notifyMatchLive = async (matchId: string, team1Id: string, team2Id: string, tournamentId?: string) => {
+    try {
+      const { data: allMembers } = await supabase
+        .from('team_members')
+        .select('user_id, team_id, team:teams!inner(name)')
+        .in('team_id', [team1Id, team2Id]);
+
+      const team1Name = allMembers?.find(m => m.team_id === team1Id)?.team?.name || 'Team 1';
+      const team2Name = allMembers?.find(m => m.team_id === team2Id)?.team?.name || 'Team 2';
+
+      for (const member of allMembers || []) {
+        await createNotification(
+          member.user_id,
+          'match_started',
+          'Match is Live!',
+          `Your match is now live: ${team1Name} vs ${team2Name}. Submit your score when finished!`,
+          { matchId, team1Id, team2Id },
+          tournamentId,
+          matchId,
+          member.team_id
+        );
+      }
+    } catch (error) {
+      console.error('Error notifying match live:', error);
+    }
+  };
+
   return {
     createNotification,
     sendNotification,
@@ -347,6 +438,10 @@ export const useEnhancedNotifications = () => {
     notifyTournamentCreated,
     notifyTournamentStart,
     notifyMatchStart,
-    notifyCheckInReminder
+    notifyCheckInReminder,
+    // New notification types
+    notifyScoreConfirmationNeeded,
+    notifyTournamentVictory,
+    notifyMatchLive,
   };
 };

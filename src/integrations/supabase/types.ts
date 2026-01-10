@@ -2405,13 +2405,19 @@ export type Database = {
           email_frequency: string | null
           id: string
           match_assigned: boolean | null
+          match_complete: boolean | null
           match_ready: boolean | null
+          match_started: boolean | null
           new_tournament_posted: boolean | null
           post_results: boolean | null
           push_enabled: boolean | null
+          score_confirmation_needed: boolean | null
           team_assigned: boolean | null
+          team_invite_received: boolean | null
           tournament_checkin_time: boolean | null
+          tournament_reminder: boolean | null
           tournament_signups_open: boolean | null
+          tournament_winner: boolean | null
           updated_at: string | null
           user_id: string | null
         }
@@ -2421,13 +2427,19 @@ export type Database = {
           email_frequency?: string | null
           id?: string
           match_assigned?: boolean | null
+          match_complete?: boolean | null
           match_ready?: boolean | null
+          match_started?: boolean | null
           new_tournament_posted?: boolean | null
           post_results?: boolean | null
           push_enabled?: boolean | null
+          score_confirmation_needed?: boolean | null
           team_assigned?: boolean | null
+          team_invite_received?: boolean | null
           tournament_checkin_time?: boolean | null
+          tournament_reminder?: boolean | null
           tournament_signups_open?: boolean | null
+          tournament_winner?: boolean | null
           updated_at?: string | null
           user_id?: string | null
         }
@@ -2437,13 +2449,19 @@ export type Database = {
           email_frequency?: string | null
           id?: string
           match_assigned?: boolean | null
+          match_complete?: boolean | null
           match_ready?: boolean | null
+          match_started?: boolean | null
           new_tournament_posted?: boolean | null
           post_results?: boolean | null
           push_enabled?: boolean | null
+          score_confirmation_needed?: boolean | null
           team_assigned?: boolean | null
+          team_invite_received?: boolean | null
           tournament_checkin_time?: boolean | null
+          tournament_reminder?: boolean | null
           tournament_signups_open?: boolean | null
+          tournament_winner?: boolean | null
           updated_at?: string | null
           user_id?: string | null
         }
