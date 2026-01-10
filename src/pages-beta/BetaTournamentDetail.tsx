@@ -1,4 +1,4 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useTournamentData } from "@/hooks/useTournamentData";
 import { useTournamentPageViews } from "@/hooks/useTournamentPageViews";
@@ -7,7 +7,7 @@ import {
   Trophy, Users, Calendar, Clock, ArrowLeft, Shield, Swords, 
   CheckCircle, User, Eye, Map, Crown, Play, ExternalLink,
   ScrollText, Settings, UserCheck, Info, Scale, Download, Copy, BarChart3,
-  ListOrdered, UserCheck2, Wrench, GitBranch
+  ListOrdered, UserCheck2, Wrench, GitBranch, Loader2, UserPlus, ChevronRight
 } from "lucide-react";
 import { format } from "date-fns";
 import { useState, useEffect } from "react";
@@ -92,38 +92,303 @@ const SoloRegistrationSection = ({
   );
 };
 
-// Team Tournament Registration Section - Streamlined
+// Team Tournament Registration Section - Redesigned
 const TeamRegistrationSection = ({ 
   tournamentId, currentTeamCount, maxTeams, onRefresh 
 }: { 
   tournamentId: string; currentTeamCount: number; maxTeams: number; onRefresh: () => void;
 }) => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const [registeredTeams, setRegisteredTeams] = useState<Array<{
+    id: string;
+    team_id: string;
+    team_name: string;
+    registered_at: string;
+  }>>([]);
+  const [userTeamStatus, setUserTeamStatus] = useState<{
+    hasTeam: boolean;
+    teamId: string | null;
+    teamName: string | null;
+    isCaptainOrOwner: boolean;
+    isRegistered: boolean;
+    memberCount: number;
+  }>({ hasTeam: false, teamId: null, teamName: null, isCaptainOrOwner: false, isRegistered: false, memberCount: 0 });
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Fetch registered teams - always runs (for everyone)
+  useEffect(() => {
+    const fetchRegisteredTeams = async () => {
+      const { data, error } = await supabase
+        .from('team_tournament_registrations')
+        .select(`
+          id,
+          team_id,
+          registered_at,
+          persistent_teams!inner (
+            id,
+            name
+          )
+        `)
+        .eq('tournament_id', tournamentId)
+        .eq('status', 'registered')
+        .order('registered_at', { ascending: true });
+
+      if (!error && data) {
+        setRegisteredTeams(data.map(reg => ({
+          id: reg.id,
+          team_id: reg.team_id,
+          team_name: (reg.persistent_teams as any)?.name || 'Unknown Team',
+          registered_at: reg.registered_at || ''
+        })));
+      }
+    };
+    fetchRegisteredTeams();
+  }, [tournamentId, currentTeamCount]);
+
+  // Fetch user's team status - only for logged in users
+  useEffect(() => {
+    const fetchUserTeamStatus = async () => {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+      
+      try {
+        const { data: membership } = await supabase
+          .from('persistent_team_members')
+          .select(`
+            team_id,
+            role,
+            is_captain,
+            persistent_teams!inner (id, name, captain_id, owner_id, is_active)
+          `)
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (!membership || !membership.persistent_teams) {
+          setUserTeamStatus({ hasTeam: false, teamId: null, teamName: null, isCaptainOrOwner: false, isRegistered: false, memberCount: 0 });
+          setLoading(false);
+          return;
+        }
+
+        const team = membership.persistent_teams as any;
+        if (!team.is_active) {
+          setUserTeamStatus({ hasTeam: false, teamId: null, teamName: null, isCaptainOrOwner: false, isRegistered: false, memberCount: 0 });
+          setLoading(false);
+          return;
+        }
+
+        const { count: memberCount } = await supabase
+          .from('persistent_team_members')
+          .select('id', { count: 'exact', head: true })
+          .eq('team_id', team.id);
+
+        const isCaptainOrOwner = team.captain_id === user.id || team.owner_id === user.id || membership.role === 'owner' || membership.is_captain === true;
+
+        const { data: registration } = await supabase
+          .from('team_tournament_registrations')
+          .select('id')
+          .eq('tournament_id', tournamentId)
+          .eq('team_id', team.id)
+          .maybeSingle();
+
+        setUserTeamStatus({
+          hasTeam: true,
+          teamId: team.id,
+          teamName: team.name,
+          isCaptainOrOwner,
+          isRegistered: !!registration,
+          memberCount: memberCount || 0
+        });
+      } catch (error) {
+        console.error('Error fetching user team status:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUserTeamStatus();
+  }, [user, tournamentId, currentTeamCount]);
+
+  const handleRegister = async () => {
+    if (!user || !userTeamStatus.teamId) return;
+    setSubmitting(true);
+    try {
+      const { error } = await supabase.from('team_tournament_registrations').insert({
+        tournament_id: tournamentId,
+        team_id: userTeamStatus.teamId,
+        status: 'registered',
+        check_in_status: 'pending',
+      });
+      if (error) throw error;
+      toast({ title: "Registered!", description: `${userTeamStatus.teamName} is now signed up` });
+      setUserTeamStatus(prev => ({ ...prev, isRegistered: true }));
+      onRefresh();
+    } catch (error: any) {
+      toast({ title: "Failed", description: error.message, variant: "destructive" });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleUnregister = async () => {
+    if (!user || !userTeamStatus.teamId) return;
+    setSubmitting(true);
+    try {
+      const { error } = await supabase.from('team_tournament_registrations')
+        .delete()
+        .eq('tournament_id', tournamentId)
+        .eq('team_id', userTeamStatus.teamId);
+      if (error) throw error;
+      toast({ title: "Unregistered", description: "Your team has been removed" });
+      setUserTeamStatus(prev => ({ ...prev, isRegistered: false }));
+      onRefresh();
+    } catch (error: any) {
+      toast({ title: "Failed", description: error.message, variant: "destructive" });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const isFull = currentTeamCount >= maxTeams;
+
   return (
     <GlassCard className="p-6">
-      {/* Progress bar at top */}
-      <div className="mb-4">
-        <div className="flex justify-between text-xs text-[hsl(var(--beta-text-muted))] mb-1">
-          <span>{currentTeamCount} teams registered</span>
-          <span>{maxTeams} max</span>
+      {/* Header with progress */}
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h3 className="text-lg font-semibold text-[hsl(var(--beta-text-primary))] flex items-center gap-2">
+            <Shield className="w-5 h-5 text-[hsl(var(--beta-accent))]" />
+            Team Registration
+          </h3>
+          <p className="text-sm text-[hsl(var(--beta-text-muted))] mt-1">
+            {maxTeams - currentTeamCount} of {maxTeams} slots available
+          </p>
         </div>
-        <div className="w-full h-2 bg-[hsl(var(--beta-surface-4))] rounded-full overflow-hidden">
-          <div className="h-full bg-gradient-to-r from-[hsl(var(--beta-accent))] to-[hsl(var(--beta-secondary))] transition-all duration-500"
-            style={{ width: `${Math.min((currentTeamCount / maxTeams) * 100, 100)}%` }} />
+        <div className="text-right">
+          <span className="text-2xl font-bold text-[hsl(var(--beta-text-primary))]">{currentTeamCount}</span>
+          <span className="text-lg text-[hsl(var(--beta-text-muted))]">/{maxTeams}</span>
         </div>
-        <p className="text-sm text-[hsl(var(--beta-text-muted))] mt-2">
-          {maxTeams - currentTeamCount} team slots remaining
-        </p>
       </div>
-      
-      {/* Full-width registration component */}
-      <div className="w-full">
-        <BetaTeamTournamentRegistration
-          tournamentId={tournamentId}
-          maxTeams={maxTeams}
-          currentTeamCount={currentTeamCount}
-          registrationOpen={true}
-          onRegistrationChange={onRefresh}
+
+      {/* Progress bar */}
+      <div className="w-full h-2 bg-[hsl(var(--beta-surface-4))] rounded-full overflow-hidden mb-6">
+        <div 
+          className="h-full bg-gradient-to-r from-[hsl(var(--beta-accent))] to-[hsl(var(--beta-secondary))] transition-all duration-500"
+          style={{ width: `${Math.min((currentTeamCount / maxTeams) * 100, 100)}%` }} 
         />
+      </div>
+
+      {/* Your Team Registration Card */}
+      <div className="p-4 rounded-xl bg-[hsl(var(--beta-surface-3))] border border-[hsl(var(--beta-border))] mb-6">
+        <h4 className="text-sm font-medium text-[hsl(var(--beta-text-muted))] mb-3">Your Team</h4>
+        
+        {loading ? (
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="h-5 w-5 animate-spin text-[hsl(var(--beta-text-muted))]" />
+          </div>
+        ) : !user ? (
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-[hsl(var(--beta-text-muted))]">Sign in to register your team</p>
+            <BetaButton size="sm" onClick={() => navigate('/login')}>Sign In</BetaButton>
+          </div>
+        ) : !userTeamStatus.hasTeam ? (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-[hsl(var(--beta-surface-4))] flex items-center justify-center">
+                <Users className="w-5 h-5 text-[hsl(var(--beta-text-muted))]" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-[hsl(var(--beta-text-primary))]">No Team</p>
+                <p className="text-xs text-[hsl(var(--beta-text-muted))]">Create or join a team first</p>
+              </div>
+            </div>
+            <BetaButton size="sm" variant="secondary" onClick={() => navigate('/beta/my-team')}>
+              <UserPlus className="w-4 h-4 mr-1.5" />
+              Manage Team
+            </BetaButton>
+          </div>
+        ) : userTeamStatus.isRegistered ? (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-[hsl(var(--beta-success)/0.2)] flex items-center justify-center">
+                <CheckCircle className="w-5 h-5 text-[hsl(var(--beta-success))]" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-[hsl(var(--beta-text-primary))]">{userTeamStatus.teamName}</p>
+                <p className="text-xs text-[hsl(var(--beta-success))]">✓ Registered for this tournament</p>
+              </div>
+            </div>
+            {userTeamStatus.isCaptainOrOwner && (
+              <BetaButton 
+                size="sm" 
+                variant="ghost" 
+                className="text-[hsl(var(--beta-error))] hover:bg-[hsl(var(--beta-error)/0.1)]"
+                onClick={handleUnregister}
+                disabled={submitting}
+              >
+                {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Withdraw'}
+              </BetaButton>
+            )}
+          </div>
+        ) : (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-[hsl(var(--beta-surface-4))] flex items-center justify-center">
+                <Shield className="w-5 h-5 text-[hsl(var(--beta-accent))]" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-[hsl(var(--beta-text-primary))]">{userTeamStatus.teamName}</p>
+                <p className="text-xs text-[hsl(var(--beta-text-muted))]">{userTeamStatus.memberCount} members</p>
+              </div>
+            </div>
+            {userTeamStatus.isCaptainOrOwner ? (
+              isFull ? (
+                <span className="text-xs text-[hsl(var(--beta-error))] font-medium">Registration Full</span>
+              ) : (
+                <BetaButton size="sm" onClick={handleRegister} disabled={submitting}>
+                  {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Register Team'}
+                </BetaButton>
+              )
+            ) : (
+              <span className="text-xs text-[hsl(var(--beta-text-muted))]">Only captains can register</span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Registered Teams List */}
+      <div>
+        <h4 className="text-sm font-medium text-[hsl(var(--beta-text-muted))] mb-3">
+          Registered Teams ({registeredTeams.length})
+        </h4>
+        {registeredTeams.length === 0 ? (
+          <p className="text-sm text-[hsl(var(--beta-text-muted))] text-center py-4">
+            No teams registered yet. Be the first!
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {registeredTeams.map((team, index) => (
+              <Link
+                key={team.id}
+                to={`/beta/team/${team.team_id}`}
+                className="flex items-center gap-3 p-3 rounded-lg bg-[hsl(var(--beta-surface-2))] hover:bg-[hsl(var(--beta-surface-3))] transition-colors group"
+              >
+                <div className="w-8 h-8 rounded-lg bg-[hsl(var(--beta-accent)/0.2)] flex items-center justify-center text-sm font-bold text-[hsl(var(--beta-accent))]">
+                  {index + 1}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-[hsl(var(--beta-text-primary))] group-hover:text-[hsl(var(--beta-accent))] transition-colors truncate">
+                    {team.team_name}
+                  </p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-[hsl(var(--beta-text-muted))] opacity-0 group-hover:opacity-100 transition-opacity" />
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </GlassCard>
   );
