@@ -18,7 +18,7 @@ import { VODManager } from "@/components/admin/VODManager";
 import TournamentMedicManager from "@/components/TournamentMedicManager";
 import VetoMedicManager from "@/components/VetoMedicManager";
 import BracketMedicManager from "@/components/BracketMedicManager";
-import { BetaBracketRepairTool } from "@/components-beta/admin";
+import { BetaBracketRepairTool, AdminAlertCenter } from "@/components-beta/admin";
 import MatchMedicManager from "@/components/MatchMedicManager";
 import AchievementMedicManager from "@/components/AchievementMedicManager";
 import { ShopMedicManager } from "@/components/admin/ShopMedicManager";
@@ -257,6 +257,9 @@ const OverviewTab = ({ onCreateTournament, onNavigateTab }: { onCreateTournament
   
   return (
     <div className="space-y-6">
+      {/* Admin Alert Center - Top Priority */}
+      <AdminAlertCenter />
+
       {/* Quick Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <QuickStatCard 
