@@ -3001,6 +3001,14 @@ export type Database = {
         Args: { p_force?: boolean; p_tournament_id: string }
         Returns: Json
       }
+      generate_swiss_next_round: {
+        Args: {
+          p_best_of?: number
+          p_current_round: number
+          p_tournament_id: string
+        }
+        Returns: Json
+      }
       generate_team_invite_code: { Args: never; Returns: string }
       get_achievement_leaders: {
         Args: never
