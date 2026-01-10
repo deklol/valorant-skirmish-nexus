@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { BetaBadge } from "./ui-beta";
-import { format, formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
 
 interface Notification {
   id: string;
@@ -89,10 +89,12 @@ export const BetaNotificationCenter = () => {
 
   const markAsRead = async (notificationId: string) => {
     try {
-      await supabase
+      const { error } = await supabase
         .from('notifications')
         .update({ read: true })
         .eq('id', notificationId);
+
+      if (error) throw error;
 
       setNotifications(prev =>
         prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
@@ -106,11 +108,13 @@ export const BetaNotificationCenter = () => {
   const markAllAsRead = async () => {
     if (!user) return;
     try {
-      await supabase
+      const { error } = await supabase
         .from('notifications')
         .update({ read: true })
         .eq('user_id', user.id)
         .eq('read', false);
+
+      if (error) throw error;
 
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       setUnreadCount(0);
@@ -120,25 +124,61 @@ export const BetaNotificationCenter = () => {
     }
   };
 
+  const deleteNotification = async (notificationId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    
+    if (!user) return;
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', notificationId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      const notification = notifications.find(n => n.id === notificationId);
+      setNotifications(prev => prev.filter(n => n.id !== notificationId));
+      if (notification && !notification.read) {
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      }
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+      toast({ 
+        title: "Error", 
+        description: "Could not delete notification",
+        variant: "destructive" 
+      });
+    }
+  };
+
   const clearAll = async () => {
     if (!user) return;
     try {
-      await supabase
+      const { error } = await supabase
         .from('notifications')
         .delete()
         .eq('user_id', user.id);
+
+      if (error) throw error;
 
       setNotifications([]);
       setUnreadCount(0);
       toast({ title: "All notifications cleared" });
     } catch (error) {
       console.error('Error clearing notifications:', error);
+      toast({ 
+        title: "Error", 
+        description: "Could not clear notifications",
+        variant: "destructive" 
+      });
     }
   };
 
   const getNotificationIcon = (type: string) => {
-    if (type.includes('tournament')) return <Trophy className="w-4 h-4 text-[hsl(var(--beta-accent))]" />;
-    if (type.includes('match')) return <Swords className="w-4 h-4 text-[hsl(var(--beta-warning))]" />;
+    if (type.includes('tournament') || type.includes('winner')) return <Trophy className="w-4 h-4 text-[hsl(var(--beta-accent))]" />;
+    if (type.includes('match') || type.includes('score')) return <Swords className="w-4 h-4 text-[hsl(var(--beta-warning))]" />;
     if (type.includes('team')) return <Users className="w-4 h-4 text-[hsl(var(--beta-secondary))]" />;
     return <Bell className="w-4 h-4 text-[hsl(var(--beta-text-muted))]" />;
   };
@@ -224,7 +264,7 @@ export const BetaNotificationCenter = () => {
                 const link = getNotificationLink(notification);
                 const content = (
                   <div
-                    className={`p-3 border-b border-[hsl(var(--beta-border))] hover:bg-[hsl(var(--beta-surface-3))] transition-colors cursor-pointer ${
+                    className={`group p-3 border-b border-[hsl(var(--beta-border))] hover:bg-[hsl(var(--beta-surface-3))] transition-colors cursor-pointer ${
                       !notification.read ? 'bg-[hsl(var(--beta-accent)/0.05)]' : ''
                     }`}
                     onClick={() => !notification.read && markAsRead(notification.id)}
@@ -238,9 +278,18 @@ export const BetaNotificationCenter = () => {
                           <p className={`text-sm ${!notification.read ? 'font-medium text-[hsl(var(--beta-text-primary))]' : 'text-[hsl(var(--beta-text-secondary))]'}`}>
                             {notification.title}
                           </p>
-                          {!notification.read && (
-                            <span className="flex-shrink-0 w-2 h-2 rounded-full bg-[hsl(var(--beta-accent))]" />
-                          )}
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            {!notification.read && (
+                              <span className="w-2 h-2 rounded-full bg-[hsl(var(--beta-accent))]" />
+                            )}
+                            <button
+                              onClick={(e) => deleteNotification(notification.id, e)}
+                              className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-[hsl(var(--beta-error)/0.2)] text-[hsl(var(--beta-text-muted))] hover:text-[hsl(var(--beta-error))] transition-all"
+                              title="Delete notification"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
                         </div>
                         <p className="text-xs text-[hsl(var(--beta-text-muted))] mt-0.5 line-clamp-2">
                           {notification.message}

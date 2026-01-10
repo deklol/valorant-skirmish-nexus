@@ -7,6 +7,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useEnhancedNotifications } from "@/hooks/useEnhancedNotifications";
 
 interface BetaScoreSubmissionProps {
   matchId: string;
@@ -18,6 +19,7 @@ interface BetaScoreSubmissionProps {
   currentScore2?: number;
   matchStatus: string;
   userTeamId?: string;
+  tournamentId?: string;
 }
 
 interface PendingSubmission {
@@ -48,9 +50,12 @@ export const BetaScoreSubmission = ({
   currentScore2 = 0,
   matchStatus,
   userTeamId,
+  tournamentId,
 }: BetaScoreSubmissionProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { notifyScoreConfirmationNeeded, notifyMatchComplete } = useEnhancedNotifications();
+  
   const [score1, setScore1] = useState(currentScore1);
   const [score2, setScore2] = useState(currentScore2);
   const [submitting, setSubmitting] = useState(false);
@@ -124,6 +129,12 @@ export const BetaScoreSubmission = ({
 
       if (error) throw error;
 
+      // Notify opponent team captain about score submission
+      const opponentTeamId = isTeam1 ? team2Id : team1Id;
+      const myTeamName = isTeam1 ? team1Name : team2Name;
+      
+      await notifyScoreConfirmationNeeded(matchId, opponentTeamId, myTeamName, tournamentId);
+
       toast({ 
         title: "Score Submitted", 
         description: "Waiting for opponent confirmation" 
@@ -169,6 +180,12 @@ export const BetaScoreSubmission = ({
         .eq('id', matchId);
 
       if (matchError) throw matchError;
+
+      // Notify both teams about match completion
+      if (pendingSubmission.winner_id) {
+        const loserId = pendingSubmission.winner_id === team1Id ? team2Id : team1Id;
+        await notifyMatchComplete(matchId, pendingSubmission.winner_id, loserId);
+      }
 
       toast({ 
         title: "Score Confirmed", 

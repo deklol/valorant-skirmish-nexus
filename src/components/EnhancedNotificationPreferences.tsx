@@ -4,21 +4,31 @@ import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Bell, Mail, Smartphone, Settings } from 'lucide-react';
+import { Bell, Mail, Smartphone, Settings, Trophy, Swords, Users, CheckCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { supabase } from '@/integrations/supabase/client';
 
 interface NotificationPreferences {
-  // App notifications
+  // Tournament notifications
   new_tournament_posted: boolean;
   tournament_signups_open: boolean;
   tournament_checkin_time: boolean;
-  team_assigned: boolean;
+  tournament_winner: boolean;
+  tournament_reminder: boolean;
+  
+  // Match notifications
   match_assigned: boolean;
   match_ready: boolean;
+  match_started: boolean;
+  match_complete: boolean;
   post_results: boolean;
+  score_confirmation_needed: boolean;
+  
+  // Team notifications
+  team_assigned: boolean;
+  team_invite_received: boolean;
   
   // Delivery preferences
   push_enabled: boolean;
@@ -26,20 +36,27 @@ interface NotificationPreferences {
   email_frequency: string;
 }
 
+const defaultPreferences: NotificationPreferences = {
+  new_tournament_posted: true,
+  tournament_signups_open: true,
+  tournament_checkin_time: true,
+  tournament_winner: true,
+  tournament_reminder: true,
+  match_assigned: true,
+  match_ready: true,
+  match_started: true,
+  match_complete: true,
+  post_results: true,
+  score_confirmation_needed: true,
+  team_assigned: true,
+  team_invite_received: true,
+  push_enabled: true,
+  email_enabled: true,
+  email_frequency: 'immediate',
+};
+
 export default function EnhancedNotificationPreferences() {
-  const [preferences, setPreferences] = useState<NotificationPreferences>({
-    new_tournament_posted: true,
-    tournament_signups_open: true,
-    tournament_checkin_time: true,
-    team_assigned: true,
-    match_assigned: true,
-    match_ready: true,
-    post_results: true,
-    push_enabled: true,
-    email_enabled: true,
-    email_frequency: 'immediate',
-  });
-  
+  const [preferences, setPreferences] = useState<NotificationPreferences>(defaultPreferences);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const { user } = useAuth();
@@ -52,15 +69,27 @@ export default function EnhancedNotificationPreferences() {
     unsubscribe: unsubscribeFromPush 
   } = usePushNotifications();
 
-  const preferenceLabels = {
-    new_tournament_posted: 'New Tournament Posted',
-    tournament_signups_open: 'Tournament Signups Open',
-    tournament_checkin_time: 'Tournament Check-in Time',
-    team_assigned: 'Team Assignment',
-    match_assigned: 'Match Assignment',
-    match_ready: 'Match Ready',
-    post_results: 'Post Match Results',
-  };
+  const tournamentPreferences = [
+    { key: 'new_tournament_posted', label: 'New Tournament Posted', description: 'Get notified when new tournaments are created' },
+    { key: 'tournament_signups_open', label: 'Tournament Signups Open', description: 'Alert when tournament registration opens' },
+    { key: 'tournament_checkin_time', label: 'Tournament Check-in Time', description: 'Reminder when check-in time begins' },
+    { key: 'tournament_winner', label: 'Tournament Victory', description: 'Celebration notification when you win a tournament' },
+    { key: 'tournament_reminder', label: 'Tournament Reminders', description: 'Reminders 1 hour before tournament starts' },
+  ];
+
+  const matchPreferences = [
+    { key: 'match_assigned', label: 'Match Assignment', description: 'Alert when your match is scheduled' },
+    { key: 'match_ready', label: 'Match Ready', description: 'Notification when your match is ready to start' },
+    { key: 'match_started', label: 'Match Started/Live', description: 'Alert when your match goes live' },
+    { key: 'match_complete', label: 'Match Complete', description: 'Notification when your match finishes' },
+    { key: 'post_results', label: 'Post Match Results', description: 'Reminder to submit match results' },
+    { key: 'score_confirmation_needed', label: 'Score Confirmation Required', description: 'Alert when opponent submits a score for confirmation' },
+  ];
+
+  const teamPreferences = [
+    { key: 'team_assigned', label: 'Team Assignment', description: 'Notification when you\'re assigned to a team' },
+    { key: 'team_invite_received', label: 'Team Invitations', description: 'Alert when you receive a team invite' },
+  ];
 
   useEffect(() => {
     if (user) {
@@ -83,7 +112,7 @@ export default function EnhancedNotificationPreferences() {
       }
 
       if (data) {
-        setPreferences(data);
+        setPreferences({ ...defaultPreferences, ...data });
       }
     } catch (error) {
       console.error('Error fetching preferences:', error);
@@ -248,23 +277,62 @@ export default function EnhancedNotificationPreferences() {
           </div>
         </div>
 
-        {/* Notification Types */}
+        {/* Tournament Notifications */}
         <div>
-          <h4 className="font-medium mb-4">Notification Types</h4>
+          <h4 className="font-medium mb-4 flex items-center gap-2">
+            <Trophy className="h-4 w-4" />
+            Tournament Notifications
+          </h4>
           <div className="space-y-3">
-            {Object.entries(preferenceLabels).map(([key, label]) => (
+            {tournamentPreferences.map(({ key, label, description }) => (
               <div key={key} className="flex items-center justify-between">
                 <div>
                   <div className="font-medium">{label}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {key === 'new_tournament_posted' && 'Get notified when new tournaments are created'}
-                    {key === 'tournament_signups_open' && 'Alert when tournament registration opens'}
-                    {key === 'tournament_checkin_time' && 'Reminder when check-in time begins'}
-                    {key === 'team_assigned' && 'Notification when you\'re assigned to a team'}
-                    {key === 'match_assigned' && 'Alert when your match is scheduled'}
-                    {key === 'match_ready' && 'Notification when your match is ready to start'}
-                    {key === 'post_results' && 'Reminder to submit match results'}
-                  </div>
+                  <div className="text-sm text-muted-foreground">{description}</div>
+                </div>
+                <Switch
+                  checked={preferences[key as keyof NotificationPreferences] as boolean}
+                  onCheckedChange={(value) => handlePreferenceChange(key as keyof NotificationPreferences, value)}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Match Notifications */}
+        <div>
+          <h4 className="font-medium mb-4 flex items-center gap-2">
+            <Swords className="h-4 w-4" />
+            Match Notifications
+          </h4>
+          <div className="space-y-3">
+            {matchPreferences.map(({ key, label, description }) => (
+              <div key={key} className="flex items-center justify-between">
+                <div>
+                  <div className="font-medium">{label}</div>
+                  <div className="text-sm text-muted-foreground">{description}</div>
+                </div>
+                <Switch
+                  checked={preferences[key as keyof NotificationPreferences] as boolean}
+                  onCheckedChange={(value) => handlePreferenceChange(key as keyof NotificationPreferences, value)}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Team Notifications */}
+        <div>
+          <h4 className="font-medium mb-4 flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Team Notifications
+          </h4>
+          <div className="space-y-3">
+            {teamPreferences.map(({ key, label, description }) => (
+              <div key={key} className="flex items-center justify-between">
+                <div>
+                  <div className="font-medium">{label}</div>
+                  <div className="text-sm text-muted-foreground">{description}</div>
                 </div>
                 <Switch
                   checked={preferences[key as keyof NotificationPreferences] as boolean}
@@ -277,6 +345,7 @@ export default function EnhancedNotificationPreferences() {
 
         <div className="flex justify-end">
           <Button onClick={savePreferences} disabled={saving}>
+            <CheckCircle className="h-4 w-4 mr-2" />
             {saving ? 'Saving...' : 'Save Preferences'}
           </Button>
         </div>
