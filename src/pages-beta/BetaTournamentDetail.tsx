@@ -7,7 +7,7 @@ import {
   Trophy, Users, Calendar, Clock, ArrowLeft, Shield, Swords, 
   CheckCircle, User, Eye, Map, Crown, Play, ExternalLink,
   ScrollText, Settings, UserCheck, Info, Scale, Download, Copy, BarChart3,
-  ListOrdered, UserCheck2
+  ListOrdered, UserCheck2, Wrench, GitBranch
 } from "lucide-react";
 import { format } from "date-fns";
 import { useState, useEffect } from "react";
@@ -17,7 +17,8 @@ import { useToast } from "@/hooks/use-toast";
 import { TournamentChat } from "@/components-beta/TournamentChat";
 import { BetaBracketPreview } from "@/components-beta/BetaBracketPreview";
 import { BetaBalanceAnalysis } from "@/components-beta/BetaBalanceAnalysis";
-import { BetaTeamSeedingManager, BetaTeamCheckInManager } from "@/components-beta/admin";
+import { BetaTeamSeedingManager, BetaTeamCheckInManager, BetaBracketRepairTool } from "@/components-beta/admin";
+import BracketGenerator from "@/components/BracketGenerator";
 import { BetaDisputeManager } from "@/components-beta/dispute";
 
 // One-Click Registration Component
@@ -885,6 +886,38 @@ const BetaTournamentDetail = () => {
                 </Link>
               </div>
             </GlassCard>
+
+            {/* Bracket Generator - only for balancing status with no matches */}
+            {tournament.status === 'balancing' && (!matches || matches.length === 0) && (
+              <GlassCard className="p-6">
+                <h4 className="text-lg font-semibold text-[hsl(var(--beta-text-primary))] mb-4 flex items-center gap-2">
+                  <GitBranch className="w-5 h-5 text-[hsl(var(--beta-accent))]" />
+                  Generate Bracket
+                </h4>
+                <p className="text-sm text-[hsl(var(--beta-text-muted))] mb-4">
+                  Generate the tournament bracket from the registered teams. This will create matches for all rounds.
+                </p>
+                <BracketGenerator 
+                  tournamentId={tournament.id}
+                  teams={teams || []}
+                  onBracketGenerated={() => window.location.reload()}
+                />
+              </GlassCard>
+            )}
+
+            {/* Bracket Repair Tool - for live/completed tournaments with matches */}
+            {['live', 'completed'].includes(tournament.status) && matches && matches.length > 0 && (
+              <div>
+                <h4 className="text-lg font-semibold text-[hsl(var(--beta-text-primary))] mb-4 flex items-center gap-2">
+                  <Wrench className="w-5 h-5 text-[hsl(var(--beta-accent))]" />
+                  Bracket Repair Tool
+                </h4>
+                <BetaBracketRepairTool 
+                  tournamentId={tournament.id}
+                  onRepairComplete={() => window.location.reload()}
+                />
+              </div>
+            )}
 
             {/* Team Seeding Manager - only for team tournaments in open/balancing status */}
             {tournament.registration_type === 'team' && ['open', 'balancing'].includes(tournament.status) && (

@@ -4,7 +4,8 @@ import { GradientBackground, GlassCard, BetaButton, BetaBadge } from "@/componen
 import { BetaTeamRoster, BetaTeamStats, BetaOwnershipTransfer, BetaJoinCodeManager } from "@/components-beta/team";
 import { 
   Shield, ArrowLeft, Save, Trash2, LogOut, Users, 
-  Settings, Crown, Lock, Unlock, Edit3, AlertTriangle
+  Settings, Crown, Lock, Unlock, Edit3, AlertTriangle,
+  Plus, UserPlus
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -262,23 +263,7 @@ const BetaTeamManagement = () => {
 
   // No team - show create team UI
   if (!team) {
-    return (
-      <GradientBackground>
-        <div className="container mx-auto px-4 py-8">
-          <GlassCard className="max-w-lg mx-auto p-8 text-center">
-            <Shield className="w-16 h-16 text-[hsl(var(--beta-accent))] mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-[hsl(var(--beta-text-primary))] mb-2">No Team Yet</h2>
-            <p className="text-[hsl(var(--beta-text-muted))] mb-6">
-              Create your own team or join an existing one with a join code.
-            </p>
-            {/* TODO: Create team form / Join team form */}
-            <p className="text-sm text-[hsl(var(--beta-text-muted))]">
-              Team creation coming soon. Use the production site for now.
-            </p>
-          </GlassCard>
-        </div>
-      </GradientBackground>
-    );
+    return <NoTeamView userId={user?.id} onTeamCreated={fetchUserTeam} />;
   }
 
   const tabs = [
@@ -537,6 +522,233 @@ const BetaTeamManagement = () => {
             )}
           </div>
         )}
+      </div>
+    </GradientBackground>
+  );
+};
+
+// NoTeamView component for creating or joining a team
+const NoTeamView = ({ userId, onTeamCreated }: { userId?: string; onTeamCreated: () => void }) => {
+  const { toast } = useToast();
+  const [mode, setMode] = useState<'select' | 'create' | 'join'>('select');
+  const [teamName, setTeamName] = useState('');
+  const [teamDescription, setTeamDescription] = useState('');
+  const [joinCode, setJoinCode] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleCreateTeam = async () => {
+    if (!userId || !teamName.trim()) {
+      toast({ title: "Error", description: "Team name is required", variant: "destructive" });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Create the team
+      const { data: team, error: teamError } = await supabase
+        .from('persistent_teams')
+        .insert({
+          name: teamName.trim(),
+          description: teamDescription.trim() || null,
+          captain_id: userId,
+          owner_id: userId,
+          status: 'active',
+          invite_code: crypto.randomUUID().slice(0, 8).toUpperCase(),
+        })
+        .select()
+        .single();
+
+      if (teamError) throw teamError;
+
+      // Add creator as owner
+      const { error: memberError } = await supabase
+        .from('persistent_team_members')
+        .insert({
+          team_id: team.id,
+          user_id: userId,
+          role: 'owner',
+        });
+
+      if (memberError) throw memberError;
+
+      toast({ title: "Team Created!", description: `Welcome to ${team.name}!` });
+      onTeamCreated();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleJoinTeam = async () => {
+    if (!userId || !joinCode.trim()) {
+      toast({ title: "Error", description: "Join code is required", variant: "destructive" });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Find team by invite code
+      const { data: team, error: teamError } = await supabase
+        .from('persistent_teams')
+        .select('id, name, max_members')
+        .eq('invite_code', joinCode.trim().toUpperCase())
+        .eq('status', 'active')
+        .maybeSingle();
+
+      if (teamError) throw teamError;
+      if (!team) {
+        toast({ title: "Invalid Code", description: "No active team found with that join code", variant: "destructive" });
+        setLoading(false);
+        return;
+      }
+
+      // Check member count
+      const { count } = await supabase
+        .from('persistent_team_members')
+        .select('*', { count: 'exact', head: true })
+        .eq('team_id', team.id);
+
+      if (count && team.max_members && count >= team.max_members) {
+        toast({ title: "Team Full", description: "This team has reached its maximum capacity", variant: "destructive" });
+        setLoading(false);
+        return;
+      }
+
+      // Join the team
+      const { error: joinError } = await supabase
+        .from('persistent_team_members')
+        .insert({
+          team_id: team.id,
+          user_id: userId,
+          role: 'player',
+        });
+
+      if (joinError) throw joinError;
+
+      toast({ title: "Joined Team!", description: `Welcome to ${team.name}!` });
+      onTeamCreated();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <GradientBackground>
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-lg mx-auto">
+          {mode === 'select' && (
+            <GlassCard className="p-8 text-center">
+              <Shield className="w-16 h-16 text-[hsl(var(--beta-accent))] mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-[hsl(var(--beta-text-primary))] mb-2">No Team Yet</h2>
+              <p className="text-[hsl(var(--beta-text-muted))] mb-6">
+                Create your own team or join an existing one with a join code.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <BetaButton onClick={() => setMode('create')}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Team
+                </BetaButton>
+                <BetaButton variant="outline" onClick={() => setMode('join')}>
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Join Team
+                </BetaButton>
+              </div>
+            </GlassCard>
+          )}
+
+          {mode === 'create' && (
+            <GlassCard className="p-6">
+              <button 
+                onClick={() => setMode('select')}
+                className="text-sm text-[hsl(var(--beta-text-muted))] hover:text-[hsl(var(--beta-text-primary))] mb-4 flex items-center gap-1"
+              >
+                <ArrowLeft className="w-4 h-4" /> Back
+              </button>
+              <h2 className="text-xl font-bold text-[hsl(var(--beta-text-primary))] mb-4 flex items-center gap-2">
+                <Plus className="w-5 h-5 text-[hsl(var(--beta-accent))]" />
+                Create New Team
+              </h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-[hsl(var(--beta-text-secondary))] mb-2">
+                    Team Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={teamName}
+                    onChange={(e) => setTeamName(e.target.value)}
+                    placeholder="Enter team name"
+                    maxLength={30}
+                    className="w-full bg-[hsl(var(--beta-surface-3))] border border-[hsl(var(--beta-border))] rounded-lg px-4 py-2.5 text-[hsl(var(--beta-text-primary))] placeholder:text-[hsl(var(--beta-text-muted))]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[hsl(var(--beta-text-secondary))] mb-2">
+                    Description (optional)
+                  </label>
+                  <textarea
+                    value={teamDescription}
+                    onChange={(e) => setTeamDescription(e.target.value)}
+                    placeholder="Tell others about your team..."
+                    rows={3}
+                    maxLength={200}
+                    className="w-full bg-[hsl(var(--beta-surface-3))] border border-[hsl(var(--beta-border))] rounded-lg px-4 py-2.5 text-[hsl(var(--beta-text-primary))] placeholder:text-[hsl(var(--beta-text-muted))] resize-none"
+                  />
+                </div>
+                <BetaButton 
+                  className="w-full" 
+                  onClick={handleCreateTeam} 
+                  disabled={loading || !teamName.trim()}
+                >
+                  {loading ? 'Creating...' : 'Create Team'}
+                </BetaButton>
+              </div>
+            </GlassCard>
+          )}
+
+          {mode === 'join' && (
+            <GlassCard className="p-6">
+              <button 
+                onClick={() => setMode('select')}
+                className="text-sm text-[hsl(var(--beta-text-muted))] hover:text-[hsl(var(--beta-text-primary))] mb-4 flex items-center gap-1"
+              >
+                <ArrowLeft className="w-4 h-4" /> Back
+              </button>
+              <h2 className="text-xl font-bold text-[hsl(var(--beta-text-primary))] mb-4 flex items-center gap-2">
+                <UserPlus className="w-5 h-5 text-[hsl(var(--beta-accent))]" />
+                Join Existing Team
+              </h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-[hsl(var(--beta-text-secondary))] mb-2">
+                    Team Join Code
+                  </label>
+                  <input
+                    type="text"
+                    value={joinCode}
+                    onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                    placeholder="Enter 8-character code"
+                    maxLength={8}
+                    className="w-full bg-[hsl(var(--beta-surface-3))] border border-[hsl(var(--beta-border))] rounded-lg px-4 py-2.5 text-[hsl(var(--beta-text-primary))] placeholder:text-[hsl(var(--beta-text-muted))] font-mono text-center text-lg tracking-widest"
+                  />
+                  <p className="text-xs text-[hsl(var(--beta-text-muted))] mt-2">
+                    Get this code from your team captain
+                  </p>
+                </div>
+                <BetaButton 
+                  className="w-full" 
+                  onClick={handleJoinTeam} 
+                  disabled={loading || joinCode.length < 6}
+                >
+                  {loading ? 'Joining...' : 'Join Team'}
+                </BetaButton>
+              </div>
+            </GlassCard>
+          )}
+        </div>
       </div>
     </GradientBackground>
   );

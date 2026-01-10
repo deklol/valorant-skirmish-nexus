@@ -18,6 +18,7 @@ import { VODManager } from "@/components/admin/VODManager";
 import TournamentMedicManager from "@/components/TournamentMedicManager";
 import VetoMedicManager from "@/components/VetoMedicManager";
 import BracketMedicManager from "@/components/BracketMedicManager";
+import { BetaBracketRepairTool } from "@/components-beta/admin";
 import MatchMedicManager from "@/components/MatchMedicManager";
 import AchievementMedicManager from "@/components/AchievementMedicManager";
 import { ShopMedicManager } from "@/components/admin/ShopMedicManager";
@@ -126,6 +127,7 @@ const BetaAdmin = () => {
       case "veto-medic":
         return <VetoMedicManager />;
       case "bracket-medic":
+        return <BracketMedicWithSelector />;
         return <BracketMedicManager />;
       case "match-medic":
         return <MatchMedicManager />;
@@ -390,5 +392,82 @@ const SettingsTab = () => (
     </div>
   </div>
 );
+
+// Bracket Medic with Tournament Selector wrapper
+const BracketMedicWithSelector = () => {
+  const [tournaments, setTournaments] = useState<{ id: string; name: string; status: string }[]>([]);
+  const [selectedTournament, setSelectedTournament] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTournaments = async () => {
+      const { data } = await supabase
+        .from('tournaments')
+        .select('id, name, status')
+        .in('status', ['live', 'completed', 'balancing'])
+        .order('created_at', { ascending: false })
+        .limit(50);
+      setTournaments(data || []);
+      setLoading(false);
+    };
+    fetchTournaments();
+  }, []);
+
+  if (loading) {
+    return (
+      <GlassCard className="p-8 text-center">
+        <Wrench className="w-8 h-8 text-[hsl(var(--beta-accent))] mx-auto mb-4 animate-pulse" />
+        <p className="text-[hsl(var(--beta-text-muted))]">Loading tournaments...</p>
+      </GlassCard>
+    );
+  }
+
+  if (!selectedTournament) {
+    return (
+      <GlassCard className="p-6">
+        <h2 className="text-xl font-bold text-[hsl(var(--beta-text-primary))] mb-4 flex items-center gap-2">
+          <Wrench className="w-5 h-5 text-[hsl(var(--beta-accent))]" />
+          Select Tournament to Repair
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {tournaments.map(t => (
+            <button
+              key={t.id}
+              onClick={() => setSelectedTournament(t.id)}
+              className="p-4 rounded-lg bg-[hsl(var(--beta-surface-3))] border border-[hsl(var(--beta-border))] hover:border-[hsl(var(--beta-accent))] transition-all text-left"
+            >
+              <p className="font-semibold text-[hsl(var(--beta-text-primary))] mb-1">{t.name}</p>
+              <BetaBadge variant={t.status === 'live' ? 'accent' : t.status === 'completed' ? 'success' : 'warning'} size="sm">
+                {t.status}
+              </BetaBadge>
+            </button>
+          ))}
+          {tournaments.length === 0 && (
+            <p className="col-span-full text-center text-[hsl(var(--beta-text-muted))] py-8">
+              No active tournaments with brackets to repair
+            </p>
+          )}
+        </div>
+      </GlassCard>
+    );
+  }
+
+  const selectedName = tournaments.find(t => t.id === selectedTournament)?.name;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Wrench className="w-5 h-5 text-[hsl(var(--beta-accent))]" />
+          <h2 className="text-xl font-bold text-[hsl(var(--beta-text-primary))]">{selectedName}</h2>
+        </div>
+        <BetaButton variant="ghost" size="sm" onClick={() => setSelectedTournament(null)}>
+          ← Back to List
+        </BetaButton>
+      </div>
+      <BetaBracketRepairTool tournamentId={selectedTournament} />
+    </div>
+  );
+};
 
 export default BetaAdmin;
