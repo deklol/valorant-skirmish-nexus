@@ -6,6 +6,8 @@ import { Trophy, Users, Clock, ExternalLink, RefreshCw, Map, Play } from "lucide
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { SwissStandingsView, RoundRobinView, DoubleEliminationView } from "@/components/bracket-views";
+import type { BracketType } from "@/utils/formatGenerators";
 
 interface IntegratedBracketViewProps {
   tournamentId: string;
@@ -23,6 +25,7 @@ interface MatchData {
   score_team2: number;
   scheduled_time: string | null;
   map_veto_enabled: boolean;
+  bracket_position?: string | null;
   team1?: { name: string; id: string } | null;
   team2?: { name: string; id: string } | null;
 }
@@ -33,6 +36,7 @@ interface Tournament {
   match_format: string;
   status: string;
   name: string;
+  swiss_rounds?: number;
 }
 
 interface MapVetoSession {
@@ -119,7 +123,7 @@ const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => 
       // Fetch tournament details
       const { data: tournamentData, error: tournamentError } = await supabase
         .from('tournaments')
-        .select('max_teams, bracket_type, match_format, status, name')
+        .select('max_teams, bracket_type, match_format, status, name, swiss_rounds')
         .eq('id', tournamentId)
         .maybeSingle();
 
@@ -238,6 +242,16 @@ const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => 
     return matches.filter(match => match.round_number === roundNumber);
   };
 
+  const getFormatDisplayName = (bracketType: string) => {
+    const names: Record<string, string> = {
+      single_elimination: 'Single Elimination',
+      double_elimination: 'Double Elimination',
+      swiss: 'Swiss',
+      round_robin: 'Round Robin'
+    };
+    return names[bracketType] || bracketType.replace('_', ' ');
+  };
+
   if (loading) {
     return (
       <Card className="bg-slate-800 border-slate-700">
@@ -304,7 +318,7 @@ const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => 
           </CardTitle>
           <div className="flex items-center gap-4 mt-2">
             <Badge variant="outline" className="border-slate-600 text-slate-300">
-              {tournament.bracket_type.replace('_', ' ')}
+              {getFormatDisplayName(tournament.bracket_type)}
             </Badge>
             <Badge variant="outline" className="border-slate-600 text-slate-300">
               {tournament.match_format}
@@ -344,7 +358,151 @@ const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => 
     );
   }
 
-  // If we reach here, we either have matches OR the tournament is live/completed, so show the bracket
+  // ============================================================================
+  // FORMAT-SPECIFIC VIEW ROUTING
+  // ============================================================================
+  
+  const bracketType = tournament.bracket_type as BracketType;
+
+  // Swiss Format - Use dedicated Swiss view
+  if (bracketType === 'swiss') {
+    return (
+      <Card className="bg-slate-800 border-slate-700">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center gap-2">
+            <Trophy className="w-5 h-5" />
+            Swiss Tournament - {tournament.name}
+          </CardTitle>
+          <div className="flex items-center gap-4 mt-2">
+            <Badge variant="outline" className="border-blue-600 text-blue-300">
+              Swiss System
+            </Badge>
+            <Badge variant="outline" className="border-slate-600 text-slate-300">
+              {tournament.swiss_rounds || 5} Rounds
+            </Badge>
+            <Badge variant="outline" className="border-slate-600 text-slate-300">
+              {tournament.match_format}
+            </Badge>
+            <Badge variant="outline" className="border-slate-600 text-slate-300">
+              Status: {tournament.status}
+            </Badge>
+            <div className="ml-auto flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={fetchBracketData}
+                className="border-slate-600 text-slate-300 hover:bg-slate-700"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refresh
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <SwissStandingsView 
+            tournamentId={tournamentId} 
+            tournamentName={tournament.name}
+          />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Round Robin Format - Use dedicated Round Robin view
+  if (bracketType === 'round_robin') {
+    return (
+      <Card className="bg-slate-800 border-slate-700">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center gap-2">
+            <Trophy className="w-5 h-5" />
+            Round Robin - {tournament.name}
+          </CardTitle>
+          <div className="flex items-center gap-4 mt-2">
+            <Badge variant="outline" className="border-purple-600 text-purple-300">
+              Round Robin
+            </Badge>
+            <Badge variant="outline" className="border-slate-600 text-slate-300">
+              {tournament.match_format}
+            </Badge>
+            <Badge variant="outline" className="border-slate-600 text-slate-300">
+              Status: {tournament.status}
+            </Badge>
+            <div className="ml-auto flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={fetchBracketData}
+                className="border-slate-600 text-slate-300 hover:bg-slate-700"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refresh
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <RoundRobinView tournamentId={tournamentId} />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Double Elimination Format - Use dedicated Double Elimination view
+  if (bracketType === 'double_elimination') {
+    return (
+      <Card className="bg-slate-800 border-slate-700">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center gap-2">
+            <Trophy className="w-5 h-5" />
+            Double Elimination - {tournament.name}
+          </CardTitle>
+          <div className="flex items-center gap-4 mt-2">
+            <Badge variant="outline" className="border-orange-600 text-orange-300">
+              Double Elimination
+            </Badge>
+            <Badge variant="outline" className="border-slate-600 text-slate-300">
+              {tournament.match_format}
+            </Badge>
+            <Badge variant="outline" className="border-slate-600 text-slate-300">
+              Status: {tournament.status}
+            </Badge>
+            <Badge variant="outline" className="border-slate-600 text-slate-300">
+              {matches.length} matches
+            </Badge>
+            <div className="ml-auto flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={fetchBracketData}
+                className="border-slate-600 text-slate-300 hover:bg-slate-700"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refresh
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => navigate(`/bracket/${tournamentId}`)}
+                className="border-slate-600 text-slate-300 hover:bg-slate-700"
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Full View
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <DoubleEliminationView tournamentId={tournamentId} />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // ============================================================================
+  // SINGLE ELIMINATION (DEFAULT) - Original bracket view
+  // ============================================================================
+  
   const bracketStructure = generateBracketStructure(tournament.max_teams || 8);
 
   return (
@@ -355,8 +513,8 @@ const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => 
           Tournament Bracket - {tournament.name}
         </CardTitle>
         <div className="flex items-center gap-4 mt-2">
-          <Badge variant="outline" className="border-slate-600 text-slate-300">
-            {tournament.bracket_type.replace('_', ' ')}
+          <Badge variant="outline" className="border-green-600 text-green-300">
+            Single Elimination
           </Badge>
           <Badge variant="outline" className="border-slate-600 text-slate-300">
             {tournament.match_format}
@@ -479,26 +637,22 @@ const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => 
                             </div>
                           </div>
                           
-                          <div className="flex items-center justify-between text-xs text-slate-400 pt-2 mt-2 border-t border-slate-600">
-                            <div className="flex items-center gap-1">
+                          {existingMatch?.scheduled_time && (
+                            <div className="mt-2 text-xs text-slate-400 flex items-center gap-1">
                               <Clock className="w-3 h-3" />
-                              <span>{existingMatch ? formatTime(existingMatch.scheduled_time) : "TBD"}</span>
+                              {formatTime(existingMatch.scheduled_time)}
                             </div>
-                            <div className="flex items-center gap-2">
-                              {existingMatch?.status === "live" && (
-                                <div className="flex items-center gap-1">
-                                  <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                                  <span className="text-red-400">LIVE</span>
-                                </div>
-                              )}
-                              {existingMatch?.map_veto_enabled && (
-                                <div className="flex items-center gap-1">
-                                  <Map className="w-3 h-3 text-blue-400" />
-                                  <span className="text-blue-400">Veto</span>
-                                </div>
-                              )}
+                          )}
+                          
+                          {/* Map veto status */}
+                          {existingMatch?.map_veto_enabled && vetoSession && (
+                            <div className="mt-2 text-xs text-slate-400 flex items-center gap-1">
+                              <Map className="w-3 h-3" />
+                              {vetoSession.status === 'completed' ? 'Map Selected' : 
+                               vetoSession.status === 'in_progress' ? 'Veto In Progress' : 
+                               'Awaiting Veto'}
                             </div>
-                          </div>
+                          )}
                         </div>
                       );
                     })}
