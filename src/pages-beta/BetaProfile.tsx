@@ -14,6 +14,7 @@ import { getTrackerGGUrl } from "@/utils/getTrackerGGUrl";
 import { useState } from "react";
 import { getRankIcon, getRankColor } from "@/utils/rankUtils";
 import { Username } from "@/components/Username";
+import FaceitStatsDisplay from "@/components/profile/FaceitStatsDisplay";
 
 // Role color mapping
 const getRoleColorClass = (role: string) => {
@@ -696,6 +697,11 @@ const BetaProfile = () => {
               {activeTab === 'rank-history' && <RankHistoryTab userId={profileId} />}
             </GlassCard>
           </>
+        )}
+
+        {/* FACEIT CS2 Stats */}
+        {!isPrivate && profileId && (
+          <FaceitStatsDisplay userId={profileId} />
         )}
 
         {/* View Full Profile CTA */}

@@ -7,10 +7,11 @@ import { GradientBackground, GlassCard, BetaButton, BetaBadge } from "@/componen
 import { 
   Settings, User, Save, RefreshCw, Eye, EyeOff, Bell,
   Twitter, Twitch, Shield, ArrowLeft, Target, Users,
-  CheckCircle, Crown, Power, PowerOff, Star
+  CheckCircle, Crown, Power, PowerOff, Star, Gamepad2, Loader2
 } from "lucide-react";
 import { useNameEffects, getNameEffectStyles } from "@/hooks/useNameEffects";
 import { useShopContext, ShopProvider } from "@/contexts/ShopContext";
+import { useQuery } from "@tanstack/react-query";
 
 // Role options
 const VALORANT_ROLES = ['Duelist', 'Controller', 'Initiator', 'Sentinel'];
@@ -31,6 +32,15 @@ const getRoleColorClass = (role: string) => {
     case 'Sentinel': return 'text-green-400 bg-green-500/20 border-green-500/30';
     default: return 'text-[hsl(var(--beta-text-muted))] bg-[hsl(var(--beta-surface-4))]';
   }
+};
+
+// FACEIT skill level colors
+const getSkillLevelColor = (level: number): string => {
+  const colors: Record<number, string> = {
+    1: '#EE4B2B', 2: '#EE4B2B', 3: '#FF8C00', 4: '#FFD700', 5: '#FFD700',
+    6: '#32CD32', 7: '#32CD32', 8: '#00CED1', 9: '#8A2BE2', 10: '#FF1493',
+  };
+  return colors[level] || '#888';
 };
 
 // Name Effects Section Component
@@ -234,6 +244,8 @@ const ProfileSettingsContent = () => {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [refreshingRank, setRefreshingRank] = useState(false);
+  const [steamUrl, setSteamUrl] = useState('');
+  const [fetchingFaceit, setFetchingFaceit] = useState(false);
   
   const [formData, setFormData] = useState({
     bio: '',
@@ -244,6 +256,21 @@ const ProfileSettingsContent = () => {
     valorant_role: '',
     status_message: '',
     looking_for_team: false
+  });
+
+  // Fetch existing FACEIT stats
+  const { data: faceitStats, refetch: refetchFaceit } = useQuery({
+    queryKey: ['faceit-stats', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data } = await supabase
+        .from('faceit_stats')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user?.id,
   });
 
   useEffect(() => {
@@ -258,8 +285,58 @@ const ProfileSettingsContent = () => {
         status_message: (authProfile as any).status_message || '',
         looking_for_team: (authProfile as any).looking_for_team || false
       });
+      setSteamUrl((authProfile as any).steam_url || '');
     }
   }, [authProfile]);
+
+  const handleFetchFaceitStats = async () => {
+    if (!user || !steamUrl) {
+      toast({
+        title: "Steam URL Required",
+        description: "Please enter your Steam profile URL",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate URL format
+    const steamUrlPattern = /^https?:\/\/steamcommunity\.com\/(id\/[a-zA-Z0-9_-]+|profiles\/\d+)\/?$/;
+    if (!steamUrlPattern.test(steamUrl)) {
+      toast({
+        title: "Invalid Steam URL",
+        description: "Use format: https://steamcommunity.com/id/username/ or https://steamcommunity.com/profiles/steamid64/",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setFetchingFaceit(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('fetch-faceit-stats', {
+        body: { steam_url: steamUrl, user_id: user.id }
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      await refetchFaceit();
+      await refreshProfile();
+
+      toast({
+        title: "FACEIT Stats Loaded!",
+        description: data?.message || "Your FACEIT CS2 stats have been saved.",
+      });
+    } catch (error: any) {
+      console.error('Error fetching FACEIT stats:', error);
+      toast({
+        title: "Failed to Load FACEIT Stats",
+        description: error.message || "Could not fetch FACEIT data for this Steam profile",
+        variant: "destructive",
+      });
+    } finally {
+      setFetchingFaceit(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!user) return;
@@ -479,6 +556,85 @@ const ProfileSettingsContent = () => {
               </div>
             </div>
           </div>
+        </GlassCard>
+
+        {/* FACEIT CS2 Stats Section */}
+        <GlassCard className="p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <Gamepad2 className="w-5 h-5 text-orange-500" />
+            <h3 className="text-lg font-semibold text-[hsl(var(--beta-text-primary))]">FACEIT CS2 Stats</h3>
+            {faceitStats && (
+              <BetaBadge variant="success" size="sm">Connected</BetaBadge>
+            )}
+          </div>
+          
+          <p className="text-sm text-[hsl(var(--beta-text-muted))] mb-4">
+            Link your Steam profile to display your FACEIT CS2 stats on your profile. 
+            Enter your Steam Community URL in either format:
+          </p>
+          
+          <div className="text-xs text-[hsl(var(--beta-text-muted))] mb-4 p-3 rounded-lg bg-[hsl(var(--beta-surface-2))]">
+            <p className="mb-1">• <code className="text-[hsl(var(--beta-accent))]">https://steamcommunity.com/id/yourusername/</code></p>
+            <p>• <code className="text-[hsl(var(--beta-accent))]">https://steamcommunity.com/profiles/76561198xxxxx/</code></p>
+          </div>
+
+          <div className="flex gap-3">
+            <input
+              type="text"
+              value={steamUrl}
+              onChange={(e) => setSteamUrl(e.target.value)}
+              placeholder="https://steamcommunity.com/id/yourusername/"
+              className="flex-1 px-4 py-3 rounded-xl bg-[hsl(var(--beta-surface-3))] border border-[hsl(var(--beta-border))] text-[hsl(var(--beta-text-primary))] placeholder:text-[hsl(var(--beta-text-muted))] focus:outline-none focus:ring-2 focus:ring-orange-500"
+            />
+            <BetaButton 
+              onClick={handleFetchFaceitStats}
+              disabled={fetchingFaceit || !steamUrl}
+              className="bg-orange-500 hover:bg-orange-600"
+            >
+              {fetchingFaceit ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  {faceitStats ? 'Refresh Stats' : 'Load Stats'}
+                </>
+              )}
+            </BetaButton>
+          </div>
+
+          {/* Show current FACEIT info if connected */}
+          {faceitStats && (
+            <div className="mt-4 p-4 rounded-xl bg-[hsl(var(--beta-surface-3))] border border-orange-500/30">
+              <div className="flex items-center gap-4">
+                {faceitStats.faceit_avatar && (
+                  <img 
+                    src={faceitStats.faceit_avatar} 
+                    alt="FACEIT Avatar"
+                    className="w-12 h-12 rounded-lg"
+                  />
+                )}
+                <div className="flex-1">
+                  <p className="font-medium text-[hsl(var(--beta-text-primary))]">
+                    {faceitStats.faceit_nickname}
+                  </p>
+                  <p className="text-sm text-[hsl(var(--beta-text-muted))]">
+                    Level {faceitStats.cs2_skill_level} • {faceitStats.cs2_elo} ELO • {faceitStats.cs2_region}
+                  </p>
+                </div>
+                <div 
+                  className="w-12 h-12 rounded-lg flex items-center justify-center font-bold text-white"
+                  style={{ 
+                    backgroundColor: getSkillLevelColor(faceitStats.cs2_skill_level || 1)
+                  }}
+                >
+                  {faceitStats.cs2_skill_level}
+                </div>
+              </div>
+            </div>
+          )}
         </GlassCard>
 
         {/* Valorant Settings */}
