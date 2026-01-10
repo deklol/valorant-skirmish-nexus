@@ -209,7 +209,7 @@ const BetaWinnerDisplay = ({ tournamentId, tournamentStatus }: { tournamentId: s
         </div>
         <BetaBadge variant="accent" size="md">{winner.teamName}</BetaBadge>
       </div>
-      <div className="space-y-2">
+      <div className="flex flex-col gap-3">
         {winner.members.map(member => (
           <Link key={member.id} to={`/beta/profile/${member.id}`}>
             <div className="flex items-center justify-between p-3 rounded-lg bg-[hsl(var(--beta-surface-3))] hover:bg-[hsl(var(--beta-surface-4))] transition-colors">
