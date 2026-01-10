@@ -49,15 +49,13 @@ export const TournamentChat = ({ tournamentId, className = "" }: TournamentChatP
   const [warningUserId, setWarningUserId] = useState<string | null>(null);
   const [warningReason, setWarningReason] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Only scroll to bottom within the chat container, not the page
+  // Scroll to bottom within the chat container only, not the page
   const scrollToBottom = useCallback((force = false) => {
-    if (messagesEndRef.current) {
-      // Only auto-scroll on new messages (force=true), not initial load
-      if (force) {
-        messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      }
+    if (messagesContainerRef.current && force) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
     }
   }, []);
 
@@ -354,7 +352,7 @@ export const TournamentChat = ({ tournamentId, className = "" }: TournamentChatP
           )}
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 max-h-[400px] min-h-[200px]">
+          <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-3 max-h-[400px] min-h-[200px]">
             {loading ? (
               <div className="text-center py-8">
                 <p className="text-[hsl(var(--beta-text-muted))]">Loading chat...</p>
