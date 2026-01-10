@@ -1,0 +1,1 @@
+export { BetaTeamTournamentRegistration } from './BetaTeamTournamentRegistration';
