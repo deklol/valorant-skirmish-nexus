@@ -4,6 +4,36 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { BetaBadge } from "./ui-beta";
 
+const RANK_CONFIG: Record<string, { emoji: string; color: string }> = {
+  'Iron 1': { emoji: '⬛', color: '#4A4A4A' },
+  'Iron 2': { emoji: '⬛', color: '#4A4A4A' },
+  'Iron 3': { emoji: '⬛', color: '#4A4A4A' },
+  'Bronze 1': { emoji: '🟫', color: '#8B4513' },
+  'Bronze 2': { emoji: '🟫', color: '#8B4513' },
+  'Bronze 3': { emoji: '🟫', color: '#8B4513' },
+  'Silver 1': { emoji: '⬜', color: '#C0C0C0' },
+  'Silver 2': { emoji: '⬜', color: '#C0C0C0' },
+  'Silver 3': { emoji: '⬜', color: '#C0C0C0' },
+  'Gold 1': { emoji: '🟨', color: '#FFD700' },
+  'Gold 2': { emoji: '🟨', color: '#FFD700' },
+  'Gold 3': { emoji: '🟨', color: '#FFD700' },
+  'Platinum 1': { emoji: '🔷', color: '#00CED1' },
+  'Platinum 2': { emoji: '🔷', color: '#00CED1' },
+  'Platinum 3': { emoji: '🔷', color: '#00CED1' },
+  'Diamond 1': { emoji: '💎', color: '#B9F2FF' },
+  'Diamond 2': { emoji: '💎', color: '#B9F2FF' },
+  'Diamond 3': { emoji: '💎', color: '#B9F2FF' },
+  'Ascendant 1': { emoji: '🟩', color: '#84FF6F' },
+  'Ascendant 2': { emoji: '🟩', color: '#84FF6F' },
+  'Ascendant 3': { emoji: '🟩', color: '#84FF6F' },
+  'Immortal 1': { emoji: '🟥', color: '#A52834' },
+  'Immortal 2': { emoji: '🟥', color: '#A52834' },
+  'Immortal 3': { emoji: '🟥', color: '#A52834' },
+  'Radiant': { emoji: '✨', color: '#FFF176' },
+  'Unrated': { emoji: '❓', color: '#9CA3AF' },
+  'Unranked': { emoji: '❓', color: '#9CA3AF' }
+};
+
 interface SearchResult {
   id: string;
   type: 'tournament' | 'team' | 'user';
@@ -151,30 +181,44 @@ export const BetaGlobalSearch = ({ alwaysExpanded = false }: BetaGlobalSearchPro
 
       {/* Results dropdown */}
       {(isOpen || alwaysExpanded) && query.trim() && (
-        <div className="absolute top-full left-0 mt-2 bg-[hsl(var(--beta-surface-2))] border border-[hsl(var(--beta-border))] rounded-[var(--beta-radius-lg)] shadow-xl overflow-hidden z-50 w-[300px] max-w-[90vw]">
+        <div className="absolute top-full left-0 right-0 mt-2 bg-[hsl(var(--beta-surface-2))] border border-[hsl(var(--beta-border))] rounded-[var(--beta-radius-lg)] shadow-xl overflow-hidden z-50">
           {results.length === 0 && !loading ? (
             <div className="p-4 text-center text-sm text-[hsl(var(--beta-text-muted))]">
               No results found for "{query}"
             </div>
           ) : (
             <div className="max-h-80 overflow-y-auto">
-              {results.map((result) => (
-                <Link
-                  key={`${result.type}-${result.id}`}
-                  to={getLink(result)}
-                  onClick={() => { setIsOpen(false); setQuery(""); }}
-                  className="flex items-center gap-3 p-3 hover:bg-[hsl(var(--beta-surface-3))] transition-colors"
-                >
-                  <div className="flex-shrink-0">{getIcon(result.type)}</div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-[hsl(var(--beta-text-primary))] truncate">{result.name}</p>
-                    {result.subtitle && (
-                      <p className="text-xs text-[hsl(var(--beta-text-muted))] truncate">{result.subtitle}</p>
-                    )}
-                  </div>
-                  <BetaBadge variant="default" size="sm" className="capitalize">{result.type}</BetaBadge>
-                </Link>
-              ))}
+              {results.map((result) => {
+                const rankInfo = result.type === 'user' && result.subtitle 
+                  ? RANK_CONFIG[result.subtitle] || RANK_CONFIG['Unranked']
+                  : null;
+                
+                return (
+                  <Link
+                    key={`${result.type}-${result.id}`}
+                    to={getLink(result)}
+                    onClick={() => { setIsOpen(false); setQuery(""); }}
+                    className="flex items-center gap-3 p-3 hover:bg-[hsl(var(--beta-surface-3))] transition-colors"
+                  >
+                    <div className="flex-shrink-0">{getIcon(result.type)}</div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-[hsl(var(--beta-text-primary))] truncate">{result.name}</p>
+                      {result.type === 'user' && result.subtitle && rankInfo ? (
+                        <p 
+                          className="text-xs font-medium truncate flex items-center gap-1"
+                          style={{ color: rankInfo.color }}
+                        >
+                          <span>{rankInfo.emoji}</span>
+                          <span>{result.subtitle}</span>
+                        </p>
+                      ) : result.subtitle && (
+                        <p className="text-xs text-[hsl(var(--beta-text-muted))] truncate capitalize">{result.subtitle}</p>
+                      )}
+                    </div>
+                    <BetaBadge variant="default" size="sm" className="capitalize flex-shrink-0">{result.type}</BetaBadge>
+                  </Link>
+                );
+              })}
             </div>
           )}
         </div>
