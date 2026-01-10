@@ -430,7 +430,6 @@ const BetaProfile = () => {
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: <User className="w-4 h-4" /> },
-    { id: 'matches', label: 'Matches', icon: <Swords className="w-4 h-4" /> },
     { id: 'tournaments', label: 'Tournaments', icon: <Trophy className="w-4 h-4" /> },
     { id: 'achievements', label: 'Achievements', icon: <Award className="w-4 h-4" /> },
     { id: 'rank-history', label: 'Rank History', icon: <TrendingUp className="w-4 h-4" /> },
@@ -574,17 +573,8 @@ const BetaProfile = () => {
                 </div>
               </div>
 
-              {/* Actions / Links */}
+              {/* Social Links */}
               <div className="shrink-0 flex flex-col gap-3">
-                {isOwnProfile && (
-                  <Link to="/profile">
-                    <BetaButton variant="outline" size="sm">
-                      <Edit className="w-4 h-4 mr-2" />
-                      Edit Profile
-                    </BetaButton>
-                  </Link>
-                )}
-                
                 {!isPrivate && (
                   <div className="flex flex-col gap-2">
                     {profile.twitter_handle && (
