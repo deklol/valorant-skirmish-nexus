@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { calculateBracketStructure } from "@/utils/bracketCalculations";
+import { generateBracketForFormat, getFormatDisplayName, BracketType } from "@/utils/formatGenerators";
 import BatchBracketGenerator from "./BatchBracketGenerator";
-import { AlertTriangle, Trash2, RefreshCw, Lock } from "lucide-react";
+import { AlertTriangle, Trash2, RefreshCw, Lock, Info } from "lucide-react";
 
 interface BracketGeneratorProps {
   tournamentId: string;
-  teams: { id: string; name: string }[];
+  teams: { id: string; name: string; seed?: number }[];
   onBracketGenerated: () => void;
 }
 
@@ -19,15 +21,33 @@ const BracketGenerator = ({ tournamentId, teams, onBracketGenerated }: BracketGe
   const [hasExistingBracket, setHasExistingBracket] = useState(false);
   const [existingMatchCount, setExistingMatchCount] = useState(0);
   const [generationInProgress, setGenerationInProgress] = useState(false);
+  const [bracketType, setBracketType] = useState<BracketType>('single_elimination');
+  const [matchFormat, setMatchFormat] = useState<string>('BO1');
+  const [swissRounds, setSwissRounds] = useState<number | null>(null);
   const { toast } = useToast();
 
-  // Use batch processing for tournaments with 8+ teams (32+ players typically)
-  const shouldUseBatchMode = teams.length >= 8;
+  // Use batch processing only for single elimination with 8+ teams
+  const shouldUseBatchMode = teams.length >= 8 && bracketType === 'single_elimination';
 
   // Check for existing bracket on mount and after operations
   useEffect(() => {
     checkExistingBracket();
+    fetchTournamentConfig();
   }, [tournamentId]);
+
+  const fetchTournamentConfig = async () => {
+    const { data } = await supabase
+      .from('tournaments')
+      .select('bracket_type, match_format, swiss_rounds')
+      .eq('id', tournamentId)
+      .maybeSingle();
+    
+    if (data) {
+      setBracketType((data.bracket_type as BracketType) || 'single_elimination');
+      setMatchFormat(data.match_format || 'BO1');
+      setSwissRounds(data.swiss_rounds);
+    }
+  };
 
   const checkExistingBracket = async () => {
     const [matchesResult, tournamentResult] = await Promise.all([
@@ -166,7 +186,6 @@ const BracketGenerator = ({ tournamentId, teams, onBracketGenerated }: BracketGe
         }
         
         if (result.code === 'BRACKET_EXISTS' && !hasExistingBracket) {
-          // Bracket exists but we didn't know - refresh state
           await checkExistingBracket();
           toast({
             title: "Bracket Already Exists",
@@ -196,8 +215,30 @@ const BracketGenerator = ({ tournamentId, teams, onBracketGenerated }: BracketGe
           .eq('id', tournamentId);
       }
 
-      // Step 3: Generate bracket matches
-      await generateSingleEliminationBracket(tournamentId, teams);
+      // Step 3: Generate bracket matches using format-aware generator
+      const bestOf = matchFormat === 'BO1' ? 1 : matchFormat === 'BO3' ? 3 : matchFormat === 'BO5' ? 5 : 1;
+      const generationResult = await generateBracketForFormat(
+        tournamentId,
+        teams,
+        bracketType,
+        bestOf,
+        swissRounds || undefined
+      );
+
+      if (!generationResult.success) {
+        throw new Error(generationResult.error || 'Failed to generate bracket');
+      }
+
+      // Insert all generated matches
+      if (generationResult.matches.length > 0) {
+        const { error: insertError } = await supabase
+          .from('matches')
+          .insert(generationResult.matches);
+
+        if (insertError) {
+          throw new Error(`Failed to insert matches: ${insertError.message}`);
+        }
+      }
 
       // Step 4: Complete generation (release lock and set bracket_generated)
       await supabase.rpc('complete_bracket_generation', {
@@ -207,7 +248,7 @@ const BracketGenerator = ({ tournamentId, teams, onBracketGenerated }: BracketGe
 
       toast({
         title: "Success",
-        description: "Bracket generated successfully with database-level protection",
+        description: `${getFormatDisplayName(bracketType)} bracket generated with ${generationResult.matches.length} matches`,
       });
       
       await checkExistingBracket();
