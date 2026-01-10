@@ -610,7 +610,7 @@ const BetaTournamentDetail = () => {
           <StatCard label="Teams" value={teams?.length || 0} icon={<Shield />} />
           <StatCard label="Matches" value={`${completedMatches}/${matches?.length || 0}`} icon={<Swords />} />
           <StatCard label="Team Size" value={`${tournament.team_size}v${tournament.team_size}`} icon={<UserCheck />} />
-          <StatCard label="Format" value={tournament.bracket_type?.replace('_', ' ') || 'Single Elim'} icon={<Trophy />} valueClassName="text-sm" />
+          <StatCard label="Format" value={tournament.bracket_type?.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Single Elim'} icon={<Trophy />} valueClassName="text-sm" />
         </div>
 
         {/* Winner Display for Completed Tournaments */}
@@ -667,7 +667,7 @@ const BetaTournamentDetail = () => {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <span className="text-[hsl(var(--beta-text-muted))]">Format</span>
-                  <p className="text-[hsl(var(--beta-text-primary))] font-medium">{tournament.bracket_type?.replace('_', ' ')}</p>
+                  <p className="text-[hsl(var(--beta-text-primary))] font-medium">{tournament.bracket_type?.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())}</p>
                 </div>
                 <div>
                   <span className="text-[hsl(var(--beta-text-muted))]">Team Size</span>
@@ -966,7 +966,7 @@ const BetaTournamentDetail = () => {
                     <li>All players must be checked in before the tournament starts</li>
                     <li>Teams must have the required number of players ({tournament.team_size})</li>
                     <li>Match format: {tournament.match_format}</li>
-                    <li>Bracket type: {tournament.bracket_type?.replace('_', ' ')}</li>
+                    <li>Bracket type: {tournament.bracket_type?.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())}</li>
                   </ul>
                 </div>
                 <div className="p-4 rounded-lg bg-[hsl(var(--beta-surface-3))]">
