@@ -88,13 +88,6 @@ export const BetaTeamCard = ({ team, showStats = true }: BetaTeamCardProps) => {
           <h3 className="font-bold text-[hsl(var(--beta-text-primary))] text-lg">{team.name}</h3>
         </div>
 
-        {/* Description */}
-        {team.description && (
-          <p className="text-[hsl(var(--beta-text-muted))] text-sm mb-4 line-clamp-2">
-            {team.description}
-          </p>
-        )}
-
         {/* Stats */}
         {showStats && (
           <div className="grid grid-cols-3 gap-2 mb-4">
@@ -119,9 +112,9 @@ export const BetaTeamCard = ({ team, showStats = true }: BetaTeamCardProps) => {
         {/* Members List */}
         {team.members && team.members.length > 0 && (
           <div className="pt-3 border-t border-[hsl(var(--beta-border))]">
-            <p className="text-xs text-[hsl(var(--beta-text-muted))] mb-2 font-medium">Team Members</p>
+            <p className="text-xs text-[hsl(var(--beta-text-muted))] mb-2 font-medium">Team Roster</p>
             <div className="flex flex-col gap-1.5">
-              {team.members.slice(0, 5).map((member) => {
+              {team.members.slice(0, 6).map((member) => {
                 const role = member.role as TeamMemberRole;
                 const roleDisplay = getRoleDisplay(role);
                 return (
@@ -129,18 +122,25 @@ export const BetaTeamCard = ({ team, showStats = true }: BetaTeamCardProps) => {
                     key={member.user_id}
                     className="flex items-center justify-between text-sm"
                   >
-                    <span className="text-[hsl(var(--beta-text-secondary))] truncate">
-                      {member.users?.discord_username || 'Unknown'}
-                    </span>
-                    <span className={`text-xs font-medium ${getRoleBadgeColor(role)}`}>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-[hsl(var(--beta-text-secondary))] truncate">
+                        {member.users?.discord_username || 'Unknown'}
+                      </span>
+                      {member.users?.current_rank && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-[hsl(var(--beta-surface-3))] text-[hsl(var(--beta-text-muted))] shrink-0">
+                          {member.users.current_rank}
+                        </span>
+                      )}
+                    </div>
+                    <span className={`text-xs font-medium shrink-0 ${getRoleBadgeColor(role)}`}>
                       {roleDisplay.label}
                     </span>
                   </div>
                 );
               })}
-              {team.members.length > 5 && (
+              {team.members.length > 6 && (
                 <p className="text-xs text-[hsl(var(--beta-text-muted))] text-center mt-1">
-                  +{team.members.length - 5} more
+                  +{team.members.length - 6} more
                 </p>
               )}
             </div>

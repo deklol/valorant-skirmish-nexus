@@ -3030,9 +3030,41 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_add_team_member: {
+        Args: {
+          p_role?: Database["public"]["Enums"]["team_member_role"]
+          p_team_id: string
+          p_user_id: string
+        }
+        Returns: boolean
+      }
+      admin_delete_team: { Args: { p_team_id: string }; Returns: boolean }
       admin_force_check_in: {
         Args: { p_team_id: string; p_tournament_id: string }
         Returns: Json
+      }
+      admin_remove_team_member: {
+        Args: { p_team_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      admin_update_member_role: {
+        Args: {
+          p_role: Database["public"]["Enums"]["team_member_role"]
+          p_team_id: string
+          p_user_id: string
+        }
+        Returns: boolean
+      }
+      admin_update_team: {
+        Args: {
+          p_captain_id?: string
+          p_description?: string
+          p_name?: string
+          p_owner_id?: string
+          p_status?: Database["public"]["Enums"]["team_lifecycle_status"]
+          p_team_id: string
+        }
+        Returns: boolean
       }
       advance_match_winner_secure: {
         Args: {

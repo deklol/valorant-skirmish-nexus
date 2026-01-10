@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Users, Trophy, MessageSquare, Map, ShieldAlert, Wrench, BookOpen, FileText, Stethoscope, Play, TestTube, Award, Bot, BarChart3, Activity, Video } from "lucide-react";
+import { Settings, Users, Trophy, MessageSquare, Map, ShieldAlert, Wrench, BookOpen, FileText, Stethoscope, Play, TestTube, Award, Bot, BarChart3, Activity, Video, Shield } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import DiscordWebhookManager from "@/components/DiscordWebhookManager";
 import CreateTournamentDialog from "@/components/CreateTournamentDialog";
@@ -32,6 +32,7 @@ import SponsorManager from "@/components/admin/SponsorManager";
 import { VODManager } from "@/components/admin/VODManager";
 import { RankWeightSyncManager } from "@/components/admin/RankWeightSyncManager";
 import { TeamSessionMedicManager } from "@/components/TeamSessionMedicManager";
+import TeamMedicManager from "@/components/admin/TeamMedicManager";
 import AIAssistant from "@/components/ai/AIAssistant";
 
 const Admin = () => {
@@ -125,9 +126,13 @@ const Admin = () => {
               <Settings className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Shop Medic</span>
             </TabsTrigger>
-            <TabsTrigger value="team-medic" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
+            <TabsTrigger value="team-session-medic" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
               <Users className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Team Session Medic</span>
+            </TabsTrigger>
+            <TabsTrigger value="team-manager" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
+              <Shield className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Team Manager</span>
             </TabsTrigger>
             
             {/* Enhanced Phase 2-4 Tools */}
@@ -203,8 +208,12 @@ const Admin = () => {
             <ShopMedicManager />
           </TabsContent>
 
-          <TabsContent value="team-medic">
+          <TabsContent value="team-session-medic">
             <TeamSessionMedicManager />
+          </TabsContent>
+
+          <TabsContent value="team-manager">
+            <TeamMedicManager />
           </TabsContent>
 
           {/* Phase 2-4 Enhanced Tools */}
