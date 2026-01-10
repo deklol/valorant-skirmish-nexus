@@ -513,7 +513,7 @@ const BetaProfile = () => {
                           <div className="cursor-pointer">
                             <FaceitRankIcon 
                               level={faceitStats.cs2_skill_level} 
-                              size="sm" 
+                              size="sm-md" 
                               showGlow={false}
                             />
                           </div>
