@@ -738,20 +738,6 @@ const BetaProfile = () => {
         {!isPrivate && profileId && (
           <FaceitStatsDisplay userId={profileId} />
         )}
-
-        {/* View Full Profile CTA */}
-        {!isPrivate && (
-          <GlassCard className="p-6 text-center">
-            <p className="text-[hsl(var(--beta-text-muted))] mb-4">
-              Edit your profile settings and notifications
-            </p>
-            <Link to={isOwnProfile ? '/profile' : `/profile/${profileId}`}>
-              <BetaButton variant="outline">
-                View Full Profile Settings
-              </BetaButton>
-            </Link>
-          </GlassCard>
-        )}
       </div>
     </GradientBackground>
   );
