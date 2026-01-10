@@ -20,12 +20,13 @@ import { BetaBalanceAnalysis } from "@/components-beta/BetaBalanceAnalysis";
 import { BetaTeamSeedingManager, BetaTeamCheckInManager, BetaBracketRepairTool } from "@/components-beta/admin";
 import BracketGenerator from "@/components/BracketGenerator";
 import { BetaDisputeManager } from "@/components-beta/dispute";
+import { BetaTeamTournamentRegistration } from "@/components-beta/registration";
 
-// One-Click Registration Component
-const RegistrationSection = ({ 
-  tournamentId, isUserSignedUp, currentParticipants, maxParticipants, registrationType, onRefresh 
+// One-Click Registration Component for Solo Tournaments
+const SoloRegistrationSection = ({ 
+  tournamentId, isUserSignedUp, currentParticipants, maxParticipants, onRefresh 
 }: { 
-  tournamentId: string; isUserSignedUp: boolean; currentParticipants: number; maxParticipants: number; registrationType: string; onRefresh: () => void;
+  tournamentId: string; isUserSignedUp: boolean; currentParticipants: number; maxParticipants: number; onRefresh: () => void;
 }) => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -84,6 +85,45 @@ const RegistrationSection = ({
         <div className="w-full h-2 bg-[hsl(var(--beta-surface-4))] rounded-full overflow-hidden">
           <div className="h-full bg-gradient-to-r from-[hsl(var(--beta-accent))] to-[hsl(var(--beta-secondary))] transition-all duration-500"
             style={{ width: `${Math.min((currentParticipants / maxParticipants) * 100, 100)}%` }} />
+        </div>
+      </div>
+    </GlassCard>
+  );
+};
+
+// Team Tournament Registration Section Wrapper
+const TeamRegistrationSection = ({ 
+  tournamentId, currentTeamCount, maxTeams, onRefresh 
+}: { 
+  tournamentId: string; currentTeamCount: number; maxTeams: number; onRefresh: () => void;
+}) => {
+  return (
+    <GlassCard className="p-6">
+      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+        <div className="flex-1">
+          <h3 className="text-lg font-semibold text-[hsl(var(--beta-text-primary))] mb-1">
+            Team Registration
+          </h3>
+          <p className="text-sm text-[hsl(var(--beta-text-muted))] mb-4">
+            {maxTeams - currentTeamCount} team slots remaining
+          </p>
+          <BetaTeamTournamentRegistration
+            tournamentId={tournamentId}
+            maxTeams={maxTeams}
+            currentTeamCount={currentTeamCount}
+            registrationOpen={true}
+            onRegistrationChange={onRefresh}
+          />
+        </div>
+        <div className="md:w-48">
+          <div className="flex justify-between text-xs text-[hsl(var(--beta-text-muted))] mb-1">
+            <span>{currentTeamCount} teams</span>
+            <span>{maxTeams} max</span>
+          </div>
+          <div className="w-full h-2 bg-[hsl(var(--beta-surface-4))] rounded-full overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-[hsl(var(--beta-accent))] to-[hsl(var(--beta-secondary))] transition-all duration-500"
+              style={{ width: `${Math.min((currentTeamCount / maxTeams) * 100, 100)}%` }} />
+          </div>
         </div>
       </div>
     </GlassCard>
@@ -367,6 +407,44 @@ const BetaTournamentDetail = () => {
   const { tournament, teams, matches, signups, loading } = useTournamentData();
   const { pageViews } = useTournamentPageViews(tournament?.id);
   const [activeTab, setActiveTab] = useState('overview');
+  const [teamRegistrationCount, setTeamRegistrationCount] = useState(0);
+
+  // Fetch team registration count for team tournaments
+  useEffect(() => {
+    const fetchTeamRegistrations = async () => {
+      if (!tournament?.id || tournament.registration_type !== 'team') return;
+      
+      const { count, error } = await supabase
+        .from('team_tournament_registrations')
+        .select('id', { count: 'exact', head: true })
+        .eq('tournament_id', tournament.id);
+      
+      if (!error && count !== null) {
+        setTeamRegistrationCount(count);
+      }
+    };
+    
+    fetchTeamRegistrations();
+
+    // Subscribe to realtime updates
+    if (tournament?.id && tournament.registration_type === 'team') {
+      const channel = supabase
+        .channel(`team-registrations-${tournament.id}`)
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'team_tournament_registrations',
+          filter: `tournament_id=eq.${tournament.id}`,
+        }, () => {
+          fetchTeamRegistrations();
+        })
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [tournament?.id, tournament?.registration_type]);
 
   const getStatusVariant = (status: string) => {
     switch (status) {
@@ -415,8 +493,9 @@ const BetaTournamentDetail = () => {
     );
   }
 
-  const maxParticipants = tournament.registration_type === 'team' ? tournament.max_teams || 8 : tournament.max_players;
-  const currentParticipants = signups?.length || 0;
+  const isTeamTournament = tournament.registration_type === 'team';
+  const maxParticipants = isTeamTournament ? tournament.max_teams || 8 : tournament.max_players;
+  const currentParticipants = isTeamTournament ? teamRegistrationCount : (signups?.length || 0);
   const completedMatches = matches?.filter(m => m.status === 'completed').length || 0;
 
   const formatDateTime = (dateStr: string | null) => {
@@ -533,14 +612,31 @@ const BetaTournamentDetail = () => {
 
         {/* Registration Status */}
         {tournament.status === 'open' && (
-          <RegistrationSection 
-            tournamentId={tournament.id}
-            isUserSignedUp={isUserSignedUp}
-            currentParticipants={currentParticipants}
-            maxParticipants={maxParticipants}
-            registrationType={tournament.registration_type}
-            onRefresh={() => window.location.reload()}
-          />
+          isTeamTournament ? (
+            <TeamRegistrationSection 
+              tournamentId={tournament.id}
+              currentTeamCount={teamRegistrationCount}
+              maxTeams={tournament.max_teams || 8}
+              onRefresh={() => {
+                // Refetch team registrations
+                supabase
+                  .from('team_tournament_registrations')
+                  .select('id', { count: 'exact', head: true })
+                  .eq('tournament_id', tournament.id)
+                  .then(({ count }) => {
+                    if (count !== null) setTeamRegistrationCount(count);
+                  });
+              }}
+            />
+          ) : (
+            <SoloRegistrationSection 
+              tournamentId={tournament.id}
+              isUserSignedUp={isUserSignedUp}
+              currentParticipants={currentParticipants}
+              maxParticipants={maxParticipants}
+              onRefresh={() => window.location.reload()}
+            />
+          )
         )}
 
         {/* Tabs Navigation */}

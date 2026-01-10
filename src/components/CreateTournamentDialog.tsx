@@ -213,7 +213,7 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
               />
 
               <div className="space-y-2">
-                <Label htmlFor="registration_type" className="text-white">Registration Type</Label>
+                <Label htmlFor="registration_type" className="text-white">Tournament Type</Label>
                 <Select
                   value={formData.registration_type}
                   onValueChange={(value: "solo" | "team") => setFormData(prev => ({ ...prev, registration_type: value }))}
@@ -222,14 +222,14 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="solo">Solo Registration (Admin creates teams)</SelectItem>
-                    <SelectItem value="team">Team Registration (Pre-formed teams)</SelectItem>
+                    <SelectItem value="solo">Solo (Skirmish)</SelectItem>
+                    <SelectItem value="team">Team Tournament</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-slate-400 text-sm">
                   {formData.registration_type === "solo" 
                     ? "Players sign up individually and admins create balanced teams"
-                    : "Teams sign up as complete units (requires existing teams)"
+                    : "Pre-formed teams register together as complete units"
                   }
                 </p>
               </div>
@@ -254,25 +254,53 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
                   </Select>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="max_players" className="text-white">Max Players</Label>
-                  <StandardInput
-                    id="max_players"
-                    type="number"
-                    value={formData.max_players}
-                    onChange={(e) => {
-                      const maxPlayers = parseInt(e.target.value);
-                      setFormData(prev => ({
-                        ...prev,
-                        max_players: maxPlayers,
-                        max_teams: Math.floor(maxPlayers / prev.team_size)
-                      }));
-                    }}
-                    className="bg-slate-700 border-slate-600 text-white"
-                    min="1"
-                    required
-                  />
-                </div>
+                {formData.registration_type === "team" ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="max_teams" className="text-white">Max Teams</Label>
+                    <StandardInput
+                      id="max_teams"
+                      type="number"
+                      value={formData.max_teams}
+                      onChange={(e) => {
+                        const maxTeams = parseInt(e.target.value) || 2;
+                        setFormData(prev => ({
+                          ...prev,
+                          max_teams: maxTeams,
+                          max_players: maxTeams * prev.team_size
+                        }));
+                      }}
+                      className="bg-slate-700 border-slate-600 text-white"
+                      min="2"
+                      required
+                    />
+                    <p className="text-slate-400 text-xs">
+                      {formData.max_teams * formData.team_size} total players
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label htmlFor="max_players" className="text-white">Max Players</Label>
+                    <StandardInput
+                      id="max_players"
+                      type="number"
+                      value={formData.max_players}
+                      onChange={(e) => {
+                        const maxPlayers = parseInt(e.target.value);
+                        setFormData(prev => ({
+                          ...prev,
+                          max_players: maxPlayers,
+                          max_teams: Math.floor(maxPlayers / prev.team_size)
+                        }));
+                      }}
+                      className="bg-slate-700 border-slate-600 text-white"
+                      min="1"
+                      required
+                    />
+                    <p className="text-slate-400 text-xs">
+                      {formData.max_teams} teams will be created
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">

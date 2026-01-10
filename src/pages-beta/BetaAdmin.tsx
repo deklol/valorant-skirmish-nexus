@@ -128,7 +128,6 @@ const BetaAdmin = () => {
         return <VetoMedicManager />;
       case "bracket-medic":
         return <BracketMedicWithSelector />;
-        return <BracketMedicManager />;
       case "match-medic":
         return <MatchMedicManager />;
       case "achievement-medic":
