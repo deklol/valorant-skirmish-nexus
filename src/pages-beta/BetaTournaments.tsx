@@ -227,7 +227,7 @@ const BetaTournaments = () => {
                     </div>
                   </div>
                 ) : (
-                  <div className="relative h-24 bg-gradient-to-br from-[hsl(var(--beta-accent)/0.2)] via-[hsl(var(--beta-surface-3))] to-[hsl(var(--beta-secondary)/0.2)] overflow-hidden">
+                  <div className="relative h-36 bg-gradient-to-br from-[hsl(var(--beta-accent)/0.2)] via-[hsl(var(--beta-surface-3))] to-[hsl(var(--beta-secondary)/0.2)] overflow-hidden">
                     <div className="absolute inset-0 flex items-center justify-center">
                       <Trophy className="w-10 h-10 text-[hsl(var(--beta-text-muted)/0.3)]" />
                     </div>
