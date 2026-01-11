@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Upload, X, Image as ImageIcon } from "lucide-react";
 
 // use Announcement titles from public announcements table for selection
 type Announcement = { id: string; title: string };
@@ -16,6 +16,8 @@ const AppSettingsManager: React.FC = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Settings state
   const [appName, setAppName] = useState("");
@@ -29,6 +31,9 @@ const AppSettingsManager: React.FC = () => {
   const [discordLink, setDiscordLink] = useState("");
   const [twitterLink, setTwitterLink] = useState("");
   const [youtubeLink, setYoutubeLink] = useState("");
+  
+  // Sidebar logo state
+  const [sidebarLogoUrl, setSidebarLogoUrl] = useState("");
 
   // Fetch settings on mount
   useEffect(() => {
@@ -52,6 +57,7 @@ const AppSettingsManager: React.FC = () => {
             discord_link: "",
             twitter_link: "",
             youtube_link: "",
+            sidebar_logo_url: "",
           },
         ]);
         setAppName("Tournament App");
@@ -62,6 +68,7 @@ const AppSettingsManager: React.FC = () => {
         setDiscordLink("");
         setTwitterLink("");
         setYoutubeLink("");
+        setSidebarLogoUrl("");
       } else {
         toast({ title: "Error loading settings", description: error.message, variant: "destructive" });
       }
@@ -74,6 +81,7 @@ const AppSettingsManager: React.FC = () => {
       setDiscordLink((data as any).discord_link || "");
       setTwitterLink((data as any).twitter_link || "");
       setYoutubeLink((data as any).youtube_link || "");
+      setSidebarLogoUrl((data as any).sidebar_logo_url || "");
     }
     setLoading(false);
   };
@@ -81,6 +89,64 @@ const AppSettingsManager: React.FC = () => {
   const fetchAnnouncements = async () => {
     const { data, error } = await supabase.from("announcements").select("id,title").order("created_at", { ascending: false });
     if (!error && data) setAnnouncements(data);
+  };
+
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({ title: "Invalid file type", description: "Please upload an image file", variant: "destructive" });
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Please upload an image smaller than 2MB", variant: "destructive" });
+      return;
+    }
+
+    setUploadingLogo(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `sidebar-logo-${Date.now()}.${fileExt}`;
+      const filePath = `branding/${fileName}`;
+
+      // Upload to Supabase storage
+      const { error: uploadError } = await supabase.storage
+        .from('public-assets')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) {
+        // Try creating the bucket if it doesn't exist
+        if (uploadError.message.includes('not found')) {
+          toast({ title: "Storage bucket not found", description: "Please ensure the 'public-assets' bucket exists", variant: "destructive" });
+        } else {
+          throw uploadError;
+        }
+        return;
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('public-assets')
+        .getPublicUrl(filePath);
+
+      setSidebarLogoUrl(publicUrl);
+      toast({ title: "Logo uploaded", description: "Don't forget to save settings!" });
+    } catch (error: any) {
+      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+    } finally {
+      setUploadingLogo(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleRemoveLogo = () => {
+    setSidebarLogoUrl("");
   };
 
   const handleSave = async () => {
@@ -102,6 +168,7 @@ const AppSettingsManager: React.FC = () => {
         discord_link: discordLink || null,
         twitter_link: twitterLink || null,
         youtube_link: youtubeLink || null,
+        sidebar_logo_url: sidebarLogoUrl || null,
         last_updated_at: new Date().toISOString(),
       })
       .eq("id", data.id);
@@ -131,6 +198,73 @@ const AppSettingsManager: React.FC = () => {
             className="bg-slate-700 border-slate-600 text-white mt-1"
           />
           <span className="text-xs text-slate-400">This name will appear in the navigation and home page.</span>
+        </div>
+
+        {/* Sidebar Logo Upload */}
+        <div className="border-t border-slate-600 pt-4">
+          <div className="flex items-center gap-2 mb-3">
+            <ImageIcon className="w-4 h-4 text-slate-400" />
+            <Label className="text-slate-300 text-base">Sidebar Logo</Label>
+          </div>
+          
+          <div className="flex items-start gap-4">
+            {/* Logo Preview */}
+            <div className="w-24 h-24 rounded-lg bg-slate-700 border border-slate-600 flex items-center justify-center overflow-hidden">
+              {sidebarLogoUrl ? (
+                <img src={sidebarLogoUrl} alt="Sidebar Logo" className="w-full h-full object-contain" />
+              ) : (
+                <span className="text-slate-500 text-xs text-center px-2">No logo</span>
+              )}
+            </div>
+            
+            {/* Upload Controls */}
+            <div className="flex-1 space-y-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleLogoUpload}
+                className="hidden"
+              />
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingLogo || loading}
+                  className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  {uploadingLogo ? "Uploading..." : "Upload Logo"}
+                </Button>
+                {sidebarLogoUrl && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRemoveLogo}
+                    className="bg-slate-700 border-slate-600 text-red-400 hover:bg-red-900/20"
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    Remove
+                  </Button>
+                )}
+              </div>
+              <p className="text-xs text-slate-400">
+                Recommended: PNG with transparency, max 2MB. This logo appears centered at the top of the sidebar.
+              </p>
+              
+              {/* Manual URL input */}
+              <Input
+                value={sidebarLogoUrl}
+                onChange={(e) => setSidebarLogoUrl(e.target.value)}
+                disabled={loading}
+                placeholder="Or paste image URL directly..."
+                className="bg-slate-700 border-slate-600 text-white text-sm"
+              />
+            </div>
+          </div>
         </div>
 
         {/* Announcement Selector */}

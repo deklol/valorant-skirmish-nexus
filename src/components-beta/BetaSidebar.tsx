@@ -15,7 +15,6 @@ import {
   ChevronRight,
   Settings,
   UsersRound,
-  ExternalLink,
   Radio,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -89,6 +88,7 @@ const BetaSidebar = () => {
   const [liveMatches, setLiveMatches] = useState<LiveMatch[]>([]);
   const [latestTournament, setLatestTournament] = useState<LatestTournament | null>(null);
   const [socialLinks, setSocialLinks] = useState<SocialLinks>({ discord_link: null, twitter_link: null, youtube_link: null });
+  const [sidebarLogoUrl, setSidebarLogoUrl] = useState<string | null>(null);
 
   // Build user items dynamically based on team membership
   const userItems = [
@@ -150,10 +150,10 @@ const BetaSidebar = () => {
         });
       }
 
-      // Fetch social links
+      // Fetch social links and logo
       const { data: settingsData } = await supabase
         .from("app_settings")
-        .select("discord_link, twitter_link, youtube_link")
+        .select("discord_link, twitter_link, youtube_link, sidebar_logo_url")
         .limit(1)
         .single();
 
@@ -163,6 +163,7 @@ const BetaSidebar = () => {
           twitter_link: settingsData.twitter_link,
           youtube_link: settingsData.youtube_link,
         });
+        setSidebarLogoUrl((settingsData as any).sidebar_logo_url || null);
       }
     };
 
@@ -196,16 +197,16 @@ const BetaSidebar = () => {
       to={item.href}
       end={item.href === "/beta"}
       className={cn(
-        "flex items-center gap-3 px-3 py-2.5 rounded-[var(--beta-radius-lg)] transition-all relative",
+        "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 relative",
         "text-sm font-medium",
         isActive(item.href)
-          ? "bg-gradient-to-r from-[hsl(var(--beta-accent))] to-[hsl(var(--beta-accent-secondary))] text-[hsl(var(--beta-surface-1))] shadow-lg shadow-[hsl(var(--beta-accent)/0.3)]"
-          : "text-[hsl(var(--beta-text-secondary))] hover:text-[hsl(var(--beta-text-primary))] hover:bg-[hsl(var(--beta-surface-3))]",
+          ? "bg-[hsl(38_92%_50%)] text-[hsl(220_20%_4%)]"
+          : "text-[hsl(220_10%_65%)] hover:text-[hsl(40_20%_96%)] hover:bg-[hsl(220_16%_12%)]",
         collapsed && "justify-center px-2"
       )}
       title={collapsed ? item.title : undefined}
     >
-      <item.icon className={cn("h-5 w-5 shrink-0", isActive(item.href) && "drop-shadow-sm")} />
+      <item.icon className="h-5 w-5 shrink-0" />
       {!collapsed && <span>{item.title}</span>}
       {showLiveBadge && hasLiveTournament && (
         <span className={cn(
@@ -226,31 +227,42 @@ const BetaSidebar = () => {
     <div
       className={cn(
         "fixed left-0 top-0 h-screen z-40 flex flex-col",
-        "bg-gradient-to-b from-[hsl(var(--beta-surface-2))] to-[hsl(var(--beta-surface-1))]",
-        "border-r border-[hsl(var(--beta-border))]",
+        "bg-[hsl(220_18%_7%)] border-r border-[hsl(220_15%_15%)]",
         "transition-all duration-300 ease-out",
         collapsed ? "w-[72px]" : "w-64"
       )}
     >
       {/* Logo Header */}
-      <div className="h-[60px] flex items-center justify-between px-4 border-b border-[hsl(var(--beta-border))] bg-[hsl(var(--beta-surface-1)/0.5)]">
+      <div className="h-[60px] flex items-center justify-between px-4 border-b border-[hsl(220_15%_15%)]">
         {!collapsed && (
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[hsl(var(--beta-accent))] to-[hsl(var(--beta-accent-secondary))] flex items-center justify-center shadow-lg shadow-[hsl(var(--beta-accent)/0.3)]">
-              <span className="text-sm font-black text-[hsl(var(--beta-surface-1))]">T</span>
-            </div>
-            <span className="text-lg font-bold bg-gradient-to-r from-[hsl(var(--beta-accent))] to-[hsl(var(--beta-accent-secondary))] bg-clip-text text-transparent">
-              TLR
-            </span>
+          <div className="flex items-center justify-center flex-1">
+            {sidebarLogoUrl ? (
+              <img 
+                src={sidebarLogoUrl} 
+                alt="Logo" 
+                className="h-10 w-auto object-contain"
+              />
+            ) : (
+              <span className="text-xl font-bold text-[hsl(38_92%_50%)]">
+                TLR
+              </span>
+            )}
           </div>
+        )}
+        {collapsed && sidebarLogoUrl && (
+          <img 
+            src={sidebarLogoUrl} 
+            alt="Logo" 
+            className="h-8 w-8 object-contain mx-auto"
+          />
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}
           className={cn(
-            "p-2 rounded-[var(--beta-radius-md)] transition-colors",
-            "text-[hsl(var(--beta-text-muted))] hover:text-[hsl(var(--beta-text-primary))]",
-            "hover:bg-[hsl(var(--beta-surface-3))]",
-            collapsed && "mx-auto"
+            "p-2 rounded-lg transition-colors",
+            "text-[hsl(220_10%_45%)] hover:text-[hsl(40_20%_96%)]",
+            "hover:bg-[hsl(220_16%_12%)]",
+            collapsed && !sidebarLogoUrl && "mx-auto"
           )}
         >
           {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
@@ -261,7 +273,7 @@ const BetaSidebar = () => {
       <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
         {/* Section Header */}
         {!collapsed && (
-          <p className="text-[10px] font-semibold text-[hsl(var(--beta-text-muted))] uppercase tracking-wider px-3 mb-2">
+          <p className="text-[10px] font-semibold text-[hsl(38_92%_50%)] uppercase tracking-wider px-3 mb-3">
             Navigation
           </p>
         )}
@@ -276,9 +288,9 @@ const BetaSidebar = () => {
 
         {user && (
           <>
-            <div className="my-4 border-t border-[hsl(var(--beta-border))]" />
+            <div className="my-4 border-t border-[hsl(220_15%_15%)]" />
             {!collapsed && (
-              <p className="text-[10px] font-semibold text-[hsl(var(--beta-text-muted))] uppercase tracking-wider px-3 mb-2">
+              <p className="text-[10px] font-semibold text-[hsl(38_92%_50%)] uppercase tracking-wider px-3 mb-3">
                 Account
               </p>
             )}
@@ -290,7 +302,6 @@ const BetaSidebar = () => {
 
         {isAdmin && (
           <>
-            {!user && <div className="my-4 border-t border-[hsl(var(--beta-border))]" />}
             {adminItems.map((item) => (
               <NavItem key={item.href} item={item} />
             ))}
@@ -300,7 +311,7 @@ const BetaSidebar = () => {
         {/* Live Matches Section - Only when expanded */}
         {!collapsed && liveMatches.length > 0 && (
           <>
-            <div className="my-4 border-t border-[hsl(var(--beta-border))]" />
+            <div className="my-4 border-t border-[hsl(220_15%_15%)]" />
             <div className="px-1">
               <div className="flex items-center gap-2 px-2 mb-2">
                 <Radio className="h-3 w-3 text-red-400" />
@@ -313,20 +324,20 @@ const BetaSidebar = () => {
                   <Link
                     key={match.id}
                     to={`/beta/match/${match.id}`}
-                    className="block p-2 rounded-lg bg-[hsl(var(--beta-surface-3))] hover:bg-[hsl(var(--beta-surface-4))] transition-colors border border-[hsl(var(--beta-border))]"
+                    className="block p-2 rounded-lg bg-[hsl(220_16%_10%)] hover:bg-[hsl(220_16%_12%)] transition-colors border border-[hsl(220_15%_15%)]"
                   >
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-[hsl(var(--beta-text-primary))] font-medium truncate max-w-[70px]">
+                      <span className="text-[hsl(40_20%_96%)] font-medium truncate max-w-[70px]">
                         {match.team1_name}
                       </span>
-                      <span className="text-[hsl(var(--beta-accent))] font-bold px-2">
+                      <span className="text-[hsl(38_92%_50%)] font-bold px-2">
                         {match.score_team1} - {match.score_team2}
                       </span>
-                      <span className="text-[hsl(var(--beta-text-primary))] font-medium truncate max-w-[70px] text-right">
+                      <span className="text-[hsl(40_20%_96%)] font-medium truncate max-w-[70px] text-right">
                         {match.team2_name}
                       </span>
                     </div>
-                    <p className="text-[10px] text-[hsl(var(--beta-text-muted))] mt-1 truncate">
+                    <p className="text-[10px] text-[hsl(220_10%_45%)] mt-1 truncate">
                       {match.tournament_name}
                     </p>
                   </Link>
@@ -339,17 +350,17 @@ const BetaSidebar = () => {
         {/* Latest Tournament Card - Only when expanded */}
         {!collapsed && latestTournament && (
           <>
-            <div className="my-4 border-t border-[hsl(var(--beta-border))]" />
+            <div className="my-4 border-t border-[hsl(220_15%_15%)]" />
             <div className="px-1">
-              <p className="text-[10px] font-semibold text-[hsl(var(--beta-text-muted))] uppercase tracking-wider px-2 mb-2">
+              <p className="text-[10px] font-semibold text-[hsl(38_92%_50%)] uppercase tracking-wider px-2 mb-2">
                 Latest Tournament
               </p>
               <Link
                 to={`/beta/tournament/${latestTournament.id}`}
-                className="block p-3 rounded-lg bg-gradient-to-br from-[hsl(var(--beta-surface-3))] to-[hsl(var(--beta-surface-2))] border border-[hsl(var(--beta-border))] hover:border-[hsl(var(--beta-accent)/0.3)] transition-colors group"
+                className="block p-3 rounded-lg bg-[hsl(220_16%_10%)] border border-[hsl(220_15%_15%)] hover:border-[hsl(38_70%_30%)] transition-colors group"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <p className="text-sm font-medium text-[hsl(var(--beta-text-primary))] truncate flex-1">
+                  <p className="text-sm font-medium text-[hsl(40_20%_96%)] truncate flex-1">
                     {latestTournament.name}
                   </p>
                   <span className={cn(
@@ -362,11 +373,11 @@ const BetaSidebar = () => {
                   </span>
                 </div>
                 <div className="flex items-center justify-between mt-2">
-                  <span className="text-xs text-[hsl(var(--beta-text-muted))]">
+                  <span className="text-xs text-[hsl(220_10%_45%)]">
                     {latestTournament.current_signups}
                     {latestTournament.max_participants && `/${latestTournament.max_participants}`} players
                   </span>
-                  <ChevronRight className="h-4 w-4 text-[hsl(var(--beta-text-muted))] group-hover:text-[hsl(var(--beta-accent))] transition-colors" />
+                  <ChevronRight className="h-4 w-4 text-[hsl(220_10%_45%)] group-hover:text-[hsl(38_92%_50%)] transition-colors" />
                 </div>
               </Link>
             </div>
@@ -375,46 +386,48 @@ const BetaSidebar = () => {
       </nav>
 
       {/* Footer with Social Links */}
-      <div className="border-t border-[hsl(var(--beta-border))] p-3">
+      <div className="border-t border-[hsl(220_15%_15%)] p-3">
         {!collapsed ? (
           <div className="space-y-3">
             {/* Social Icons Row */}
-            <div className="flex items-center justify-center gap-2">
-              {socialLinks.discord_link && (
-                <a
-                  href={socialLinks.discord_link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-2 rounded-lg bg-[hsl(var(--beta-surface-3))] hover:bg-[#5865F2] text-[hsl(var(--beta-text-muted))] hover:text-white transition-all"
-                  title="Discord"
-                >
-                  <DiscordIcon className="h-4 w-4" />
-                </a>
-              )}
-              {socialLinks.twitter_link && (
-                <a
-                  href={socialLinks.twitter_link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-2 rounded-lg bg-[hsl(var(--beta-surface-3))] hover:bg-[hsl(var(--beta-surface-4))] text-[hsl(var(--beta-text-muted))] hover:text-white transition-all"
-                  title="X / Twitter"
-                >
-                  <TwitterIcon className="h-4 w-4" />
-                </a>
-              )}
-              {socialLinks.youtube_link && (
-                <a
-                  href={socialLinks.youtube_link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-2 rounded-lg bg-[hsl(var(--beta-surface-3))] hover:bg-[#FF0000] text-[hsl(var(--beta-text-muted))] hover:text-white transition-all"
-                  title="YouTube"
-                >
-                  <YoutubeIcon className="h-4 w-4" />
-                </a>
-              )}
-            </div>
-            <p className="text-[10px] text-center text-[hsl(var(--beta-text-muted))]">Beta Preview</p>
+            {(socialLinks.discord_link || socialLinks.twitter_link || socialLinks.youtube_link) && (
+              <div className="flex items-center justify-center gap-2">
+                {socialLinks.discord_link && (
+                  <a
+                    href={socialLinks.discord_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 rounded-lg bg-[hsl(220_16%_10%)] hover:bg-[#5865F2] text-[hsl(220_10%_45%)] hover:text-white transition-all"
+                    title="Discord"
+                  >
+                    <DiscordIcon className="h-4 w-4" />
+                  </a>
+                )}
+                {socialLinks.twitter_link && (
+                  <a
+                    href={socialLinks.twitter_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 rounded-lg bg-[hsl(220_16%_10%)] hover:bg-[hsl(220_16%_14%)] text-[hsl(220_10%_45%)] hover:text-white transition-all"
+                    title="X / Twitter"
+                  >
+                    <TwitterIcon className="h-4 w-4" />
+                  </a>
+                )}
+                {socialLinks.youtube_link && (
+                  <a
+                    href={socialLinks.youtube_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 rounded-lg bg-[hsl(220_16%_10%)] hover:bg-[#FF0000] text-[hsl(220_10%_45%)] hover:text-white transition-all"
+                    title="YouTube"
+                  >
+                    <YoutubeIcon className="h-4 w-4" />
+                  </a>
+                )}
+              </div>
+            )}
+            <p className="text-[10px] text-center text-[hsl(220_10%_45%)]">Beta Preview</p>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-2">
@@ -423,7 +436,7 @@ const BetaSidebar = () => {
                 href={socialLinks.discord_link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-2 rounded-lg bg-[hsl(var(--beta-surface-3))] hover:bg-[#5865F2] text-[hsl(var(--beta-text-muted))] hover:text-white transition-all"
+                className="p-2 rounded-lg bg-[hsl(220_16%_10%)] hover:bg-[#5865F2] text-[hsl(220_10%_45%)] hover:text-white transition-all"
                 title="Discord"
               >
                 <DiscordIcon className="h-4 w-4" />
