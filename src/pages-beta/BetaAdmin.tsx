@@ -37,12 +37,15 @@ import { RankWeightSyncManager } from "@/components/admin/RankWeightSyncManager"
 import AdminHelpTab from "@/components/admin/AdminHelpTab";
 import CreateTournamentDialog from "@/components/CreateTournamentDialog";
 import { BetaDisputeManager } from "@/components-beta/dispute";
+import TeamMedicManager from "@/components/admin/TeamMedicManager";
+import { UsersRound } from "lucide-react";
 
 // Tab configuration
 const adminTabs = [
   { id: "overview", label: "Overview", icon: <Settings className="w-4 h-4" />, category: "main" },
   { id: "tournaments", label: "Tournaments", icon: <Trophy className="w-4 h-4" />, category: "management" },
   { id: "users", label: "Users", icon: <Users className="w-4 h-4" />, category: "management" },
+  { id: "teams", label: "Team Manager", icon: <UsersRound className="w-4 h-4" />, category: "management" },
   { id: "maps", label: "Maps", icon: <Map className="w-4 h-4" />, category: "management" },
   { id: "sponsors", label: "Sponsors", icon: <Trophy className="w-4 h-4" />, category: "management" },
   { id: "vods", label: "VODs", icon: <Video className="w-4 h-4" />, category: "management" },
@@ -114,6 +117,8 @@ const BetaAdmin = () => {
         return <TournamentManagement />;
       case "users":
         return <UserManagement />;
+      case "teams":
+        return <TeamMedicManager />;
       case "maps":
         return <MapManager />;
       case "sponsors":

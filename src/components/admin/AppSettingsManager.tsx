@@ -7,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { ExternalLink } from "lucide-react";
 
 // use Announcement titles from public announcements table for selection
 type Announcement = { id: string; title: string };
@@ -23,6 +24,11 @@ const AppSettingsManager: React.FC = () => {
   const [twitchChannel, setTwitchChannel] = useState("");
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [notificationTestMode, setNotificationTestMode] = useState(false);
+  
+  // Social links state
+  const [discordLink, setDiscordLink] = useState("");
+  const [twitterLink, setTwitterLink] = useState("");
+  const [youtubeLink, setYoutubeLink] = useState("");
 
   // Fetch settings on mount
   useEffect(() => {
@@ -43,6 +49,9 @@ const AppSettingsManager: React.FC = () => {
             twitch_channel: "",
             announcement_id: null,
             notification_test_mode: false,
+            discord_link: "",
+            twitter_link: "",
+            youtube_link: "",
           },
         ]);
         setAppName("Tournament App");
@@ -50,6 +59,9 @@ const AppSettingsManager: React.FC = () => {
         setTwitchChannel("");
         setAnnouncementId("none");
         setNotificationTestMode(false);
+        setDiscordLink("");
+        setTwitterLink("");
+        setYoutubeLink("");
       } else {
         toast({ title: "Error loading settings", description: error.message, variant: "destructive" });
       }
@@ -59,6 +71,9 @@ const AppSettingsManager: React.FC = () => {
       setTwitchChannel(data.twitch_channel || "");
       setAnnouncementId(data.announcement_id ? data.announcement_id : "none");
       setNotificationTestMode(Boolean((data as any).notification_test_mode));
+      setDiscordLink((data as any).discord_link || "");
+      setTwitterLink((data as any).twitter_link || "");
+      setYoutubeLink((data as any).youtube_link || "");
     }
     setLoading(false);
   };
@@ -84,6 +99,9 @@ const AppSettingsManager: React.FC = () => {
         twitch_channel: twitchEnabled ? twitchChannel : "",
         announcement_id: announcementId === "none" ? null : announcementId,
         notification_test_mode: notificationTestMode,
+        discord_link: discordLink || null,
+        twitter_link: twitterLink || null,
+        youtube_link: youtubeLink || null,
         last_updated_at: new Date().toISOString(),
       })
       .eq("id", data.id);
@@ -130,6 +148,50 @@ const AppSettingsManager: React.FC = () => {
             </SelectContent>
           </Select>
           <span className="text-xs text-slate-400">Show this announcement on the home page. Edit announcements in Announcements tab.</span>
+        </div>
+
+        {/* Social Links Section */}
+        <div className="border-t border-slate-600 pt-4">
+          <div className="flex items-center gap-2 mb-3">
+            <ExternalLink className="w-4 h-4 text-slate-400" />
+            <Label className="text-slate-300 text-base">Social Links (Sidebar)</Label>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="discord-link" className="text-slate-400 text-xs">Discord Invite URL</Label>
+              <Input
+                id="discord-link"
+                value={discordLink}
+                onChange={(e) => setDiscordLink(e.target.value)}
+                disabled={loading}
+                placeholder="https://discord.gg/..."
+                className="bg-slate-700 border-slate-600 text-white mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="twitter-link" className="text-slate-400 text-xs">X / Twitter URL</Label>
+              <Input
+                id="twitter-link"
+                value={twitterLink}
+                onChange={(e) => setTwitterLink(e.target.value)}
+                disabled={loading}
+                placeholder="https://x.com/..."
+                className="bg-slate-700 border-slate-600 text-white mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="youtube-link" className="text-slate-400 text-xs">YouTube URL</Label>
+              <Input
+                id="youtube-link"
+                value={youtubeLink}
+                onChange={(e) => setYoutubeLink(e.target.value)}
+                disabled={loading}
+                placeholder="https://youtube.com/..."
+                className="bg-slate-700 border-slate-600 text-white mt-1"
+              />
+            </div>
+          </div>
+          <span className="text-xs text-slate-400 mt-1 block">These links appear in the sidebar footer. Leave empty to hide.</span>
         </div>
 
         {/* Twitch Stream Embed */}
