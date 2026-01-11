@@ -122,6 +122,7 @@ export type Database = {
           id: string
           last_updated_at: string | null
           notification_test_mode: boolean
+          sidebar_logo_url: string | null
           twitch_channel: string | null
           twitch_embed_enabled: boolean
           twitter_link: string | null
@@ -134,6 +135,7 @@ export type Database = {
           id?: string
           last_updated_at?: string | null
           notification_test_mode?: boolean
+          sidebar_logo_url?: string | null
           twitch_channel?: string | null
           twitch_embed_enabled?: boolean
           twitter_link?: string | null
@@ -146,6 +148,7 @@ export type Database = {
           id?: string
           last_updated_at?: string | null
           notification_test_mode?: boolean
+          sidebar_logo_url?: string | null
           twitch_channel?: string | null
           twitch_embed_enabled?: boolean
           twitter_link?: string | null
