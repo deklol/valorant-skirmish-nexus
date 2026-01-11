@@ -118,29 +118,38 @@ export type Database = {
         Row: {
           announcement_id: string | null
           app_name: string
+          discord_link: string | null
           id: string
           last_updated_at: string | null
           notification_test_mode: boolean
           twitch_channel: string | null
           twitch_embed_enabled: boolean
+          twitter_link: string | null
+          youtube_link: string | null
         }
         Insert: {
           announcement_id?: string | null
           app_name?: string
+          discord_link?: string | null
           id?: string
           last_updated_at?: string | null
           notification_test_mode?: boolean
           twitch_channel?: string | null
           twitch_embed_enabled?: boolean
+          twitter_link?: string | null
+          youtube_link?: string | null
         }
         Update: {
           announcement_id?: string | null
           app_name?: string
+          discord_link?: string | null
           id?: string
           last_updated_at?: string | null
           notification_test_mode?: boolean
           twitch_channel?: string | null
           twitch_embed_enabled?: boolean
+          twitter_link?: string | null
+          youtube_link?: string | null
         }
         Relationships: [
           {
