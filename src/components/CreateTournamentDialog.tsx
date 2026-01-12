@@ -11,6 +11,8 @@ import { Calendar, Trophy, Map, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import BannerImageInput from "@/components/BannerImageInput";
+import GroupStageConfig from "@/components/GroupStageConfig";
+import { GroupStageConfig as GroupStageConfigType } from "@/utils/groupStageGenerator";
 
 interface CreateTournamentDialogProps {
   open?: boolean;
@@ -24,7 +26,7 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
     description: "",
     banner_image_url: "",
     registration_type: "solo" as "solo" | "team",
-    bracket_type: "single_elimination" as "single_elimination" | "double_elimination" | "swiss" | "round_robin",
+    bracket_type: "single_elimination" as "single_elimination" | "double_elimination" | "swiss" | "round_robin" | "group_stage_knockout",
     match_format: "BO3" as "BO1" | "BO3" | "BO5",
     semifinal_match_format: "default" as "default" | "BO1" | "BO3" | "BO5",
     final_match_format: "default" as "default" | "BO1" | "BO3" | "BO5",
@@ -42,6 +44,11 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
     enable_map_veto: false,
     map_veto_all_matches: false,
     map_veto_final_rounds_only: false,
+  });
+  const [groupStageConfig, setGroupStageConfig] = useState<GroupStageConfigType>({
+    groupCount: 4,
+    groupFormat: 'round_robin',
+    teamsAdvancePerGroup: 2,
   });
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -94,7 +101,12 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
         check_in_required: formData.check_in_required,
         enable_map_veto: formData.enable_map_veto,
         map_veto_required_rounds: formData.map_veto_all_matches ? [] : mapVetoRequiredRounds,
-        status: 'draft' as const
+        status: 'draft' as const,
+        // Group stage settings
+        group_stage_enabled: formData.bracket_type === 'group_stage_knockout',
+        group_count: formData.bracket_type === 'group_stage_knockout' ? groupStageConfig.groupCount : null,
+        group_stage_format: formData.bracket_type === 'group_stage_knockout' ? groupStageConfig.groupFormat : null,
+        teams_advance_per_group: formData.bracket_type === 'group_stage_knockout' ? groupStageConfig.teamsAdvancePerGroup : null,
       };
 
       const { data, error } = await supabase
@@ -244,7 +256,7 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
                 <Label htmlFor="bracket_type" className="text-white">Format</Label>
                 <Select
                   value={formData.bracket_type}
-                  onValueChange={(value: "single_elimination" | "double_elimination" | "swiss" | "round_robin") => setFormData(prev => ({ ...prev, bracket_type: value }))}
+                  onValueChange={(value: "single_elimination" | "double_elimination" | "swiss" | "round_robin" | "group_stage_knockout") => setFormData(prev => ({ ...prev, bracket_type: value }))}
                 >
                   <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                     <SelectValue />
@@ -254,6 +266,7 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
                     <SelectItem value="double_elimination">Double Elimination</SelectItem>
                     <SelectItem value="swiss">Swiss</SelectItem>
                     <SelectItem value="round_robin">Round Robin</SelectItem>
+                    <SelectItem value="group_stage_knockout">Group Stage + Knockout</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-slate-400 text-sm">
@@ -261,6 +274,7 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
                   {formData.bracket_type === "double_elimination" && "Two losses to be eliminated - winners and losers brackets"}
                   {formData.bracket_type === "swiss" && "Points-based pairing - play multiple rounds without elimination"}
                   {formData.bracket_type === "round_robin" && "Every team plays every other team - comprehensive ranking"}
+                  {formData.bracket_type === "group_stage_knockout" && "Teams compete in groups, top finishers advance to single elimination"}
                 </p>
               </div>
 
@@ -281,6 +295,14 @@ const CreateTournamentDialog = ({ open, onOpenChange, onTournamentCreated }: Cre
                     Leave empty to auto-calculate (typically log₂ of team count)
                   </p>
                 </div>
+              )}
+
+              {formData.bracket_type === "group_stage_knockout" && (
+                <GroupStageConfig
+                  teamCount={formData.max_teams}
+                  config={groupStageConfig}
+                  onChange={setGroupStageConfig}
+                />
               )}
 
               <div className="grid grid-cols-2 gap-4">
