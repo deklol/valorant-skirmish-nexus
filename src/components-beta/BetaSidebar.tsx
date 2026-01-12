@@ -235,34 +235,41 @@ const BetaSidebar = () => {
       {/* Logo Header */}
       <div className="h-[60px] flex items-center justify-between px-4 border-b border-[hsl(220_15%_15%)]">
         {!collapsed && (
-          <div className="flex items-center justify-center flex-1">
+          <Link to="/beta" className="flex items-center justify-center flex-1">
             {sidebarLogoUrl ? (
               <img 
                 src={sidebarLogoUrl} 
                 alt="Logo" 
-                className="h-10 w-auto object-contain"
+                className="h-10 w-auto object-contain hover:opacity-80 transition-opacity"
               />
             ) : (
-              <span className="text-xl font-bold text-[hsl(38_92%_50%)]">
+              <span className="text-xl font-bold text-[hsl(38_92%_50%)] hover:opacity-80 transition-opacity">
                 TLR
               </span>
             )}
-          </div>
+          </Link>
         )}
-        {collapsed && sidebarLogoUrl && (
-          <img 
-            src={sidebarLogoUrl} 
-            alt="Logo" 
-            className="h-8 w-8 object-contain mx-auto"
-          />
+        {collapsed && (
+          <Link to="/beta" className="flex items-center justify-center flex-1">
+            {sidebarLogoUrl ? (
+              <img 
+                src={sidebarLogoUrl} 
+                alt="Logo" 
+                className="h-8 w-8 object-contain hover:opacity-80 transition-opacity"
+              />
+            ) : (
+              <span className="text-lg font-bold text-[hsl(38_92%_50%)] hover:opacity-80 transition-opacity">
+                T
+              </span>
+            )}
+          </Link>
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}
           className={cn(
-            "p-2 rounded-lg transition-colors",
+            "p-2 rounded-lg transition-colors shrink-0",
             "text-[hsl(220_10%_45%)] hover:text-[hsl(40_20%_96%)]",
-            "hover:bg-[hsl(220_16%_12%)]",
-            collapsed && !sidebarLogoUrl && "mx-auto"
+            "hover:bg-[hsl(220_16%_12%)]"
           )}
         >
           {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
