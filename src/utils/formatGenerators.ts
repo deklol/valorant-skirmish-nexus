@@ -5,7 +5,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
-export type BracketType = 'single_elimination' | 'double_elimination' | 'swiss' | 'round_robin';
+export type BracketType = 'single_elimination' | 'double_elimination' | 'swiss' | 'round_robin' | 'group_stage_knockout';
 
 export interface Team {
   id: string;
@@ -446,7 +446,8 @@ export function getFormatDisplayName(bracketType: BracketType): string {
     single_elimination: 'Single Elimination',
     double_elimination: 'Double Elimination',
     swiss: 'Swiss',
-    round_robin: 'Round Robin'
+    round_robin: 'Round Robin',
+    group_stage_knockout: 'Group Stage + Knockout'
   };
   return names[bracketType] || bracketType;
 }
@@ -456,7 +457,8 @@ export function getFormatDescription(bracketType: BracketType): string {
     single_elimination: 'One loss and you\'re out. Fast and decisive.',
     double_elimination: 'Two losses to be eliminated. Features winners and losers brackets.',
     swiss: 'Points-based pairing system. Teams play multiple rounds without elimination.',
-    round_robin: 'Every team plays every other team. Most comprehensive ranking.'
+    round_robin: 'Every team plays every other team. Most comprehensive ranking.',
+    group_stage_knockout: 'Teams compete in groups, top finishers advance to single elimination knockout.'
   };
   return descriptions[bracketType] || '';
 }

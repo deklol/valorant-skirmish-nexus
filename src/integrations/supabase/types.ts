@@ -1787,6 +1787,7 @@ export type Database = {
         Row: {
           captain_id: string | null
           created_at: string | null
+          group_number: number | null
           id: string
           name: string
           seed: number | null
@@ -1798,6 +1799,7 @@ export type Database = {
         Insert: {
           captain_id?: string | null
           created_at?: string | null
+          group_number?: number | null
           id?: string
           name: string
           seed?: number | null
@@ -1809,6 +1811,7 @@ export type Database = {
         Update: {
           captain_id?: string | null
           created_at?: string | null
+          group_number?: number | null
           id?: string
           name?: string
           seed?: number | null
@@ -2217,6 +2220,10 @@ export type Database = {
           enable_map_veto: boolean | null
           final_match_format: Database["public"]["Enums"]["match_format"] | null
           generating_bracket: boolean | null
+          group_count: number | null
+          group_stage_completed: boolean | null
+          group_stage_enabled: boolean | null
+          group_stage_format: string | null
           id: string
           map_pool: Json | null
           map_veto_required_rounds: Json | null
@@ -2240,6 +2247,7 @@ export type Database = {
           status: Database["public"]["Enums"]["tournament_status"] | null
           swiss_rounds: number | null
           team_size: number | null
+          teams_advance_per_group: number | null
           updated_at: string | null
         }
         Insert: {
@@ -2261,6 +2269,10 @@ export type Database = {
             | Database["public"]["Enums"]["match_format"]
             | null
           generating_bracket?: boolean | null
+          group_count?: number | null
+          group_stage_completed?: boolean | null
+          group_stage_enabled?: boolean | null
+          group_stage_format?: string | null
           id?: string
           map_pool?: Json | null
           map_veto_required_rounds?: Json | null
@@ -2284,6 +2296,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["tournament_status"] | null
           swiss_rounds?: number | null
           team_size?: number | null
+          teams_advance_per_group?: number | null
           updated_at?: string | null
         }
         Update: {
@@ -2305,6 +2318,10 @@ export type Database = {
             | Database["public"]["Enums"]["match_format"]
             | null
           generating_bracket?: boolean | null
+          group_count?: number | null
+          group_stage_completed?: boolean | null
+          group_stage_enabled?: boolean | null
+          group_stage_format?: string | null
           id?: string
           map_pool?: Json | null
           map_veto_required_rounds?: Json | null
@@ -2328,6 +2345,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["tournament_status"] | null
           swiss_rounds?: number | null
           team_size?: number | null
+          teams_advance_per_group?: number | null
           updated_at?: string | null
         }
         Relationships: [

@@ -31,6 +31,13 @@ export interface Tournament {
   map_veto_required_rounds?: number[] | null;
   final_match_format?: "BO1" | "BO3" | "BO5" | null;
   semifinal_match_format?: "BO1" | "BO3" | "BO5" | null;
+  // Group stage configuration
+  group_stage_enabled?: boolean;
+  group_count?: number;
+  group_stage_format?: "round_robin" | "swiss";
+  teams_advance_per_group?: number;
+  group_stage_completed?: boolean;
+  swiss_rounds?: number;
   // Add extension of this type in modules if more fields are needed, do not duplicate this type!
 }
 
