@@ -18,7 +18,7 @@ import { VODManager } from "@/components/admin/VODManager";
 import TournamentMedicManager from "@/components/TournamentMedicManager";
 import VetoMedicManager from "@/components/VetoMedicManager";
 import BracketMedicManager from "@/components/BracketMedicManager";
-import { BetaBracketRepairTool, AdminAlertCenter } from "@/components-beta/admin";
+import { BetaBracketRepairTool, AdminAlertCenter, HomepageContentManager } from "@/components-beta/admin";
 import MatchMedicManager from "@/components/MatchMedicManager";
 import AchievementMedicManager from "@/components/AchievementMedicManager";
 import { ShopMedicManager } from "@/components/admin/ShopMedicManager";
@@ -385,17 +385,22 @@ const QuickActionCard = ({ title, description, icon, onClick }: {
 
 // Settings Tab Component
 const SettingsTab = () => (
-  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <div className="space-y-6">
-      <AppSettingsManager />
-      <DiscordWebhookManager />
-    </div>
-    <div className="space-y-6">
-      <AdminLogoutAll />
-      <SendNotificationTestButton />
-      <SchemaExportButton />
-      <StatisticsManager />
-      <RankWeightSyncManager />
+  <div className="space-y-6">
+    {/* Homepage Content Manager - Full Width */}
+    <HomepageContentManager />
+    
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="space-y-6">
+        <AppSettingsManager />
+        <DiscordWebhookManager />
+      </div>
+      <div className="space-y-6">
+        <AdminLogoutAll />
+        <SendNotificationTestButton />
+        <SchemaExportButton />
+        <StatisticsManager />
+        <RankWeightSyncManager />
+      </div>
     </div>
   </div>
 );
