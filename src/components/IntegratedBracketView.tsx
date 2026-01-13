@@ -499,6 +499,150 @@ const IntegratedBracketView = ({ tournamentId }: IntegratedBracketViewProps) => 
     );
   }
 
+  // Group Stage + Knockout Format - Show knockout bracket (groups shown in separate tab)
+  if (bracketType === 'group_stage_knockout') {
+    // Filter to only show knockout matches
+    const knockoutMatches = matches.filter(m => m.bracket_position === 'knockout');
+    
+    if (knockoutMatches.length === 0) {
+      return (
+        <Card className="bg-slate-800 border-slate-700">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center gap-2">
+              <Trophy className="w-5 h-5" />
+              Knockout Stage - {tournament.name}
+            </CardTitle>
+            <div className="flex items-center gap-4 mt-2">
+              <Badge variant="outline" className="border-teal-600 text-teal-300">
+                Group Stage + Knockout
+              </Badge>
+              <Badge variant="outline" className="border-slate-600 text-slate-300">
+                {tournament.match_format}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-8">
+              <Trophy className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground text-lg mb-2">Knockout stage not yet generated</p>
+              <p className="text-muted-foreground/70">
+                Complete all group stage matches first, then generate the knockout bracket from the Groups tab.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    // Show knockout bracket
+    const knockoutMaxTeams = Math.pow(2, Math.ceil(Math.log2(knockoutMatches.length + 1)));
+    const knockoutStructure = generateBracketStructure(knockoutMaxTeams);
+    const getKnockoutMatchesByRound = (roundNumber: number) => 
+      knockoutMatches.filter(m => m.round_number === roundNumber);
+
+    return (
+      <Card className="bg-slate-800 border-slate-700">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center gap-2">
+            <Trophy className="w-5 h-5" />
+            Knockout Stage - {tournament.name}
+          </CardTitle>
+          <div className="flex items-center gap-4 mt-2">
+            <Badge variant="outline" className="border-teal-600 text-teal-300">
+              Group Stage + Knockout
+            </Badge>
+            <Badge variant="outline" className="border-slate-600 text-slate-300">
+              {tournament.match_format}
+            </Badge>
+            <Badge variant="outline" className="border-slate-600 text-slate-300">
+              {knockoutMatches.length} knockout matches
+            </Badge>
+            <div className="ml-auto flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={fetchBracketData}
+                className="border-slate-600 text-slate-300 hover:bg-slate-700"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refresh
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto pb-4">
+            <div className="flex gap-6 min-w-max">
+              {knockoutStructure.map((roundInfo) => {
+                const roundMatches = getKnockoutMatchesByRound(roundInfo.round);
+                if (roundMatches.length === 0) return null;
+                
+                return (
+                  <div key={roundInfo.round} className="flex flex-col space-y-4 min-w-[280px]">
+                    <h3 className="text-lg font-bold text-white text-center py-2 bg-slate-700 rounded-lg">
+                      {roundInfo.name}
+                    </h3>
+                    {roundMatches.map((match) => (
+                      <div
+                        key={match.id}
+                        className={`p-4 rounded-lg border transition-colors ${
+                          match.status === 'live'
+                            ? 'bg-red-900/20 border-red-500/50 animate-pulse'
+                            : match.status === 'completed'
+                            ? 'bg-green-900/10 border-green-700/30'
+                            : 'bg-slate-700/50 border-slate-600'
+                        }`}
+                      >
+                        <div className="flex justify-between items-start mb-3">
+                          <span className="text-xs text-muted-foreground">
+                            Match {match.match_number}
+                          </span>
+                          {getStatusBadge(match.status)}
+                        </div>
+                        <div className="space-y-2">
+                          <div className={`flex justify-between items-center p-2 rounded ${
+                            match.winner_id === match.team1_id 
+                              ? 'bg-green-900/30 border border-green-600/30' 
+                              : 'bg-slate-600/30'
+                          }`}>
+                            <span className="text-sm text-foreground font-medium">
+                              {match.team1?.name || 'TBD'}
+                            </span>
+                            <span className="text-lg font-bold text-foreground">
+                              {match.score_team1}
+                            </span>
+                          </div>
+                          <div className={`flex justify-between items-center p-2 rounded ${
+                            match.winner_id === match.team2_id 
+                              ? 'bg-green-900/30 border border-green-600/30' 
+                              : 'bg-slate-600/30'
+                          }`}>
+                            <span className="text-sm text-foreground font-medium">
+                              {match.team2?.name || 'TBD'}
+                            </span>
+                            <span className="text-lg font-bold text-foreground">
+                              {match.score_team2}
+                            </span>
+                          </div>
+                        </div>
+                        {match.scheduled_time && (
+                          <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+                            <Clock className="w-3 h-3" />
+                            {formatTime(match.scheduled_time)}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   // ============================================================================
   // SINGLE ELIMINATION (DEFAULT) - Original bracket view
   // ============================================================================

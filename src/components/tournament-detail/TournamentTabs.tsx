@@ -4,13 +4,14 @@ import {
   StandardTabsTrigger, 
   StandardTabsContent 
 } from "@/components/ui/standard-tabs";
-import { Settings, Trophy, Users, UserCheck, ScrollText } from "lucide-react";
+import { Settings, Trophy, Users, UserCheck, ScrollText, Grid3X3 } from "lucide-react";
 import OverviewTab from "./tabs/OverviewTab";
 import BracketTab from "./tabs/BracketTab";
 import ParticipantsTab from "./tabs/ParticipantsTab";
 import AdminTab from "./tabs/AdminTab";
 import PlayersTab from "./tabs/PlayersTab";
 import RulesTab from "./tabs/RulesTab";
+import GroupStageTab from "./tabs/GroupStageTab";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function TournamentTabs({
@@ -37,6 +38,13 @@ export default function TournamentTabs({
           <span className="hidden md:inline">Rules</span>
           <span className="md:hidden">Rule</span>
         </StandardTabsTrigger>
+        {tournament.bracket_type === 'group_stage_knockout' && matches.length > 0 && (
+          <StandardTabsTrigger value="groups" className="flex items-center gap-1 md:gap-2 whitespace-nowrap px-2 md:px-4">
+            <Grid3X3 className="w-4 h-4" />
+            <span className="hidden md:inline">Groups</span>
+            <span className="md:hidden">Grp</span>
+          </StandardTabsTrigger>
+        )}
         {matches.length > 0 && (
           <StandardTabsTrigger value="bracket" className="flex items-center gap-1 md:gap-2 whitespace-nowrap px-2 md:px-4">
             <Trophy className="w-4 h-4" />
@@ -71,6 +79,16 @@ export default function TournamentTabs({
       <StandardTabsContent value="rules" className="space-y-6">
         <RulesTab />
       </StandardTabsContent>
+      {tournament.bracket_type === 'group_stage_knockout' && matches.length > 0 && (
+        <StandardTabsContent value="groups" className="space-y-6">
+          <GroupStageTab 
+            tournamentId={tournament.id} 
+            teamsAdvancePerGroup={tournament.teams_advance_per_group || 2}
+            isAdmin={isAdmin}
+            onKnockoutGenerated={onRefresh}
+          />
+        </StandardTabsContent>
+      )}
       {matches.length > 0 && (
         <StandardTabsContent value="bracket" className="space-y-6">
           <BracketTab tournamentId={tournament.id} />

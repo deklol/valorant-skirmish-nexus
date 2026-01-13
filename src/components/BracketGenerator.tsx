@@ -6,8 +6,9 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { calculateBracketStructure } from "@/utils/bracketCalculations";
 import { generateBracketForFormat, getFormatDisplayName, BracketType } from "@/utils/formatGenerators";
+import { generateGroupStageMatches, GroupStageConfig } from "@/utils/groupStageGenerator";
 import BatchBracketGenerator from "./BatchBracketGenerator";
-import { AlertTriangle, Trash2, RefreshCw, Lock, Info } from "lucide-react";
+import { AlertTriangle, Trash2, RefreshCw, Lock, Info, Users } from "lucide-react";
 
 interface BracketGeneratorProps {
   tournamentId: string;
@@ -24,6 +25,7 @@ const BracketGenerator = ({ tournamentId, teams, onBracketGenerated }: BracketGe
   const [bracketType, setBracketType] = useState<BracketType>('single_elimination');
   const [matchFormat, setMatchFormat] = useState<string>('BO1');
   const [swissRounds, setSwissRounds] = useState<number | null>(null);
+  const [groupStageConfig, setGroupStageConfig] = useState<GroupStageConfig | null>(null);
   const { toast } = useToast();
 
   // Use batch processing only for single elimination with 8+ teams
@@ -38,7 +40,7 @@ const BracketGenerator = ({ tournamentId, teams, onBracketGenerated }: BracketGe
   const fetchTournamentConfig = async () => {
     const { data } = await supabase
       .from('tournaments')
-      .select('bracket_type, match_format, swiss_rounds')
+      .select('bracket_type, match_format, swiss_rounds, group_count, group_stage_format, teams_advance_per_group')
       .eq('id', tournamentId)
       .maybeSingle();
     
@@ -46,6 +48,15 @@ const BracketGenerator = ({ tournamentId, teams, onBracketGenerated }: BracketGe
       setBracketType((data.bracket_type as BracketType) || 'single_elimination');
       setMatchFormat(data.match_format || 'BO1');
       setSwissRounds(data.swiss_rounds);
+      
+      // Load group stage config if it's a group stage tournament
+      if (data.bracket_type === 'group_stage_knockout' && data.group_count) {
+        setGroupStageConfig({
+          groupCount: data.group_count,
+          groupFormat: (data.group_stage_format as 'round_robin' | 'swiss') || 'round_robin',
+          teamsAdvancePerGroup: data.teams_advance_per_group || 2
+        });
+      }
     }
   };
 
@@ -217,6 +228,36 @@ const BracketGenerator = ({ tournamentId, teams, onBracketGenerated }: BracketGe
 
       // Step 3: Generate bracket matches using format-aware generator
       const bestOf = matchFormat === 'BO1' ? 1 : matchFormat === 'BO3' ? 3 : matchFormat === 'BO5' ? 5 : 1;
+      
+      // Handle Group Stage + Knockout separately
+      if (bracketType === 'group_stage_knockout' && groupStageConfig) {
+        const groupResult = await generateGroupStageMatches(
+          tournamentId,
+          teams,
+          groupStageConfig,
+          bestOf
+        );
+        
+        if (!groupResult.success) {
+          throw new Error(groupResult.error || 'Failed to generate group stage');
+        }
+        
+        // Step 4: Complete generation
+        await supabase.rpc('complete_bracket_generation', {
+          p_tournament_id: tournamentId,
+          p_success: true
+        });
+
+        toast({
+          title: "Success",
+          description: `Group Stage generated with ${groupResult.matchesCreated} matches across ${groupStageConfig.groupCount} groups`,
+        });
+        
+        await checkExistingBracket();
+        onBracketGenerated();
+        return;
+      }
+      
       const generationResult = await generateBracketForFormat(
         tournamentId,
         teams,
