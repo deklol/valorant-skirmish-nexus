@@ -1,20 +1,5 @@
 import { Link } from "react-router-dom";
-import {
-  Trophy,
-  Users,
-  BarChart3,
-  Calendar,
-  ArrowRight,
-  Shield,
-  Target,
-  Zap,
-  ShoppingBag,
-  Activity,
-  Award,
-  Clock,
-  TrendingUp,
-  ExternalLink,
-} from "lucide-react";
+import { Trophy, Users, BarChart3, Calendar, ArrowRight, Shield, Target, Zap, ShoppingBag, Activity, Award, Clock, TrendingUp, ExternalLink } from "lucide-react";
 import { GradientBackground, GlassCard, StatCard, BetaButton, BetaBadge } from "@/components-beta/ui-beta";
 import { HeroSection, OrgSection, TeamShowcase } from "@/components-beta/homepage";
 import { useEffect, useState } from "react";
@@ -89,23 +74,21 @@ const LiveMatchesSection = () => {
     const fetchLiveMatches = async () => {
       try {
         const { data, error } = await supabase
-          .from("matches")
-          .select(
-            `
+          .from('matches')
+          .select(`
             id, round_number, match_number, score_team1, score_team2,
             team1:teams!matches_team1_id_fkey (id, name),
             team2:teams!matches_team2_id_fkey (id, name),
             tournament:tournaments (id, name)
-          `,
-          )
-          .eq("status", "live")
-          .order("scheduled_time", { ascending: true })
+          `)
+          .eq('status', 'live')
+          .order('scheduled_time', { ascending: true })
           .limit(6);
 
         if (error) throw error;
         setLiveMatches(data || []);
       } catch (error) {
-        console.error("Error fetching live matches:", error);
+        console.error('Error fetching live matches:', error);
       } finally {
         setLoading(false);
       }
@@ -115,22 +98,16 @@ const LiveMatchesSection = () => {
 
     // Real-time subscription
     const channel = supabase
-      .channel("beta-live-matches")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "matches",
-          filter: "status=eq.live",
-        },
-        () => fetchLiveMatches(),
-      )
+      .channel('beta-live-matches')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'matches',
+        filter: 'status=eq.live'
+      }, () => fetchLiveMatches())
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   if (loading) return null;
@@ -145,15 +122,11 @@ const LiveMatchesSection = () => {
           View tournaments
         </Link>
       </div>
-      <div
-        className={`grid gap-4 ${
-          liveMatches.length === 1
-            ? "grid-cols-1"
-            : liveMatches.length === 2
-              ? "grid-cols-1 md:grid-cols-2"
-              : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
-        }`}
-      >
+      <div className={`grid gap-4 ${
+        liveMatches.length === 1 ? 'grid-cols-1' : 
+        liveMatches.length === 2 ? 'grid-cols-1 md:grid-cols-2' : 
+        'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+      }`}>
         {liveMatches.map((match) => (
           <Link key={match.id} to={`/beta/match/${match.id}`}>
             <GlassCard variant="interactive" className="p-4">
@@ -165,11 +138,11 @@ const LiveMatchesSection = () => {
                   {match.tournament?.name} · R{match.round_number}
                 </span>
               </div>
-
+              
               <div className="space-y-2">
                 <div className="flex items-center justify-between p-2 rounded-lg bg-[hsl(var(--beta-surface-3))]">
                   <span className="text-[hsl(var(--beta-text-primary))] font-medium truncate">
-                    {match.team1?.name || "TBD"}
+                    {match.team1?.name || 'TBD'}
                   </span>
                   <span className="text-lg font-bold text-[hsl(var(--beta-text-primary))]">
                     {match.score_team1 || 0}
@@ -178,7 +151,7 @@ const LiveMatchesSection = () => {
                 <div className="text-center text-xs text-[hsl(var(--beta-text-muted))]">VS</div>
                 <div className="flex items-center justify-between p-2 rounded-lg bg-[hsl(var(--beta-surface-3))]">
                   <span className="text-[hsl(var(--beta-text-primary))] font-medium truncate">
-                    {match.team2?.name || "TBD"}
+                    {match.team2?.name || 'TBD'}
                   </span>
                   <span className="text-lg font-bold text-[hsl(var(--beta-text-primary))]">
                     {match.score_team2 || 0}
@@ -209,17 +182,22 @@ const BetaIndex = () => {
     liveMatches: 0,
   });
   const [loading, setLoading] = useState(true);
-  const [homepageContent, setHomepageContent] = useState<HomepageContent | null>(null);
   const [upcomingTournaments, setUpcomingTournaments] = useState<UpcomingTournament[]>([]);
   const [recentWinners, setRecentWinners] = useState<RecentWinner[]>([]);
   const [topPlayers, setTopPlayers] = useState<TopPlayer[]>([]);
+  const [homepageContent, setHomepageContent] = useState<HomepageContent | null>(null);
+  
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         // Fetch homepage content
-        const { data: contentData } = await supabase.from("homepage_content").select("*").limit(1).maybeSingle();
-
+        const { data: contentData } = await supabase
+          .from("homepage_content")
+          .select("*")
+          .limit(1)
+          .maybeSingle();
+        
         if (contentData) {
           setHomepageContent(contentData);
         }
@@ -255,17 +233,17 @@ const BetaIndex = () => {
                 .from(table)
                 .select("*", { count: "exact", head: true })
                 .eq("tournament_id", t.id);
-
+              
               return {
                 id: t.id,
                 name: t.name,
                 start_time: t.start_time,
                 status: t.status,
                 currentSignups: count || 0,
-                maxParticipants: t.registration_type === "team" ? t.max_teams || 8 : t.max_players || 40,
+                maxParticipants: t.registration_type === "team" ? (t.max_teams || 8) : (t.max_players || 40),
                 registration_type: t.registration_type || "solo",
               };
-            }),
+            })
           );
           setUpcomingTournaments(withSignups);
         }
@@ -287,7 +265,7 @@ const BetaIndex = () => {
               .eq("tournament_id", t.id)
               .eq("status", "winner")
               .maybeSingle();
-
+            
             if (winnerTeam) {
               winnersWithTeams.push({
                 id: t.id,
@@ -324,14 +302,10 @@ const BetaIndex = () => {
 
   const getStatusVariant = (status: string) => {
     switch (status) {
-      case "open":
-        return "success";
-      case "live":
-        return "accent";
-      case "balancing":
-        return "warning";
-      default:
-        return "default";
+      case "open": return "success";
+      case "live": return "accent";
+      case "balancing": return "warning";
+      default: return "default";
     }
   };
 
@@ -457,7 +431,9 @@ const BetaIndex = () => {
                     {topPlayers.map((player, idx) => (
                       <Link key={player.id} to={`/beta/profile/${player.id}`}>
                         <div className="flex items-center gap-3 p-2 rounded-[var(--beta-radius-md)] hover:bg-[hsl(var(--beta-surface-3))] transition-colors">
-                          <span className="text-sm font-bold text-[hsl(var(--beta-accent))] w-5">#{idx + 1}</span>
+                          <span className="text-sm font-bold text-[hsl(var(--beta-accent))] w-5">
+                            #{idx + 1}
+                          </span>
                           <div className="w-8 h-8 rounded-full bg-[hsl(var(--beta-surface-4))] flex items-center justify-center overflow-hidden">
                             {player.discord_avatar_url ? (
                               <img src={player.discord_avatar_url} alt="" className="w-full h-full object-cover" />
@@ -469,7 +445,7 @@ const BetaIndex = () => {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-[hsl(var(--beta-text-primary))] truncate">
-                              <Username userId={player.id} username={player.discord_username || "Unknown"} />
+                              <Username userId={player.id} username={player.discord_username || 'Unknown'} />
                             </p>
                             <p className="text-xs text-[hsl(var(--beta-text-muted))]">
                               {player.tournaments_won} tourney wins · {player.wins || 0} match wins
@@ -488,10 +464,7 @@ const BetaIndex = () => {
               <GlassCard className="p-5">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold text-[hsl(var(--beta-text-primary))]">Recent Champions</h3>
-                  <Link
-                    to="/beta/tournaments?status=completed"
-                    className="text-sm text-[hsl(var(--beta-accent))] hover:underline"
-                  >
+                  <Link to="/beta/tournaments?status=completed" className="text-sm text-[hsl(var(--beta-accent))] hover:underline">
                     View all
                   </Link>
                 </div>
@@ -511,7 +484,9 @@ const BetaIndex = () => {
                               {winner.winnerTeamName}
                             </span>
                           </div>
-                          <p className="text-xs text-[hsl(var(--beta-text-muted))] truncate">{winner.name}</p>
+                          <p className="text-xs text-[hsl(var(--beta-text-muted))] truncate">
+                            {winner.name}
+                          </p>
                         </div>
                       </Link>
                     ))}
@@ -533,9 +508,7 @@ const BetaIndex = () => {
                     <Trophy className="h-5 w-5 text-[hsl(var(--beta-accent))]" />
                   </div>
                   <div className="min-w-0 space-y-1">
-                    <h3 className="font-semibold text-[hsl(var(--beta-text-primary))] group-hover:text-[hsl(var(--beta-accent))] transition-colors">
-                      Find Tournaments
-                    </h3>
+                    <h3 className="font-semibold text-[hsl(var(--beta-text-primary))] group-hover:text-[hsl(var(--beta-accent))] transition-colors">Find Tournaments</h3>
                     <p className="text-sm text-[hsl(var(--beta-text-muted))]">Browse and register for events</p>
                   </div>
                 </div>
@@ -548,9 +521,7 @@ const BetaIndex = () => {
                     <BarChart3 className="h-5 w-5 text-[hsl(var(--beta-accent))]" />
                   </div>
                   <div className="min-w-0 space-y-1">
-                    <h3 className="font-semibold text-[hsl(var(--beta-text-primary))] group-hover:text-[hsl(var(--beta-accent))] transition-colors">
-                      Leaderboard
-                    </h3>
+                    <h3 className="font-semibold text-[hsl(var(--beta-text-primary))] group-hover:text-[hsl(var(--beta-accent))] transition-colors">Leaderboard</h3>
                     <p className="text-sm text-[hsl(var(--beta-text-muted))]">Check rankings and stats</p>
                   </div>
                 </div>
@@ -563,9 +534,7 @@ const BetaIndex = () => {
                     <Users className="h-5 w-5 text-[hsl(var(--beta-accent))]" />
                   </div>
                   <div className="min-w-0 space-y-1">
-                    <h3 className="font-semibold text-[hsl(var(--beta-text-primary))] group-hover:text-[hsl(var(--beta-accent))] transition-colors">
-                      Find Players
-                    </h3>
+                    <h3 className="font-semibold text-[hsl(var(--beta-text-primary))] group-hover:text-[hsl(var(--beta-accent))] transition-colors">Find Players</h3>
                     <p className="text-sm text-[hsl(var(--beta-text-muted))]">Connect with competitors</p>
                   </div>
                 </div>
@@ -578,9 +547,7 @@ const BetaIndex = () => {
                     <ShoppingBag className="h-5 w-5 text-[hsl(var(--beta-accent))]" />
                   </div>
                   <div className="min-w-0 space-y-1">
-                    <h3 className="font-semibold text-[hsl(var(--beta-text-primary))] group-hover:text-[hsl(var(--beta-accent))] transition-colors">
-                      Shop
-                    </h3>
+                    <h3 className="font-semibold text-[hsl(var(--beta-text-primary))] group-hover:text-[hsl(var(--beta-accent))] transition-colors">Shop</h3>
                     <p className="text-sm text-[hsl(var(--beta-text-muted))]">Spend your points</p>
                   </div>
                 </div>
@@ -597,11 +564,10 @@ const BetaIndex = () => {
                 Premium Features for Competitive Play
               </h2>
               <p className="text-[hsl(var(--beta-text-secondary))]">
-                From automated brackets to our bespoke ATLAS balancing algorithm, we handle every aspect of your
-                tournament experience.
+                From automated brackets to our bespoke ATLAS balancing algorithm, we handle every aspect of your tournament experience.
               </p>
             </div>
-
+            
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <GlassCard className="p-5">
                 <div className="w-10 h-10 rounded-[var(--beta-radius-lg)] bg-red-500/20 flex items-center justify-center mb-3">
@@ -612,7 +578,7 @@ const BetaIndex = () => {
                   Generate tournament brackets automatically with fair seeding and elimination progression.
                 </p>
               </GlassCard>
-
+              
               <GlassCard className="p-5">
                 <div className="w-10 h-10 rounded-[var(--beta-radius-lg)] bg-blue-500/20 flex items-center justify-center mb-3">
                   <Shield className="h-5 w-5 text-blue-400" />
@@ -622,7 +588,7 @@ const BetaIndex = () => {
                   Our smart algorithm analyzes player skill to ensure fair competition across all teams.
                 </p>
               </GlassCard>
-
+              
               <GlassCard className="p-5">
                 <div className="w-10 h-10 rounded-[var(--beta-radius-lg)] bg-green-500/20 flex items-center justify-center mb-3">
                   <Target className="h-5 w-5 text-green-400" />
@@ -632,7 +598,7 @@ const BetaIndex = () => {
                   Interactive map veto process with real-time controls for team captains.
                 </p>
               </GlassCard>
-
+              
               <GlassCard className="p-5">
                 <div className="w-10 h-10 rounded-[var(--beta-radius-lg)] bg-purple-500/20 flex items-center justify-center mb-3">
                   <Zap className="h-5 w-5 text-purple-400" />
@@ -642,7 +608,7 @@ const BetaIndex = () => {
                   Track your tournament history, performance analytics, and match history.
                 </p>
               </GlassCard>
-
+              
               <GlassCard className="p-5">
                 <div className="w-10 h-10 rounded-[var(--beta-radius-lg)] bg-yellow-500/20 flex items-center justify-center mb-3">
                   <Users className="h-5 w-5 text-yellow-400" />
@@ -652,7 +618,7 @@ const BetaIndex = () => {
                   Complete profiles with rank tracking, performance data, and match history.
                 </p>
               </GlassCard>
-
+              
               <GlassCard className="p-5">
                 <div className="w-10 h-10 rounded-[var(--beta-radius-lg)] bg-pink-500/20 flex items-center justify-center mb-3">
                   <ShoppingBag className="h-5 w-5 text-pink-400" />
@@ -670,43 +636,23 @@ const BetaIndex = () => {
         {showHowItWorks && (
           <section className="space-y-6">
             <div className="text-center max-w-2xl mx-auto">
-              <h2 className="text-2xl font-bold text-[hsl(var(--beta-text-primary))] mb-3">How It Works</h2>
+              <h2 className="text-2xl font-bold text-[hsl(var(--beta-text-primary))] mb-3">
+                How It Works
+              </h2>
               <p className="text-[hsl(var(--beta-text-secondary))]">
                 From registration to championship matches, our streamlined process makes competing simple.
               </p>
             </div>
-
+            
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                {
-                  step: 1,
-                  title: "Register",
-                  desc: "Create your account and set your Riot ID. Registration is free.",
-                  color: "green",
-                },
-                {
-                  step: 2,
-                  title: "Join Tournaments",
-                  desc: "Browse active tournaments and register. ATLAS ensures fair matchmaking.",
-                  color: "blue",
-                },
-                {
-                  step: 3,
-                  title: "Compete",
-                  desc: "Play matches with map veto, submit scores, and track progress.",
-                  color: "purple",
-                },
-                {
-                  step: 4,
-                  title: "Win Prizes",
-                  desc: "Earn points, unlock items, and compete for prizes.",
-                  color: "yellow",
-                },
+                { step: 1, title: "Register", desc: "Create your account and set your Riot ID. Registration is free.", color: "green" },
+                { step: 2, title: "Join Tournaments", desc: "Browse active tournaments and register. ATLAS ensures fair matchmaking.", color: "blue" },
+                { step: 3, title: "Compete", desc: "Play matches with map veto, submit scores, and track progress.", color: "purple" },
+                { step: 4, title: "Win Prizes", desc: "Earn points, unlock items, and compete for prizes.", color: "yellow" },
               ].map((item) => (
                 <GlassCard key={item.step} className="p-5 text-center">
-                  <div
-                    className={`w-10 h-10 rounded-full bg-${item.color}-500/20 flex items-center justify-center mx-auto mb-3`}
-                  >
+                  <div className={`w-10 h-10 rounded-full bg-${item.color}-500/20 flex items-center justify-center mx-auto mb-3`}>
                     <span className={`font-bold text-${item.color}-400`}>{item.step}</span>
                   </div>
                   <h3 className="font-semibold text-[hsl(var(--beta-text-primary))] mb-2">{item.title}</h3>
@@ -725,25 +671,13 @@ const BetaIndex = () => {
                 Frequently Asked Questions
               </h2>
             </div>
-
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
-                {
-                  q: "How do I join tournaments?",
-                  a: "Sign up on our platform, set your Riot ID, and join our Discord. Then browse and register for any open tournament.",
-                },
-                {
-                  q: "Are tournaments free to enter?",
-                  a: "Yes, all standard tournaments are free-to-enter and include prizes, fair ATLAS balancing, and Discord integration.",
-                },
-                {
-                  q: "What ranks can participate?",
-                  a: "All ranks from Iron to Radiant are welcome. Our ATLAS system ensures balanced matches for everyone.",
-                },
-                {
-                  q: "How does ATLAS balancing work?",
-                  a: "ATLAS analyzes player ranks, recent performance, and historical data to create balanced teams for fair competition.",
-                },
+                { q: "How do I join tournaments?", a: "Sign up on our platform, set your Riot ID, and join our Discord. Then browse and register for any open tournament." },
+                { q: "Are tournaments free to enter?", a: "Yes, all standard tournaments are free-to-enter and include prizes, fair ATLAS balancing, and Discord integration." },
+                { q: "What ranks can participate?", a: "All ranks from Iron to Radiant are welcome. Our ATLAS system ensures balanced matches for everyone." },
+                { q: "How does ATLAS balancing work?", a: "ATLAS analyzes player ranks, recent performance, and historical data to create balanced teams for fair competition." },
               ].map((faq, idx) => (
                 <GlassCard key={idx} className="p-5">
                   <h3 className="font-semibold text-[hsl(var(--beta-text-primary))] mb-2">{faq.q}</h3>
