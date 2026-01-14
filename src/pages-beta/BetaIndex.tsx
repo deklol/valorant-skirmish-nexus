@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
 import { Username } from "@/components/Username";
+import BetaOrgAboutSection from "@/components-beta/BetaOrgAboutSection";
 
 interface Stats {
   totalTournaments: number;
@@ -498,6 +499,9 @@ const BetaIndex = () => {
             </Link>
           </div>
         </section>
+
+        {/* Organization About Section */}
+        <BetaOrgAboutSection />
 
         {/* Features Section */}
         <section className="space-y-6">
