@@ -28,6 +28,7 @@ import EnhancedDiscordIntegration from "@/components/medic-enhanced/EnhancedDisc
 import AdvancedMonitoringSystem from "@/components/medic-enhanced/AdvancedMonitoringSystem";
 import AuditLogManager from "@/components/admin/AuditLogManager";
 import AppSettingsManager from "@/components/admin/AppSettingsManager";
+import OrgContentManager from "@/components/admin/OrgContentManager";
 import DiscordWebhookManager from "@/components/DiscordWebhookManager";
 import AdminLogoutAll from "@/components/AdminLogoutAll";
 import SendNotificationTestButton from "@/components/SendNotificationTestButton";
@@ -386,8 +387,9 @@ const QuickActionCard = ({ title, description, icon, onClick }: {
 // Settings Tab Component
 const SettingsTab = () => (
   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <div className="space-y-6">
+  <div className="space-y-6">
       <AppSettingsManager />
+      <OrgContentManager />
       <DiscordWebhookManager />
     </div>
     <div className="space-y-6">
