@@ -18,6 +18,7 @@ import RecentWinners from "@/components/RecentWinners";
 import MemberHighlights from "@/components/MemberHighlights";
 import SponsorDisplay from "@/components/SponsorDisplay";
 import HomeHero from "@/components/home/HomeHero";
+import OrgAboutSection from "@/components/home/OrgAboutSection";
 import { HomePageSkeleton } from "@/components/ui/loading-skeleton";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
@@ -303,6 +304,9 @@ const Index = () => {
             </div>
           </div>
         </section>
+
+        {/* Organization About Section */}
+        <OrgAboutSection />
         
         {/* Enhanced Features Section */}
         <section className="container mx-auto px-4 py-16" aria-labelledby="features-heading">

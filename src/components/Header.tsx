@@ -25,11 +25,11 @@ const Header = () => {
     <header className="bg-slate-900/95 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-50">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          {/* Mobile Logo and Title */}
-          <div className="md:hidden flex items-center space-x-2">
+          {/* Mobile Logo and Title - Clickable */}
+          <Link to="/" className="md:hidden flex items-center space-x-2 hover:opacity-80 transition-opacity">
             <Trophy className="h-6 w-6 text-red-500" />
             <span className="font-bold text-white text-lg">{appName || "TLR Hub"}</span>
-          </div>
+          </Link>
           
           {/* Desktop: Empty left side for sidebar */}
           <div className="hidden md:block"></div>
