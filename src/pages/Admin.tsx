@@ -17,6 +17,7 @@ import TournamentMedicManager from "@/components/TournamentMedicManager";
 import SendNotificationTestButton from "@/components/SendNotificationTestButton";
 import AdminHelpTab from "@/components/admin/AdminHelpTab";
 import AppSettingsManager from "@/components/admin/AppSettingsManager";
+import OrgContentManager from "@/components/admin/OrgContentManager";
 import SchemaExportButton from "@/components/admin/SchemaExportButton";
 import BracketMedicManager from "@/components/BracketMedicManager";
 import AuditLogManager from "@/components/admin/AuditLogManager";
@@ -239,6 +240,7 @@ const Admin = () => {
               {/* Main Settings */}
               <div className="space-y-6">
                 <AppSettingsManager />
+                <OrgContentManager />
                 <DiscordWebhookManager />
               </div>
               

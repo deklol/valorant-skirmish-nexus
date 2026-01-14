@@ -477,6 +477,93 @@ export type Database = {
           },
         ]
       }
+      homepage_content: {
+        Row: {
+          created_at: string
+          hero_cta_link: string | null
+          hero_cta_text: string | null
+          hero_headline: string | null
+          hero_image_url: string | null
+          hero_subheadline: string | null
+          id: string
+          org_about: string | null
+          org_founded_year: number | null
+          org_history_content: string | null
+          org_history_enabled: boolean | null
+          org_history_title: string | null
+          org_image_url: string | null
+          org_name: string | null
+          org_tagline: string | null
+          show_faq_section: boolean | null
+          show_features_section: boolean | null
+          show_formats_section: boolean | null
+          show_hero_section: boolean | null
+          show_how_it_works_section: boolean | null
+          show_leaderboard_section: boolean | null
+          show_org_section: boolean | null
+          show_stats_section: boolean | null
+          show_tournaments_section: boolean | null
+          show_winners_section: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          hero_cta_link?: string | null
+          hero_cta_text?: string | null
+          hero_headline?: string | null
+          hero_image_url?: string | null
+          hero_subheadline?: string | null
+          id?: string
+          org_about?: string | null
+          org_founded_year?: number | null
+          org_history_content?: string | null
+          org_history_enabled?: boolean | null
+          org_history_title?: string | null
+          org_image_url?: string | null
+          org_name?: string | null
+          org_tagline?: string | null
+          show_faq_section?: boolean | null
+          show_features_section?: boolean | null
+          show_formats_section?: boolean | null
+          show_hero_section?: boolean | null
+          show_how_it_works_section?: boolean | null
+          show_leaderboard_section?: boolean | null
+          show_org_section?: boolean | null
+          show_stats_section?: boolean | null
+          show_tournaments_section?: boolean | null
+          show_winners_section?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          hero_cta_link?: string | null
+          hero_cta_text?: string | null
+          hero_headline?: string | null
+          hero_image_url?: string | null
+          hero_subheadline?: string | null
+          id?: string
+          org_about?: string | null
+          org_founded_year?: number | null
+          org_history_content?: string | null
+          org_history_enabled?: boolean | null
+          org_history_title?: string | null
+          org_image_url?: string | null
+          org_name?: string | null
+          org_tagline?: string | null
+          show_faq_section?: boolean | null
+          show_features_section?: boolean | null
+          show_formats_section?: boolean | null
+          show_hero_section?: boolean | null
+          show_how_it_works_section?: boolean | null
+          show_leaderboard_section?: boolean | null
+          show_org_section?: boolean | null
+          show_stats_section?: boolean | null
+          show_tournaments_section?: boolean | null
+          show_winners_section?: boolean | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       map_veto_actions: {
         Row: {
           action: Database["public"]["Enums"]["map_veto_action"]
