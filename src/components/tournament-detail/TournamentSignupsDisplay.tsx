@@ -26,8 +26,10 @@ interface TournamentSignupsDisplayProps {
 }
 
 export default function TournamentSignupsDisplay({ signups, maxPlayers }: TournamentSignupsDisplayProps) {
-  const mainSignups = signups.filter(signup => !signup.is_substitute);
-  const substitutes = signups.filter(signup => signup.is_substitute);
+  // Filter out signups with missing user data to prevent crashes
+  const validSignups = signups.filter(signup => signup.users);
+  const mainSignups = validSignups.filter(signup => !signup.is_substitute);
+  const substitutes = validSignups.filter(signup => signup.is_substitute);
 
   return (
     <div className="space-y-6">
