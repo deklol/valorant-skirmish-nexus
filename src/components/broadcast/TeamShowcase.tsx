@@ -62,6 +62,9 @@ export default function TeamShowcase({
 
   const currentPlayer = currentTeam.team_members[currentPlayerInTeam];
   
+  // Early return if no valid player or users data
+  if (!currentPlayer?.users) return null;
+  
   return (
     <div className={`w-full h-full flex items-center justify-center transition-opacity duration-300 ${transitionClasses[transition]}`}>
       <div className="max-w-6xl w-full mx-auto px-8">
@@ -200,7 +203,7 @@ export default function TeamShowcase({
           <div className="space-y-4">
             <h4 className="text-2xl font-bold text-white text-center mb-4">Team Roster</h4>
             <div className="space-y-3">
-              {currentTeam.team_members.map((member, index) => (
+              {currentTeam.team_members.filter(m => m.users).map((member, index) => (
                 <div 
                   key={member.user_id}
                   className={`flex items-center space-x-3 p-3 rounded-lg transition-all duration-300 cursor-pointer ${
@@ -214,16 +217,16 @@ export default function TeamShowcase({
                   }}
                 >
                   <Avatar className="w-12 h-12">
-                    <AvatarImage src={member.users.discord_avatar_url || undefined} />
+                    <AvatarImage src={member.users?.discord_avatar_url || undefined} />
                     <AvatarFallback className="text-sm">
-                      {member.users.discord_username.slice(0, 2).toUpperCase()}
+                      {member.users?.discord_username?.slice(0, 2).toUpperCase() || '??'}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <p className="text-white font-medium truncate">
-                      {member.users.discord_username}
+                      {member.users?.discord_username || 'Unknown'}
                     </p>
-                    <p className="text-sm text-slate-300">{member.users.current_rank}</p>
+                    <p className="text-sm text-slate-300">{member.users?.current_rank || 'Unranked'}</p>
                   </div>
                   {member.is_captain && (
                     <Badge variant="secondary" className="text-xs">C</Badge>

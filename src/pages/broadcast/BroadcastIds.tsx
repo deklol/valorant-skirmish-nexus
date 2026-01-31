@@ -227,21 +227,21 @@ export default function BroadcastIds() {
 
                   <div className="space-y-2">
                     <h5 className="text-sm font-medium">Players:</h5>
-                    {team.team_members.map((member) => (
+                    {team.team_members.filter(m => m.users).map((member) => (
                       <div
                         key={member.user_id}
                         className="flex justify-between items-center text-sm bg-background p-2 rounded"
                       >
                         <div>
                           <span className="font-medium">
-                            {member.users.discord_username}
+                            {member.users?.discord_username || 'Unknown'}
                           </span>
                           {member.is_captain && (
                             <span className="ml-2 text-yellow-600">
                               (Captain)
                             </span>
                           )}
-                          {member.users.riot_id && (
+                          {member.users?.riot_id && (
                             <span className="ml-2 text-muted-foreground">
                               • {member.users.riot_id}
                             </span>

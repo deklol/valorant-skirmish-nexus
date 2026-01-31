@@ -6,6 +6,14 @@ import { supabase } from "@/integrations/supabase/client";
  * This provides a centralized way to track frontend activities and errors
  */
 
+// UUID validation regex
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Check if a string is a valid UUID
+ */
+const isValidUUID = (id: string): boolean => UUID_REGEX.test(id);
+
 export interface LogApplicationErrorParams {
   component: string;
   errorMessage: string;
@@ -52,6 +60,7 @@ export const logApplicationError = async ({
 /**
  * Log custom audit events for important user actions
  * This allows tracking of significant frontend activities
+ * NOTE: recordId MUST be a valid UUID, otherwise the log will be skipped
  */
 export const logCustomAuditEvent = async (
   tableName: string,
@@ -61,6 +70,12 @@ export const logCustomAuditEvent = async (
   metadata: Record<string, any> = {}
 ) => {
   try {
+    // Validate that recordId is a valid UUID - skip logging if not
+    if (!isValidUUID(recordId)) {
+      console.warn(`Skipping audit log: recordId "${recordId}" is not a valid UUID`);
+      return;
+    }
+
     const { error } = await supabase.rpc('log_audit_event', {
       p_table_name: tableName,
       p_action: action,

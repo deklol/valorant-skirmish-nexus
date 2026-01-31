@@ -192,10 +192,10 @@ const TeamProfile = () => {
               <Calendar className="h-4 w-4" />
               Created {formatDate(team.created_at)}
             </div>
-            {captain && (
+            {captain?.users && (
               <div className="flex items-center gap-1">
                 <Crown className="h-4 w-4 text-yellow-500" />
-                Captain: {captain.users.discord_username}
+                Captain: {captain.users?.discord_username || 'Unknown'}
               </div>
             )}
           </div>
@@ -214,19 +214,19 @@ const TeamProfile = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {team.members.map((member) => (
+                {team.members.filter(m => m.users).map((member) => (
                   <div key={member.id} className="flex items-center justify-between p-3 bg-slate-700 rounded-lg">
                     <div className="flex items-center gap-3">
                       {member.is_captain && <Crown className="h-4 w-4 text-yellow-500" />}
                       <div>
-                        <p className="font-medium">{member.users.discord_username}</p>
-                        <p className="text-sm text-slate-400">{member.users.riot_id}</p>
+                        <p className="font-medium">{member.users?.discord_username || 'Unknown'}</p>
+                        <p className="text-sm text-slate-400">{member.users?.riot_id || 'No Riot ID'}</p>
                       </div>
                     </div>
                     <div className="text-right space-y-1">
-                      <Badge variant="outline">{member.users.current_rank}</Badge>
+                      <Badge variant="outline">{member.users?.current_rank || 'Unranked'}</Badge>
                       <p className="text-xs text-slate-400">
-                        {member.users.wins}W / {member.users.losses}L
+                        {member.users?.wins || 0}W / {member.users?.losses || 0}L
                       </p>
                     </div>
                   </div>

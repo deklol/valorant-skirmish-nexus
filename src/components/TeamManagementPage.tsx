@@ -308,14 +308,14 @@ const TeamManagementPage = () => {
               <div>
                 <h3 className="font-semibold mb-3">Team Members</h3>
                 <div className="space-y-2">
-                  {userTeam.members.map((member) => (
+                  {userTeam.members.filter(m => m.users).map((member) => (
                     <div key={member.id} className="flex items-center justify-between p-3 bg-slate-800 rounded-lg">
                       <div className="flex items-center gap-3">
                         {member.is_captain && <Crown className="h-4 w-4 text-yellow-500" />}
                         <div>
-                          <Username username={member.users.discord_username} userId={member.users.id} size="sm" className="font-medium" />
+                          <Username username={member.users?.discord_username || 'Unknown'} userId={member.users?.id} size="sm" className="font-medium" />
                           <p className="text-sm text-slate-400">
-                            {member.users.current_rank} • {member.users.riot_id}
+                            {member.users?.current_rank || 'Unranked'} • {member.users?.riot_id || 'No Riot ID'}
                           </p>
                         </div>
                       </div>
@@ -330,7 +330,7 @@ const TeamManagementPage = () => {
                             <AlertDialogHeader>
                               <AlertDialogTitle>Remove Team Member</AlertDialogTitle>
                               <AlertDialogDescription>
-                                Are you sure you want to remove {member.users.discord_username} from the team?
+                                Are you sure you want to remove {member.users?.discord_username || 'this player'} from the team?
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>

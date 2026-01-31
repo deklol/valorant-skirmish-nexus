@@ -317,7 +317,7 @@ export const TeamSessionEditor: React.FC<TeamSessionEditorProps> = ({
                         )}
                         <div className="flex flex-col">
                           <div className="flex items-center gap-2">
-                            <span className="font-semibold">{member.users.discord_username}</span>
+                            <span className="font-semibold">{member.users?.discord_username || 'Unknown'}</span>
                             {member.is_captain && (
                               <Badge variant="outline" className="text-xs">
                                 Captain
@@ -325,7 +325,7 @@ export const TeamSessionEditor: React.FC<TeamSessionEditorProps> = ({
                             )}
                           </div>
                           <span className="text-muted-foreground text-sm">
-                            {member.users.riot_id || "No Riot ID"}
+                            {member.users?.riot_id || "No Riot ID"}
                           </span>
                         </div>
                       </div>

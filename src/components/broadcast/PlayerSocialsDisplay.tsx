@@ -11,10 +11,13 @@ export default function PlayerSocialsDisplay({
   player, 
   className = "" 
 }: PlayerSocialsDisplayProps) {
+  // Early return if no player or users data
+  if (!player?.users) return null;
+  
   const socials = [];
 
   // Twitter
-  if (player.users.twitter_handle) {
+  if (player.users?.twitter_handle) {
     socials.push({
       platform: 'Twitter',
       handle: player.users.twitter_handle,
@@ -25,7 +28,7 @@ export default function PlayerSocialsDisplay({
   }
 
   // Twitch
-  if (player.users.twitch_handle) {
+  if (player.users?.twitch_handle) {
     socials.push({
       platform: 'Twitch',
       handle: player.users.twitch_handle,
@@ -39,7 +42,7 @@ export default function PlayerSocialsDisplay({
 
   return (
     <Card className={`bg-black/40 backdrop-blur border-white/20 p-4 ${className}`}>
-      <h4 className="text-lg font-semibold text-white mb-3 text-center">Follow {player.users.discord_username}</h4>
+      <h4 className="text-lg font-semibold text-white mb-3 text-center">Follow {player.users?.discord_username || 'Player'}</h4>
       
       <div className="space-y-2">
         {socials.map((social, index) => (

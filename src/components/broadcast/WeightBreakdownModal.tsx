@@ -18,16 +18,16 @@ export default function WeightBreakdownModal({
   player, 
   tournamentId 
 }: WeightBreakdownModalProps) {
-  if (!player) return null;
+  if (!player?.users) return null;
 
   const userData = {
-    current_rank: player.users.current_rank,
-    peak_rank: player.users.peak_rank,
-    manual_rank_override: player.users.manual_rank_override,
-    manual_weight_override: player.users.manual_weight_override,
-    use_manual_override: player.users.use_manual_override,
-    rank_override_reason: player.users.rank_override_reason,
-    weight_rating: player.users.weight_rating
+    current_rank: player.users?.current_rank,
+    peak_rank: player.users?.peak_rank,
+    manual_rank_override: player.users?.manual_rank_override,
+    manual_weight_override: player.users?.manual_weight_override,
+    use_manual_override: player.users?.use_manual_override,
+    rank_override_reason: player.users?.rank_override_reason,
+    weight_rating: player.users?.weight_rating
   };
 
   const rankResult = getRankPointsWithManualOverride(userData);
@@ -60,7 +60,7 @@ export default function WeightBreakdownModal({
       <DialogContent className="max-w-2xl bg-slate-900 border-slate-700 text-white">
         <DialogHeader>
           <DialogTitle className="text-2xl text-center">
-            Weight Breakdown: {player.users.discord_username}
+            Weight Breakdown: {player.users?.discord_username || 'Unknown Player'}
           </DialogTitle>
         </DialogHeader>
 
@@ -90,10 +90,10 @@ export default function WeightBreakdownModal({
                 <h4 className="font-semibold">Current Rank</h4>
               </div>
               <div className="text-lg font-bold text-green-400">
-                {player.users.current_rank}
+                {player.users?.current_rank || 'Unknown'}
               </div>
               <div className="text-sm text-slate-400">
-                {player.users.rank_points || 'N/A'} points
+                {player.users?.rank_points || 'N/A'} points
               </div>
             </Card>
 
@@ -105,7 +105,7 @@ export default function WeightBreakdownModal({
                   <h4 className="font-semibold">Peak Rank</h4>
                 </div>
                 <div className="text-lg font-bold text-orange-400">
-                  {player.users.peak_rank || 'N/A'}
+                  {player.users?.peak_rank || 'N/A'}
                 </div>
                 <div className="text-sm text-slate-400">
                   {peakRankPoints} points
@@ -130,7 +130,7 @@ export default function WeightBreakdownModal({
                 
                 <div className="flex justify-between items-center">
                   <span>Current Rank Points:</span>
-                  <span className="font-bold">{player.users.rank_points || 'N/A'}</span>
+                  <span className="font-bold">{player.users?.rank_points || 'N/A'}</span>
                 </div>
                 
                 <div className="flex justify-between items-center">
@@ -155,7 +155,7 @@ export default function WeightBreakdownModal({
                     <strong>Formula:</strong> Peak Points × Factor + Current Points × (1 - Factor)
                   </div>
                   <div className="text-xs text-purple-300 mt-1">
-                    {peakRankPoints} × {(adaptiveFactor * 100).toFixed(1)}% + {player.users.rank_points} × {((1 - adaptiveFactor) * 100).toFixed(1)}% = {adaptiveWeight}
+                    {peakRankPoints} × {(adaptiveFactor * 100).toFixed(1)}% + {player.users?.rank_points || 0} × {((1 - adaptiveFactor) * 100).toFixed(1)}% = {adaptiveWeight}
                   </div>
                 </div>
               </div>
