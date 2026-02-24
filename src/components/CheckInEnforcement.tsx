@@ -20,16 +20,57 @@ interface CheckInEnforcementProps {
 const CheckInEnforcement = ({
   tournamentId,
   tournamentName,
-  checkInStartTime,
-  checkInEndTime,
+  checkInStartTime: initialCheckInStartTime,
+  checkInEndTime: initialCheckInEndTime,
   checkInRequired,
   onCheckInChange
 }: CheckInEnforcementProps) => {
   const [isCheckedIn, setIsCheckedIn] = useState(false);
   const [checkInStatus, setCheckInStatus] = useState<'not_started' | 'active' | 'closed'>('not_started');
   const [timeRemaining, setTimeRemaining] = useState<string>('');
+  const [liveCheckInStartTime, setLiveCheckInStartTime] = useState(initialCheckInStartTime);
+  const [liveCheckInEndTime, setLiveCheckInEndTime] = useState(initialCheckInEndTime);
   const { user } = useAuth();
   const { toast } = useToast();
+
+  // Keep local state in sync if props change from parent re-render
+  useEffect(() => {
+    setLiveCheckInStartTime(initialCheckInStartTime);
+  }, [initialCheckInStartTime]);
+
+  useEffect(() => {
+    setLiveCheckInEndTime(initialCheckInEndTime);
+  }, [initialCheckInEndTime]);
+
+  // Listen for realtime updates to tournament check-in times
+  // This ensures players see updated times immediately when admin changes them
+  useEffect(() => {
+    const channel = supabase
+      .channel(`checkin-enforcement-${tournamentId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'tournaments',
+          filter: `id=eq.${tournamentId}`
+        },
+        (payload) => {
+          const updated = payload.new as Record<string, unknown>;
+          if (updated.check_in_starts_at !== undefined) {
+            setLiveCheckInStartTime(updated.check_in_starts_at as string | null);
+          }
+          if (updated.check_in_ends_at !== undefined) {
+            setLiveCheckInEndTime(updated.check_in_ends_at as string | null);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [tournamentId]);
 
   useEffect(() => {
     if (!user) return;
@@ -58,13 +99,13 @@ const CheckInEnforcement = ({
     const updateCheckInStatus = () => {
       const now = new Date();
       
-      if (!checkInStartTime || !checkInEndTime) {
+      if (!liveCheckInStartTime || !liveCheckInEndTime) {
         setCheckInStatus('not_started');
         return;
       }
 
-      const startTime = new Date(checkInStartTime);
-      const endTime = new Date(checkInEndTime);
+      const startTime = new Date(liveCheckInStartTime);
+      const endTime = new Date(liveCheckInEndTime);
 
       if (now < startTime) {
         setCheckInStatus('not_started');
@@ -94,7 +135,7 @@ const CheckInEnforcement = ({
     const interval = setInterval(updateCheckInStatus, 60000); // Update every minute
 
     return () => clearInterval(interval);
-  }, [checkInStartTime, checkInEndTime]);
+  }, [liveCheckInStartTime, liveCheckInEndTime]);
 
   const handleCheckIn = async () => {
     if (!user) return;
