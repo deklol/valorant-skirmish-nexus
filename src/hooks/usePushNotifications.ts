@@ -26,7 +26,7 @@ export const usePushNotifications = () => {
 
     try {
       const registration = await navigator.serviceWorker.ready;
-      const subscription = await registration.pushManager.getSubscription();
+      const subscription = await (registration as any).pushManager?.getSubscription();
       
       if (subscription) {
         // Check if subscription exists in database
@@ -86,7 +86,7 @@ export const usePushNotifications = () => {
       // Get VAPID public key from environment
       const vapidPublicKey = 'BCG9rYcQd5DI4Ft1PQ7gZLjzK8f8_YjN7yTjK8NJV_nU9ZbYzH5pQ1xY8QqZ2Y_5K5Z9xJnNg_YJNx8QnY5z'; // Replace with actual VAPID key
 
-      const subscription = await registration.pushManager.subscribe({
+      const subscription = await (registration as any).pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: vapidPublicKey,
       });
@@ -126,7 +126,7 @@ export const usePushNotifications = () => {
 
     try {
       const registration = await navigator.serviceWorker.ready;
-      const subscription = await registration.pushManager.getSubscription();
+      const subscription = await (registration as any).pushManager?.getSubscription();
       
       if (subscription) {
         await subscription.unsubscribe();
