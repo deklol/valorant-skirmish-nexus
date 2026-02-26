@@ -61,6 +61,7 @@ import BetaProfileSettings from "./pages-beta/BetaProfileSettings";
 import BetaTeams from "./pages-beta/BetaTeams";
 import BetaTeamProfile from "./pages-beta/BetaTeamProfile";
 import BetaTeamManagement from "./pages-beta/BetaTeamManagement";
+import BetaStatistics from "./pages-beta/BetaStatistics";
 const queryClient = new QueryClient();
 
 const AppContent = () => {
@@ -116,6 +117,7 @@ const AppContent = () => {
               <Route path="teams" element={<BetaTeams />} />
               <Route path="team/:id" element={<BetaTeamProfile />} />
               <Route path="my-team" element={<BetaTeamManagement />} />
+              <Route path="statistics" element={<BetaStatistics />} />
             </Route>
             
             {/* All other routes with normal layout */}
