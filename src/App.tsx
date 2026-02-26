@@ -62,6 +62,8 @@ import BetaTeams from "./pages-beta/BetaTeams";
 import BetaTeamProfile from "./pages-beta/BetaTeamProfile";
 import BetaTeamManagement from "./pages-beta/BetaTeamManagement";
 import BetaStatistics from "./pages-beta/BetaStatistics";
+import BetaBrackets from "./pages-beta/BetaBrackets";
+import BetaBracketView from "./pages-beta/BetaBracketView";
 const queryClient = new QueryClient();
 
 const AppContent = () => {
@@ -118,6 +120,8 @@ const AppContent = () => {
               <Route path="team/:id" element={<BetaTeamProfile />} />
               <Route path="my-team" element={<BetaTeamManagement />} />
               <Route path="statistics" element={<BetaStatistics />} />
+              <Route path="brackets" element={<BetaBrackets />} />
+              <Route path="bracket/:id" element={<BetaBracketView />} />
             </Route>
             
             {/* All other routes with normal layout */}

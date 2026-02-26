@@ -16,6 +16,7 @@ import {
   Settings,
   UsersRound,
   Radio,
+  Swords,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserTeam } from "@/hooks/useUserTeam";
@@ -66,6 +67,7 @@ interface LatestTournament {
 const navigationItems = [
   { title: "Home", href: "/beta", icon: Home },
   { title: "Tournaments", href: "/beta/tournaments", icon: Trophy },
+  { title: "Brackets", href: "/beta/brackets", icon: Swords },
   { title: "Teams", href: "/beta/teams", icon: UsersRound },
   { title: "Leaderboard", href: "/beta/leaderboard", icon: BarChart3 },
   { title: "Players", href: "/beta/players", icon: Users },

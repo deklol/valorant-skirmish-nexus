@@ -131,7 +131,7 @@ export const BetaBracketPreview = ({ tournamentId, tournamentName }: BetaBracket
               {liveMatches.length} Live
             </BetaBadge>
           )}
-          <Link to={`/bracket/${tournamentId}`}>
+          <Link to={`/beta/bracket/${tournamentId}`}>
             <BetaButton variant="outline" size="sm">
               <ExternalLink className="w-4 h-4 mr-2" />
               Full Bracket
