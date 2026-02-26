@@ -69,6 +69,7 @@ const navigationItems = [
   { title: "Teams", href: "/beta/teams", icon: UsersRound },
   { title: "Leaderboard", href: "/beta/leaderboard", icon: BarChart3 },
   { title: "Players", href: "/beta/players", icon: Users },
+  { title: "Statistics", href: "/beta/statistics", icon: BarChart3 },
   { title: "Shop", href: "/beta/shop", icon: ShoppingBag },
   { title: "VODs", href: "/beta/vods", icon: Video },
   { title: "Help", href: "/beta/help", icon: HelpCircle },
