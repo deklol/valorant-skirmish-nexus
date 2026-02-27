@@ -2,7 +2,6 @@ import { Outlet } from "react-router-dom";
 import { BetaSidebar } from "./BetaSidebar";
 import { BetaHeader } from "./BetaHeader";
 import { BetaFooter } from "./BetaFooter";
-import { BetaIndicator } from "./BetaIndicator";
 import "@/styles/beta-tokens.css";
 
 const BetaLayout = () => {
@@ -31,9 +30,6 @@ const BetaLayout = () => {
           <BetaFooter />
         </div>
       </div>
-
-      {/* Beta indicator badge */}
-      <BetaIndicator />
     </div>
   );
 };

@@ -437,7 +437,7 @@ const BetaSidebar = () => {
                 )}
               </div>
             )}
-            <p className="text-[10px] text-center text-[hsl(220_10%_45%)]">Beta Preview</p>
+            <p className="text-[10px] text-center text-[hsl(220_10%_45%)]">TLR Skirmish Hub</p>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-2">
