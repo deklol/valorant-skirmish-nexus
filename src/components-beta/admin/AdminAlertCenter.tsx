@@ -389,7 +389,7 @@ export function AdminAlertCenter() {
                 <span>Starts {format(new Date(alert.startTime), "MMM d 'at' h:mm a")}</span>
               </div>
             </div>
-            <Link to={`/beta/tournament/${alert.tournamentId}`}>
+            <Link to={`/tournament/${alert.tournamentId}`}>
               <BetaButton variant="ghost" size="sm">
                 <ChevronRight className="w-4 h-4" />
               </BetaButton>
@@ -436,7 +436,7 @@ export function AdminAlertCenter() {
                 Users: {regularNames}
               </div>
             </div>
-            <Link to={`/beta/tournament/${alert.tournamentId}`}>
+            <Link to={`/tournament/${alert.tournamentId}`}>
               <BetaButton variant="ghost" size="sm">
                 <ChevronRight className="w-4 h-4" />
               </BetaButton>
@@ -468,7 +468,7 @@ export function AdminAlertCenter() {
                 <strong>{alert.tournamentName}</strong> has only {alert.currentCount}/{alert.maxPlayers} {alert.registrationType === 'team' ? 'teams' : 'players'} registered
               </p>
             </div>
-            <Link to={`/beta/tournament/${alert.tournamentId}`}>
+            <Link to={`/tournament/${alert.tournamentId}`}>
               <BetaButton variant="ghost" size="sm">
                 <ChevronRight className="w-4 h-4" />
               </BetaButton>
@@ -511,7 +511,7 @@ export function AdminAlertCenter() {
                 {alert.tournamentName}
               </p>
             </div>
-            <Link to={`/beta/match/${alert.matchId}`}>
+            <Link to={`/match/${alert.matchId}`}>
               <BetaButton variant="ghost" size="sm">
                 <ChevronRight className="w-4 h-4" />
               </BetaButton>
@@ -545,7 +545,7 @@ export function AdminAlertCenter() {
               {tournamentAlert.message}
             </p>
           </div>
-          <Link to={`/beta/tournament/${tournamentAlert.tournamentId}`}>
+          <Link to={`/tournament/${tournamentAlert.tournamentId}`}>
             <BetaButton variant="ghost" size="sm">
               <ChevronRight className="w-4 h-4" />
             </BetaButton>

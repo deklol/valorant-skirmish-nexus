@@ -251,7 +251,7 @@ export const BetaDisputeManager = ({ tournamentId }: BetaDisputeManagerProps) =>
                           <XCircle className="w-4 h-4 mr-1" />
                           Reject
                         </BetaButton>
-                        <Link to={`/beta/match/${dispute.match_id}`}>
+                        <Link to={`/match/${dispute.match_id}`}>
                           <BetaButton variant="ghost" size="sm">
                             <ExternalLink className="w-4 h-4 mr-1" />
                             View Match

@@ -10,16 +10,16 @@ const BetaFooter = () => {
           </p>
           <div className="flex items-center gap-4">
             <Link
-              to="/beta/help"
+              to="/help"
               className="text-sm text-[hsl(var(--beta-text-muted))] hover:text-[hsl(var(--beta-accent))] transition-colors"
             >
               Help
             </Link>
             <Link 
-              to="/"
+              to="/legacy/"
               className="text-sm text-[hsl(var(--beta-text-muted))] hover:text-[hsl(var(--beta-accent))] transition-colors"
             >
-              Production Site
+              Legacy Site
             </Link>
           </div>
         </div>

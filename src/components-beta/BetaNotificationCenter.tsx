@@ -184,8 +184,8 @@ export const BetaNotificationCenter = () => {
   };
 
   const getNotificationLink = (notification: Notification): string | null => {
-    if (notification.tournament_id) return `/beta/tournament/${notification.tournament_id}`;
-    if (notification.match_id) return `/beta/match/${notification.match_id}`;
+    if (notification.tournament_id) return `/tournament/${notification.tournament_id}`;
+    if (notification.match_id) return `/match/${notification.match_id}`;
     return null;
   };
 

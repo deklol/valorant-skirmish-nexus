@@ -51,7 +51,7 @@ export const BetaTeamCard = ({ team, showStats = true }: BetaTeamCardProps) => {
     : 0;
 
   return (
-    <Link to={`/beta/team/${team.id}`}>
+    <Link to={`/team/${team.id}`}>
       <GlassCard variant="interactive" hover className="h-full overflow-hidden">
         {/* Banner Header */}
         <div className="relative h-24 -mx-4 -mt-4 mb-4 overflow-hidden">

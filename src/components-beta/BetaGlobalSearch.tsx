@@ -139,9 +139,9 @@ export const BetaGlobalSearch = ({ alwaysExpanded = false }: BetaGlobalSearchPro
 
   const getLink = (result: SearchResult) => {
     switch (result.type) {
-      case 'tournament': return `/beta/tournament/${result.id}`;
-      case 'team': return `/beta/team/${result.id}`;
-      case 'user': return `/beta/profile/${result.id}`;
+      case 'tournament': return `/tournament/${result.id}`;
+      case 'team': return `/team/${result.id}`;
+      case 'user': return `/profile/${result.id}`;
       default: return '#';
     }
   };
