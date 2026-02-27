@@ -22,6 +22,7 @@ import ProfileMatchHistory from '@/components/profile/ProfileMatchHistory';
 import ProfileTournamentHistory from '@/components/profile/ProfileTournamentHistory';
 import ProfileRankHistory from '@/components/profile/ProfileRankHistory';
 import ProfileValorantRankedMatches from '@/components/profile/ProfileValorantRankedMatches';
+import ProfileTrackerStats from '@/components/profile/ProfileTrackerStats';
 import ProfileAchievements from '@/components/profile/ProfileAchievements';
 import { getTrackerGGUrl } from "@/utils/getTrackerGGUrl";
 import { useUserTeam } from "@/hooks/useUserTeam";
@@ -779,7 +780,10 @@ const Profile = () => {
             </TabsContent>
 
             <TabsContent value="ranked-matches" className="mt-6">
-              <ProfileValorantRankedMatches userId={user.id} />
+              <ProfileTrackerStats userId={user.id} />
+              <div className="mt-6">
+                <ProfileValorantRankedMatches userId={user.id} />
+              </div>
             </TabsContent>
 
             <TabsContent value="notifications" className="mt-6">

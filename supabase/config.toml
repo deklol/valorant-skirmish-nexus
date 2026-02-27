@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.export-db-schema]
 verify_jwt = false
+
+[functions.fetch-valorant-tracker-stats]
+verify_jwt = false
