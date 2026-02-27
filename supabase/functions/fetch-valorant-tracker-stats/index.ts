@@ -36,33 +36,35 @@ interface ParsedStats {
   avg_combat_score: number | null;
   kills_per_round: number | null;
   first_bloods_per_round: number | null;
+  tracker_score: number | null;
+  tracker_score_max: number | null;
   top_agents: Array<{ name: string; games?: number; win_rate?: number; kd?: number }>;
   top_weapons: Array<{ name: string; headshot_pct?: number; kills?: number }>;
 }
 
 /**
  * Constructs the tracker.gg URL from a Riot ID.
- * Riot ID format: "Name#Tag" -> URL-encoded as "Name%23Tag"
+ * 
+ * Riot ID format: "Name#Tag" (e.g. "dEkjeツ#lol")
+ * Tracker.gg URL format: name is URI-encoded (unicode → %XX), # becomes %23, tag is URI-encoded
+ * 
+ * Example: "dEkjeツ#lol" → "dEkje%E3%83%84%23lol"
+ * Result: https://tracker.gg/valorant/profile/riot/dEkje%E3%83%84%23lol/overview?platform=pc&playlist=competitive
  */
 function buildTrackerUrl(riotId: string): string {
-  // Riot ID contains # separator — encode it for URL
-  const encoded = riotId.replace('#', '%23');
-  return `https://tracker.gg/valorant/profile/riot/${encodeURIComponent(encoded).replace(/%2523/g, '%23')}/overview?playlist=competitive`;
-}
-
-/**
- * Alternative URL construction that handles special characters better.
- * tracker.gg expects the riot ID with %23 for the # character.
- */
-function buildTrackerUrlSafe(riotId: string): string {
-  const [name, tag] = riotId.split('#');
-  if (!name || !tag) {
+  // Split on the LAST # in case the name itself contains special chars
+  const hashIndex = riotId.lastIndexOf('#');
+  if (hashIndex === -1 || hashIndex === 0 || hashIndex === riotId.length - 1) {
     throw new Error(`Invalid Riot ID format: "${riotId}". Expected "Name#Tag"`);
   }
-  // Encode the name part (handles unicode chars like ツ)
+  const name = riotId.substring(0, hashIndex);
+  const tag = riotId.substring(hashIndex + 1);
+
+  // encodeURIComponent handles unicode (ツ → %E3%83%84) and special chars
   const encodedName = encodeURIComponent(name);
   const encodedTag = encodeURIComponent(tag);
-  return `https://tracker.gg/valorant/profile/riot/${encodedName}%23${encodedTag}/overview?playlist=competitive`;
+  
+  return `https://tracker.gg/valorant/profile/riot/${encodedName}%23${encodedTag}/overview?platform=pc&playlist=competitive`;
 }
 
 /**
@@ -99,6 +101,8 @@ function parseTrackerMarkdown(markdown: string): ParsedStats {
     avg_combat_score: null,
     kills_per_round: null,
     first_bloods_per_round: null,
+    tracker_score: null,
+    tracker_score_max: null,
     top_agents: [],
     top_weapons: [],
   };
@@ -189,6 +193,22 @@ function parseTrackerMarkdown(markdown: string): ParsedStats {
   const fbMatch = markdown.match(/(?:first\s*bloods?\s*\/?\s*round|first\s*blood\s*per\s*round|fb\/r)[:\s]*([\d.]+)/i);
   if (fbMatch) stats.first_bloods_per_round = parseFloat(fbMatch[1]);
 
+  // --- Tracker Score (TRN Rating) ---
+  // Patterns: "Tracker Score 750", "TRN Rating 850", "750/1,000", "850 / 1000"
+  const trnMatch = markdown.match(/(?:tracker\s*score|trn\s*(?:rating|score))[:\s]*([\d,]+)/i);
+  if (trnMatch) {
+    stats.tracker_score = parseInt(trnMatch[1].replace(/,/g, ''));
+    stats.tracker_score_max = 1000; // tracker.gg score is always out of 1000
+  }
+  // Also try "XXX/1,000" or "XXX / 1000" pattern
+  if (!stats.tracker_score) {
+    const scoreSlashMatch = markdown.match(/([\d,]+)\s*\/\s*1[,.]?000/);
+    if (scoreSlashMatch) {
+      stats.tracker_score = parseInt(scoreSlashMatch[1].replace(/,/g, ''));
+      stats.tracker_score_max = 1000;
+    }
+  }
+
   // --- Top Agents extraction ---
   // Look for agent names in the context of stats
   const agentNames = [
@@ -275,7 +295,7 @@ serve(async (req) => {
     console.log(`Fetching tracker.gg stats for Riot ID: ${riotId}`);
 
     // Build tracker.gg URL
-    const trackerUrl = buildTrackerUrlSafe(riotId);
+    const trackerUrl = buildTrackerUrl(riotId);
     console.log(`Tracker URL: ${trackerUrl}`);
 
     // Scrape via Firecrawl
@@ -354,6 +374,8 @@ serve(async (req) => {
       avg_combat_score: parsedStats.avg_combat_score,
       kills_per_round: parsedStats.kills_per_round,
       first_bloods_per_round: parsedStats.first_bloods_per_round,
+      tracker_score: parsedStats.tracker_score,
+      tracker_score_max: parsedStats.tracker_score_max,
       top_agents: parsedStats.top_agents,
       top_weapons: parsedStats.top_weapons,
       raw_scrape_data: { markdown_preview: markdown.substring(0, 2000) },
