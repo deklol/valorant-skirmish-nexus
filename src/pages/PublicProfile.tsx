@@ -17,6 +17,7 @@ import ClickableTeamName from "@/components/ClickableTeamName";
 import { Username } from "@/components/Username";
 import { PageLayout } from "@/components/ui/page-layout";
 import ProfileValorantRankedMatches from '@/components/profile/ProfileValorantRankedMatches';
+import ProfileTrackerStats from '@/components/profile/ProfileTrackerStats';
 import { FollowButton } from "@/components/FollowButton";
 import { useFollows } from "@/hooks/useFollows";
 
@@ -365,7 +366,10 @@ const PublicProfile = () => {
               </TabsContent>
 
               <TabsContent value="ranked-matches" className="mt-6">
-                <ProfileValorantRankedMatches userId={userId!} />
+                <ProfileTrackerStats userId={userId!} />
+                <div className="mt-6">
+                  <ProfileValorantRankedMatches userId={userId!} />
+                </div>
               </TabsContent>
             </Tabs>
           </CardContent>

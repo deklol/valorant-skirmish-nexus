@@ -2986,6 +2986,99 @@ export type Database = {
           },
         ]
       }
+      valorant_tracker_stats: {
+        Row: {
+          avg_combat_score: number | null
+          avg_damage_per_round: number | null
+          created_at: string | null
+          current_rank: string | null
+          current_rr: number | null
+          first_bloods_per_round: number | null
+          headshot_pct: number | null
+          id: string
+          kd_ratio: number | null
+          kda_ratio: number | null
+          kills_per_round: number | null
+          last_fetched_at: string | null
+          losses: number | null
+          peak_rank: string | null
+          peak_rank_act: string | null
+          raw_scrape_data: Json | null
+          top_agents: Json | null
+          top_weapons: Json | null
+          tracker_url: string | null
+          updated_at: string | null
+          user_id: string
+          win_rate: number | null
+          wins: number | null
+        }
+        Insert: {
+          avg_combat_score?: number | null
+          avg_damage_per_round?: number | null
+          created_at?: string | null
+          current_rank?: string | null
+          current_rr?: number | null
+          first_bloods_per_round?: number | null
+          headshot_pct?: number | null
+          id?: string
+          kd_ratio?: number | null
+          kda_ratio?: number | null
+          kills_per_round?: number | null
+          last_fetched_at?: string | null
+          losses?: number | null
+          peak_rank?: string | null
+          peak_rank_act?: string | null
+          raw_scrape_data?: Json | null
+          top_agents?: Json | null
+          top_weapons?: Json | null
+          tracker_url?: string | null
+          updated_at?: string | null
+          user_id: string
+          win_rate?: number | null
+          wins?: number | null
+        }
+        Update: {
+          avg_combat_score?: number | null
+          avg_damage_per_round?: number | null
+          created_at?: string | null
+          current_rank?: string | null
+          current_rr?: number | null
+          first_bloods_per_round?: number | null
+          headshot_pct?: number | null
+          id?: string
+          kd_ratio?: number | null
+          kda_ratio?: number | null
+          kills_per_round?: number | null
+          last_fetched_at?: string | null
+          losses?: number | null
+          peak_rank?: string | null
+          peak_rank_act?: string | null
+          raw_scrape_data?: Json | null
+          top_agents?: Json | null
+          top_weapons?: Json | null
+          tracker_url?: string | null
+          updated_at?: string | null
+          user_id?: string
+          win_rate?: number | null
+          wins?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "valorant_tracker_stats_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "valorant_tracker_stats_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vods: {
         Row: {
           casters: string[] | null
