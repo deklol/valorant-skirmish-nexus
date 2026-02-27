@@ -214,11 +214,11 @@ const AchievementsTab = ({ userId }: { userId: string }) => {
       const { data } = await supabase
         .from('user_achievements')
         .select(`
-          id, unlocked_at,
+          id, earned_at, achievement_id,
           achievement:achievements (id, name, description, icon, points, rarity)
         `)
         .eq('user_id', userId)
-        .order('unlocked_at', { ascending: false });
+        .order('earned_at', { ascending: false });
       
       return data || [];
     }
