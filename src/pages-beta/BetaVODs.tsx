@@ -67,7 +67,7 @@ const BetaVODs = () => {
               {vods.map((tournament, index) => (
                 <Link 
                   key={tournament.id} 
-                  to={`/beta/tournament/${tournament.id}`}
+                  to={`/tournament/${tournament.id}`}
                   className="beta-animate-fade-in"
                   style={{ animationDelay: `${index * 50}ms` }}
                 >

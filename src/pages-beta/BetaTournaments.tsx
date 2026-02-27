@@ -160,7 +160,7 @@ const BetaTournaments = () => {
           </div>
           
           {isAdmin && (
-            <Link to="/beta/admin">
+            <Link to="/admin">
               <BetaButton>
                 <Plus className="w-4 h-4 mr-2" />
                 Create Tournament
@@ -206,7 +206,7 @@ const BetaTournaments = () => {
           {filteredTournaments.map((tournament, index) => (
             <Link 
               key={tournament.id} 
-              to={`/beta/tournament/${tournament.id}`}
+              to={`/tournament/${tournament.id}`}
               className="beta-animate-fade-in"
               style={{ animationDelay: `${index * 50}ms` }}
             >

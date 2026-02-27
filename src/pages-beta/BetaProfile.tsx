@@ -105,7 +105,7 @@ const MatchHistoryTab = ({ userId }: { userId: string }) => {
   return (
     <div className="space-y-3">
       {matches.map((match: any, idx: number) => (
-        <Link key={match.id} to={`/beta/match/${match.id}`}>
+        <Link key={match.id} to={`/match/${match.id}`}>
           <GlassCard 
             variant="subtle" 
             hover 
@@ -177,7 +177,7 @@ const TournamentHistoryTab = ({ userId }: { userId: string }) => {
   return (
     <div className="space-y-3">
       {tournaments.map((signup: any, idx: number) => (
-        <Link key={signup.id} to={`/beta/tournament/${signup.tournament?.id}`}>
+        <Link key={signup.id} to={`/tournament/${signup.tournament?.id}`}>
           <GlassCard 
             variant="subtle" 
             hover 
@@ -414,7 +414,7 @@ const BetaProfile = () => {
             <p className="text-[hsl(var(--beta-text-muted))] mb-6">
               This user profile doesn't exist or has been made private.
             </p>
-            <Link to="/beta/players">
+            <Link to="/players">
               <BetaButton variant="outline">
                 Browse Players
               </BetaButton>
@@ -486,7 +486,7 @@ const BetaProfile = () => {
                   )}
 
                   {isOwnProfile && (
-                    <Link to="/beta/settings">
+                    <Link to="/settings">
                       <BetaButton variant="outline" size="sm">
                         <Edit className="w-3 h-3 mr-1" />
                         Edit Profile

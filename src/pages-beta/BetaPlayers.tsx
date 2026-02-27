@@ -163,7 +163,7 @@ const BetaPlayers = () => {
               return (
                 <Link
                   key={player.id}
-                  to={`/beta/profile/${player.id}`}
+                  to={`/profile/${player.id}`}
                   className="beta-animate-fade-in"
                   style={{ animationDelay: `${index * 30}ms` }}
                 >

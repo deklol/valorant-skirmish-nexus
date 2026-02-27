@@ -132,7 +132,7 @@ const NameEffectsSection = () => {
         <p className="text-[hsl(var(--beta-text-muted))] mb-4">
           You don't have any name effects yet. Visit the shop to purchase one!
         </p>
-        <Link to="/beta/shop">
+        <Link to="/shop">
           <BetaButton variant="outline" size="sm">Browse Shop</BetaButton>
         </Link>
       </GlassCard>
@@ -440,7 +440,7 @@ const ProfileSettingsContent = () => {
       <div className="container mx-auto px-4 py-6 max-w-4xl space-y-6">
         {/* Back Navigation */}
         <Link 
-          to="/beta/profile" 
+          to="/profile" 
           className="inline-flex items-center gap-2 text-[hsl(var(--beta-text-muted))] hover:text-[hsl(var(--beta-accent))] transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />

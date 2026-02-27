@@ -196,7 +196,7 @@ const BetaBracketView = () => {
       <GradientBackground>
         <div className="container mx-auto px-4 py-8">
           <button
-            onClick={() => navigate("/beta/brackets")}
+            onClick={() => navigate("/brackets")}
             className="flex items-center gap-2 text-[hsl(var(--beta-text-secondary))] hover:text-[hsl(var(--beta-text-primary))] transition-colors mb-6"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -461,7 +461,7 @@ const BetaBracketView = () => {
                                 <span />
                               )}
                               <Link
-                                to={`/beta/match/${match.id}`}
+                                to={`/match/${match.id}`}
                                 className="text-[10px] font-medium text-[hsl(var(--beta-accent))] hover:text-[hsl(var(--beta-accent-glow))] transition-colors"
                                 onClick={(e) => e.stopPropagation()}
                               >
@@ -487,7 +487,7 @@ const BetaBracketView = () => {
       <div className="container mx-auto px-4 py-8">
         {/* Back navigation */}
         <button
-          onClick={() => navigate("/beta/brackets")}
+          onClick={() => navigate("/brackets")}
           className="flex items-center gap-2 text-[hsl(var(--beta-text-secondary))] hover:text-[hsl(var(--beta-text-primary))] transition-colors mb-6"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -534,7 +534,7 @@ const BetaBracketView = () => {
               <RefreshCw className="w-4 h-4 mr-1" />
               Refresh
             </BetaButton>
-            <Link to={`/beta/tournament/${tournamentId}`}>
+            <Link to={`/tournament/${tournamentId}`}>
               <BetaButton variant="secondary" size="sm">
                 <ExternalLink className="w-4 h-4 mr-1" />
                 Tournament Page

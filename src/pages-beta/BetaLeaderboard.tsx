@@ -171,7 +171,7 @@ const BetaLeaderboard = () => {
             {topPlayers.map((player, index) => (
               <Link
                 key={player.id}
-                to={`/beta/profile/${player.id}`}
+                to={`/profile/${player.id}`}
                 className="flex items-center justify-between p-4 hover:bg-[hsl(var(--beta-surface-3))] transition-colors beta-animate-fade-in"
                 style={{ animationDelay: `${index * 30}ms` }}
               >
