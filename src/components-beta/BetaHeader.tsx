@@ -13,7 +13,7 @@ const BetaHeader = () => {
 
   const handleSignOut = async () => {
     await signOut();
-    navigate("/beta");
+    navigate("/");
   };
 
   return (
@@ -28,7 +28,7 @@ const BetaHeader = () => {
         </button>
 
         {/* Mobile logo */}
-        <Link to="/beta" className="lg:hidden text-lg font-bold text-[hsl(var(--beta-accent))]">
+        <Link to="/" className="lg:hidden text-lg font-bold text-[hsl(var(--beta-accent))]">
           TLR
         </Link>
 
@@ -53,7 +53,7 @@ const BetaHeader = () => {
           {user ? (
             <div className="flex items-center gap-2">
               <Link
-                to="/beta/profile"
+                to="/profile"
                 className="flex items-center gap-2 px-3 py-1.5 rounded-[var(--beta-radius-lg)] text-sm font-medium text-[hsl(var(--beta-text-secondary))] hover:text-[hsl(var(--beta-text-primary))] hover:bg-[hsl(var(--beta-surface-3))] transition-colors"
               >
                 {profile?.discord_avatar_url ? (
@@ -92,18 +92,18 @@ const BetaHeader = () => {
       {/* Mobile menu */}
       {mobileMenuOpen && (
         <div className="lg:hidden border-t border-[hsl(var(--beta-border))] bg-[hsl(var(--beta-surface-2))] py-4 px-4 space-y-1 beta-animate-fade-in">
-          <MobileNavLink to="/beta" onClick={() => setMobileMenuOpen(false)}>Home</MobileNavLink>
-          <MobileNavLink to="/beta/tournaments" onClick={() => setMobileMenuOpen(false)}>Tournaments</MobileNavLink>
-          <MobileNavLink to="/beta/leaderboard" onClick={() => setMobileMenuOpen(false)}>Leaderboard</MobileNavLink>
-          <MobileNavLink to="/beta/players" onClick={() => setMobileMenuOpen(false)}>Players</MobileNavLink>
-          <MobileNavLink to="/beta/shop" onClick={() => setMobileMenuOpen(false)}>Shop</MobileNavLink>
-          <MobileNavLink to="/beta/vods" onClick={() => setMobileMenuOpen(false)}>VODs</MobileNavLink>
-          <MobileNavLink to="/beta/help" onClick={() => setMobileMenuOpen(false)}>Help</MobileNavLink>
+          <MobileNavLink to="/" onClick={() => setMobileMenuOpen(false)}>Home</MobileNavLink>
+          <MobileNavLink to="/tournaments" onClick={() => setMobileMenuOpen(false)}>Tournaments</MobileNavLink>
+          <MobileNavLink to="/leaderboard" onClick={() => setMobileMenuOpen(false)}>Leaderboard</MobileNavLink>
+          <MobileNavLink to="/players" onClick={() => setMobileMenuOpen(false)}>Players</MobileNavLink>
+          <MobileNavLink to="/shop" onClick={() => setMobileMenuOpen(false)}>Shop</MobileNavLink>
+          <MobileNavLink to="/vods" onClick={() => setMobileMenuOpen(false)}>VODs</MobileNavLink>
+          <MobileNavLink to="/help" onClick={() => setMobileMenuOpen(false)}>Help</MobileNavLink>
           <div className="my-3 border-t border-[hsl(var(--beta-border))]" />
-          <MobileNavLink to="/beta/profile" onClick={() => setMobileMenuOpen(false)}>Profile</MobileNavLink>
-          <MobileNavLink to="/beta/settings" onClick={() => setMobileMenuOpen(false)}>Settings</MobileNavLink>
+          <MobileNavLink to="/profile" onClick={() => setMobileMenuOpen(false)}>Profile</MobileNavLink>
+          <MobileNavLink to="/settings" onClick={() => setMobileMenuOpen(false)}>Settings</MobileNavLink>
           {isAdmin && (
-            <MobileNavLink to="/beta/admin" onClick={() => setMobileMenuOpen(false)}>Admin</MobileNavLink>
+            <MobileNavLink to="/admin" onClick={() => setMobileMenuOpen(false)}>Admin</MobileNavLink>
           )}
         </div>
       )}

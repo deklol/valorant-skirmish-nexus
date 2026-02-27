@@ -26,7 +26,7 @@ const BetaDiscordLinking: React.FC<BetaDiscordLinkingProps> = ({ className }) =>
       const { error } = await supabase.auth.linkIdentity({
         provider: 'discord',
         options: {
-          redirectTo: `${window.location.origin}/beta/settings?discord_linked=true`
+          redirectTo: `${window.location.origin}/settings?discord_linked=true`
         }
       });
 

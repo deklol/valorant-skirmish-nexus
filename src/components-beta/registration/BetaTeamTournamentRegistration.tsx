@@ -232,7 +232,7 @@ export function BetaTeamTournamentRegistration({
         <BetaButton 
           variant="secondary" 
           size="sm"
-          onClick={() => navigate('/beta/my-team')}
+          onClick={() => navigate('/my-team')}
         >
           <UserPlus className="h-3.5 w-3.5 mr-1.5" />
           Manage Team

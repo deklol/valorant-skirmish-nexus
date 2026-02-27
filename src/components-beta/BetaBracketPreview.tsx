@@ -131,7 +131,7 @@ export const BetaBracketPreview = ({ tournamentId, tournamentName }: BetaBracket
               {liveMatches.length} Live
             </BetaBadge>
           )}
-          <Link to={`/beta/bracket/${tournamentId}`}>
+          <Link to={`/bracket/${tournamentId}`}>
             <BetaButton variant="outline" size="sm">
               <ExternalLink className="w-4 h-4 mr-2" />
               Full Bracket
@@ -152,7 +152,7 @@ export const BetaBracketPreview = ({ tournamentId, tournamentName }: BetaBracket
                 {matches
                   .filter(m => m.round_number === round)
                   .map(match => (
-                    <Link key={match.id} to={`/beta/match/${match.id}`}>
+                    <Link key={match.id} to={`/match/${match.id}`}>
                       <div className={`
                         p-3 rounded-lg border transition-all cursor-pointer
                         ${match.status === 'live' 

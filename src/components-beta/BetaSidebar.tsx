@@ -65,20 +65,20 @@ interface LatestTournament {
 }
 
 const navigationItems = [
-  { title: "Home", href: "/beta", icon: Home },
-  { title: "Tournaments", href: "/beta/tournaments", icon: Trophy },
-  { title: "Brackets", href: "/beta/brackets", icon: Swords },
-  { title: "Teams", href: "/beta/teams", icon: UsersRound },
-  { title: "Leaderboard", href: "/beta/leaderboard", icon: BarChart3 },
-  { title: "Players", href: "/beta/players", icon: Users },
-  { title: "Statistics", href: "/beta/statistics", icon: BarChart3 },
-  { title: "Shop", href: "/beta/shop", icon: ShoppingBag },
-  { title: "VODs", href: "/beta/vods", icon: Video },
-  { title: "Help", href: "/beta/help", icon: HelpCircle },
+  { title: "Home", href: "/", icon: Home },
+  { title: "Tournaments", href: "/tournaments", icon: Trophy },
+  { title: "Brackets", href: "/brackets", icon: Swords },
+  { title: "Teams", href: "/teams", icon: UsersRound },
+  { title: "Leaderboard", href: "/leaderboard", icon: BarChart3 },
+  { title: "Players", href: "/players", icon: Users },
+  { title: "Statistics", href: "/statistics", icon: BarChart3 },
+  { title: "Shop", href: "/shop", icon: ShoppingBag },
+  { title: "VODs", href: "/vods", icon: Video },
+  { title: "Help", href: "/help", icon: HelpCircle },
 ];
 
 const adminItems = [
-  { title: "Admin", href: "/beta/admin", icon: Shield },
+  { title: "Admin", href: "/admin", icon: Shield },
 ];
 
 const BetaSidebar = () => {
@@ -95,9 +95,9 @@ const BetaSidebar = () => {
 
   // Build user items dynamically based on team membership
   const userItems = [
-    { title: "Profile", href: "/beta/profile", icon: User },
-    ...(userTeam ? [{ title: "My Team", href: "/beta/my-team", icon: UsersRound }] : []),
-    { title: "Settings", href: "/beta/settings", icon: Settings },
+    { title: "Profile", href: "/profile", icon: User },
+    ...(userTeam ? [{ title: "My Team", href: "/my-team", icon: UsersRound }] : []),
+    { title: "Settings", href: "/settings", icon: Settings },
   ];
 
   // Fetch dynamic content
@@ -186,8 +186,8 @@ const BetaSidebar = () => {
   }, []);
 
   const isActive = (href: string) => {
-    if (href === "/beta") {
-      return location.pathname === "/beta";
+    if (href === "/") {
+      return location.pathname === "/";
     }
     return location.pathname.startsWith(href);
   };
@@ -198,7 +198,7 @@ const BetaSidebar = () => {
   const NavItem = ({ item, showLiveBadge = false }: { item: typeof navigationItems[0]; showLiveBadge?: boolean }) => (
     <NavLink
       to={item.href}
-      end={item.href === "/beta"}
+      end={item.href === "/"}
       className={cn(
         "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 relative",
         "text-sm font-medium",
@@ -238,7 +238,7 @@ const BetaSidebar = () => {
       {/* Logo Header */}
       <div className="h-[60px] flex items-center justify-between px-4 border-b border-[hsl(220_15%_15%)]">
         {!collapsed && (
-          <Link to="/beta" className="flex items-center justify-center flex-1">
+          <Link to="/" className="flex items-center justify-center flex-1">
             {sidebarLogoUrl ? (
               <img 
                 src={sidebarLogoUrl} 
@@ -253,7 +253,7 @@ const BetaSidebar = () => {
           </Link>
         )}
         {collapsed && (
-          <Link to="/beta" className="flex items-center justify-center flex-1">
+          <Link to="/" className="flex items-center justify-center flex-1">
             {sidebarLogoUrl ? (
               <img 
                 src={sidebarLogoUrl} 
@@ -292,7 +292,7 @@ const BetaSidebar = () => {
           <NavItem 
             key={item.href} 
             item={item} 
-            showLiveBadge={item.href === "/beta/tournaments"}
+            showLiveBadge={item.href === "/tournaments"}
           />
         ))}
 
@@ -333,7 +333,7 @@ const BetaSidebar = () => {
                 {liveMatches.slice(0, 2).map((match) => (
                   <Link
                     key={match.id}
-                    to={`/beta/match/${match.id}`}
+                    to={`/match/${match.id}`}
                     className="block p-2 rounded-lg bg-[hsl(220_16%_10%)] hover:bg-[hsl(220_16%_12%)] transition-colors border border-[hsl(220_15%_15%)]"
                   >
                     <div className="flex items-center justify-between text-xs">
@@ -366,7 +366,7 @@ const BetaSidebar = () => {
                 Latest Tournament
               </p>
               <Link
-                to={`/beta/tournament/${latestTournament.id}`}
+                to={`/tournament/${latestTournament.id}`}
                 className="block p-3 rounded-lg bg-[hsl(220_16%_10%)] border border-[hsl(220_15%_15%)] hover:border-[hsl(38_70%_30%)] transition-colors group"
               >
                 <div className="flex items-start justify-between gap-2">

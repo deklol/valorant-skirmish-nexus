@@ -99,7 +99,7 @@ export const BetaTeamRoster = ({
               {/* Info */}
               <div>
                 <Link 
-                  to={`/beta/profile/${member.user_id}`}
+                  to={`/profile/${member.user_id}`}
                   className="font-medium text-[hsl(var(--beta-text-primary))] hover:text-[hsl(var(--beta-accent))] transition-colors"
                 >
                   {member.users?.discord_username || 'Unknown User'}
