@@ -270,8 +270,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Don't render children until auth is initialized
   if (!initialized) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
-        <div className="text-white text-xl">Initializing...</div>
+      <div className="min-h-screen bg-[hsl(228_20%_10%)] flex flex-col items-center justify-center gap-6">
+        {/* Logo */}
+        <div className="relative">
+          <div className="absolute inset-0 blur-2xl opacity-30 bg-[hsl(var(--beta-accent))] rounded-full scale-150" />
+          <div className="relative w-20 h-20 rounded-xl bg-[hsl(228_20%_14%)] border border-[hsl(var(--beta-accent)/0.3)] flex items-center justify-center shadow-lg shadow-[hsl(var(--beta-accent)/0.1)]">
+            <span className="text-2xl font-bold text-[hsl(var(--beta-accent))] tracking-tight">TLR</span>
+          </div>
+        </div>
+        {/* Loading indicator */}
+        <div className="flex flex-col items-center gap-3">
+          <div className="flex gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-[hsl(var(--beta-accent))] animate-bounce [animation-delay:0ms]" />
+            <span className="w-2 h-2 rounded-full bg-[hsl(var(--beta-accent))] animate-bounce [animation-delay:150ms]" />
+            <span className="w-2 h-2 rounded-full bg-[hsl(var(--beta-accent))] animate-bounce [animation-delay:300ms]" />
+          </div>
+          <p className="text-sm text-[hsl(220_10%_55%)] tracking-widest uppercase font-medium">Loading</p>
+        </div>
       </div>
     );
   }
