@@ -132,6 +132,7 @@ const AppContent = () => {
               <Route path="statistics" element={<BetaStatistics />} />
               <Route path="brackets" element={<BetaBrackets />} />
               <Route path="bracket/:id" element={<BetaBracketView />} />
+              <Route path="login" element={<Login />} />
             </Route>
 
             {/* LEGACY ROUTES - Original design, kept as fallback */}
