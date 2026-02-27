@@ -1,11 +1,5 @@
 project_id = "tmncfnwtqorbmxxyxhle"
 
-[functions.ai-health-check]
-verify_jwt = false
-
-[functions.ai-chat]
-verify_jwt = false
-
 [functions.scrape-rank]
 verify_jwt = false
 
