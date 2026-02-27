@@ -108,8 +108,8 @@ const BetaOrgAboutSection = () => {
         {/* Content Section */}
         <div className="space-y-4">
           {/* About Card */}
-          <GlassCard className="p-5">
-            <div className="flex items-center gap-3 mb-4">
+          <GlassCard className="p-5 text-center">
+            <div className="flex items-center justify-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-[var(--beta-radius-lg)] bg-[hsl(var(--beta-accent-subtle))] flex items-center justify-center">
                 <Building2 className="h-5 w-5 text-[hsl(var(--beta-accent))]" />
               </div>
@@ -119,7 +119,7 @@ const BetaOrgAboutSection = () => {
               {content.org_about}
             </p>
             {!content.org_image_url && content.org_founded_year && (
-              <div className="mt-4 flex items-center gap-2 text-[hsl(var(--beta-text-muted))]">
+              <div className="mt-4 flex items-center justify-center gap-2 text-[hsl(var(--beta-text-muted))]">
                 <Calendar className="w-4 h-4 text-[hsl(var(--beta-accent))]" />
                 <span className="text-sm">Founded in {content.org_founded_year}</span>
               </div>
@@ -128,7 +128,7 @@ const BetaOrgAboutSection = () => {
 
           {/* History Card */}
           {content.org_history_enabled && content.org_history_content && (
-            <GlassCard className="p-5">
+            <GlassCard className="p-5 text-center">
               <h3 className="font-semibold text-[hsl(var(--beta-text-primary))] mb-3">
                 {content.org_history_title || "Our Story"}
               </h3>
