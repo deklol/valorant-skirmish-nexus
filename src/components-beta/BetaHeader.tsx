@@ -18,12 +18,12 @@ const BetaHeader = () => {
 
   return (
     <header className="sticky top-0 z-30 w-full border-b border-[hsl(var(--beta-border))] bg-[hsl(var(--beta-surface-1)/0.95)] backdrop-blur-xl">
-      <div className="flex h-14 items-center justify-between px-4 lg:px-6 gap-4">
+      <div className="flex h-14 items-center justify-between px-4 gap-4 lg:px-[25px] my-px">
         {/* Mobile menu button */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="lg:hidden p-2 rounded-[var(--beta-radius-md)] text-[hsl(var(--beta-text-muted))] hover:text-[hsl(var(--beta-text-primary))] hover:bg-[hsl(var(--beta-surface-3))]"
-        >
+          className="lg:hidden p-2 rounded-[var(--beta-radius-md)] text-[hsl(var(--beta-text-muted))] hover:text-[hsl(var(--beta-text-primary))] hover:bg-[hsl(var(--beta-surface-3))]">
+
           {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
 
@@ -50,48 +50,48 @@ const BetaHeader = () => {
           {/* Notifications */}
           <BetaNotificationCenter />
 
-          {user ? (
-            <div className="flex items-center gap-2">
+          {user ?
+          <div className="flex items-center gap-2">
               <Link
-                to="/profile"
-                className="flex items-center gap-2 px-3 py-1.5 rounded-[var(--beta-radius-lg)] text-sm font-medium text-[hsl(var(--beta-text-secondary))] hover:text-[hsl(var(--beta-text-primary))] hover:bg-[hsl(var(--beta-surface-3))] transition-colors"
-              >
-                {profile?.discord_avatar_url ? (
-                  <img 
-                    src={profile.discord_avatar_url} 
-                    alt="Avatar" 
-                    className="h-7 w-7 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="h-7 w-7 rounded-full bg-[hsl(var(--beta-surface-4))] flex items-center justify-center">
+              to="/profile"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-[var(--beta-radius-lg)] text-sm font-medium text-[hsl(var(--beta-text-secondary))] hover:text-[hsl(var(--beta-text-primary))] hover:bg-[hsl(var(--beta-surface-3))] transition-colors">
+
+                {profile?.discord_avatar_url ?
+              <img
+                src={profile.discord_avatar_url}
+                alt="Avatar"
+                className="h-7 w-7 rounded-full object-cover" /> :
+
+
+              <div className="h-7 w-7 rounded-full bg-[hsl(var(--beta-surface-4))] flex items-center justify-center">
                     <User className="h-4 w-4" />
                   </div>
-                )}
+              }
                 <span className="hidden sm:inline">
                   {profile?.discord_username || 'Profile'}
                 </span>
               </Link>
               <button
-                onClick={handleSignOut}
-                className="p-2 rounded-[var(--beta-radius-md)] text-[hsl(var(--beta-text-muted))] hover:text-[hsl(var(--beta-error))] hover:bg-[hsl(var(--beta-surface-3))] transition-colors"
-                title="Sign out"
-              >
+              onClick={handleSignOut}
+              className="p-2 rounded-[var(--beta-radius-md)] text-[hsl(var(--beta-text-muted))] hover:text-[hsl(var(--beta-error))] hover:bg-[hsl(var(--beta-surface-3))] transition-colors"
+              title="Sign out">
+
                 <LogOut className="h-4 w-4" />
               </button>
-            </div>
-          ) : (
-            <Link to="/login">
+            </div> :
+
+          <Link to="/login">
               <BetaButton variant="primary" size="sm">
                 Sign In
               </BetaButton>
             </Link>
-          )}
+          }
         </div>
       </div>
 
       {/* Mobile menu */}
-      {mobileMenuOpen && (
-        <div className="lg:hidden border-t border-[hsl(var(--beta-border))] bg-[hsl(var(--beta-surface-2))] py-4 px-4 space-y-1 beta-animate-fade-in">
+      {mobileMenuOpen &&
+      <div className="lg:hidden border-t border-[hsl(var(--beta-border))] bg-[hsl(var(--beta-surface-2))] py-4 px-4 space-y-1 beta-animate-fade-in">
           <MobileNavLink to="/" onClick={() => setMobileMenuOpen(false)}>Home</MobileNavLink>
           <MobileNavLink to="/tournaments" onClick={() => setMobileMenuOpen(false)}>Tournaments</MobileNavLink>
           <MobileNavLink to="/leaderboard" onClick={() => setMobileMenuOpen(false)}>Leaderboard</MobileNavLink>
@@ -102,23 +102,23 @@ const BetaHeader = () => {
           <div className="my-3 border-t border-[hsl(var(--beta-border))]" />
           <MobileNavLink to="/profile" onClick={() => setMobileMenuOpen(false)}>Profile</MobileNavLink>
           <MobileNavLink to="/settings" onClick={() => setMobileMenuOpen(false)}>Settings</MobileNavLink>
-          {isAdmin && (
-            <MobileNavLink to="/admin" onClick={() => setMobileMenuOpen(false)}>Admin</MobileNavLink>
-          )}
+          {isAdmin &&
+        <MobileNavLink to="/admin" onClick={() => setMobileMenuOpen(false)}>Admin</MobileNavLink>
+        }
         </div>
-      )}
-    </header>
-  );
+      }
+    </header>);
+
 };
 
-const MobileNavLink = ({ to, onClick, children }: { to: string; onClick: () => void; children: React.ReactNode }) => (
-  <Link
-    to={to}
-    onClick={onClick}
-    className="block px-4 py-2.5 rounded-[var(--beta-radius-lg)] text-sm font-medium text-[hsl(var(--beta-text-secondary))] hover:text-[hsl(var(--beta-text-primary))] hover:bg-[hsl(var(--beta-surface-3))] transition-colors"
-  >
+const MobileNavLink = ({ to, onClick, children }: {to: string;onClick: () => void;children: React.ReactNode;}) =>
+<Link
+  to={to}
+  onClick={onClick}
+  className="block px-4 py-2.5 rounded-[var(--beta-radius-lg)] text-sm font-medium text-[hsl(var(--beta-text-secondary))] hover:text-[hsl(var(--beta-text-primary))] hover:bg-[hsl(var(--beta-surface-3))] transition-colors">
+
     {children}
-  </Link>
-);
+  </Link>;
+
 
 export { BetaHeader };
