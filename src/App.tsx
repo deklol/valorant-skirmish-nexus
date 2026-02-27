@@ -2,11 +2,11 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import OnboardingSystem from "@/components/onboarding/OnboardingSystem";
 import { ThemeProvider } from "next-themes";
 import { useAuth } from "@/hooks/useAuth";
-import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
@@ -42,7 +42,7 @@ import TeamsOverview from "./pages/broadcast/TeamsOverview";
 import TournamentData from "./pages/broadcast/api/TournamentData";
 import BroadcastIds from "./pages/broadcast/BroadcastIds";
 import { AppSettingsProvider } from "./contexts/AppSettingsContext";
-import BetaInvitePopup from "./components/BetaInvitePopup";
+// BetaInvitePopup removed — no longer needed after beta promotion
 
 // Beta imports - BETA ONLY
 import { BetaLayout } from "./components-beta/BetaLayout";
@@ -65,6 +65,12 @@ import BetaStatistics from "./pages-beta/BetaStatistics";
 import BetaBrackets from "./pages-beta/BetaBrackets";
 import BetaBracketView from "./pages-beta/BetaBracketView";
 const queryClient = new QueryClient();
+
+/** Redirects old /beta/* bookmarks to the new root equivalents */
+const BetaRedirect = () => {
+  const path = window.location.pathname.replace(/^\/beta\/?/, "/");
+  return <Navigate to={path} replace />;
+};
 
 const AppContent = () => {
   const { loading } = useAuth();
@@ -101,8 +107,12 @@ const AppContent = () => {
             {/* API endpoint for external integrations */}
             <Route path="/broadcast/:id/api/data" element={<TournamentData />} />
 
-            {/* BETA ROUTES - New design preview */}
-            <Route path="/beta" element={<BetaLayout />}>
+            {/* Beta catch-all redirect: /beta/* -> /* */}
+            <Route path="/beta" element={<Navigate to="/" replace />} />
+            <Route path="/beta/*" element={<BetaRedirect />} />
+
+            {/* PRIMARY ROUTES - Production (formerly beta) */}
+            <Route path="/" element={<BetaLayout />}>
               <Route index element={<BetaIndex />} />
               <Route path="tournaments" element={<BetaTournaments />} />
               <Route path="tournament/:id" element={<BetaTournamentDetail />} />
@@ -123,9 +133,9 @@ const AppContent = () => {
               <Route path="brackets" element={<BetaBrackets />} />
               <Route path="bracket/:id" element={<BetaBracketView />} />
             </Route>
-            
-            {/* All other routes with normal layout */}
-            <Route path="*" element={
+
+            {/* LEGACY ROUTES - Original design, kept as fallback */}
+            <Route path="/legacy/*" element={
               <div className="min-h-screen flex w-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
                 <AppSidebar />
                 <SidebarInset className="flex-1">
@@ -158,7 +168,6 @@ const AppContent = () => {
                       </Routes>
                     </main>
                     <Footer />
-                    <BetaInvitePopup />
                   </div>
                 </SidebarInset>
               </div>
