@@ -2,22 +2,52 @@
   Export full database schema as SQL (including RLS, types, policies, functions, triggers, etc).
   This edge function returns a SQL dump matching the running schema for reproducible setup.
   Called from the admin SchemaExportButton in the UI.
+  
+  REQUIRES: Authenticated admin user.
 */
 
 import { corsHeaders } from "../_shared/cors.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.9";
+
+async function verifyAdmin(req: Request): Promise<{ authorized: boolean; error?: string }> {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return { authorized: false, error: "Missing authorization header" };
+  }
+
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+
+  const token = authHeader.replace("Bearer ", "");
+  const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+
+  if (userError || !user) {
+    return { authorized: false, error: "Invalid or expired token" };
+  }
+
+  // Check admin role
+  const { data: profile, error: profileError } = await supabase
+    .from("users")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  if (profileError || profile?.role !== "admin") {
+    return { authorized: false, error: "Admin access required" };
+  }
+
+  return { authorized: true };
+}
 
 async function exportFullSchema() {
-  // Use pg_dump to export schema (simulate here, as direct shell use is not possible in function)
-  // Instead, export using information_schema/pg_catalog (simplified, for demo purposes)
   const { Client } = await import("npm:pg@8.10.0");
   const client = new Client({
     connectionString: Deno.env.get("SUPABASE_DB_URL") as string,
   });
   await client.connect();
 
-  // Get schema + RLS + types + functions + triggers + policies
-  // In real world, you'd use `pg_dump --schema-only --no-owner`, but here we build a partial dump.
   let output = "-- EXPORT: Full database schema, types, policies, functions, triggers\n";
 
   // Tables
@@ -75,7 +105,6 @@ async function exportFullSchema() {
     if (row.relforcerowsecurity) {
       output += `ALTER TABLE public.${row.relname} FORCE ROW LEVEL SECURITY;\n`;
     }
-    // Extract policies
     const policies = await client.query(
       `SELECT polname, polcmd, polpermissive, polroles, pg_get_expr(coalesce(polqual, 'true'::text), polrelid), pg_get_expr(coalesce(polwithcheck, 'true'::text), polrelid) FROM pg_policies WHERE schemaname='public' AND tablename=$1`, [row.relname]
     );
@@ -118,7 +147,6 @@ async function exportFullSchema() {
 
   await client.end();
 
-  // Final instructions
   output += `
 -- 
 -- To initialize: 
@@ -132,14 +160,21 @@ async function exportFullSchema() {
   return output;
 }
 
-serve(async (req: Request) => {
-  // Handle CORS preflight requests
+Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Verify admin authentication
+  const { authorized, error: authError } = await verifyAdmin(req);
+  if (!authorized) {
+    return new Response(JSON.stringify({ error: authError }), {
+      status: 403,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
+  }
+
   const { mode } = await req.json().catch(() => ({ mode: "basic" }));
-  // Only allow full schema dump if mode === "full"
   if (mode !== "full") {
     return new Response(JSON.stringify({ error: "Unsupported mode" }), { status: 400, headers: corsHeaders });
   }
