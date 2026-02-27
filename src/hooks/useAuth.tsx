@@ -270,23 +270,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Don't render children until auth is initialized
   if (!initialized) {
     return (
-      <div className="min-h-screen bg-[hsl(228_20%_10%)] flex flex-col items-center justify-center gap-6">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-8">
+        {/* Ambient glow */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="w-64 h-64 rounded-full bg-[hsl(var(--beta-accent)/0.08)] blur-[100px]" />
+        </div>
+
         {/* Logo */}
-        <div className="relative">
-          <div className="absolute inset-0 blur-2xl opacity-30 bg-[hsl(var(--beta-accent))] rounded-full scale-150" />
-          <div className="relative w-20 h-20 rounded-xl bg-[hsl(228_20%_14%)] border border-[hsl(var(--beta-accent)/0.3)] flex items-center justify-center shadow-lg shadow-[hsl(var(--beta-accent)/0.1)]">
-            <span className="text-2xl font-bold text-[hsl(var(--beta-accent))] tracking-tight">TLR</span>
+        <div className="relative z-10 flex flex-col items-center gap-6">
+          <img
+            src="/images/tlr-logo.png"
+            alt="TLR Logo"
+            className="w-28 h-28 object-contain drop-shadow-[0_0_30px_hsl(var(--beta-accent)/0.3)] animate-[pulse_3s_ease-in-out_infinite]"
+          />
+
+          {/* Loading bar */}
+          <div className="w-40 h-1 rounded-full bg-muted overflow-hidden">
+            <div className="h-full rounded-full bg-[hsl(var(--beta-accent))] animate-[loading_1.5s_ease-in-out_infinite]" />
           </div>
+          <p className="text-xs text-muted-foreground tracking-[0.25em] uppercase font-medium">Loading</p>
         </div>
-        {/* Loading indicator */}
-        <div className="flex flex-col items-center gap-3">
-          <div className="flex gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-[hsl(var(--beta-accent))] animate-bounce [animation-delay:0ms]" />
-            <span className="w-2 h-2 rounded-full bg-[hsl(var(--beta-accent))] animate-bounce [animation-delay:150ms]" />
-            <span className="w-2 h-2 rounded-full bg-[hsl(var(--beta-accent))] animate-bounce [animation-delay:300ms]" />
-          </div>
-          <p className="text-sm text-[hsl(220_10%_55%)] tracking-widest uppercase font-medium">Loading</p>
-        </div>
+
+        <style>{`
+          @keyframes loading {
+            0% { width: 0%; margin-left: 0; }
+            50% { width: 60%; margin-left: 20%; }
+            100% { width: 0%; margin-left: 100%; }
+          }
+        `}</style>
       </div>
     );
   }
