@@ -7,7 +7,7 @@ import { GradientBackground, GlassCard, BetaButton, BetaBadge, StatCard } from "
 import { 
   User, Trophy, Target, Calendar, Twitter, Clock, 
   Shield, Users, Swords, Award, Lock, ExternalLink, Edit,
-  TrendingUp, Medal, History, Gamepad2
+  TrendingUp, Medal, Gamepad2, Star, Crown, Zap, Gem, Sword, Heart, Flame
 } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { getTrackerGGUrl } from "@/utils/getTrackerGGUrl";
@@ -16,7 +16,7 @@ import { getRankIcon, getRankColor } from "@/utils/rankUtils";
 import { Username } from "@/components/Username";
 import FaceitStatsDisplay from "@/components/profile/FaceitStatsDisplay";
 import ValorantTrackerStatsDisplay from "@/components/profile/ValorantTrackerStatsDisplay";
-import { FaceitRankIcon, getRankConfig } from "@/components/profile/FaceitRankIcon";
+import { FaceitRankIcon } from "@/components/profile/FaceitRankIcon";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Role color mapping
@@ -207,6 +207,51 @@ const TournamentHistoryTab = ({ userId }: { userId: string }) => {
 };
 
 // Achievements Tab
+const achievementIconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+  trophy: Trophy,
+  star: Star,
+  crown: Crown,
+  target: Target,
+  zap: Zap,
+  medal: Medal,
+  gem: Gem,
+  shield: Shield,
+  sword: Sword,
+  heart: Heart,
+  award: Award,
+  trendingup: TrendingUp,
+  calendar: Calendar,
+  flame: Flame,
+};
+
+const getAchievementIcon = (iconName?: string) => {
+  if (!iconName) return Trophy;
+  const normalizedIcon = iconName.toLowerCase().replace(/[^a-z]/g, "");
+  return achievementIconMap[normalizedIcon] || Trophy;
+};
+
+const getAchievementRarityVariant = (rarity?: string): "default" | "accent" | "success" | "warning" | "error" | "outline" => {
+  const normalizedRarity = rarity?.toLowerCase();
+
+  switch (normalizedRarity) {
+    case "uncommon":
+      return "success";
+    case "rare":
+      return "accent";
+    case "epic":
+      return "warning";
+    case "legendary":
+      return "error";
+    default:
+      return "default";
+  }
+};
+
+const formatAchievementRarity = (rarity?: string) => {
+  if (!rarity) return "Common";
+  return rarity.charAt(0).toUpperCase() + rarity.slice(1).toLowerCase();
+};
+
 const AchievementsTab = ({ userId }: { userId: string }) => {
   const { data: achievements, isLoading } = useQuery({
     queryKey: ['beta-achievements', userId],
@@ -237,28 +282,34 @@ const AchievementsTab = ({ userId }: { userId: string }) => {
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      {achievements.map((ua: any, idx: number) => (
-        <GlassCard 
-          key={ua.id} 
-          variant="subtle" 
-          className="p-4 beta-animate-fade-in"
-          style={{ animationDelay: `${idx * 30}ms` }}
-        >
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-lg bg-[hsl(var(--beta-accent)/0.2)] flex items-center justify-center text-2xl">
-              {ua.achievement?.icon || '🏆'}
-            </div>
-            <div className="flex-1">
-              <p className="text-[hsl(var(--beta-text-primary))] font-medium">{ua.achievement?.name}</p>
-              <p className="text-xs text-[hsl(var(--beta-text-muted))] mt-1">{ua.achievement?.description}</p>
-              <div className="flex items-center gap-2 mt-2">
-                <BetaBadge variant="accent" size="sm">{ua.achievement?.points} pts</BetaBadge>
-                <span className="text-xs text-[hsl(var(--beta-text-muted))]">{ua.achievement?.rarity}</span>
+      {achievements.map((ua: any, idx: number) => {
+        const IconComponent = getAchievementIcon(ua.achievement?.icon);
+
+        return (
+          <GlassCard 
+            key={ua.id} 
+            variant="subtle" 
+            className="p-4 beta-animate-fade-in"
+            style={{ animationDelay: `${idx * 30}ms` }}
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-lg bg-[hsl(var(--beta-accent)/0.2)] flex items-center justify-center">
+                <IconComponent className="w-5 h-5 text-[hsl(var(--beta-accent))]" />
+              </div>
+              <div className="flex-1">
+                <p className="text-[hsl(var(--beta-text-primary))] font-medium">{ua.achievement?.name || 'Achievement'}</p>
+                <p className="text-xs text-[hsl(var(--beta-text-muted))] mt-1">{ua.achievement?.description || 'No description available.'}</p>
+                <div className="flex items-center gap-2 mt-2">
+                  <BetaBadge variant="accent" size="sm">{ua.achievement?.points ?? 0} pts</BetaBadge>
+                  <BetaBadge variant={getAchievementRarityVariant(ua.achievement?.rarity)} size="sm">
+                    {formatAchievementRarity(ua.achievement?.rarity)}
+                  </BetaBadge>
+                </div>
               </div>
             </div>
-          </div>
-        </GlassCard>
-      ))}
+          </GlassCard>
+        );
+      })}
     </div>
   );
 };
@@ -670,7 +721,12 @@ const BetaProfile = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="text-lg font-medium text-[hsl(var(--beta-text-primary))]">
-                    {userTeam.name}
+                    <Link
+                      to={`/team/${userTeam.id}`}
+                      className="transition-colors hover:text-[hsl(var(--beta-accent))] hover:underline"
+                    >
+                      {userTeam.name}
+                    </Link>
                   </h4>
                   {userTeam.description && (
                     <p className="text-sm text-[hsl(var(--beta-text-muted))] mt-1">
