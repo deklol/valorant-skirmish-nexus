@@ -64,10 +64,21 @@ interface LatestTournament {
   max_participants: number | null;
 }
 
-const navigationItems = [
+interface NavItemConfig {
+  title: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  children?: NavItemConfig[];
+}
+
+const navigationItems: NavItemConfig[] = [
   { title: "Home", href: "/", icon: Home },
-  { title: "Tournaments", href: "/tournaments", icon: Trophy },
-  { title: "Brackets", href: "/brackets", icon: Swords },
+  { 
+    title: "Tournaments", href: "/tournaments", icon: Trophy,
+    children: [
+      { title: "Brackets", href: "/brackets", icon: Swords },
+    ],
+  },
   { title: "Teams", href: "/teams", icon: UsersRound },
   { title: "Players", href: "/players", icon: Users },
   { title: "Leaderboard", href: "/leaderboard", icon: BarChart3 },
@@ -194,22 +205,31 @@ const BetaSidebar = () => {
   // Check if any tournament is live
   const hasLiveTournament = latestTournament?.status === "live" || liveMatches.length > 0;
 
-  const NavItem = ({ item, showLiveBadge = false }: { item: typeof navigationItems[0]; showLiveBadge?: boolean }) => (
+  // Check if a parent or its children are active
+  const isParentActive = (item: NavItemConfig) => {
+    if (isActive(item.href)) return true;
+    return item.children?.some(child => isActive(child.href)) ?? false;
+  };
+
+  const NavItem = ({ item, showLiveBadge = false, isChild = false }: { item: NavItemConfig; showLiveBadge?: boolean; isChild?: boolean }) => (
     <NavLink
       to={item.href}
       end={item.href === "/"}
       className={cn(
-        "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 relative",
+        "flex items-center gap-3 rounded-lg transition-all duration-200 relative",
         "text-sm font-medium",
+        isChild ? "px-3 py-1.5 ml-4 pl-6 border-l border-[hsl(220_15%_18%)]" : "px-3 py-2.5",
         isActive(item.href)
-          ? "bg-[hsl(38_92%_50%)] text-[hsl(220_20%_4%)]"
+          ? isChild
+            ? "text-[hsl(38_92%_50%)] border-l-[hsl(38_92%_50%)]"
+            : "bg-[hsl(38_92%_50%)] text-[hsl(220_20%_4%)]"
           : "text-[hsl(220_10%_65%)] hover:text-[hsl(40_20%_96%)] hover:bg-[hsl(220_16%_12%)]",
         collapsed && "justify-center px-2"
       )}
       title={collapsed ? item.title : undefined}
     >
-      <item.icon className="h-5 w-5 shrink-0" />
-      {!collapsed && <span>{item.title}</span>}
+      <item.icon className={cn("shrink-0", isChild ? "h-4 w-4" : "h-5 w-5")} />
+      {!collapsed && <span className={isChild ? "text-xs" : ""}>{item.title}</span>}
       {showLiveBadge && hasLiveTournament && (
         <span className={cn(
           "flex items-center gap-1 text-xs font-bold",
@@ -288,11 +308,20 @@ const BetaSidebar = () => {
         )}
         
         {navigationItems.map((item) => (
-          <NavItem 
-            key={item.href} 
-            item={item} 
-            showLiveBadge={item.href === "/tournaments"}
-          />
+          <div key={item.href}>
+            <NavItem 
+              item={item} 
+              showLiveBadge={item.href === "/tournaments"}
+            />
+            {/* Nested children - show when parent is active and sidebar expanded */}
+            {!collapsed && item.children && isParentActive(item) && (
+              <div className="mt-0.5 space-y-0.5">
+                {item.children.map((child) => (
+                  <NavItem key={child.href} item={child} isChild />
+                ))}
+              </div>
+            )}
+          </div>
         ))}
 
         {user && (
