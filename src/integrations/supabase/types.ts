@@ -3006,6 +3006,8 @@ export type Database = {
           raw_scrape_data: Json | null
           top_agents: Json | null
           top_weapons: Json | null
+          tracker_score: number | null
+          tracker_score_max: number | null
           tracker_url: string | null
           updated_at: string | null
           user_id: string
@@ -3031,6 +3033,8 @@ export type Database = {
           raw_scrape_data?: Json | null
           top_agents?: Json | null
           top_weapons?: Json | null
+          tracker_score?: number | null
+          tracker_score_max?: number | null
           tracker_url?: string | null
           updated_at?: string | null
           user_id: string
@@ -3056,6 +3060,8 @@ export type Database = {
           raw_scrape_data?: Json | null
           top_agents?: Json | null
           top_weapons?: Json | null
+          tracker_score?: number | null
+          tracker_score_max?: number | null
           tracker_url?: string | null
           updated_at?: string | null
           user_id?: string

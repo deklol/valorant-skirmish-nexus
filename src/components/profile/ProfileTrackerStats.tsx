@@ -111,7 +111,7 @@ export default function ProfileTrackerStats({ userId }: Props) {
 
   if (!stats) return null;
 
-  const hasAnyStats = stats.win_rate !== null || stats.kd_ratio !== null || stats.avg_combat_score !== null;
+  const hasAnyStats = stats.win_rate !== null || stats.kd_ratio !== null || stats.avg_combat_score !== null || stats.tracker_score !== null;
 
   return (
     <div className="space-y-4">
@@ -149,28 +149,43 @@ export default function ProfileTrackerStats({ userId }: Props) {
         </div>
       </div>
 
-      {/* Rank Card */}
-      {stats.current_rank && (
+      {/* Rank & Tracker Score Card */}
+      {(stats.current_rank || stats.tracker_score !== null) && (
         <Card className="bg-slate-800 border-slate-700">
           <CardContent className="p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Shield className="w-8 h-8 text-blue-400" />
               <div>
-                <div className="text-white font-bold text-xl">{stats.current_rank}</div>
+                {stats.current_rank && (
+                  <div className="text-white font-bold text-xl">{stats.current_rank}</div>
+                )}
                 {stats.current_rr !== null && (
                   <div className="text-slate-400 text-sm">{stats.current_rr} RR</div>
                 )}
               </div>
             </div>
-            {stats.peak_rank && (
-              <div className="text-right">
-                <div className="text-xs text-slate-400 uppercase tracking-wider">Peak</div>
-                <div className="text-yellow-400 font-semibold">{stats.peak_rank}</div>
-                {stats.peak_rank_act && (
-                  <div className="text-xs text-slate-500">{stats.peak_rank_act}</div>
-                )}
-              </div>
-            )}
+            <div className="flex items-center gap-6">
+              {/* Tracker Score */}
+              {stats.tracker_score !== null && (
+                <div className="text-center">
+                  <div className="text-xs text-slate-400 uppercase tracking-wider">Tracker Score</div>
+                  <div className="text-white font-bold text-lg">
+                    {stats.tracker_score}
+                    <span className="text-slate-500 font-normal text-sm">/{stats.tracker_score_max || 1000}</span>
+                  </div>
+                </div>
+              )}
+              {/* Peak Rank */}
+              {stats.peak_rank && (
+                <div className="text-right">
+                  <div className="text-xs text-slate-400 uppercase tracking-wider">Peak</div>
+                  <div className="text-yellow-400 font-semibold">{stats.peak_rank}</div>
+                  {stats.peak_rank_act && (
+                    <div className="text-xs text-slate-500">{stats.peak_rank_act}</div>
+                  )}
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
       )}

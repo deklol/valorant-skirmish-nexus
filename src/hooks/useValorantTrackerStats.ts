@@ -33,6 +33,8 @@ export interface ValorantTrackerStats {
   avg_combat_score: number | null;
   kills_per_round: number | null;
   first_bloods_per_round: number | null;
+  tracker_score: number | null;
+  tracker_score_max: number | null;
   top_agents: Array<{ name: string; games?: number; win_rate?: number; kd?: number }>;
   top_weapons: Array<{ name: string; headshot_pct?: number; kills?: number }>;
   tracker_url: string | null;
