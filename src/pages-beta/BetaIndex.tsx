@@ -94,7 +94,7 @@ const LiveMatchesSection = () => {
       <div className="flex items-center gap-2">
         <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
         <h2 className="text-xl font-semibold text-[hsl(var(--beta-text-primary))]">Live Matches</h2>
-        <Link to="/beta/tournaments" className="text-sm text-[hsl(var(--beta-accent))] hover:underline ml-auto">
+        <Link to="/tournaments" className="text-sm text-[hsl(var(--beta-accent))] hover:underline ml-auto">
           View tournaments
         </Link>
       </div>
@@ -104,7 +104,7 @@ const LiveMatchesSection = () => {
         'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
       }`}>
         {liveMatches.map((match) => (
-          <Link key={match.id} to={`/beta/match/${match.id}`}>
+          <Link key={match.id} to={`/match/${match.id}`}>
             <GlassCard variant="interactive" className="p-4">
               <div className="flex items-center justify-between mb-3">
                 <BetaBadge variant="accent" size="sm">
@@ -290,13 +290,13 @@ const BetaIndex = () => {
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <Link to="/beta/tournaments">
+            <Link to="/tournaments">
               <BetaButton variant="primary" size="lg">
                 <Trophy className="h-4 w-4 mr-2" />
                 Browse Tournaments
               </BetaButton>
             </Link>
-            <Link to="/beta/leaderboard">
+            <Link to="/leaderboard">
               <BetaButton variant="outline" size="lg">
                 View Leaderboard
                 <ArrowRight className="h-4 w-4 ml-2" />
@@ -322,7 +322,7 @@ const BetaIndex = () => {
           <GlassCard className="p-5">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-[hsl(var(--beta-text-primary))]">Upcoming Events</h3>
-              <Link to="/beta/tournaments" className="text-sm text-[hsl(var(--beta-accent))] hover:underline">
+              <Link to="/tournaments" className="text-sm text-[hsl(var(--beta-accent))] hover:underline">
                 View all
               </Link>
             </div>
@@ -334,7 +334,7 @@ const BetaIndex = () => {
             ) : (
               <div className="space-y-3">
                 {upcomingTournaments.map((t) => (
-                  <Link key={t.id} to={`/beta/tournament/${t.id}`}>
+                  <Link key={t.id} to={`/tournament/${t.id}`}>
                     <div className="p-3 rounded-[var(--beta-radius-md)] bg-[hsl(var(--beta-surface-3))] hover:bg-[hsl(var(--beta-surface-4))] transition-colors">
                       <div className="flex items-start justify-between mb-1">
                         <span className="font-medium text-[hsl(var(--beta-text-primary))] text-sm truncate pr-2">
@@ -365,7 +365,7 @@ const BetaIndex = () => {
           <GlassCard className="p-5">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-[hsl(var(--beta-text-primary))]">Top Players</h3>
-              <Link to="/beta/leaderboard" className="text-sm text-[hsl(var(--beta-accent))] hover:underline">
+              <Link to="/leaderboard" className="text-sm text-[hsl(var(--beta-accent))] hover:underline">
                 View all
               </Link>
             </div>
@@ -377,7 +377,7 @@ const BetaIndex = () => {
             ) : (
               <div className="space-y-3">
                 {topPlayers.map((player, idx) => (
-                  <Link key={player.id} to={`/beta/profile/${player.id}`}>
+                  <Link key={player.id} to={`/profile/${player.id}`}>
                     <div className="flex items-center gap-3 p-2 rounded-[var(--beta-radius-md)] hover:bg-[hsl(var(--beta-surface-3))] transition-colors">
                       <span className="text-sm font-bold text-[hsl(var(--beta-accent))] w-5">
                         #{idx + 1}
@@ -410,7 +410,7 @@ const BetaIndex = () => {
           <GlassCard className="p-5">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-[hsl(var(--beta-text-primary))]">Recent Champions</h3>
-              <Link to="/beta/tournaments?status=completed" className="text-sm text-[hsl(var(--beta-accent))] hover:underline">
+              <Link to="/tournaments?status=completed" className="text-sm text-[hsl(var(--beta-accent))] hover:underline">
                 View all
               </Link>
             </div>
@@ -422,7 +422,7 @@ const BetaIndex = () => {
             ) : (
               <div className="flex flex-col gap-3">
                 {recentWinners.map((winner) => (
-                  <Link key={winner.id} to={`/beta/tournament/${winner.id}`} className="block">
+                  <Link key={winner.id} to={`/tournament/${winner.id}`} className="block">
                     <div className="p-3 rounded-[var(--beta-radius-md)] bg-[hsl(var(--beta-surface-3))] hover:bg-[hsl(var(--beta-surface-4))] transition-colors">
                       <div className="flex items-center gap-2 mb-1">
                         <Trophy className="w-4 h-4 text-yellow-400" />
@@ -445,7 +445,7 @@ const BetaIndex = () => {
         <section className="space-y-5">
           <h2 className="text-xl font-semibold text-[hsl(var(--beta-text-primary))]">Quick Actions</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Link to="/beta/tournaments">
+            <Link to="/tournaments">
               <GlassCard variant="interactive" className="h-full group">
                 <div className="flex items-start gap-4">
                   <div className="shrink-0 p-3 rounded-[var(--beta-radius-lg)] bg-[hsl(var(--beta-accent-subtle))] transition-colors group-hover:bg-[hsl(var(--beta-accent)/0.2)]">
@@ -458,7 +458,7 @@ const BetaIndex = () => {
                 </div>
               </GlassCard>
             </Link>
-            <Link to="/beta/leaderboard">
+            <Link to="/leaderboard">
               <GlassCard variant="interactive" className="h-full group">
                 <div className="flex items-start gap-4">
                   <div className="shrink-0 p-3 rounded-[var(--beta-radius-lg)] bg-[hsl(var(--beta-accent-subtle))] transition-colors group-hover:bg-[hsl(var(--beta-accent)/0.2)]">
@@ -471,7 +471,7 @@ const BetaIndex = () => {
                 </div>
               </GlassCard>
             </Link>
-            <Link to="/beta/players">
+            <Link to="/players">
               <GlassCard variant="interactive" className="h-full group">
                 <div className="flex items-start gap-4">
                   <div className="shrink-0 p-3 rounded-[var(--beta-radius-lg)] bg-[hsl(var(--beta-accent-subtle))] transition-colors group-hover:bg-[hsl(var(--beta-accent)/0.2)]">
@@ -484,7 +484,7 @@ const BetaIndex = () => {
                 </div>
               </GlassCard>
             </Link>
-            <Link to="/beta/shop">
+            <Link to="/shop">
               <GlassCard variant="interactive" className="h-full group">
                 <div className="flex items-start gap-4">
                   <div className="shrink-0 p-3 rounded-[var(--beta-radius-lg)] bg-[hsl(var(--beta-accent-subtle))] transition-colors group-hover:bg-[hsl(var(--beta-accent)/0.2)]">

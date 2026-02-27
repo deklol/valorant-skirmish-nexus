@@ -100,10 +100,10 @@ const FAQAccordion = ({ item, index }: { item: FAQItem; index: number }) => {
 
 const BetaHelp = () => {
   const quickLinks = [
-    { title: "Tournaments", href: "/beta/tournaments", icon: Trophy, description: "Browse and join tournaments" },
-    { title: "Players", href: "/beta/players", icon: Users, description: "Find other players" },
-    { title: "Leaderboard", href: "/beta/leaderboard", icon: Crown, description: "View top players" },
-    { title: "Shop", href: "/beta/shop", icon: Scale, description: "Spend your points" },
+    { title: "Tournaments", href: "/tournaments", icon: Trophy, description: "Browse and join tournaments" },
+    { title: "Players", href: "/players", icon: Users, description: "Find other players" },
+    { title: "Leaderboard", href: "/leaderboard", icon: Crown, description: "View top players" },
+    { title: "Shop", href: "/shop", icon: Scale, description: "Spend your points" },
   ];
 
   return (

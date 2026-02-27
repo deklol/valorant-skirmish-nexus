@@ -305,7 +305,7 @@ const TeamRegistrationSection = ({
                 <p className="text-xs text-[hsl(var(--beta-text-muted))]">Create or join a team first</p>
               </div>
             </div>
-            <BetaButton size="sm" variant="secondary" onClick={() => navigate('/beta/my-team')}>
+            <BetaButton size="sm" variant="secondary" onClick={() => navigate('/my-team')}>
               <UserPlus className="w-4 h-4 mr-1.5" />
               Manage Team
             </BetaButton>
@@ -373,7 +373,7 @@ const TeamRegistrationSection = ({
             {registeredTeams.map((team, index) => (
               <Link
                 key={team.id}
-                to={`/beta/team/${team.team_id}`}
+                to={`/team/${team.team_id}`}
                 className="flex items-center gap-3 p-3 rounded-lg bg-[hsl(var(--beta-surface-2))] hover:bg-[hsl(var(--beta-surface-3))] transition-colors group"
               >
                 <div className="w-8 h-8 rounded-lg bg-[hsl(var(--beta-accent)/0.2)] flex items-center justify-center text-sm font-bold text-[hsl(var(--beta-accent))]">
@@ -475,7 +475,7 @@ const BetaWinnerDisplay = ({ tournamentId, tournamentStatus }: { tournamentId: s
       </div>
       <div className="flex flex-col gap-3">
         {winner.members.map(member => (
-          <Link key={member.id} to={`/beta/profile/${member.id}`} className="block">
+          <Link key={member.id} to={`/profile/${member.id}`} className="block">
             <div className="flex items-center justify-between p-3 rounded-lg bg-[hsl(var(--beta-surface-3))] hover:bg-[hsl(var(--beta-surface-4))] transition-colors">
               <Username 
                 userId={member.id} 
@@ -567,7 +567,7 @@ const BetaBracketView = ({ tournamentId }: { tournamentId: string }) => {
               
               <div className="space-y-3">
                 {roundMatches.map((match, idx) => (
-                  <Link key={match.id} to={`/beta/match/${match.id}`}>
+                  <Link key={match.id} to={`/match/${match.id}`}>
                     <GlassCard 
                       variant="subtle" 
                       hover 
@@ -757,7 +757,7 @@ const BetaTournamentDetail = () => {
             <Trophy className="w-16 h-16 text-[hsl(var(--beta-text-muted))] mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-[hsl(var(--beta-text-primary))] mb-2">Tournament Not Found</h2>
             <p className="text-[hsl(var(--beta-text-muted))] mb-6">This tournament doesn't exist or has been removed.</p>
-            <Link to="/beta/tournaments">
+            <Link to="/tournaments">
               <BetaButton variant="outline">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Tournaments
@@ -795,7 +795,7 @@ const BetaTournamentDetail = () => {
       <div className="container mx-auto px-4 py-6 space-y-6">
         {/* Back Navigation */}
         <Link 
-          to="/beta/tournaments" 
+          to="/tournaments" 
           className="inline-flex items-center gap-2 text-[hsl(var(--beta-text-muted))] hover:text-[hsl(var(--beta-accent))] transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -1089,7 +1089,7 @@ const BetaTournamentDetail = () => {
                 <Trophy className="w-5 h-5 text-[hsl(var(--beta-accent))]" />
                 Tournament Bracket
               </h3>
-              <Link to={`/beta/bracket/${id}`}>
+              <Link to={`/bracket/${id}`}>
                 <BetaButton variant="outline" size="sm">
                   <ExternalLink className="w-4 h-4 mr-2" />
                   Full Bracket View
@@ -1135,7 +1135,7 @@ const BetaTournamentDetail = () => {
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
                       {team.team_members?.map((member: any) => (
-                        <Link key={member.user_id} to={`/beta/profile/${member.user_id}`}>
+                        <Link key={member.user_id} to={`/profile/${member.user_id}`}>
                           <div className={`flex items-center gap-2 p-2 rounded-lg transition-colors ${
                             member.is_captain 
                               ? 'bg-[hsl(var(--beta-accent)/0.15)] border border-[hsl(var(--beta-accent)/0.3)]' 
@@ -1183,7 +1183,7 @@ const BetaTournamentDetail = () => {
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
                 {signups?.map((signup, index) => (
-                  <Link key={signup.id} to={`/beta/profile/${signup.user_id}`} className="beta-animate-fade-in" style={{ animationDelay: `${index * 20}ms` }}>
+                  <Link key={signup.id} to={`/profile/${signup.user_id}`} className="beta-animate-fade-in" style={{ animationDelay: `${index * 20}ms` }}>
                     <GlassCard variant="subtle" hover className="p-3 text-center group">
                       <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-[hsl(var(--beta-surface-4))] flex items-center justify-center overflow-hidden">
                         {signup.users?.discord_avatar_url ? (
@@ -1244,7 +1244,7 @@ const BetaTournamentDetail = () => {
                 Admin Controls
               </h3>
               <div className="flex flex-wrap gap-3 mb-6">
-                <Link to={`/beta/admin`}>
+                <Link to={`/admin`}>
                   <BetaButton variant="outline">
                     <Settings className="w-4 h-4 mr-2" />
                     Beta Admin Panel

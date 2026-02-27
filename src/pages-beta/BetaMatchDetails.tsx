@@ -88,7 +88,7 @@ const TeamCard = ({
         {/* Players */}
         <div className="w-full space-y-3">
           {members?.map((member: any) => (
-            <Link key={member.user_id} to={`/beta/profile/${member.user_id}`}>
+            <Link key={member.user_id} to={`/profile/${member.user_id}`}>
               <div className={`flex items-center gap-3 p-2 rounded-lg bg-[hsl(var(--beta-surface-3))] hover:bg-[hsl(var(--beta-surface-4))] transition-colors ${side === 'right' ? 'flex-row-reverse' : ''}`}>
                 {/* Avatar */}
                 <div className="w-8 h-8 rounded-lg bg-[hsl(var(--beta-surface-4))] overflow-hidden flex-shrink-0">
@@ -235,7 +235,7 @@ const BetaMatchDetails = () => {
             <div>
               {match.tournament && (
                 <Link 
-                  to={`/beta/tournament/${match.tournament.id}`}
+                  to={`/tournament/${match.tournament.id}`}
                   className="text-sm text-[hsl(var(--beta-accent))] hover:underline mb-1 inline-block"
                 >
                   {match.tournament.name}

@@ -104,14 +104,14 @@ const BetaTeams = () => {
           </div>
           <div className="flex items-center gap-3">
             {userTeamId ? (
-              <Link to="/beta/my-team">
+              <Link to="/my-team">
                 <BetaButton variant="secondary">
                   <Users className="w-4 h-4 mr-2" />
                   My Team
                 </BetaButton>
               </Link>
             ) : user && (
-              <Link to="/beta/my-team">
+              <Link to="/my-team">
                 <BetaButton>
                   <Plus className="w-4 h-4 mr-2" />
                   Create Team
@@ -191,7 +191,7 @@ const BetaTeams = () => {
               {searchQuery ? 'Try a different search term' : 'Be the first to create a team!'}
             </p>
             {!userTeamId && user && (
-              <Link to="/beta/my-team">
+              <Link to="/my-team">
                 <BetaButton>
                   <Plus className="w-4 h-4 mr-2" />
                   Create Team

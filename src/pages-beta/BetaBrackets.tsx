@@ -202,7 +202,7 @@ const BetaBrackets = () => {
             return (
               <Link
                 key={tournament.id}
-                to={`/beta/bracket/${tournament.id}`}
+                to={`/bracket/${tournament.id}`}
                 className="block beta-animate-fade-in"
                 style={{ animationDelay: `${index * 50}ms` }}
               >

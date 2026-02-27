@@ -192,7 +192,7 @@ const BetaTeamManagement = () => {
     }
 
     toast({ title: "Left team", description: "You have left the team" });
-    navigate('/beta/teams');
+    navigate('/teams');
   };
 
   const handleTransferOwnership = async (newOwnerId: string, newRoleForSelf: TeamMemberRole) => {
@@ -245,7 +245,7 @@ const BetaTeamManagement = () => {
     }
 
     toast({ title: "Team disbanded", description: "Your team has been disbanded" });
-    navigate('/beta/teams');
+    navigate('/teams');
   };
 
   const handleBannerUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -352,7 +352,7 @@ const BetaTeamManagement = () => {
     <GradientBackground>
       <div className="container mx-auto px-4 py-8">
         {/* Back Navigation */}
-        <Link to="/beta/teams" className="inline-flex items-center gap-2 text-[hsl(var(--beta-text-muted))] hover:text-[hsl(var(--beta-text-primary))] transition-colors mb-6">
+        <Link to="/teams" className="inline-flex items-center gap-2 text-[hsl(var(--beta-text-muted))] hover:text-[hsl(var(--beta-text-primary))] transition-colors mb-6">
           <ArrowLeft className="w-4 h-4" />
           Back to Teams
         </Link>
@@ -394,7 +394,7 @@ const BetaTeamManagement = () => {
               </div>
               
               <div className="flex items-center gap-2">
-                <Link to={`/beta/team/${team.id}`}>
+                <Link to={`/team/${team.id}`}>
                   <BetaButton variant="outline" size="sm">
                     View Public Profile
                   </BetaButton>

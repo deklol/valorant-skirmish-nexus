@@ -118,7 +118,7 @@ const BetaTeamProfile = () => {
             <p className="text-[hsl(var(--beta-text-muted))] mb-6">
               This team doesn't exist or has been removed.
             </p>
-            <Link to="/beta/teams">
+            <Link to="/teams">
               <BetaButton variant="outline">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Teams
@@ -137,7 +137,7 @@ const BetaTeamProfile = () => {
     <GradientBackground>
       <div className="container mx-auto px-4 py-8">
         {/* Back Navigation */}
-        <Link to="/beta/teams" className="inline-flex items-center gap-2 text-[hsl(var(--beta-text-muted))] hover:text-[hsl(var(--beta-text-primary))] transition-colors mb-6">
+        <Link to="/teams" className="inline-flex items-center gap-2 text-[hsl(var(--beta-text-muted))] hover:text-[hsl(var(--beta-text-primary))] transition-colors mb-6">
           <ArrowLeft className="w-4 h-4" />
           Back to Teams
         </Link>
@@ -186,7 +186,7 @@ const BetaTeamProfile = () => {
                     <Crown className="w-4 h-4 text-[hsl(var(--beta-accent))]" />
                     <span>Owner: </span>
                     {owner ? (
-                      <Link to={`/beta/profile/${owner.user_id}`} className="text-[hsl(var(--beta-accent))] hover:underline">
+                      <Link to={`/profile/${owner.user_id}`} className="text-[hsl(var(--beta-accent))] hover:underline">
                         {owner.users?.discord_username || 'Unknown'}
                       </Link>
                     ) : (
@@ -238,7 +238,7 @@ const BetaTeamProfile = () => {
             ) : (
               <div className="space-y-3">
                 {tournaments.map((reg, idx) => (
-                  <Link key={reg.id} to={`/beta/tournament/${reg.tournaments?.id}`}>
+                  <Link key={reg.id} to={`/tournament/${reg.tournaments?.id}`}>
                     <GlassCard 
                       variant="interactive" 
                       hover 
