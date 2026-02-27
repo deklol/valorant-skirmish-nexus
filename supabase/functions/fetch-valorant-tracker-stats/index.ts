@@ -125,21 +125,21 @@ function parseTrackerMarkdown(markdown: string): ParsedStats {
   ];
 
   // --- Current Rank ---
-  // tracker.gg shows "Rating" section with current rank first.
-  // If the page says "Unranked" or "Unrated", that IS the current rank.
-  const unrankedMatch = markdown.match(/(?:rating|current\s*rank)[:\s]*\n?\s*(Unranked|Unrated)/i);
+  // tracker.gg shows "Rating" label then the rank on next line.
+  // Check for Unranked/Unrated first (appears as "Rating\n\nUnranked")
+  const unrankedMatch = markdown.match(/Rating\s*\n\s*(Unranked|Unrated)/i);
   if (unrankedMatch) {
     stats.current_rank = unrankedMatch[1];
   } else {
-    // Find the FIRST ranked-tier mention as current rank (tracker.gg shows current first)
+    // Look for a rank name appearing right after "Rating" label
     for (const rank of [...rankNames].reverse()) {
-      const rankRegex = new RegExp(`(?:rating|current)[\\s\\S]{0,30}?${rank.replace(/\s/g, '\\s*')}`, 'i');
+      // Match "Rating" followed by the rank within ~100 chars (covers newlines, images, etc.)
+      const rankRegex = new RegExp(`Rating[\\s\\S]{0,100}?${rank.replace(/\s/g, '\\s*')}`, 'i');
       const currentMatch = markdown.match(rankRegex);
       if (currentMatch) {
         stats.current_rank = rank;
-        // Look for RR nearby
         const matchIdx = currentMatch.index || 0;
-        const nearbyText = markdown.substring(matchIdx, matchIdx + 150);
+        const nearbyText = markdown.substring(matchIdx, matchIdx + 200);
         const rrMatch = nearbyText.match(/(\d+)\s*(?:RR|rr)/i);
         if (rrMatch) {
           stats.current_rr = parseInt(rrMatch[1]);
@@ -147,44 +147,29 @@ function parseTrackerMarkdown(markdown: string): ParsedStats {
         break;
       }
     }
-    // Fallback: if no "Rating/Current" context found, try first occurrence but only as current
-    if (!stats.current_rank) {
-      for (const rank of [...rankNames].reverse()) {
-        const rankIdx = markdown.indexOf(rank);
-        if (rankIdx !== -1) {
-          stats.current_rank = rank;
-          const nearbyText = markdown.substring(rankIdx, rankIdx + 100);
-          const rrMatch = nearbyText.match(/(\d+)\s*(?:RR|rr)/i);
-          if (rrMatch) {
-            stats.current_rr = parseInt(rrMatch[1]);
-          }
-          break;
-        }
-      }
-    }
   }
 
   // --- Peak Rank ---
-  // Look for "Peak Rating" or "Peak Rank" section specifically
-  const peakSectionMatch = markdown.match(/(?:peak\s*(?:rating|rank))[:\s\S]{0,80}/i);
+  // Markdown shows "### Peak Rating" or "Peak Rating" then rank on next lines
+  // e.g. "### Peak Rating\n\n![...]\n\nImmortal 2 180RR\n\nEPISODE 5: ACT III"
+  const peakSectionMatch = markdown.match(/Peak\s*Rating[\s\S]{0,300}/i);
   if (peakSectionMatch) {
     const peakSection = peakSectionMatch[0];
     for (const rank of [...rankNames].reverse()) {
-      if (peakSection.includes(rank)) {
-        stats.peak_rank = rank;
-        // Extract RR from peak section
-        const peakRrMatch = peakSection.match(/(\d+)\s*(?:RR|rr)/i);
+      const rankIdx = peakSection.indexOf(rank);
+      if (rankIdx !== -1) {
+        // Found the rank in peak section
+        const afterRank = peakSection.substring(rankIdx);
+        // Extract RR - may be "180RR" (no space) or "180 RR"
+        const peakRrMatch = afterRank.match(/(\d+)\s*RR/i);
         if (peakRrMatch) {
-          // Store peak RR in peak_rank string for display: "Immortal 2 180 RR"
-          stats.peak_rank = `${rank}`;
-          stats.current_rr = stats.current_rr; // keep current RR separate
-          // We can store peak RR in the peak_rank_act field or the rank itself
           const peakRr = parseInt(peakRrMatch[1]);
-          // Append RR to peak rank for display
           stats.peak_rank = `${rank} ${peakRr} RR`;
+        } else {
+          stats.peak_rank = rank;
         }
-        // Extract act/episode info
-        const actMatch = peakSection.match(/(Episode\s*\d+[:\s]*Act\s*(?:I{1,3}|IV|V|\d+))/i);
+        // Extract act/episode info (e.g. "EPISODE 5: ACT III")
+        const actMatch = peakSection.match(/(EPISODE\s*\d+\s*:\s*ACT\s*(?:I{1,3}|IV|V|\d+))/i);
         if (actMatch) {
           stats.peak_rank_act = actMatch[1];
         }
