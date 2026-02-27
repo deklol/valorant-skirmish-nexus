@@ -140,6 +140,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setUser(session.user);
           // Fetch profile after setting user
           await fetchProfile(session.user.id);
+          // Update last_seen timestamp (fire-and-forget, non-blocking)
+          supabase
+            .from('users')
+            .update({ last_seen: new Date().toISOString() })
+            .eq('id', session.user.id)
+            .then(({ error }) => {
+              if (error) console.error('Error updating last_seen:', error);
+            });
         } else if (mounted) {
           console.log('No initial session found');
           setUser(null);
