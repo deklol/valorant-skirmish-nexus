@@ -5,8 +5,8 @@ import { useTournamentPageViews } from "@/hooks/useTournamentPageViews";
 import { GradientBackground, GlassCard, BetaButton, BetaBadge, StatCard } from "@/components-beta/ui-beta";
 import { 
   Trophy, Users, Calendar, Clock, ArrowLeft, Shield, Swords, 
-  CheckCircle, User, Eye, Map, Crown, Play, ExternalLink,
-  ScrollText, Settings, UserCheck, Info, Scale, Download, Copy, BarChart3,
+  CheckCircle, User, Eye, Map, Crown, ExternalLink,
+  ScrollText, Settings, UserCheck, Info, Scale, Copy,
   ListOrdered, UserCheck2, Wrench, GitBranch, Loader2, UserPlus, ChevronRight
 } from "lucide-react";
 import { format } from "date-fns";
@@ -854,15 +854,6 @@ const BetaTournamentDetail = () => {
                 </div>
               </div>
 
-              {/* Admin/View Full Page Button */}
-              <div className="flex gap-2">
-                <Link to={`/tournament/${id}`}>
-                  <BetaButton variant="outline" size="sm">
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    Full Page
-                  </BetaButton>
-                </Link>
-              </div>
             </div>
           </div>
         </GlassCard>
@@ -1098,7 +1089,7 @@ const BetaTournamentDetail = () => {
                 <Trophy className="w-5 h-5 text-[hsl(var(--beta-accent))]" />
                 Tournament Bracket
               </h3>
-              <Link to={`/bracket/${id}`}>
+              <Link to={`/beta/bracket/${id}`}>
                 <BetaButton variant="outline" size="sm">
                   <ExternalLink className="w-4 h-4 mr-2" />
                   Full Bracket View
@@ -1257,12 +1248,6 @@ const BetaTournamentDetail = () => {
                   <BetaButton variant="outline">
                     <Settings className="w-4 h-4 mr-2" />
                     Beta Admin Panel
-                  </BetaButton>
-                </Link>
-                <Link to={`/tournament/${id}`}>
-                  <BetaButton>
-                    <Shield className="w-4 h-4 mr-2" />
-                    Full Admin Dashboard
                   </BetaButton>
                 </Link>
               </div>
