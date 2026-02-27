@@ -465,7 +465,17 @@ const BetaSidebar = () => {
                 )}
               </div>
             )}
-            <p className="text-[10px] text-center text-[hsl(220_10%_45%)]">TLR Skirmish Hub</p>
+            <p className="text-[10px] text-center text-[hsl(220_10%_45%)]" style={{ fontFamily: "'Courier New', Courier, monospace" }}>
+              Built with ❤️ by{" "}
+              <a
+                href="https://x.com/digitalm1nd"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block text-[hsl(38_92%_50%)] hover:text-white transition-all duration-300 hover:scale-125 hover:rotate-3 hover:-translate-y-0.5 origin-center"
+              >
+                dek
+              </a>
+            </p>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-2">
