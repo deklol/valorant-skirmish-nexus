@@ -40,13 +40,13 @@ const Header = () => {
               <Calendar className="w-4 h-4 inline mr-2" />
               Tournaments
             </Link>
-            <Link to="/leaderboard" className="text-slate-300 hover:text-white transition-colors">
-              <Trophy className="w-4 h-4 inline mr-2" />
-              Leaderboard
-            </Link>
             <Link to="/players" className="text-slate-300 hover:text-white transition-colors">
               <Users className="w-4 h-4 inline mr-2" />
               Players
+            </Link>
+            <Link to="/leaderboard" className="text-slate-300 hover:text-white transition-colors">
+              <Trophy className="w-4 h-4 inline mr-2" />
+              Leaderboard
             </Link>
             <Link to="/help" className="text-slate-300 hover:text-white transition-colors">
               <Video className="w-4 h-4 inline mr-2" />

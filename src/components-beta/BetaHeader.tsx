@@ -94,8 +94,8 @@ const BetaHeader = () => {
       <div className="lg:hidden border-t border-[hsl(var(--beta-border))] bg-[hsl(var(--beta-surface-2))] py-4 px-4 space-y-1 beta-animate-fade-in">
           <MobileNavLink to="/" onClick={() => setMobileMenuOpen(false)}>Home</MobileNavLink>
           <MobileNavLink to="/tournaments" onClick={() => setMobileMenuOpen(false)}>Tournaments</MobileNavLink>
-          <MobileNavLink to="/leaderboard" onClick={() => setMobileMenuOpen(false)}>Leaderboard</MobileNavLink>
           <MobileNavLink to="/players" onClick={() => setMobileMenuOpen(false)}>Players</MobileNavLink>
+          <MobileNavLink to="/leaderboard" onClick={() => setMobileMenuOpen(false)}>Leaderboard</MobileNavLink>
           <MobileNavLink to="/shop" onClick={() => setMobileMenuOpen(false)}>Shop</MobileNavLink>
           <MobileNavLink to="/vods" onClick={() => setMobileMenuOpen(false)}>VODs</MobileNavLink>
           <MobileNavLink to="/help" onClick={() => setMobileMenuOpen(false)}>Help</MobileNavLink>

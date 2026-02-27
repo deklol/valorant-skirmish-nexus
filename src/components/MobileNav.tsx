@@ -32,10 +32,9 @@ const MobileNav = ({ user, isAdmin, onSignOut, onClose }: MobileNavProps) => {
     { to: "/", icon: Home, label: "Home" },
     { to: "/tournaments", icon: Calendar, label: "Tournaments" },
     { to: "/teams-directory", icon: Users, label: "Teams" },
-    { to: "/leaderboard", icon: Trophy, label: "Leaderboard" },
     { to: "/players", icon: UserIcon, label: "Players" },
+    { to: "/leaderboard", icon: Trophy, label: "Leaderboard" },
     { to: "/help", icon: HelpCircle, label: "Help" },
-    { to: "/statistics", icon: TrendingUp, label: "Statistics" },
     { to: "/shop", icon: ShoppingBag, label: "Shop" },
     { to: "/vods", icon: Video, label: "VODs" },
   ];
