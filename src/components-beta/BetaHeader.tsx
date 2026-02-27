@@ -18,7 +18,7 @@ const BetaHeader = () => {
 
   return (
     <header className="sticky top-0 z-30 w-full border-b border-[hsl(var(--beta-border))] bg-[hsl(var(--beta-surface-1)/0.95)] backdrop-blur-xl">
-      <div className="flex h-14 items-center justify-between px-4 gap-4 lg:px-[25px] my-px">
+      <div className="flex h-14 items-center justify-between px-4 gap-4 lg:px-[25px] my-[2px]">
         {/* Mobile menu button */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
