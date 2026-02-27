@@ -85,7 +85,7 @@ const BetaOrgAboutSection = () => {
         )}
       </div>
 
-      <div className={`grid gap-6 ${content.org_image_url ? "lg:grid-cols-2" : "max-w-3xl mx-auto"}`}>
+      <div className={`grid gap-6 ${content.org_image_url ? "lg:grid-cols-2" : "max-w-4xl mx-auto"}`}>
         {/* Image Section */}
         {content.org_image_url && (
           <div className="relative rounded-[var(--beta-radius-lg)] overflow-hidden border border-[hsl(var(--beta-border))] bg-[hsl(var(--beta-surface-2))]">
