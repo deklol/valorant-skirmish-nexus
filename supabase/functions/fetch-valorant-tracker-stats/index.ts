@@ -124,25 +124,80 @@ function parseTrackerMarkdown(markdown: string): ParsedStats {
     'Radiant'
   ];
 
-  // Try to find current rank
-  for (const rank of rankNames.reverse()) {
-    const rankIdx = markdown.indexOf(rank);
-    if (rankIdx !== -1) {
-      stats.current_rank = rank;
-      // Look for RR nearby (e.g., "45 RR" or "RR: 45")
-      const nearbyText = markdown.substring(rankIdx, rankIdx + 100);
-      const rrMatch = nearbyText.match(/(\d+)\s*(?:RR|rr|Rating)/i);
-      if (rrMatch) {
-        stats.current_rr = parseInt(rrMatch[1]);
+  // --- Current Rank ---
+  // tracker.gg shows "Rating" section with current rank first.
+  // If the page says "Unranked" or "Unrated", that IS the current rank.
+  const unrankedMatch = markdown.match(/(?:rating|current\s*rank)[:\s]*\n?\s*(Unranked|Unrated)/i);
+  if (unrankedMatch) {
+    stats.current_rank = unrankedMatch[1];
+  } else {
+    // Find the FIRST ranked-tier mention as current rank (tracker.gg shows current first)
+    for (const rank of [...rankNames].reverse()) {
+      const rankRegex = new RegExp(`(?:rating|current)[\\s\\S]{0,30}?${rank.replace(/\s/g, '\\s*')}`, 'i');
+      const currentMatch = markdown.match(rankRegex);
+      if (currentMatch) {
+        stats.current_rank = rank;
+        // Look for RR nearby
+        const matchIdx = currentMatch.index || 0;
+        const nearbyText = markdown.substring(matchIdx, matchIdx + 150);
+        const rrMatch = nearbyText.match(/(\d+)\s*(?:RR|rr)/i);
+        if (rrMatch) {
+          stats.current_rr = parseInt(rrMatch[1]);
+        }
+        break;
       }
-      break;
+    }
+    // Fallback: if no "Rating/Current" context found, try first occurrence but only as current
+    if (!stats.current_rank) {
+      for (const rank of [...rankNames].reverse()) {
+        const rankIdx = markdown.indexOf(rank);
+        if (rankIdx !== -1) {
+          stats.current_rank = rank;
+          const nearbyText = markdown.substring(rankIdx, rankIdx + 100);
+          const rrMatch = nearbyText.match(/(\d+)\s*(?:RR|rr)/i);
+          if (rrMatch) {
+            stats.current_rr = parseInt(rrMatch[1]);
+          }
+          break;
+        }
+      }
     }
   }
 
-  // Try to find peak rank
-  const peakMatch = markdown.match(/(?:peak|highest|best)\s*(?:rank)?[:\s]*((?:Iron|Bronze|Silver|Gold|Platinum|Diamond|Ascendant|Immortal)\s*\d|Radiant)/i);
-  if (peakMatch) {
-    stats.peak_rank = peakMatch[1].trim();
+  // --- Peak Rank ---
+  // Look for "Peak Rating" or "Peak Rank" section specifically
+  const peakSectionMatch = markdown.match(/(?:peak\s*(?:rating|rank))[:\s\S]{0,80}/i);
+  if (peakSectionMatch) {
+    const peakSection = peakSectionMatch[0];
+    for (const rank of [...rankNames].reverse()) {
+      if (peakSection.includes(rank)) {
+        stats.peak_rank = rank;
+        // Extract RR from peak section
+        const peakRrMatch = peakSection.match(/(\d+)\s*(?:RR|rr)/i);
+        if (peakRrMatch) {
+          // Store peak RR in peak_rank string for display: "Immortal 2 180 RR"
+          stats.peak_rank = `${rank}`;
+          stats.current_rr = stats.current_rr; // keep current RR separate
+          // We can store peak RR in the peak_rank_act field or the rank itself
+          const peakRr = parseInt(peakRrMatch[1]);
+          // Append RR to peak rank for display
+          stats.peak_rank = `${rank} ${peakRr} RR`;
+        }
+        // Extract act/episode info
+        const actMatch = peakSection.match(/(Episode\s*\d+[:\s]*Act\s*(?:I{1,3}|IV|V|\d+))/i);
+        if (actMatch) {
+          stats.peak_rank_act = actMatch[1];
+        }
+        break;
+      }
+    }
+  }
+  // Fallback peak detection
+  if (!stats.peak_rank) {
+    const peakMatch = markdown.match(/(?:peak|highest|best)\s*(?:rank|rating)?[:\s]*((?:Iron|Bronze|Silver|Gold|Platinum|Diamond|Ascendant|Immortal)\s*\d|Radiant)/i);
+    if (peakMatch) {
+      stats.peak_rank = peakMatch[1].trim();
+    }
   }
 
   // --- Stats extraction using common patterns ---

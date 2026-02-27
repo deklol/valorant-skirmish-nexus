@@ -15,6 +15,7 @@ import { useState } from "react";
 import { getRankIcon, getRankColor } from "@/utils/rankUtils";
 import { Username } from "@/components/Username";
 import FaceitStatsDisplay from "@/components/profile/FaceitStatsDisplay";
+import ValorantTrackerStatsDisplay from "@/components/profile/ValorantTrackerStatsDisplay";
 import { FaceitRankIcon, getRankConfig } from "@/components/profile/FaceitRankIcon";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -732,6 +733,11 @@ const BetaProfile = () => {
               {activeTab === 'rank-history' && <RankHistoryTab userId={profileId} />}
             </GlassCard>
           </>
+        )}
+
+        {/* Valorant Tracker.gg Stats */}
+        {!isPrivate && profileId && (
+          <ValorantTrackerStatsDisplay userId={profileId} />
         )}
 
         {/* FACEIT CS2 Stats */}
