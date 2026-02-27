@@ -270,25 +270,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Don't render children until auth is initialized
   if (!initialized) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-8">
+      <div className="min-h-screen bg-[hsl(var(--beta-surface-1))] flex flex-col items-center justify-center gap-6">
         {/* Ambient glow */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-64 h-64 rounded-full bg-[hsl(var(--beta-accent)/0.08)] blur-[100px]" />
+          <div className="w-64 h-64 rounded-full bg-[hsl(var(--beta-accent)/0.06)] blur-[120px]" />
         </div>
 
-        {/* Logo */}
-        <div className="relative z-10 flex flex-col items-center gap-6">
+        <div className="relative z-10 flex flex-col items-center gap-5">
           <img
             src="/images/tlr-logo.png"
             alt="TLR Logo"
-            className="w-28 h-28 object-contain drop-shadow-[0_0_30px_hsl(var(--beta-accent)/0.3)] animate-[pulse_3s_ease-in-out_infinite]"
+            className="w-20 h-20 object-contain drop-shadow-[0_0_24px_hsl(var(--beta-accent)/0.25)]"
           />
 
           {/* Loading bar */}
-          <div className="w-40 h-1 rounded-full bg-muted overflow-hidden">
-            <div className="h-full rounded-full bg-[hsl(var(--beta-accent))] animate-[loading_1.5s_ease-in-out_infinite]" />
+          <div className="w-32 h-0.5 rounded-full bg-[hsl(var(--beta-surface-4))] overflow-hidden">
+            <div className="h-full rounded-full bg-[hsl(var(--beta-accent))] animate-[loading_1.4s_ease-in-out_infinite]" />
           </div>
-          <p className="text-xs text-muted-foreground tracking-[0.25em] uppercase font-medium">Loading</p>
+          <p className="text-[11px] text-[hsl(var(--beta-text-muted))] tracking-[0.2em] uppercase font-medium">
+            Loading
+          </p>
         </div>
 
         <style>{`
