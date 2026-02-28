@@ -92,8 +92,8 @@ export function useValorantTrackerStats(userId: string) {
     ? Date.now() - new Date(stats.last_fetched_at).getTime() > STALE_THRESHOLD_MS
     : true; // No data = stale
 
-  // Auto-refresh if stale and viewing own profile (fire once)
-  const shouldAutoRefresh = isOwnProfile && isStale && !isLoading && !refreshMutation.isPending;
+  // Auto-refresh if stale for ANY visitor (not just own profile), fire once
+  const shouldAutoRefresh = isStale && !isLoading && !refreshMutation.isPending;
 
   return {
     stats,
