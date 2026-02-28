@@ -36,12 +36,13 @@ const ValorantTrackerStatsDisplay = ({ userId }: ValorantTrackerStatsDisplayProp
     isOwnProfile,
   } = useValorantTrackerStats(userId);
 
-  // Auto-refresh stale data on own profile
+  // Auto-refresh stale data for any visitor
   useEffect(() => {
     if (shouldAutoRefresh) {
       refresh();
     }
-  }, [shouldAutoRefresh, refresh]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shouldAutoRefresh]);
 
   // Show toast on refresh error
   useEffect(() => {
