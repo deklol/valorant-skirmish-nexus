@@ -250,35 +250,47 @@ function parseTrackerMarkdown(markdown: string): ParsedStats {
   }
 
   // --- Top Agents extraction ---
-  // Look for agent names in the context of stats
+  // Complete list of all Valorant agents
   const agentNames = [
-    'Jett', 'Reyna', 'Raze', 'Phoenix', 'Neon', 'Yoru', 'Iso',
-    'Sova', 'Breach', 'Skye', 'Fade', 'Gekko', 'KAY/O',
-    'Brimstone', 'Viper', 'Omen', 'Astra', 'Harbor', 'Clove',
-    'Sage', 'Cypher', 'Killjoy', 'Chamber', 'Deadlock', 'Vyse', 'Tejo'
+    'Astra', 'Breach', 'Brimstone', 'Chamber', 'Clove', 'Cypher', 'Deadlock',
+    'Fade', 'Gekko', 'Harbor', 'Iso', 'Jett', 'KAY/O', 'Killjoy', 'Neon',
+    'Omen', 'Phoenix', 'Raze', 'Reyna', 'Sage', 'Skye', 'Sova', 'Tejo',
+    'Veto', 'Viper', 'Vyse', 'Waylay', 'Yoru'
   ];
 
-  // Try to find agent mentions with associated stats
+  // Find ALL occurrences of each agent name and pick the one with the best surrounding stats
   for (const agent of agentNames) {
-    const agentIdx = markdown.indexOf(agent);
-    if (agentIdx !== -1) {
-      // Look at nearby text for stats
-      const nearbyText = markdown.substring(Math.max(0, agentIdx - 50), agentIdx + 150);
-      const agentEntry: { name: string; games?: number; win_rate?: number; kd?: number } = { name: agent };
-      
-      const gamesMatch = nearbyText.match(/(\d+)\s*(?:games?|matches?|played)/i);
-      if (gamesMatch) agentEntry.games = parseInt(gamesMatch[1]);
-      
-      const wrMatch = nearbyText.match(/([\d.]+)%?\s*(?:win|wr)/i);
-      if (wrMatch) agentEntry.win_rate = parseFloat(wrMatch[1]);
-      
-      const agentKdMatch = nearbyText.match(/(?:k\/d|kd)[:\s]*([\d.]+)/i);
-      if (agentKdMatch) agentEntry.kd = parseFloat(agentKdMatch[1]);
-      
-      // Only add if we found at least some stats
-      if (agentEntry.games || agentEntry.win_rate || agentEntry.kd) {
-        stats.top_agents.push(agentEntry);
+    // Use word-boundary-aware matching to avoid false positives
+    const agentRegex = new RegExp(`(?:^|[\\s|/\\[\\(])${agent.replace('/', '\\/')}(?:[\\s|/\\]\\),.:;]|$)`, 'gi');
+    let bestEntry: { name: string; games?: number; win_rate?: number; kd?: number } | null = null;
+    let bestScore = 0;
+
+    let match: RegExpExecArray | null;
+    while ((match = agentRegex.exec(markdown)) !== null) {
+      const agentIdx = match.index;
+      // Look at nearby text for stats (wider window for better context)
+      const nearbyText = markdown.substring(Math.max(0, agentIdx - 100), agentIdx + 200);
+      const entry: { name: string; games?: number; win_rate?: number; kd?: number } = { name: agent };
+
+      const gamesMatch = nearbyText.match(/(\d+)\s*(?:games?|matches?|played|rounds?)/i);
+      if (gamesMatch) entry.games = parseInt(gamesMatch[1]);
+
+      const wrMatch = nearbyText.match(/([\d.]+)%?\s*(?:win\s*(?:rate|%)?|wr)/i);
+      if (wrMatch) entry.win_rate = parseFloat(wrMatch[1]);
+
+      const agentKdMatch = nearbyText.match(/(?:k\/d|kd|k\.d)[:\s]*([\d.]+)/i);
+      if (agentKdMatch) entry.kd = parseFloat(agentKdMatch[1]);
+
+      // Score this match by how many stats we found
+      const score = (entry.games ? 2 : 0) + (entry.win_rate ? 1 : 0) + (entry.kd ? 1 : 0);
+      if (score > bestScore) {
+        bestScore = score;
+        bestEntry = entry;
       }
+    }
+
+    if (bestEntry && bestScore > 0) {
+      stats.top_agents.push(bestEntry);
     }
   }
 
