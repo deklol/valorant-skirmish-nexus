@@ -258,45 +258,61 @@ function parseTrackerMarkdown(markdown: string): ParsedStats {
     'Veto', 'Viper', 'Vyse', 'Waylay', 'Yoru'
   ];
 
-  // Find ALL occurrences of each agent name and pick the one with the best surrounding stats
-  for (const agent of agentNames) {
-    // Use word-boundary-aware matching to avoid false positives
-    const agentRegex = new RegExp(`(?:^|[\\s|/\\[\\(])${agent.replace('/', '\\/')}(?:[\\s|/\\]\\),.:;]|$)`, 'gi');
-    let bestEntry: { name: string; games?: number; win_rate?: number; kd?: number } | null = null;
-    let bestScore = 0;
+  // First, try to isolate the "Top Agents" section from the markdown
+  // tracker.gg typically has a section header like "Top Agents" or "Most Played Agents"
+  const agentSectionRegex = /(?:top\s*agents?|most\s*played\s*agents?|agents?\s*overview)/i;
+  const agentSectionMatch = agentSectionRegex.exec(markdown);
+  
+  // Use the agents section if found, otherwise fall back to full markdown
+  // Take a generous chunk after the section header (tracker shows 3 agents with stats)
+  let agentSearchText = markdown;
+  if (agentSectionMatch) {
+    const sectionStart = agentSectionMatch.index;
+    // Take ~2000 chars after the header — enough for 3 agent entries but not the whole page
+    agentSearchText = markdown.substring(sectionStart, sectionStart + 2000);
+    console.log('Found Top Agents section at index:', sectionStart);
+  } else {
+    console.log('No Top Agents section header found, searching full markdown');
+  }
 
+  // Parse agents from the isolated section
+  for (const agent of agentNames) {
+    // Use word-boundary-aware matching
+    const escapedName = agent.replace('/', '\\/');
+    const agentRegex = new RegExp(`(?:^|[\\s|#*\\[\\(])${escapedName}(?:[\\s|\\]\\),.:;*#]|$)`, 'gi');
+    
     let match: RegExpExecArray | null;
-    while ((match = agentRegex.exec(markdown)) !== null) {
+    while ((match = agentRegex.exec(agentSearchText)) !== null) {
       const agentIdx = match.index;
-      // Look at nearby text for stats (wider window for better context)
-      const nearbyText = markdown.substring(Math.max(0, agentIdx - 100), agentIdx + 200);
+      // Look at nearby text for stats
+      const nearbyText = agentSearchText.substring(Math.max(0, agentIdx - 100), agentIdx + 250);
       const entry: { name: string; games?: number; win_rate?: number; kd?: number } = { name: agent };
+
+      // Match patterns like "50.8% Win" or "Win 50.8%" or "50.8% WR" or "Win Rate 50.8%"
+      const wrMatch = nearbyText.match(/([\d.]+)%\s*(?:win|wr)/i) || 
+                       nearbyText.match(/(?:win\s*(?:rate|%|pct)?)[:\s]*([\d.]+)%?/i);
+      if (wrMatch) entry.win_rate = parseFloat(wrMatch[1]);
 
       const gamesMatch = nearbyText.match(/(\d+)\s*(?:games?|matches?|played|rounds?)/i);
       if (gamesMatch) entry.games = parseInt(gamesMatch[1]);
 
-      const wrMatch = nearbyText.match(/([\d.]+)%?\s*(?:win\s*(?:rate|%)?|wr)/i);
-      if (wrMatch) entry.win_rate = parseFloat(wrMatch[1]);
-
       const agentKdMatch = nearbyText.match(/(?:k\/d|kd|k\.d)[:\s]*([\d.]+)/i);
       if (agentKdMatch) entry.kd = parseFloat(agentKdMatch[1]);
 
-      // Score this match by how many stats we found
-      const score = (entry.games ? 2 : 0) + (entry.win_rate ? 1 : 0) + (entry.kd ? 1 : 0);
-      if (score > bestScore) {
-        bestScore = score;
-        bestEntry = entry;
+      // Only add if we found at least win_rate (tracker.gg always shows WR for top agents)
+      if (entry.win_rate !== undefined) {
+        stats.top_agents.push(entry);
+        break; // Only take the first good match per agent in the section
       }
-    }
-
-    if (bestEntry && bestScore > 0) {
-      stats.top_agents.push(bestEntry);
     }
   }
 
-  // Limit to top 5 agents by games played
-  stats.top_agents.sort((a, b) => (b.games || 0) - (a.games || 0));
-  stats.top_agents = stats.top_agents.slice(0, 5);
+  // Limit to top 3 agents (tracker.gg shows exactly 3)
+  // Sort by games played if available, otherwise keep order found
+  if (stats.top_agents.some(a => a.games)) {
+    stats.top_agents.sort((a, b) => (b.games || 0) - (a.games || 0));
+  }
+  stats.top_agents = stats.top_agents.slice(0, 3);
 
   return stats;
 }
