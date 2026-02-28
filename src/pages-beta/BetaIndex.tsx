@@ -374,21 +374,21 @@ const BetaIndex = () => {
 
   return (
     <GradientBackground>
-      <div className="w-full px-4 lg:px-8 py-8 lg:py-12 max-w-7xl mx-auto space-y-12">
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12 max-w-7xl mx-auto space-y-8 sm:space-y-10 lg:space-y-12">
         {/* Hero Section */}
-        <section className="space-y-6">
-          <div className="space-y-4 max-w-3xl">
-            <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-[hsl(var(--beta-text-primary))]">
+        <section className="space-y-4 sm:space-y-6">
+          <div className="space-y-3 sm:space-y-4 max-w-3xl">
+            <h1 className="text-2xl sm:text-3xl lg:text-5xl font-bold tracking-tight text-[hsl(var(--beta-text-primary))]">
               Welcome to{" "}
               <span className="beta-gradient-text">TLR Skirmish Hub</span>
             </h1>
-            <p className="text-lg text-[hsl(var(--beta-text-secondary))] leading-relaxed">
+            <p className="text-sm sm:text-base lg:text-lg text-[hsl(var(--beta-text-secondary))] leading-relaxed">
               Join the #1 competitive Valorant tournament community. Free-to-enter events with prizes, 
               live brackets, fair ATLAS team balancing, and a thriving Discord community.
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2 sm:gap-3">
             <Link to="/tournaments">
               <BetaButton variant="primary" size="lg">
                 <Trophy className="h-4 w-4 mr-2" />
@@ -405,7 +405,7 @@ const BetaIndex = () => {
         </section>
 
         {/* Stats Grid */}
-        <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <StatCard label="Tournaments" value={loading ? "—" : stats.totalTournaments} icon={<Trophy />} />
           <StatCard label="Active Players" value={loading ? "—" : stats.activePlayers} icon={<Users />} />
           <StatCard label="Matches Played" value={loading ? "—" : stats.matchesPlayed} icon={<BarChart3 />} />
@@ -416,7 +416,7 @@ const BetaIndex = () => {
         <LiveMatchesSection />
 
         {/* Quick Actions */}
-        <section className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <section className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
           <Link to="/tournaments">
             <GlassCard variant="interactive" className="p-4 text-center h-full">
               <Trophy className="h-5 w-5 text-[hsl(var(--beta-accent))] mx-auto mb-2" />
@@ -448,7 +448,7 @@ const BetaIndex = () => {
         </section>
 
         {/* Community Grid - Upcoming, Top Players, Recent Winners */}
-        <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Upcoming Tournaments */}
           <GlassCard className="p-5">
             <div className="flex items-center justify-between mb-4">
