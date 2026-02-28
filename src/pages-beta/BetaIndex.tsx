@@ -1,10 +1,10 @@
 import { Link } from "react-router-dom";
-import { Trophy, Users, BarChart3, Calendar, ArrowRight, Shield, Target, Zap, ShoppingBag, Play, Activity, Award, Clock, TrendingUp, ExternalLink } from "lucide-react";
+import { Trophy, Users, BarChart3, Calendar, ArrowRight, ShoppingBag, Activity, Award, Clock, TrendingUp, ExternalLink, Circle } from "lucide-react";
 import { GradientBackground, GlassCard, StatCard, BetaButton, BetaBadge } from "@/components-beta/ui-beta";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { Username } from "@/components/Username";
 import BetaOrgAboutSection from "@/components-beta/BetaOrgAboutSection";
 
@@ -40,6 +40,12 @@ interface TopPlayer {
   weight_rating: number;
 }
 
+interface RecentUser {
+  id: string;
+  discord_username: string;
+  discord_avatar_url: string | null;
+  last_seen: string;
+}
 
 // Live Matches Section Component
 const LiveMatchesSection = () => {
@@ -72,7 +78,6 @@ const LiveMatchesSection = () => {
 
     fetchLiveMatches();
 
-    // Real-time subscription
     const channel = supabase
       .channel('beta-live-matches')
       .on('postgres_changes', {
@@ -149,6 +154,101 @@ const LiveMatchesSection = () => {
   );
 };
 
+// Recently Online Component
+const RecentlyOnlineSection = () => {
+  const [users, setUsers] = useState<RecentUser[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchRecentUsers = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("users")
+          .select("id, discord_username, discord_avatar_url, last_seen")
+          .not("last_seen", "is", null)
+          .eq("is_phantom", false)
+          .order("last_seen", { ascending: false })
+          .limit(5);
+
+        if (error) {
+          console.error("Error fetching recently online users:", error);
+        } else {
+          setUsers(data || []);
+        }
+      } catch (error) {
+        console.error("Error fetching recently online:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRecentUsers();
+  }, []);
+
+  const isOnlineNow = (lastSeen: string) => {
+    const diff = Date.now() - new Date(lastSeen).getTime();
+    return diff < 5 * 60 * 1000;
+  };
+
+  return (
+    <GlassCard className="p-5">
+      <div className="flex items-center gap-2 mb-4">
+        <Clock className="w-4 h-4 text-[hsl(var(--beta-accent))]" />
+        <h3 className="font-semibold text-[hsl(var(--beta-text-primary))]">Recently Online</h3>
+      </div>
+      {loading ? (
+        <div className="text-center py-4">
+          <p className="text-sm text-[hsl(var(--beta-text-muted))]">Loading...</p>
+        </div>
+      ) : users.length === 0 ? (
+        <div className="text-center py-4">
+          <p className="text-sm text-[hsl(var(--beta-text-muted))]">No recent activity</p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {users.map((user) => {
+            const online = isOnlineNow(user.last_seen);
+            return (
+              <Link key={user.id} to={`/profile/${user.id}`}>
+                <div className="flex items-center gap-3 p-2 rounded-[var(--beta-radius-md)] hover:bg-[hsl(var(--beta-surface-3))] transition-colors">
+                  <div className="relative">
+                    <div className="w-8 h-8 rounded-full bg-[hsl(var(--beta-surface-4))] flex items-center justify-center overflow-hidden">
+                      {user.discord_avatar_url ? (
+                        <img src={user.discord_avatar_url} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-sm font-bold text-[hsl(var(--beta-accent))]">
+                          {user.discord_username.charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                    <Circle
+                      className={`w-3 h-3 absolute -bottom-0.5 -right-0.5 ${
+                        online
+                          ? "text-emerald-400 fill-emerald-400"
+                          : "text-[hsl(var(--beta-text-muted))] fill-[hsl(var(--beta-text-muted))]"
+                      }`}
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-[hsl(var(--beta-text-primary))] truncate">
+                      <Username userId={user.id} username={user.discord_username} />
+                    </p>
+                    <p className="text-xs text-[hsl(var(--beta-text-muted))]">
+                      {online
+                        ? "Online now"
+                        : formatDistanceToNow(new Date(user.last_seen), { addSuffix: true })}
+                    </p>
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </GlassCard>
+  );
+};
+
 const BetaIndex = () => {
   const { user } = useAuth();
   const [stats, setStats] = useState<Stats>({
@@ -161,7 +261,6 @@ const BetaIndex = () => {
   const [upcomingTournaments, setUpcomingTournaments] = useState<UpcomingTournament[]>([]);
   const [recentWinners, setRecentWinners] = useState<RecentWinner[]>([]);
   const [topPlayers, setTopPlayers] = useState<TopPlayer[]>([]);
-  
 
   useEffect(() => {
     const fetchData = async () => {
@@ -212,7 +311,7 @@ const BetaIndex = () => {
           setUpcomingTournaments(withSignups);
         }
 
-        // Fetch recent winners - get completed tournaments and find winner teams
+        // Fetch recent winners
         const { data: completedTournaments } = await supabase
           .from("tournaments")
           .select("id, name")
@@ -241,7 +340,7 @@ const BetaIndex = () => {
           setRecentWinners(winnersWithTeams);
         }
 
-        // Fetch top players - sorted by tournament wins, then match wins, then weight rating
+        // Fetch top players
         const { data: players } = await supabase
           .from("public_user_profiles")
           .select("id, discord_username, discord_avatar_url, tournaments_won, wins, weight_rating")
@@ -315,6 +414,38 @@ const BetaIndex = () => {
 
         {/* Live Matches Section */}
         <LiveMatchesSection />
+
+        {/* Quick Actions */}
+        <section className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <Link to="/tournaments">
+            <GlassCard variant="interactive" className="p-4 text-center h-full">
+              <Trophy className="h-5 w-5 text-[hsl(var(--beta-accent))] mx-auto mb-2" />
+              <h3 className="font-semibold text-sm text-[hsl(var(--beta-text-primary))]">Tournaments</h3>
+              <p className="text-xs text-[hsl(var(--beta-text-muted))] mt-1">Browse & register</p>
+            </GlassCard>
+          </Link>
+          <Link to="/leaderboard">
+            <GlassCard variant="interactive" className="p-4 text-center h-full">
+              <BarChart3 className="h-5 w-5 text-[hsl(var(--beta-accent))] mx-auto mb-2" />
+              <h3 className="font-semibold text-sm text-[hsl(var(--beta-text-primary))]">Leaderboard</h3>
+              <p className="text-xs text-[hsl(var(--beta-text-muted))] mt-1">Rankings & stats</p>
+            </GlassCard>
+          </Link>
+          <Link to="/players">
+            <GlassCard variant="interactive" className="p-4 text-center h-full">
+              <Users className="h-5 w-5 text-[hsl(var(--beta-accent))] mx-auto mb-2" />
+              <h3 className="font-semibold text-sm text-[hsl(var(--beta-text-primary))]">Players</h3>
+              <p className="text-xs text-[hsl(var(--beta-text-muted))] mt-1">Find competitors</p>
+            </GlassCard>
+          </Link>
+          <Link to="/shop">
+            <GlassCard variant="interactive" className="p-4 text-center h-full">
+              <ShoppingBag className="h-5 w-5 text-[hsl(var(--beta-accent))] mx-auto mb-2" />
+              <h3 className="font-semibold text-sm text-[hsl(var(--beta-text-primary))]">Shop</h3>
+              <p className="text-xs text-[hsl(var(--beta-text-muted))] mt-1">Spend your points</p>
+            </GlassCard>
+          </Link>
+        </section>
 
         {/* Community Grid - Upcoming, Top Players, Recent Winners */}
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -441,193 +572,13 @@ const BetaIndex = () => {
           </GlassCard>
         </section>
 
-        {/* Quick Actions */}
-        <section className="space-y-5">
-          <h2 className="text-xl font-semibold text-[hsl(var(--beta-text-primary))]">Quick Actions</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Link to="/tournaments">
-              <GlassCard variant="interactive" className="h-full group">
-                <div className="flex items-start gap-4">
-                  <div className="shrink-0 p-3 rounded-[var(--beta-radius-lg)] bg-[hsl(var(--beta-accent-subtle))] transition-colors group-hover:bg-[hsl(var(--beta-accent)/0.2)]">
-                    <Trophy className="h-5 w-5 text-[hsl(var(--beta-accent))]" />
-                  </div>
-                  <div className="min-w-0 space-y-1">
-                    <h3 className="font-semibold text-[hsl(var(--beta-text-primary))] group-hover:text-[hsl(var(--beta-accent))] transition-colors">Find Tournaments</h3>
-                    <p className="text-sm text-[hsl(var(--beta-text-muted))]">Browse and register for events</p>
-                  </div>
-                </div>
-              </GlassCard>
-            </Link>
-            <Link to="/leaderboard">
-              <GlassCard variant="interactive" className="h-full group">
-                <div className="flex items-start gap-4">
-                  <div className="shrink-0 p-3 rounded-[var(--beta-radius-lg)] bg-[hsl(var(--beta-accent-subtle))] transition-colors group-hover:bg-[hsl(var(--beta-accent)/0.2)]">
-                    <BarChart3 className="h-5 w-5 text-[hsl(var(--beta-accent))]" />
-                  </div>
-                  <div className="min-w-0 space-y-1">
-                    <h3 className="font-semibold text-[hsl(var(--beta-text-primary))] group-hover:text-[hsl(var(--beta-accent))] transition-colors">Leaderboard</h3>
-                    <p className="text-sm text-[hsl(var(--beta-text-muted))]">Check rankings and stats</p>
-                  </div>
-                </div>
-              </GlassCard>
-            </Link>
-            <Link to="/players">
-              <GlassCard variant="interactive" className="h-full group">
-                <div className="flex items-start gap-4">
-                  <div className="shrink-0 p-3 rounded-[var(--beta-radius-lg)] bg-[hsl(var(--beta-accent-subtle))] transition-colors group-hover:bg-[hsl(var(--beta-accent)/0.2)]">
-                    <Users className="h-5 w-5 text-[hsl(var(--beta-accent))]" />
-                  </div>
-                  <div className="min-w-0 space-y-1">
-                    <h3 className="font-semibold text-[hsl(var(--beta-text-primary))] group-hover:text-[hsl(var(--beta-accent))] transition-colors">Find Players</h3>
-                    <p className="text-sm text-[hsl(var(--beta-text-muted))]">Connect with competitors</p>
-                  </div>
-                </div>
-              </GlassCard>
-            </Link>
-            <Link to="/shop">
-              <GlassCard variant="interactive" className="h-full group">
-                <div className="flex items-start gap-4">
-                  <div className="shrink-0 p-3 rounded-[var(--beta-radius-lg)] bg-[hsl(var(--beta-accent-subtle))] transition-colors group-hover:bg-[hsl(var(--beta-accent)/0.2)]">
-                    <ShoppingBag className="h-5 w-5 text-[hsl(var(--beta-accent))]" />
-                  </div>
-                  <div className="min-w-0 space-y-1">
-                    <h3 className="font-semibold text-[hsl(var(--beta-text-primary))] group-hover:text-[hsl(var(--beta-accent))] transition-colors">Shop</h3>
-                    <p className="text-sm text-[hsl(var(--beta-text-muted))]">Spend your points</p>
-                  </div>
-                </div>
-              </GlassCard>
-            </Link>
-          </div>
+        {/* Recently Online */}
+        <section>
+          <RecentlyOnlineSection />
         </section>
 
         {/* Organization About Section */}
         <BetaOrgAboutSection />
-
-        {/* Features Section */}
-        <section className="space-y-6">
-          <div className="text-center max-w-2xl mx-auto">
-            <h2 className="text-2xl font-bold text-[hsl(var(--beta-text-primary))] mb-3">
-              Premium Features for Competitive Play
-            </h2>
-            <p className="text-[hsl(var(--beta-text-secondary))]">
-              From automated brackets to our bespoke ATLAS balancing algorithm, we handle every aspect of your tournament experience.
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <GlassCard className="p-5">
-              <div className="w-10 h-10 rounded-[var(--beta-radius-lg)] bg-red-500/20 flex items-center justify-center mb-3">
-                <Trophy className="h-5 w-5 text-red-400" />
-              </div>
-              <h3 className="font-semibold text-[hsl(var(--beta-text-primary))] mb-2">Automated Brackets</h3>
-              <p className="text-sm text-[hsl(var(--beta-text-muted))]">
-                Generate tournament brackets automatically with fair seeding and elimination progression.
-              </p>
-            </GlassCard>
-            
-            <GlassCard className="p-5">
-              <div className="w-10 h-10 rounded-[var(--beta-radius-lg)] bg-blue-500/20 flex items-center justify-center mb-3">
-                <Shield className="h-5 w-5 text-blue-400" />
-              </div>
-              <h3 className="font-semibold text-[hsl(var(--beta-text-primary))] mb-2">ATLAS Team Balancing</h3>
-              <p className="text-sm text-[hsl(var(--beta-text-muted))]">
-                Our smart algorithm analyzes player skill to ensure fair competition across all teams.
-              </p>
-            </GlassCard>
-            
-            <GlassCard className="p-5">
-              <div className="w-10 h-10 rounded-[var(--beta-radius-lg)] bg-green-500/20 flex items-center justify-center mb-3">
-                <Target className="h-5 w-5 text-green-400" />
-              </div>
-              <h3 className="font-semibold text-[hsl(var(--beta-text-primary))] mb-2">Map Veto System</h3>
-              <p className="text-sm text-[hsl(var(--beta-text-muted))]">
-                Interactive map veto process with real-time controls for team captains.
-              </p>
-            </GlassCard>
-            
-            <GlassCard className="p-5">
-              <div className="w-10 h-10 rounded-[var(--beta-radius-lg)] bg-purple-500/20 flex items-center justify-center mb-3">
-                <Zap className="h-5 w-5 text-purple-400" />
-              </div>
-              <h3 className="font-semibold text-[hsl(var(--beta-text-primary))] mb-2">Stat Tracking</h3>
-              <p className="text-sm text-[hsl(var(--beta-text-muted))]">
-                Track your tournament history, performance analytics, and match history.
-              </p>
-            </GlassCard>
-            
-            <GlassCard className="p-5">
-              <div className="w-10 h-10 rounded-[var(--beta-radius-lg)] bg-yellow-500/20 flex items-center justify-center mb-3">
-                <Users className="h-5 w-5 text-yellow-400" />
-              </div>
-              <h3 className="font-semibold text-[hsl(var(--beta-text-primary))] mb-2">Player Profiles</h3>
-              <p className="text-sm text-[hsl(var(--beta-text-muted))]">
-                Complete profiles with rank tracking, performance data, and match history.
-              </p>
-            </GlassCard>
-            
-            <GlassCard className="p-5">
-              <div className="w-10 h-10 rounded-[var(--beta-radius-lg)] bg-pink-500/20 flex items-center justify-center mb-3">
-                <ShoppingBag className="h-5 w-5 text-pink-400" />
-              </div>
-              <h3 className="font-semibold text-[hsl(var(--beta-text-primary))] mb-2">Shop & Rewards</h3>
-              <p className="text-sm text-[hsl(var(--beta-text-muted))]">
-                Earn achievement points and spend them on name effects and profile customizations.
-              </p>
-            </GlassCard>
-          </div>
-        </section>
-
-        {/* How It Works */}
-        <section className="space-y-6">
-          <div className="text-center max-w-2xl mx-auto">
-            <h2 className="text-2xl font-bold text-[hsl(var(--beta-text-primary))] mb-3">
-              How It Works
-            </h2>
-            <p className="text-[hsl(var(--beta-text-secondary))]">
-              From registration to championship matches, our streamlined process makes competing simple.
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[
-              { step: 1, title: "Register", desc: "Create your account and set your Riot ID. Registration is free.", color: "green" },
-              { step: 2, title: "Join Tournaments", desc: "Browse active tournaments and register. ATLAS ensures fair matchmaking.", color: "blue" },
-              { step: 3, title: "Compete", desc: "Play matches with map veto, submit scores, and track progress.", color: "purple" },
-              { step: 4, title: "Win Prizes", desc: "Earn points, unlock items, and compete for prizes.", color: "yellow" },
-            ].map((item) => (
-              <GlassCard key={item.step} className="p-5 text-center">
-                <div className={`w-10 h-10 rounded-full bg-${item.color}-500/20 flex items-center justify-center mx-auto mb-3`}>
-                  <span className={`font-bold text-${item.color}-400`}>{item.step}</span>
-                </div>
-                <h3 className="font-semibold text-[hsl(var(--beta-text-primary))] mb-2">{item.title}</h3>
-                <p className="text-sm text-[hsl(var(--beta-text-muted))]">{item.desc}</p>
-              </GlassCard>
-            ))}
-          </div>
-        </section>
-
-        {/* FAQ Section */}
-        <section className="space-y-6">
-          <div className="text-center max-w-2xl mx-auto">
-            <h2 className="text-2xl font-bold text-[hsl(var(--beta-text-primary))] mb-3">
-              Frequently Asked Questions
-            </h2>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {[
-              { q: "How do I join tournaments?", a: "Sign up on our platform, set your Riot ID, and join our Discord. Then browse and register for any open tournament." },
-              { q: "Are tournaments free to enter?", a: "Yes, all standard tournaments are free-to-enter and include prizes, fair ATLAS balancing, and Discord integration." },
-              { q: "What ranks can participate?", a: "All ranks from Iron to Radiant are welcome. Our ATLAS system ensures balanced matches for everyone." },
-              { q: "How does ATLAS balancing work?", a: "ATLAS analyzes player ranks, recent performance, and historical data to create balanced teams for fair competition." },
-            ].map((faq, idx) => (
-              <GlassCard key={idx} className="p-5">
-                <h3 className="font-semibold text-[hsl(var(--beta-text-primary))] mb-2">{faq.q}</h3>
-                <p className="text-sm text-[hsl(var(--beta-text-muted))]">{faq.a}</p>
-              </GlassCard>
-            ))}
-          </div>
-        </section>
       </div>
     </GradientBackground>
   );
