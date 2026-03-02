@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
+import { GlassCard } from "@/components-beta/ui-beta/GlassCard";
+import { BetaButton } from "@/components-beta/ui-beta/BetaButton";
+import { BetaBadge } from "@/components-beta/ui-beta/BetaBadge";
 import { 
   CheckCircle, 
   Circle, 
@@ -15,7 +14,7 @@ import {
 } from "lucide-react";
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 interface OnboardingChecklistProps {
   completedSteps: string[];
@@ -42,8 +41,16 @@ const OnboardingChecklist = ({
 }: OnboardingChecklistProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [stepStatuses, setStepStatuses] = useState<Record<string, boolean>>({});
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Track visiting /tournaments to complete the "Find a Tournament" goal
+  useEffect(() => {
+    if (location.pathname === '/tournaments' && !completedSteps.includes('find_tournament')) {
+      onStepComplete('find_tournament');
+    }
+  }, [location.pathname, completedSteps, onStepComplete]);
 
   const checklistSteps: ChecklistStep[] = [
     {
@@ -76,8 +83,7 @@ const OnboardingChecklist = ({
       },
       checkCondition: async () => {
         if (!user) return false;
-        // Check if user has viewed tournaments page (we'll track this)
-        return completedSteps.includes('viewed_tournaments');
+        return completedSteps.includes('find_tournament') || completedSteps.includes('viewed_tournaments');
       }
     },
     {
@@ -108,7 +114,6 @@ const OnboardingChecklist = ({
         } else if (step.checkCondition) {
           statuses[step.id] = await step.checkCondition();
           
-          // Auto-complete step if condition is met
           if (statuses[step.id] && !completedSteps.includes(step.id)) {
             onStepComplete(step.id);
           }
@@ -127,102 +132,104 @@ const OnboardingChecklist = ({
   if (isCollapsed) {
     return (
       <div className="fixed bottom-4 right-4 z-40">
-        <Button
+        <BetaButton
+          variant="primary"
           onClick={() => setIsCollapsed(false)}
-          className="bg-red-600 hover:bg-red-700 text-white shadow-lg"
+          className="shadow-[var(--beta-shadow-glow)]"
         >
           Getting Started ({completedCount}/{checklistSteps.length})
-        </Button>
+        </BetaButton>
       </div>
     );
   }
 
   return (
     <div className="fixed bottom-4 right-4 z-40 max-w-sm w-full">
-      <Card className="bg-slate-800 border-slate-600 shadow-xl animate-scale-in">
-        <CardHeader className="pb-4">
+      <GlassCard variant="strong" className="shadow-[var(--beta-shadow-lg)] animate-scale-in">
+        {/* Header */}
+        <div className="flex flex-col gap-3 pb-4">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-white text-lg flex items-center gap-2">
+              <h3 className="text-[hsl(var(--beta-text-primary))] text-lg font-semibold flex items-center gap-2">
                 Getting Started
-                <Badge variant="secondary" className="bg-red-600/20 text-red-400">
+                <BetaBadge variant="accent">
                   {completedCount}/{checklistSteps.length}
-                </Badge>
-              </CardTitle>
-              <p className="text-slate-400 text-sm mt-1">
+                </BetaBadge>
+              </h3>
+              <p className="text-[hsl(var(--beta-text-muted))] text-sm mt-1">
                 Complete these steps to get the most out of the platform
               </p>
             </div>
             <div className="flex gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
+              <button
                 onClick={() => setIsCollapsed(true)}
-                className="text-slate-400 hover:text-white p-2"
+                className="text-[hsl(var(--beta-text-muted))] hover:text-[hsl(var(--beta-text-primary))] p-2 rounded-[var(--beta-radius-md)] transition-colors"
               >
                 <ArrowRight className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
+              </button>
+              <button
                 onClick={onDismiss}
-                className="text-slate-400 hover:text-white p-2"
+                className="text-[hsl(var(--beta-text-muted))] hover:text-[hsl(var(--beta-text-primary))] p-2 rounded-[var(--beta-radius-md)] transition-colors"
               >
                 <X className="w-4 h-4" />
-              </Button>
+              </button>
             </div>
           </div>
           
-          <Progress 
-            value={progressPercentage} 
-            className="h-2 mt-3"
-          />
-        </CardHeader>
+          {/* Progress Bar */}
+          <div className="h-2 rounded-full bg-[hsl(var(--beta-surface-4))] overflow-hidden">
+            <div
+              className="h-full rounded-full bg-[hsl(var(--beta-accent))] transition-all duration-300"
+              style={{ width: `${progressPercentage}%` }}
+            />
+          </div>
+        </div>
         
-        <CardContent className="space-y-3">
+        {/* Steps */}
+        <div className="flex flex-col gap-3">
           {checklistSteps.map((step) => {
             const isCompleted = stepStatuses[step.id] || false;
             
             return (
               <div
                 key={step.id}
-                className={`flex items-start gap-3 p-3 rounded-lg border transition-all ${
+                className={`flex items-start gap-3 p-3 rounded-[var(--beta-radius-md)] border transition-all ${
                   isCompleted
-                    ? 'bg-green-500/10 border-green-500/30'
-                    : 'bg-slate-700/50 border-slate-600 hover:border-slate-500'
+                    ? 'bg-[hsl(var(--beta-success)/0.1)] border-[hsl(var(--beta-success)/0.3)]'
+                    : 'bg-[hsl(var(--beta-surface-3))] border-[hsl(var(--beta-glass-border))] hover:border-[hsl(var(--beta-accent)/0.3)]'
                 }`}
               >
                 <div className="flex-shrink-0 mt-0.5">
                   {isCompleted ? (
-                    <CheckCircle className="w-5 h-5 text-green-400" />
+                    <CheckCircle className="w-5 h-5 text-[hsl(var(--beta-success))]" />
                   ) : (
-                    <Circle className="w-5 h-5 text-slate-400" />
+                    <Circle className="w-5 h-5 text-[hsl(var(--beta-text-muted))]" />
                   )}
                 </div>
                 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    {step.icon}
+                    <span className={isCompleted ? 'text-[hsl(var(--beta-success))]' : 'text-[hsl(var(--beta-text-secondary))]'}>
+                      {step.icon}
+                    </span>
                     <h4 className={`text-sm font-medium ${
-                      isCompleted ? 'text-green-400' : 'text-white'
+                      isCompleted ? 'text-[hsl(var(--beta-success))]' : 'text-[hsl(var(--beta-text-primary))]'
                     }`}>
                       {step.title}
                     </h4>
                   </div>
-                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                  <p className="text-xs text-[hsl(var(--beta-text-muted))] mt-1 leading-relaxed">
                     {step.description}
                   </p>
                   
                   {!isCompleted && step.action && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
+                    <button
                       onClick={step.action.onClick}
-                      className="text-blue-400 hover:text-blue-300 p-0 h-auto mt-2 text-xs"
+                      className="text-[hsl(var(--beta-accent))] hover:text-[hsl(var(--beta-accent-glow))] text-xs mt-2 inline-flex items-center gap-1 transition-colors"
                     >
                       {step.action.label}
-                      <ExternalLink className="w-3 h-3 ml-1" />
-                    </Button>
+                      <ExternalLink className="w-3 h-3" />
+                    </button>
                   )}
                 </div>
               </div>
@@ -231,22 +238,23 @@ const OnboardingChecklist = ({
           
           {completedCount === checklistSteps.length && (
             <div className="text-center py-4">
-              <div className="text-green-400 text-lg font-medium mb-2">
+              <div className="text-[hsl(var(--beta-success))] text-lg font-medium mb-2">
                 🎉 All set!
               </div>
-              <p className="text-slate-400 text-sm mb-3">
+              <p className="text-[hsl(var(--beta-text-muted))] text-sm mb-3">
                 You're ready to compete in tournaments!
               </p>
-              <Button
+              <BetaButton
+                variant="primary"
                 onClick={onDismiss}
-                className="bg-red-600 hover:bg-red-700 text-white w-full"
+                className="w-full"
               >
                 Get Started
-              </Button>
+              </BetaButton>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </GlassCard>
     </div>
   );
 };
