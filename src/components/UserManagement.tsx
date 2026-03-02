@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { GlassCard } from "@/components-beta/ui-beta/GlassCard";
+import { BetaButton } from "@/components-beta/ui-beta/BetaButton";
+import { BetaBadge } from "@/components-beta/ui-beta/BetaBadge";
+import { BetaCard } from "@/components-beta/ui-beta/BetaCard";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Users, Edit, Ban, Shield, ShieldOff, Search, ExternalLink, RefreshCw, Settings } from "lucide-react";
+import { 
+  Users, Edit, Ban, Shield, ShieldOff, Search, ExternalLink, RefreshCw, Settings, Trash2, AlertTriangle 
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import ClickableUsername from "./ClickableUsername";
@@ -50,6 +53,8 @@ const UserManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [banDialogOpen, setBanDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingUser, setDeletingUser] = useState(false);
   const [editingUser, setEditingUser] = useState<UserData | null>(null);
   const [refreshingRank, setRefreshingRank] = useState<string | null>(null);
   const [banForm, setBanForm] = useState({
@@ -142,7 +147,6 @@ const UserManagement = () => {
           : "Rank data refreshed",
       });
 
-      // Refresh the users list to show updated data
       fetchUsers();
     } catch (error: any) {
       console.error('Error refreshing rank:', error);
@@ -192,7 +196,6 @@ const UserManagement = () => {
           riot_id: editForm.riot_id || null,
           spendable_points: editForm.spendable_points,
           peak_rank: editForm.peak_rank,
-          // Manual rank override fields
           manual_rank_override: manualOverrideForm.manual_rank_override,
           manual_weight_override: manualOverrideForm.manual_weight_override,
           use_manual_override: manualOverrideForm.use_manual_override,
@@ -245,7 +248,6 @@ const UserManagement = () => {
 
       if (error) throw error;
 
-      // Log the audit action
       await supabase
         .from('audit_logs')
         .insert({
@@ -290,7 +292,6 @@ const UserManagement = () => {
 
       if (error) throw error;
 
-      // Log the audit action
       await supabase
         .from('audit_logs')
         .insert({
@@ -325,397 +326,479 @@ const UserManagement = () => {
     }
   };
 
+  const handleDeleteUser = (user: UserData) => {
+    setEditingUser(user);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleExecuteDelete = async () => {
+    if (!editingUser) return;
+
+    setDeletingUser(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-delete-user', {
+        body: { user_id: editingUser.id }
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast({
+        title: "User Deleted",
+        description: data.message || `${editingUser.discord_username || 'User'} has been permanently deleted`,
+      });
+
+      setDeleteDialogOpen(false);
+      setEditingUser(null);
+      fetchUsers();
+    } catch (error: any) {
+      console.error('Error deleting user:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete user",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingUser(false);
+    }
+  };
+
   if (loading) {
     return (
-      <Card className="bg-slate-800 border-slate-700">
-        <CardContent className="p-8 text-center">
-          <p className="text-white">Loading users...</p>
-        </CardContent>
-      </Card>
+      <GlassCard variant="strong">
+        <div className="p-8 text-center">
+          <p className="text-[hsl(var(--beta-text-primary))]">Loading users...</p>
+        </div>
+      </GlassCard>
     );
   }
 
   return (
-    <Card className="bg-slate-800 border-slate-700">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-white flex items-center gap-2">
-            <Users className="w-5 h-5 text-green-400" />
+    <GlassCard variant="strong" noPadding>
+      {/* Header */}
+      <div className="p-5 border-b border-[hsl(var(--beta-glass-border))]">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <h2 className="text-[hsl(var(--beta-text-primary))] text-lg font-semibold flex items-center gap-2">
+            <Users className="w-5 h-5 text-[hsl(var(--beta-accent))]" />
             User Management
-          </CardTitle>
+            <BetaBadge variant="default">{users.length} users</BetaBadge>
+          </h2>
           <div className="flex items-center gap-2">
             <BatchRankRefreshButton 
               onRefreshComplete={fetchUsers}
               variant="outline" 
               size="sm"
-              className="border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-white"
+              className="border-[hsl(var(--beta-accent)/0.5)] text-[hsl(var(--beta-accent))] hover:bg-[hsl(var(--beta-accent)/0.1)]"
             />
             <div className="relative">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
+              <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-[hsl(var(--beta-text-muted))]" />
               <Input
                 placeholder="Search users..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-slate-700 border-slate-600 text-white"
+                className="pl-10 bg-[hsl(var(--beta-surface-3))] border-[hsl(var(--beta-glass-border))] text-[hsl(var(--beta-text-primary))] placeholder:text-[hsl(var(--beta-text-muted))]"
               />
             </div>
           </div>
         </div>
-      </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="text-slate-300">Discord Username</TableHead>
-                <TableHead className="text-slate-300">Riot ID</TableHead>
-                <TableHead className="text-slate-300">Rank / Weight</TableHead>
-                <TableHead className="text-slate-300">Role</TableHead>
-                <TableHead className="text-slate-300">Stats</TableHead>
-                <TableHead className="text-slate-300">Status</TableHead>
-                <TableHead className="text-slate-300">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredUsers.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="text-white font-medium">
-                    <div className="flex items-center gap-2">
-                      <ClickableUsername 
-                        userId={user.id}
-                        username={user.discord_username || 'No username'}
-                      />
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => window.open(`/profile/${user.id}`, '_blank')}
-                        className="p-1 h-6 w-6"
-                      >
-                        <ExternalLink className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-white">
-                    {user.riot_id || 'No Riot ID'}
-                  </TableCell>
-                  <TableCell className="text-white">
-                    <div className="flex flex-col gap-1">
-                      <span>{user.current_rank || 'Unranked'}</span>
-                      <span className="text-xs text-slate-400">Weight: {user.weight_rating || 150}</span>
-                      {user.use_manual_override && (
-                        <Badge className="bg-amber-600 text-white text-xs w-fit">
-                          <Settings className="w-3 h-3 mr-1" />
-                          Override
-                        </Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge 
-                      variant={user.role === 'admin' ? 'destructive' : 'secondary'}
-                      className={user.role === 'admin' ? 'bg-red-600' : 'bg-slate-600'}
+      </div>
+
+      {/* Table */}
+      <div className="overflow-x-auto p-5">
+        <Table>
+          <TableHeader>
+            <TableRow className="border-[hsl(var(--beta-glass-border))]">
+              <TableHead className="text-[hsl(var(--beta-text-secondary))]">Discord Username</TableHead>
+              <TableHead className="text-[hsl(var(--beta-text-secondary))]">Riot ID</TableHead>
+              <TableHead className="text-[hsl(var(--beta-text-secondary))]">Rank / Weight</TableHead>
+              <TableHead className="text-[hsl(var(--beta-text-secondary))]">Role</TableHead>
+              <TableHead className="text-[hsl(var(--beta-text-secondary))]">Stats</TableHead>
+              <TableHead className="text-[hsl(var(--beta-text-secondary))]">Status</TableHead>
+              <TableHead className="text-[hsl(var(--beta-text-secondary))]">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredUsers.map((user) => (
+              <TableRow key={user.id} className="border-[hsl(var(--beta-glass-border))] hover:bg-[hsl(var(--beta-surface-3))]">
+                <TableCell className="text-[hsl(var(--beta-text-primary))] font-medium">
+                  <div className="flex items-center gap-2">
+                    <ClickableUsername 
+                      userId={user.id}
+                      username={user.discord_username || 'No username'}
+                    />
+                    <button
+                      onClick={() => window.open(`/profile/${user.id}`, '_blank')}
+                      className="p-1 h-6 w-6 text-[hsl(var(--beta-text-muted))] hover:text-[hsl(var(--beta-accent))] transition-colors"
                     >
-                      {user.role}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-white text-sm">
-                    <div>W: {user.wins} L: {user.losses}</div>
-                    <div>T: {user.tournaments_played} Won: {user.tournaments_won}</div>
-                  </TableCell>
-                  <TableCell>
-                    {user.is_banned ? (
-                      <Badge variant="destructive" className="bg-red-600">
-                        Banned
-                      </Badge>
-                    ) : (
-                      <Badge variant="secondary" className="bg-green-600">
-                        Active
-                      </Badge>
+                      <ExternalLink className="w-3 h-3" />
+                    </button>
+                  </div>
+                </TableCell>
+                <TableCell className="text-[hsl(var(--beta-text-primary))]">
+                  {user.riot_id || <span className="text-[hsl(var(--beta-text-muted))]">No Riot ID</span>}
+                </TableCell>
+                <TableCell className="text-[hsl(var(--beta-text-primary))]">
+                  <div className="flex flex-col gap-1">
+                    <span>{user.current_rank || 'Unranked'}</span>
+                    <span className="text-xs text-[hsl(var(--beta-text-muted))]">Weight: {user.weight_rating || 150}</span>
+                    {user.use_manual_override && (
+                      <BetaBadge variant="warning" size="sm">
+                        <Settings className="w-3 h-3 mr-1" />
+                        Override
+                      </BetaBadge>
                     )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        onClick={() => handleEditUser(user)}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <BetaBadge variant={user.role === 'admin' ? 'error' : 'default'}>
+                    {user.role}
+                  </BetaBadge>
+                </TableCell>
+                <TableCell className="text-[hsl(var(--beta-text-secondary))] text-sm">
+                  <div>W: {user.wins} L: {user.losses}</div>
+                  <div>T: {user.tournaments_played} Won: {user.tournaments_won}</div>
+                </TableCell>
+                <TableCell>
+                  {user.is_banned ? (
+                    <BetaBadge variant="error">Banned</BetaBadge>
+                  ) : (
+                    <BetaBadge variant="success">Active</BetaBadge>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-1.5">
+                    <BetaButton
+                      onClick={() => handleEditUser(user)}
+                      size="sm"
+                      variant="secondary"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </BetaButton>
+                    {user.riot_id && (
+                      <BetaButton
+                        onClick={() => handleRefreshRank(user)}
                         size="sm"
                         variant="outline"
-                        className="border-slate-600 text-white"
+                        disabled={refreshingRank === user.id}
                       >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      {user.riot_id && (
-                        <Button
-                          onClick={() => handleRefreshRank(user)}
-                          size="sm"
-                          variant="outline"
-                          disabled={refreshingRank === user.id}
-                          className="border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-white"
-                        >
-                          <RefreshCw className={`w-4 h-4 ${refreshingRank === user.id ? 'animate-spin' : ''}`} />
-                        </Button>
-                      )}
-                      {user.is_banned ? (
-                        <Button
-                          onClick={() => handleUnbanUser(user)}
-                          size="sm"
-                          variant="outline"
-                          className="border-green-600 text-green-400 hover:bg-green-600 hover:text-white"
-                        >
-                          <ShieldOff className="w-4 h-4" />
-                        </Button>
-                      ) : (
-                        <Button
-                          onClick={() => handleBanUser(user)}
-                          size="sm"
-                          variant="outline"
-                          className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white"
-                        >
-                          <Ban className="w-4 h-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-
-        {/* Edit User Dialog with Enhanced Manual Override Section */}
-        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-          <DialogContent className="bg-slate-800 border-slate-700 max-w-4xl max-h-[95vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="text-white">Edit User</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-6">
-              {/* Basic User Info Section */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-white border-b border-slate-600 pb-2">Basic Information</h3>
-                
-                <div className="space-y-2">
-                  <Label className="text-white">Discord Username</Label>
-                  <Input
-                    value={editingUser?.discord_username || ''}
-                    disabled
-                    className="bg-slate-600 border-slate-500 text-slate-400"
-                    placeholder="Cannot be edited - managed by Discord OAuth"
-                  />
-                  <p className="text-xs text-slate-400">Discord username is managed automatically and cannot be changed manually.</p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-white">Current Rank & Weight</Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      value={`${editingUser?.current_rank || 'Unranked'} (Weight: ${editingUser?.weight_rating || 150})`}
-                      disabled
-                      className="bg-slate-600 border-slate-500 text-slate-400 flex-1"
-                    />
-                    {editingUser?.riot_id && (
-                      <Button
-                        onClick={() => editingUser && handleRefreshRank(editingUser)}
+                        <RefreshCw className={`w-4 h-4 ${refreshingRank === user.id ? 'animate-spin' : ''}`} />
+                      </BetaButton>
+                    )}
+                    {user.is_banned ? (
+                      <BetaButton
+                        onClick={() => handleUnbanUser(user)}
                         size="sm"
-                        disabled={refreshingRank === editingUser?.id}
-                        className="bg-blue-600 hover:bg-blue-700"
+                        variant="outline"
+                        className="border-[hsl(var(--beta-success)/0.5)] text-[hsl(var(--beta-success))] hover:bg-[hsl(var(--beta-success)/0.1)]"
                       >
-                        <RefreshCw className={`w-4 h-4 mr-1 ${refreshingRank === editingUser?.id ? 'animate-spin' : ''}`} />
-                        Refresh
-                      </Button>
+                        <ShieldOff className="w-4 h-4" />
+                      </BetaButton>
+                    ) : (
+                      <BetaButton
+                        onClick={() => handleBanUser(user)}
+                        size="sm"
+                        variant="danger"
+                      >
+                        <Ban className="w-4 h-4" />
+                      </BetaButton>
+                    )}
+                    {user.role !== 'admin' && (
+                      <BetaButton
+                        onClick={() => handleDeleteUser(user)}
+                        size="sm"
+                        variant="danger"
+                        className="opacity-70 hover:opacity-100"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </BetaButton>
                     )}
                   </div>
-                  <div className="text-xs text-slate-400">
-                    <p>Peak Rank: {editingUser?.peak_rank || 'None'}</p>
-                    <p>Rank and weight are updated through the rank scraping system.</p>
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="role" className="text-white">Role</Label>
-                  <Select
-                    value={editForm.role}
-                    onValueChange={(value: 'admin' | 'player' | 'viewer') => 
-                      setEditForm(prev => ({ ...prev, role: value }))
-                    }
-                  >
-                    <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-slate-700 border-slate-600">
-                      <SelectItem value="player" className="text-white hover:bg-slate-600">Player</SelectItem>
-                      <SelectItem value="admin" className="text-white hover:bg-slate-600">Admin</SelectItem>
-                      <SelectItem value="viewer" className="text-white hover:bg-slate-600">Viewer</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="riot_id" className="text-white">Riot ID</Label>
-                  <Input
-                    id="riot_id"
-                    value={editForm.riot_id}
-                    onChange={(e) => setEditForm(prev => ({ ...prev, riot_id: e.target.value }))}
-                    className="bg-slate-700 border-slate-600 text-white"
-                    placeholder="PlayerName#TAG"
-                  />
-                  <p className="text-xs text-slate-400">Format: PlayerName#TAG (e.g., JohnDoe#1234)</p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="spendable_points" className="text-white">Achievement Points</Label>
-                  <Input
-                    id="spendable_points"
-                    type="number"
-                    min="0"
-                    value={editForm.spendable_points}
-                    onChange={(e) => setEditForm(prev => ({ ...prev, spendable_points: parseInt(e.target.value) || 0 }))}
-                    className="bg-slate-700 border-slate-600 text-white"
-                    placeholder="0"
-                  />
-                  <p className="text-xs text-slate-400">Points the user can spend in the shop</p>
-                </div>
+      {/* Edit User Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="bg-[hsl(var(--beta-surface-2))] border-[hsl(var(--beta-glass-border))] max-w-4xl max-h-[95vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-[hsl(var(--beta-text-primary))]">Edit User</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-6">
+            {/* Basic User Info Section */}
+            <div className="flex flex-col gap-4">
+              <h3 className="text-lg font-semibold text-[hsl(var(--beta-text-primary))] border-b border-[hsl(var(--beta-glass-border))] pb-2">Basic Information</h3>
+              
+              <div className="flex flex-col gap-2">
+                <Label className="text-[hsl(var(--beta-text-secondary))]">Discord Username</Label>
+                <Input
+                  value={editingUser?.discord_username || ''}
+                  disabled
+                  className="bg-[hsl(var(--beta-surface-4))] border-[hsl(var(--beta-glass-border))] text-[hsl(var(--beta-text-muted))]"
+                  placeholder="Cannot be edited - managed by Discord OAuth"
+                />
+                <p className="text-xs text-[hsl(var(--beta-text-muted))]">Discord username is managed automatically and cannot be changed manually.</p>
               </div>
 
-              {/* Manual Rank Override Section */}
-              <ManualRankOverrideSection
-                userData={{
-                  manual_rank_override: editingUser?.manual_rank_override,
-                  manual_weight_override: editingUser?.manual_weight_override,
-                  use_manual_override: editingUser?.use_manual_override,
-                  rank_override_reason: editingUser?.rank_override_reason,
-                  rank_override_set_by: editingUser?.rank_override_set_by,
-                  current_rank: editingUser?.current_rank,
-                  peak_rank: editingUser?.peak_rank,
-                  weight_rating: editingUser?.weight_rating
-                }}
-                onOverrideChange={(overrideData) => setManualOverrideForm(overrideData)}
-                onPeakRankChange={(peakRank) => setEditForm(prev => ({ ...prev, peak_rank: peakRank }))}
-              />
-
-              {/* Profile Section */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-white border-b border-slate-600 pb-2">Profile Information</h3>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="bio" className="text-white">Bio</Label>
-                  <Textarea
-                    id="bio"
-                    value={editForm.bio}
-                    onChange={(e) => setEditForm(prev => ({ ...prev, bio: e.target.value }))}
-                    className="bg-slate-700 border-slate-600 text-white"
-                    placeholder="User biography..."
-                    rows={3}
+              <div className="flex flex-col gap-2">
+                <Label className="text-[hsl(var(--beta-text-secondary))]">Current Rank & Weight</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={`${editingUser?.current_rank || 'Unranked'} (Weight: ${editingUser?.weight_rating || 150})`}
+                    disabled
+                    className="bg-[hsl(var(--beta-surface-4))] border-[hsl(var(--beta-glass-border))] text-[hsl(var(--beta-text-muted))] flex-1"
                   />
+                  {editingUser?.riot_id && (
+                    <BetaButton
+                      onClick={() => editingUser && handleRefreshRank(editingUser)}
+                      size="sm"
+                      variant="outline"
+                      disabled={refreshingRank === editingUser?.id}
+                    >
+                      <RefreshCw className={`w-4 h-4 mr-1 ${refreshingRank === editingUser?.id ? 'animate-spin' : ''}`} />
+                      Refresh
+                    </BetaButton>
+                  )}
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="twitter_handle" className="text-white">Twitter Handle</Label>
-                    <Input
-                      id="twitter_handle"
-                      value={editForm.twitter_handle}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, twitter_handle: e.target.value }))}
-                      className="bg-slate-700 border-slate-600 text-white"
-                      placeholder="username (without @)"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="twitch_handle" className="text-white">Twitch Handle</Label>
-                    <Input
-                      id="twitch_handle"
-                      value={editForm.twitch_handle}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, twitch_handle: e.target.value }))}
-                      className="bg-slate-700 border-slate-600 text-white"
-                      placeholder="username"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="profile_visibility" className="text-white">Profile Visibility</Label>
-                  <Select
-                    value={editForm.profile_visibility}
-                    onValueChange={(value) => 
-                      setEditForm(prev => ({ ...prev, profile_visibility: value }))
-                    }
-                  >
-                    <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-slate-700 border-slate-600">
-                      <SelectItem value="public" className="text-white hover:bg-slate-600">Public</SelectItem>
-                      <SelectItem value="private" className="text-white hover:bg-slate-600">Private</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="text-xs text-[hsl(var(--beta-text-muted))]">
+                  <p>Peak Rank: {editingUser?.peak_rank || 'None'}</p>
+                  <p>Rank and weight are updated through the rank scraping system.</p>
                 </div>
               </div>
               
-              <div className="flex justify-end gap-2 pt-4 border-t border-slate-600">
-                <Button
-                  variant="outline"
-                  onClick={() => setEditDialogOpen(false)}
-                  className="border-slate-600 text-slate-300"
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="role" className="text-[hsl(var(--beta-text-secondary))]">Role</Label>
+                <Select
+                  value={editForm.role}
+                  onValueChange={(value: 'admin' | 'player' | 'viewer') => 
+                    setEditForm(prev => ({ ...prev, role: value }))
+                  }
                 >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleUpdateUser}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  Update User
-                </Button>
+                  <SelectTrigger className="bg-[hsl(var(--beta-surface-3))] border-[hsl(var(--beta-glass-border))] text-[hsl(var(--beta-text-primary))]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[hsl(var(--beta-surface-3))] border-[hsl(var(--beta-glass-border))]">
+                    <SelectItem value="player" className="text-[hsl(var(--beta-text-primary))] hover:bg-[hsl(var(--beta-surface-4))]">Player</SelectItem>
+                    <SelectItem value="admin" className="text-[hsl(var(--beta-text-primary))] hover:bg-[hsl(var(--beta-surface-4))]">Admin</SelectItem>
+                    <SelectItem value="viewer" className="text-[hsl(var(--beta-text-primary))] hover:bg-[hsl(var(--beta-surface-4))]">Viewer</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            </div>
-          </DialogContent>
-        </Dialog>
 
-        {/* Ban User Dialog */}
-        <Dialog open={banDialogOpen} onOpenChange={setBanDialogOpen}>
-          <DialogContent className="bg-slate-800 border-slate-700">
-            <DialogHeader>
-              <DialogTitle className="text-white">Ban User</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="ban_reason" className="text-white">Ban Reason</Label>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="riot_id" className="text-[hsl(var(--beta-text-secondary))]">Riot ID</Label>
                 <Input
-                  id="ban_reason"
-                  value={banForm.reason}
-                  onChange={(e) => setBanForm(prev => ({ ...prev, reason: e.target.value }))}
-                  className="bg-slate-700 border-slate-600 text-white"
-                  placeholder="Reason for ban..."
-                  required
+                  id="riot_id"
+                  value={editForm.riot_id}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, riot_id: e.target.value }))}
+                  className="bg-[hsl(var(--beta-surface-3))] border-[hsl(var(--beta-glass-border))] text-[hsl(var(--beta-text-primary))]"
+                  placeholder="PlayerName#TAG"
                 />
+                <p className="text-xs text-[hsl(var(--beta-text-muted))]">Format: PlayerName#TAG (e.g., JohnDoe#1234)</p>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="ban_expires" className="text-white">Ban Expires (Optional)</Label>
+
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="spendable_points" className="text-[hsl(var(--beta-text-secondary))]">Achievement Points</Label>
                 <Input
-                  id="ban_expires"
-                  type="datetime-local"
-                  value={banForm.expires_at}
-                  onChange={(e) => setBanForm(prev => ({ ...prev, expires_at: e.target.value }))}
-                  className="bg-slate-700 border-slate-600 text-white"
+                  id="spendable_points"
+                  type="number"
+                  min="0"
+                  value={editForm.spendable_points}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, spendable_points: parseInt(e.target.value) || 0 }))}
+                  className="bg-[hsl(var(--beta-surface-3))] border-[hsl(var(--beta-glass-border))] text-[hsl(var(--beta-text-primary))]"
+                  placeholder="0"
                 />
-              </div>
-              <div className="flex justify-end gap-2 pt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setBanDialogOpen(false)}
-                  className="border-slate-600 text-slate-300"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleExecuteBan}
-                  className="bg-red-600 hover:bg-red-700"
-                >
-                  Ban User
-                </Button>
+                <p className="text-xs text-[hsl(var(--beta-text-muted))]">Points the user can spend in the shop</p>
               </div>
             </div>
-          </DialogContent>
-        </Dialog>
-      </CardContent>
-    </Card>
+
+            {/* Manual Rank Override Section */}
+            <ManualRankOverrideSection
+              userData={{
+                manual_rank_override: editingUser?.manual_rank_override,
+                manual_weight_override: editingUser?.manual_weight_override,
+                use_manual_override: editingUser?.use_manual_override,
+                rank_override_reason: editingUser?.rank_override_reason,
+                rank_override_set_by: editingUser?.rank_override_set_by,
+                current_rank: editingUser?.current_rank,
+                peak_rank: editingUser?.peak_rank,
+                weight_rating: editingUser?.weight_rating
+              }}
+              onOverrideChange={(overrideData) => setManualOverrideForm(overrideData)}
+              onPeakRankChange={(peakRank) => setEditForm(prev => ({ ...prev, peak_rank: peakRank }))}
+            />
+
+            {/* Profile Section */}
+            <div className="flex flex-col gap-4">
+              <h3 className="text-lg font-semibold text-[hsl(var(--beta-text-primary))] border-b border-[hsl(var(--beta-glass-border))] pb-2">Profile Information</h3>
+              
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="bio" className="text-[hsl(var(--beta-text-secondary))]">Bio</Label>
+                <Textarea
+                  id="bio"
+                  value={editForm.bio}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, bio: e.target.value }))}
+                  className="bg-[hsl(var(--beta-surface-3))] border-[hsl(var(--beta-glass-border))] text-[hsl(var(--beta-text-primary))]"
+                  placeholder="User biography..."
+                  rows={3}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="twitter_handle" className="text-[hsl(var(--beta-text-secondary))]">Twitter Handle</Label>
+                  <Input
+                    id="twitter_handle"
+                    value={editForm.twitter_handle}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, twitter_handle: e.target.value }))}
+                    className="bg-[hsl(var(--beta-surface-3))] border-[hsl(var(--beta-glass-border))] text-[hsl(var(--beta-text-primary))]"
+                    placeholder="username (without @)"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="twitch_handle" className="text-[hsl(var(--beta-text-secondary))]">Twitch Handle</Label>
+                  <Input
+                    id="twitch_handle"
+                    value={editForm.twitch_handle}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, twitch_handle: e.target.value }))}
+                    className="bg-[hsl(var(--beta-surface-3))] border-[hsl(var(--beta-glass-border))] text-[hsl(var(--beta-text-primary))]"
+                    placeholder="username"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="profile_visibility" className="text-[hsl(var(--beta-text-secondary))]">Profile Visibility</Label>
+                <Select
+                  value={editForm.profile_visibility}
+                  onValueChange={(value) => 
+                    setEditForm(prev => ({ ...prev, profile_visibility: value }))
+                  }
+                >
+                  <SelectTrigger className="bg-[hsl(var(--beta-surface-3))] border-[hsl(var(--beta-glass-border))] text-[hsl(var(--beta-text-primary))]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[hsl(var(--beta-surface-3))] border-[hsl(var(--beta-glass-border))]">
+                    <SelectItem value="public" className="text-[hsl(var(--beta-text-primary))] hover:bg-[hsl(var(--beta-surface-4))]">Public</SelectItem>
+                    <SelectItem value="private" className="text-[hsl(var(--beta-text-primary))] hover:bg-[hsl(var(--beta-surface-4))]">Private</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div className="flex justify-end gap-2 pt-4 border-t border-[hsl(var(--beta-glass-border))]">
+              <BetaButton
+                variant="secondary"
+                onClick={() => setEditDialogOpen(false)}
+              >
+                Cancel
+              </BetaButton>
+              <BetaButton
+                variant="primary"
+                onClick={handleUpdateUser}
+              >
+                Update User
+              </BetaButton>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Ban User Dialog */}
+      <Dialog open={banDialogOpen} onOpenChange={setBanDialogOpen}>
+        <DialogContent className="bg-[hsl(var(--beta-surface-2))] border-[hsl(var(--beta-glass-border))]">
+          <DialogHeader>
+            <DialogTitle className="text-[hsl(var(--beta-text-primary))]">Ban User</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="ban_reason" className="text-[hsl(var(--beta-text-secondary))]">Ban Reason</Label>
+              <Input
+                id="ban_reason"
+                value={banForm.reason}
+                onChange={(e) => setBanForm(prev => ({ ...prev, reason: e.target.value }))}
+                className="bg-[hsl(var(--beta-surface-3))] border-[hsl(var(--beta-glass-border))] text-[hsl(var(--beta-text-primary))]"
+                placeholder="Reason for ban..."
+                required
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="ban_expires" className="text-[hsl(var(--beta-text-secondary))]">Ban Expires (Optional)</Label>
+              <Input
+                id="ban_expires"
+                type="datetime-local"
+                value={banForm.expires_at}
+                onChange={(e) => setBanForm(prev => ({ ...prev, expires_at: e.target.value }))}
+                className="bg-[hsl(var(--beta-surface-3))] border-[hsl(var(--beta-glass-border))] text-[hsl(var(--beta-text-primary))]"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-4">
+              <BetaButton
+                variant="secondary"
+                onClick={() => setBanDialogOpen(false)}
+              >
+                Cancel
+              </BetaButton>
+              <BetaButton
+                variant="danger"
+                onClick={handleExecuteBan}
+              >
+                Ban User
+              </BetaButton>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete User Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="bg-[hsl(var(--beta-surface-2))] border-[hsl(var(--beta-error)/0.3)]">
+          <DialogHeader>
+            <DialogTitle className="text-[hsl(var(--beta-error))] flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5" />
+              Delete User Permanently
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-4">
+            <div className="bg-[hsl(var(--beta-error)/0.1)] border border-[hsl(var(--beta-error)/0.3)] rounded-[var(--beta-radius-md)] p-4">
+              <p className="text-[hsl(var(--beta-text-primary))] text-sm font-medium mb-2">
+                You are about to permanently delete:
+              </p>
+              <p className="text-[hsl(var(--beta-accent))] font-semibold">
+                {editingUser?.discord_username || 'Unknown User'}
+              </p>
+              {editingUser?.riot_id && (
+                <p className="text-[hsl(var(--beta-text-muted))] text-sm">{editingUser.riot_id}</p>
+              )}
+            </div>
+            <p className="text-[hsl(var(--beta-text-secondary))] text-sm leading-relaxed">
+              This action <span className="text-[hsl(var(--beta-error))] font-semibold">cannot be undone</span>. 
+              All associated data including tournament signups, team memberships, stats, and notifications will be permanently removed.
+            </p>
+            <div className="flex justify-end gap-2 pt-4 border-t border-[hsl(var(--beta-glass-border))]">
+              <BetaButton
+                variant="secondary"
+                onClick={() => setDeleteDialogOpen(false)}
+                disabled={deletingUser}
+              >
+                Cancel
+              </BetaButton>
+              <BetaButton
+                variant="danger"
+                onClick={handleExecuteDelete}
+                isLoading={deletingUser}
+                disabled={deletingUser}
+              >
+                <Trash2 className="w-4 h-4 mr-1" />
+                Delete Permanently
+              </BetaButton>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </GlassCard>
   );
 };
 
