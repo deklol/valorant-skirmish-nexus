@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { BetaButton } from "@/components-beta/ui-beta/BetaButton";
+import { BetaBadge } from "@/components-beta/ui-beta/BetaBadge";
+import { GlassCard } from "@/components-beta/ui-beta/GlassCard";
 import { X, ChevronLeft, ChevronRight, SkipForward } from "lucide-react";
 import { OnboardingStep } from './OnboardingSystem';
 
@@ -32,7 +32,6 @@ const TutorialOverlay = ({
         const rect = element.getBoundingClientRect();
         setHighlightRect(rect);
         
-        // Scroll element into view
         element.scrollIntoView({ 
           behavior: 'smooth', 
           block: 'center' 
@@ -68,46 +67,44 @@ const TutorialOverlay = ({
             top: highlightRect.top - 4,
             width: highlightRect.width + 8,
             height: highlightRect.height + 8,
-            boxShadow: '0 0 0 4px rgba(239, 68, 68, 0.5), 0 0 0 9999px rgba(0, 0, 0, 0.7)',
-            borderRadius: '8px'
+            boxShadow: '0 0 0 4px hsl(38 92% 50% / 0.5), 0 0 0 9999px rgba(0, 0, 0, 0.7)',
+            borderRadius: 'var(--beta-radius-lg, 12px)'
           }}
         />
       )}
 
       {/* Tutorial Card */}
       <div className="fixed inset-4 z-[52] flex items-center justify-center pointer-events-none">
-        <Card className="bg-slate-800 border-slate-600 max-w-md w-full mx-4 pointer-events-auto animate-scale-in">
-          <CardHeader className="pb-4">
+        <GlassCard variant="strong" className="max-w-md w-full mx-4 pointer-events-auto animate-scale-in">
+          {/* Header */}
+          <div className="flex flex-col gap-3 pb-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Badge variant="secondary" className="bg-red-600/20 text-red-400">
+                <BetaBadge variant="accent">
                   Step {currentStep + 1} of {steps.length}
-                </Badge>
-                <Button
-                  variant="ghost"
-                  size="sm"
+                </BetaBadge>
+                <button
                   onClick={onSkip}
-                  className="text-slate-400 hover:text-white p-2"
+                  className="text-[hsl(var(--beta-text-muted))] hover:text-[hsl(var(--beta-text-primary))] p-2 rounded-[var(--beta-radius-md)] transition-colors"
                 >
                   <SkipForward className="w-4 h-4" />
-                </Button>
+                </button>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
+              <button
                 onClick={onSkip}
-                className="text-slate-400 hover:text-white p-2"
+                className="text-[hsl(var(--beta-text-muted))] hover:text-[hsl(var(--beta-text-primary))] p-2 rounded-[var(--beta-radius-md)] transition-colors"
               >
                 <X className="w-4 h-4" />
-              </Button>
+              </button>
             </div>
-            <CardTitle className="text-white text-lg">
+            <h3 className="text-[hsl(var(--beta-text-primary))] text-lg font-semibold">
               {step.title}
-            </CardTitle>
-          </CardHeader>
+            </h3>
+          </div>
           
-          <CardContent className="space-y-6">
-            <p className="text-slate-300 leading-relaxed">
+          {/* Content */}
+          <div className="flex flex-col gap-5">
+            <p className="text-[hsl(var(--beta-text-secondary))] leading-relaxed">
               {step.description}
             </p>
 
@@ -118,8 +115,8 @@ const TutorialOverlay = ({
                   key={index}
                   className={`h-2 flex-1 rounded-full transition-colors ${
                     index <= currentStep 
-                      ? 'bg-red-500' 
-                      : 'bg-slate-600'
+                      ? 'bg-[hsl(var(--beta-accent))]' 
+                      : 'bg-[hsl(var(--beta-surface-4))]'
                   }`}
                 />
               ))}
@@ -127,46 +124,45 @@ const TutorialOverlay = ({
 
             {/* Navigation Buttons */}
             <div className="flex items-center justify-between gap-3">
-              <Button
-                variant="outline"
+              <BetaButton
+                variant="secondary"
                 onClick={onPrevious}
                 disabled={isFirstStep}
-                className="border-slate-600 text-slate-300 hover:bg-slate-700 disabled:opacity-50"
               >
                 <ChevronLeft className="w-4 h-4 mr-1" />
                 Previous
-              </Button>
+              </BetaButton>
 
               <div className="flex gap-2">
-                <Button
+                <BetaButton
                   variant="ghost"
                   onClick={onSkip}
-                  className="text-slate-400 hover:text-white"
                 >
                   Skip Tour
-                </Button>
+                </BetaButton>
                 
-                <Button
+                <BetaButton
+                  variant="primary"
                   onClick={handleNext}
-                  className="bg-red-600 hover:bg-red-700 text-white"
                 >
                   {isLastStep ? 'Complete' : 'Next'}
                   {!isLastStep && <ChevronRight className="w-4 h-4 ml-1" />}
-                </Button>
+                </BetaButton>
               </div>
             </div>
 
             {/* Action Button (if step has one) */}
             {step.action && (
-              <Button
+              <BetaButton
                 onClick={step.action}
-                className="w-full bg-blue-600 hover:bg-blue-700"
+                variant="outline"
+                className="w-full"
               >
                 Try it yourself
-              </Button>
+              </BetaButton>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </GlassCard>
       </div>
     </>
   );
