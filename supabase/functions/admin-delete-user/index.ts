@@ -117,8 +117,7 @@ Deno.serve(async (req) => {
     // 8. Tournament signups
     await adminClient.from("tournament_signups").delete().eq("user_id", user_id);
 
-    // 9. Team members (tournament teams) - nullify instead of delete to preserve match history
-    // Set user_id to null so the team member slot shows as "Deleted Player"
+    // 9. Team members (tournament teams) - nullify to preserve match history
     await adminClient.from("team_members").update({ user_id: null }).eq("user_id", user_id);
 
     // 10. Persistent team members
@@ -145,7 +144,35 @@ Deno.serve(async (req) => {
     // 17. Match result submissions (nullify submitted_by)
     await adminClient.from("match_result_submissions").update({ submitted_by: null }).eq("submitted_by", user_id);
 
-    // 18. Transfer persistent team captaincy or delete teams
+    // 18. Audit logs - nullify user_id to preserve history
+    await adminClient.from("audit_logs").update({ user_id: null }).eq("user_id", user_id);
+
+    // 19. Tournament chat messages
+    await adminClient.from("tournament_chat_messages").delete().eq("user_id", user_id);
+
+    // 20. Tournament adaptive weights
+    await adminClient.from("tournament_adaptive_weights").delete().eq("user_id", user_id);
+
+    // 21. Tournament page views - nullify
+    await adminClient.from("tournament_page_views").update({ user_id: null }).eq("user_id", user_id);
+
+    // 22. Email notification queue
+    await adminClient.from("email_notification_queue").delete().eq("user_id", user_id);
+
+    // 23. Map veto actions (performed_by)
+    await adminClient.from("map_veto_actions").update({ performed_by: null }).eq("performed_by", user_id);
+
+    // 24. Announcements (created_by)
+    await adminClient.from("announcements").update({ created_by: null }).eq("created_by", user_id);
+
+    // 25. Persistent team invites (invited_by)
+    await adminClient.from("persistent_team_invites").delete().eq("invited_by", user_id);
+
+    // 26. Team session modifications
+    await adminClient.from("team_session_modifications").delete().eq("affected_user_id", user_id);
+    await adminClient.from("team_session_modifications").delete().eq("admin_user_id", user_id);
+
+    // 27. Transfer persistent team captaincy or delete teams
     const { data: captainedTeams } = await adminClient
       .from("persistent_teams")
       .select("id")
@@ -153,7 +180,6 @@ Deno.serve(async (req) => {
 
     if (captainedTeams && captainedTeams.length > 0) {
       for (const team of captainedTeams) {
-        // Try to find another member to promote
         const { data: otherMember } = await adminClient
           .from("persistent_team_members")
           .select("user_id")
@@ -168,13 +194,27 @@ Deno.serve(async (req) => {
             owner_id: otherMember.user_id
           }).eq("id", team.id);
         } else {
-          // No other members, disband team
           await adminClient.from("persistent_team_invites").delete().eq("team_id", team.id);
           await adminClient.from("team_tournament_registrations").delete().eq("team_id", team.id);
           await adminClient.from("persistent_teams").delete().eq("id", team.id);
         }
       }
     }
+
+    // 28. Nullify tournament created_by references
+    await adminClient.from("tournaments").update({ created_by: null }).eq("created_by", user_id);
+
+    // 29. Nullify maps created_by
+    await adminClient.from("maps").update({ created_by: null }).eq("created_by", user_id);
+
+    // 30. Nullify phantom_players created_by
+    await adminClient.from("phantom_players").update({ created_by: null }).eq("created_by", user_id);
+
+    // 31. Shop items created_by
+    await adminClient.from("shop_items").update({ created_by: null }).eq("created_by", user_id);
+
+    // 32. Teams captain_id (tournament teams)
+    await adminClient.from("teams").update({ captain_id: null }).eq("captain_id", user_id);
 
     console.log(`Cascading cleanup complete. Deleting user record...`);
 
