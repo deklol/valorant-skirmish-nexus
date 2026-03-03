@@ -70,9 +70,9 @@ const TournamentWinnerDisplay = ({ tournamentId, tournamentStatus }: TournamentW
             teamId: finalMatch.winner_id,
             teamName: finalMatch.teams.name,
             members: teamMembers.map(tm => ({
-              id: tm.users?.id || '',
-              discord_username: tm.users?.discord_username || 'Unknown',
-              current_rank: tm.users?.current_rank || 'Unranked'
+              id: tm.users?.id || 'deleted',
+              discord_username: tm.users?.discord_username || 'Deleted Player',
+              current_rank: tm.users?.current_rank || 'N/A'
             }))
           });
         }
