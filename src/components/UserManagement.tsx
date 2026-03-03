@@ -68,8 +68,15 @@ const UserManagement = () => {
     twitch_handle: '',
     profile_visibility: 'public',
     riot_id: '',
+    discord_username: '',
     spendable_points: 0,
-    peak_rank: null as string | null
+    peak_rank: null as string | null,
+    current_rank: null as string | null,
+    weight_rating: 150,
+    wins: 0,
+    losses: 0,
+    tournaments_played: 0,
+    tournaments_won: 0,
   });
   const [manualOverrideForm, setManualOverrideForm] = useState({
     manual_rank_override: null as string | null,
@@ -169,8 +176,15 @@ const UserManagement = () => {
       twitch_handle: user.twitch_handle || '',
       profile_visibility: user.profile_visibility || 'public',
       riot_id: user.riot_id || '',
+      discord_username: user.discord_username || '',
       spendable_points: user.spendable_points || 0,
-      peak_rank: user.peak_rank
+      peak_rank: user.peak_rank,
+      current_rank: user.current_rank,
+      weight_rating: user.weight_rating || 150,
+      wins: user.wins || 0,
+      losses: user.losses || 0,
+      tournaments_played: user.tournaments_played || 0,
+      tournaments_won: user.tournaments_won || 0,
     });
     setManualOverrideForm({
       manual_rank_override: user.manual_rank_override,
@@ -194,8 +208,15 @@ const UserManagement = () => {
           twitch_handle: editForm.twitch_handle || null,
           profile_visibility: editForm.profile_visibility,
           riot_id: editForm.riot_id || null,
+          discord_username: editForm.discord_username || null,
           spendable_points: editForm.spendable_points,
           peak_rank: editForm.peak_rank,
+          current_rank: editForm.current_rank,
+          weight_rating: editForm.weight_rating,
+          wins: editForm.wins,
+          losses: editForm.losses,
+          tournaments_played: editForm.tournaments_played,
+          tournaments_won: editForm.tournaments_won,
           manual_rank_override: manualOverrideForm.manual_rank_override,
           manual_weight_override: manualOverrideForm.manual_weight_override,
           use_manual_override: manualOverrideForm.use_manual_override,
@@ -534,38 +555,49 @@ const UserManagement = () => {
               <div className="flex flex-col gap-2">
                 <Label className="text-[hsl(var(--beta-text-secondary))]">Discord Username</Label>
                 <Input
-                  value={editingUser?.discord_username || ''}
-                  disabled
-                  className="bg-[hsl(var(--beta-surface-4))] border-[hsl(var(--beta-glass-border))] text-[hsl(var(--beta-text-muted))]"
-                  placeholder="Cannot be edited - managed by Discord OAuth"
+                  value={editForm.discord_username}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, discord_username: e.target.value }))}
+                  className="bg-[hsl(var(--beta-surface-3))] border-[hsl(var(--beta-glass-border))] text-[hsl(var(--beta-text-primary))]"
+                  placeholder="Discord username"
                 />
-                <p className="text-xs text-[hsl(var(--beta-text-muted))]">Discord username is managed automatically and cannot be changed manually.</p>
+                <p className="text-xs text-[hsl(var(--beta-text-muted))]">Admin override — normally managed by Discord OAuth.</p>
               </div>
 
-              <div className="flex flex-col gap-2">
-                <Label className="text-[hsl(var(--beta-text-secondary))]">Current Rank & Weight</Label>
-                <div className="flex items-center gap-2">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-2">
+                  <Label className="text-[hsl(var(--beta-text-secondary))]">Current Rank</Label>
                   <Input
-                    value={`${editingUser?.current_rank || 'Unranked'} (Weight: ${editingUser?.weight_rating || 150})`}
-                    disabled
-                    className="bg-[hsl(var(--beta-surface-4))] border-[hsl(var(--beta-glass-border))] text-[hsl(var(--beta-text-muted))] flex-1"
+                    value={editForm.current_rank || ''}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, current_rank: e.target.value || null }))}
+                    className="bg-[hsl(var(--beta-surface-3))] border-[hsl(var(--beta-glass-border))] text-[hsl(var(--beta-text-primary))]"
+                    placeholder="e.g. Diamond 2"
                   />
-                  {editingUser?.riot_id && (
-                    <BetaButton
-                      onClick={() => editingUser && handleRefreshRank(editingUser)}
-                      size="sm"
-                      variant="outline"
-                      disabled={refreshingRank === editingUser?.id}
-                    >
-                      <RefreshCw className={`w-4 h-4 mr-1 ${refreshingRank === editingUser?.id ? 'animate-spin' : ''}`} />
-                      Refresh
-                    </BetaButton>
-                  )}
                 </div>
-                <div className="text-xs text-[hsl(var(--beta-text-muted))]">
-                  <p>Peak Rank: {editingUser?.peak_rank || 'None'}</p>
-                  <p>Rank and weight are updated through the rank scraping system.</p>
+                <div className="flex flex-col gap-2">
+                  <Label className="text-[hsl(var(--beta-text-secondary))]">Weight Rating</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={editForm.weight_rating}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, weight_rating: parseInt(e.target.value) || 0 }))}
+                    className="bg-[hsl(var(--beta-surface-3))] border-[hsl(var(--beta-glass-border))] text-[hsl(var(--beta-text-primary))]"
+                    placeholder="150"
+                  />
                 </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {editingUser?.riot_id && (
+                  <BetaButton
+                    onClick={() => editingUser && handleRefreshRank(editingUser)}
+                    size="sm"
+                    variant="outline"
+                    disabled={refreshingRank === editingUser?.id}
+                  >
+                    <RefreshCw className={`w-4 h-4 mr-1 ${refreshingRank === editingUser?.id ? 'animate-spin' : ''}`} />
+                    Auto-Refresh from Riot API
+                  </BetaButton>
+                )}
+                <p className="text-xs text-[hsl(var(--beta-text-muted))]">Peak: {editingUser?.peak_rank || 'None'}</p>
               </div>
               
               <div className="flex flex-col gap-2">
@@ -612,6 +644,52 @@ const UserManagement = () => {
                 />
                 <p className="text-xs text-[hsl(var(--beta-text-muted))]">Points the user can spend in the shop</p>
               </div>
+
+              {/* Statistics Section */}
+              <h3 className="text-lg font-semibold text-[hsl(var(--beta-text-primary))] border-b border-[hsl(var(--beta-glass-border))] pb-2 mt-2">Statistics (Admin Override)</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="flex flex-col gap-1">
+                  <Label className="text-[hsl(var(--beta-text-secondary))] text-xs">Wins</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={editForm.wins}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, wins: parseInt(e.target.value) || 0 }))}
+                    className="bg-[hsl(var(--beta-surface-3))] border-[hsl(var(--beta-glass-border))] text-[hsl(var(--beta-text-primary))]"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label className="text-[hsl(var(--beta-text-secondary))] text-xs">Losses</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={editForm.losses}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, losses: parseInt(e.target.value) || 0 }))}
+                    className="bg-[hsl(var(--beta-surface-3))] border-[hsl(var(--beta-glass-border))] text-[hsl(var(--beta-text-primary))]"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label className="text-[hsl(var(--beta-text-secondary))] text-xs">Tournaments Played</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={editForm.tournaments_played}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, tournaments_played: parseInt(e.target.value) || 0 }))}
+                    className="bg-[hsl(var(--beta-surface-3))] border-[hsl(var(--beta-glass-border))] text-[hsl(var(--beta-text-primary))]"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label className="text-[hsl(var(--beta-text-secondary))] text-xs">Tournaments Won</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={editForm.tournaments_won}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, tournaments_won: parseInt(e.target.value) || 0 }))}
+                    className="bg-[hsl(var(--beta-surface-3))] border-[hsl(var(--beta-glass-border))] text-[hsl(var(--beta-text-primary))]"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-[hsl(var(--beta-text-muted))]">⚠️ These are normally auto-calculated. Only override if correcting bad data.</p>
             </div>
 
             {/* Manual Rank Override Section */}

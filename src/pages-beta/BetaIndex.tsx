@@ -317,7 +317,7 @@ const BetaIndex = () => {
           .select("id, name")
           .eq("status", "completed")
           .order("start_time", { ascending: false })
-          .limit(3);
+          .limit(5);
 
         if (completedTournaments) {
           const winnersWithTeams: RecentWinner[] = [];

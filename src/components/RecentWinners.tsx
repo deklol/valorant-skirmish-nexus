@@ -55,9 +55,9 @@ export default function RecentWinners() {
           .eq("team_id", team.id);
 
         const memberList = (members || []).map((m: any) => ({
-          id: m.users?.id ?? "",
-          discord_username: m.users?.discord_username ?? "Unknown",
-          current_rank: m.users?.current_rank ?? "Unranked"
+          id: m.users?.id ?? "deleted",
+          discord_username: m.users?.discord_username ?? "Deleted Player",
+          current_rank: m.users?.current_rank ?? "N/A"
         }));
 
         result.push({
