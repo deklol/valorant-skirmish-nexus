@@ -141,8 +141,8 @@ Deno.serve(async (req) => {
     // 16. Quick match queue
     await adminClient.from("quick_match_queue").delete().eq("user_id", user_id);
 
-    // 17. Match result submissions (nullify submitted_by)
-    await adminClient.from("match_result_submissions").update({ submitted_by: null }).eq("submitted_by", user_id);
+    // 17. Match result submissions (submitted_by is NOT NULL, so delete instead)
+    await adminClient.from("match_result_submissions").delete().eq("submitted_by", user_id);
 
     // 18. Audit logs - nullify user_id to preserve history
     await adminClient.from("audit_logs").update({ user_id: null }).eq("user_id", user_id);

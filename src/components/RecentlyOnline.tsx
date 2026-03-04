@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Circle, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
@@ -50,88 +49,55 @@ const RecentlyOnline = () => {
 
   if (loading) {
     return (
-      <Card className="bg-slate-800 border-slate-700">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-white flex items-center gap-2 text-lg">
-            <Clock className="w-4 h-4 text-emerald-400" />
-            Recently Online
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-slate-400 text-sm text-center py-2">Loading...</div>
-        </CardContent>
-      </Card>
+      <div className="flex items-center gap-2 text-sm text-[hsl(var(--beta-text-secondary))]">
+        <Clock className="w-3.5 h-3.5 text-[hsl(var(--beta-accent))]" />
+        <span>Recently Online</span>
+        <span className="text-xs">Loading...</span>
+      </div>
     );
   }
 
-  if (users.length === 0) {
-    return (
-      <Card className="bg-slate-800 border-slate-700">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-white flex items-center gap-2 text-lg">
-            <Clock className="w-4 h-4 text-emerald-400" />
-            Recently Online
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-slate-400 text-sm text-center py-2">No recent activity</div>
-        </CardContent>
-      </Card>
-    );
-  }
+  if (users.length === 0) return null;
 
   return (
-    <Card className="bg-slate-800 border-slate-700">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-white flex items-center gap-2 text-lg">
-          <Clock className="w-4 h-4 text-emerald-400" />
-          Recently Online
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <div className="flex flex-col gap-2">
-          {users.map((user) => {
-            const online = isOnlineNow(user.last_seen);
-            return (
-              <Link
-                key={user.id}
-                to={`/profile/${user.id}`}
-                className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-700/50 transition-colors"
-              >
-                <div className="relative">
-                  {user.discord_avatar_url ? (
-                    <img
-                      src={user.discord_avatar_url}
-                      alt={user.discord_username}
-                      className="w-8 h-8 rounded-full"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center text-slate-300 text-xs font-bold">
-                      {user.discord_username.charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                  <Circle
-                    className={`w-3 h-3 absolute -bottom-0.5 -right-0.5 ${
-                      online ? "text-emerald-400 fill-emerald-400" : "text-slate-500 fill-slate-500"
-                    }`}
+    <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex items-center gap-1.5 text-sm text-[hsl(var(--beta-text-secondary))]">
+        <Clock className="w-3.5 h-3.5 text-[hsl(var(--beta-accent))]" />
+        <span className="font-medium">Online</span>
+      </div>
+      <div className="flex items-center gap-1">
+        {users.map((user) => {
+          const online = isOnlineNow(user.last_seen);
+          return (
+            <Link
+              key={user.id}
+              to={`/profile/${user.id}`}
+              className="relative group"
+              title={`${user.discord_username} — ${online ? "Online now" : formatDistanceToNow(new Date(user.last_seen), { addSuffix: true })}`}
+            >
+              <div className="relative">
+                {user.discord_avatar_url ? (
+                  <img
+                    src={user.discord_avatar_url}
+                    alt={user.discord_username}
+                    className="w-8 h-8 rounded-full border-2 border-[hsl(var(--beta-glass-border))] group-hover:border-[hsl(var(--beta-accent))] transition-colors"
                   />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-white text-sm font-medium truncate">
-                    <StyledUsername username={user.discord_username} userId={user.id} />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-[hsl(var(--beta-surface-2))] border-2 border-[hsl(var(--beta-glass-border))] group-hover:border-[hsl(var(--beta-accent))] flex items-center justify-center text-[hsl(var(--beta-text-secondary))] text-xs font-bold transition-colors">
+                    {user.discord_username.charAt(0).toUpperCase()}
                   </div>
-                  <div className="text-slate-400 text-xs">
-                    {online
-                      ? "Online now"
-                      : formatDistanceToNow(new Date(user.last_seen), { addSuffix: true })}
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      </CardContent>
-    </Card>
+                )}
+                <Circle
+                  className={`w-2.5 h-2.5 absolute -bottom-0.5 -right-0.5 ${
+                    online ? "text-emerald-400 fill-emerald-400" : "text-[hsl(var(--beta-text-muted))] fill-[hsl(var(--beta-text-muted))]"
+                  }`}
+                />
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+    </div>
   );
 };
 
