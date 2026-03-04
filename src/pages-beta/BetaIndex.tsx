@@ -191,61 +191,50 @@ const RecentlyOnlineSection = () => {
   };
 
   return (
-    <GlassCard className="p-5">
-      <div className="flex items-center gap-2 mb-4">
-        <Clock className="w-4 h-4 text-[hsl(var(--beta-accent))]" />
-        <h3 className="font-semibold text-[hsl(var(--beta-text-primary))]">Recently Online</h3>
+    <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex items-center gap-1.5 text-sm text-[hsl(var(--beta-text-secondary))]">
+        <Clock className="w-3.5 h-3.5 text-[hsl(var(--beta-accent))]" />
+        <span className="font-medium">Online</span>
       </div>
       {loading ? (
-        <div className="text-center py-4">
-          <p className="text-sm text-[hsl(var(--beta-text-muted))]">Loading...</p>
-        </div>
+        <span className="text-xs text-[hsl(var(--beta-text-muted))]">Loading...</span>
       ) : users.length === 0 ? (
-        <div className="text-center py-4">
-          <p className="text-sm text-[hsl(var(--beta-text-muted))]">No recent activity</p>
-        </div>
+        <span className="text-xs text-[hsl(var(--beta-text-muted))]">No recent activity</span>
       ) : (
-        <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-1">
           {users.map((user) => {
             const online = isOnlineNow(user.last_seen);
             return (
-              <Link key={user.id} to={`/profile/${user.id}`}>
-                <div className="flex items-center gap-3 p-2 rounded-[var(--beta-radius-md)] hover:bg-[hsl(var(--beta-surface-3))] transition-colors">
-                  <div className="relative">
-                    <div className="w-8 h-8 rounded-full bg-[hsl(var(--beta-surface-4))] flex items-center justify-center overflow-hidden">
-                      {user.discord_avatar_url ? (
-                        <img src={user.discord_avatar_url} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <span className="text-sm font-bold text-[hsl(var(--beta-accent))]">
-                          {user.discord_username.charAt(0).toUpperCase()}
-                        </span>
-                      )}
-                    </div>
-                    <Circle
-                      className={`w-3 h-3 absolute -bottom-0.5 -right-0.5 ${
-                        online
-                          ? "text-emerald-400 fill-emerald-400"
-                          : "text-[hsl(var(--beta-text-muted))] fill-[hsl(var(--beta-text-muted))]"
-                      }`}
-                    />
+              <Link
+                key={user.id}
+                to={`/profile/${user.id}`}
+                className="relative group"
+                title={`${user.discord_username} — ${online ? "Online now" : formatDistanceToNow(new Date(user.last_seen), { addSuffix: true })}`}
+              >
+                <div className="relative">
+                  <div className="w-8 h-8 rounded-full bg-[hsl(var(--beta-surface-4))] border-2 border-[hsl(var(--beta-glass-border))] group-hover:border-[hsl(var(--beta-accent))] flex items-center justify-center overflow-hidden transition-colors">
+                    {user.discord_avatar_url ? (
+                      <img src={user.discord_avatar_url} alt={user.discord_username} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-xs font-bold text-[hsl(var(--beta-accent))]">
+                        {user.discord_username.charAt(0).toUpperCase()}
+                      </span>
+                    )}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-[hsl(var(--beta-text-primary))] truncate">
-                      <Username userId={user.id} username={user.discord_username} />
-                    </p>
-                    <p className="text-xs text-[hsl(var(--beta-text-muted))]">
-                      {online
-                        ? "Online now"
-                        : formatDistanceToNow(new Date(user.last_seen), { addSuffix: true })}
-                    </p>
-                  </div>
+                  <Circle
+                    className={`w-2.5 h-2.5 absolute -bottom-0.5 -right-0.5 ${
+                      online
+                        ? "text-emerald-400 fill-emerald-400"
+                        : "text-[hsl(var(--beta-text-muted))] fill-[hsl(var(--beta-text-muted))]"
+                    }`}
+                  />
                 </div>
               </Link>
             );
           })}
         </div>
       )}
-    </GlassCard>
+    </div>
   );
 };
 
