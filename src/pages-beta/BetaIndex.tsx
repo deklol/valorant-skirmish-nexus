@@ -205,12 +205,12 @@ const RecentlyOnlineSection = () => {
           <p className="text-sm text-[hsl(var(--beta-text-muted))]">No recent activity</p>
         </div>
       ) : (
-        <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-4 flex-wrap">
           {users.map((user) => {
             const online = isOnlineNow(user.last_seen);
             return (
               <Link key={user.id} to={`/profile/${user.id}`}>
-                <div className="flex items-center gap-3 p-2 rounded-[var(--beta-radius-md)] hover:bg-[hsl(var(--beta-surface-3))] transition-colors">
+                <div className="flex items-center gap-2 p-2 pr-3 rounded-full hover:bg-[hsl(var(--beta-surface-3))] transition-colors">
                   <div className="relative">
                     <div className="w-8 h-8 rounded-full bg-[hsl(var(--beta-surface-4))] flex items-center justify-center overflow-hidden">
                       {user.discord_avatar_url ? (
@@ -229,7 +229,7 @@ const RecentlyOnlineSection = () => {
                       }`}
                     />
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <div className="min-w-0">
                     <p className="text-sm font-medium text-[hsl(var(--beta-text-primary))] truncate">
                       <Username userId={user.id} username={user.discord_username} />
                     </p>
