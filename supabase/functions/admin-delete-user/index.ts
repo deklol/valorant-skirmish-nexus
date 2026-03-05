@@ -216,6 +216,9 @@ Deno.serve(async (req) => {
     // 32. Teams captain_id (tournament teams)
     await adminClient.from("teams").update({ captain_id: null }).eq("captain_id", user_id);
 
+    // 33. Valorant tracker stats
+    await adminClient.from("valorant_tracker_stats").delete().eq("user_id", user_id);
+
     console.log(`Cascading cleanup complete. Deleting user record...`);
 
     // Delete from public.users table
