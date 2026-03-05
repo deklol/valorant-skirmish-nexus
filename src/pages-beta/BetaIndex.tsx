@@ -168,7 +168,7 @@ const RecentlyOnlineSection = () => {
           .not("last_seen", "is", null)
           .eq("is_phantom", false)
           .order("last_seen", { ascending: false })
-          .limit(5);
+          .limit(8);
 
         if (error) {
           console.error("Error fetching recently online users:", error);
