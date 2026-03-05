@@ -793,7 +793,7 @@ const BetaProfile = () => {
 
         {/* Valorant Tracker.gg Stats */}
         {!isPrivate && profileId && (
-          <ValorantTrackerStatsDisplay userId={profileId} />
+          <ValorantTrackerStatsDisplay userId={profileId} storedCurrentRank={profile?.current_rank} />
         )}
 
         {/* FACEIT CS2 Stats */}
