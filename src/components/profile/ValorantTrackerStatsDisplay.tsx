@@ -22,9 +22,10 @@ import { BetaButton } from "@/components-beta/ui-beta";
 
 interface ValorantTrackerStatsDisplayProps {
   userId: string;
+  storedCurrentRank?: string;
 }
 
-const ValorantTrackerStatsDisplay = ({ userId }: ValorantTrackerStatsDisplayProps) => {
+const ValorantTrackerStatsDisplay = ({ userId, storedCurrentRank }: ValorantTrackerStatsDisplayProps) => {
   const {
     stats,
     isLoading,
@@ -146,17 +147,14 @@ const ValorantTrackerStatsDisplay = ({ userId }: ValorantTrackerStatsDisplayProp
       {/* Rank Display */}
       {(stats.current_rank || stats.peak_rank || stats.tracker_score !== null) && (
         <div className="flex items-center gap-4 mb-6 p-4 rounded-xl bg-[hsl(var(--beta-surface-3))]">
-          {/* Current Rank */}
+          {/* Current Rank (from stored user data, not tracker.gg) */}
           <div className="flex items-center gap-3 flex-1">
             <Shield className="w-8 h-8 text-[hsl(var(--beta-accent))]" />
             <div>
-              <p className="text-xs text-[hsl(var(--beta-text-muted))] uppercase tracking-wider">Current Rating</p>
+              <p className="text-xs text-[hsl(var(--beta-text-muted))] uppercase tracking-wider">Current Rank</p>
               <p className="text-xl font-bold text-[hsl(var(--beta-text-primary))]">
-                {stats.current_rank || "Unrated"}
+                {storedCurrentRank || stats.current_rank || "Unrated"}
               </p>
-              {stats.current_rr !== null && stats.current_rank !== 'Unrated' && stats.current_rank !== 'Unranked' && (
-                <p className="text-xs text-[hsl(var(--beta-text-muted))]">{stats.current_rr} RR</p>
-              )}
             </div>
           </div>
 
